@@ -1280,11 +1280,11 @@ function devAdd(b, rid) {
               if (kind === "media" && d.icon === "tv") d.sub = 1;
               devList(rid).push(d);
               /* A TV or a camera has other entities that belong to it: link what is found, and offer the setup page. */
-              var setupKind = devSetupKind(d);
-              if (setupKind) kAuto(d);
+              var setupKind = devSetupKind(d),
+                found = setupKind ? kAuto(d) : 0;
               uiChanged();
               toast(_T("added") + c.name + "”");
-              if (setupKind) showPopup("kwiz:" + rid + ":" + (devList(rid).length - 1), true);
+              if (setupKind && (found || devSetupAlways(setupKind))) showPopup("kwiz:" + rid + ":" + (devList(rid).length - 1), true);
               else list();
             },
           })

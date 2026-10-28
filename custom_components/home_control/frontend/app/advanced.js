@@ -68,9 +68,9 @@ function advList(id) {
       return (
         ((dev && e.device_id === dev) || linked.indexOf(e.entity_id) >= 0) &&
         e.entity_id !== id &&
-        ADV_DOM.test(e.entity_id) &&
+        (ADV_DOM.test(e.entity_id) || (linked.indexOf(e.entity_id) >= 0 && /^(sensor|binary_sensor)\./.test(e.entity_id))) &&
         !advLeftOut(id, e.entity_id) &&
-        e.entity_category !== "diagnostic" &&
+        (e.entity_category !== "diagnostic" || linked.indexOf(e.entity_id) >= 0) &&
         !e.hidden &&
         !e.disabled_by &&
         h.states[e.entity_id]
@@ -130,6 +130,13 @@ function advRow(eid) {
       },
     });
   }
+  if (dm === "sensor" || dm === "binary_sensor")
+    return pill("info", nm, {
+      sub: function () {
+        var v = V_(eid);
+        return gone() ? _T("unavailable") : dm === "binary_sensor" ? (v === "on" ? _T("on_cap") : _T("off")) : v + (a.unit_of_measurement ? " " + a.unit_of_measurement : "");
+      },
+    });
   if (dm === "button")
     return actionPill(
       "play",

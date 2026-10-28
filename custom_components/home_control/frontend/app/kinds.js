@@ -2,6 +2,35 @@
 
 /* A kind of device that has other entities, and what each of them is for. `domains` are the entity types that fit, `re` narrows them by name, `many` allows more than one. */
 var DEVSETUP = {
+  ac: {
+    label: "ac",
+    slots: [
+      { key: "controls", domains: ["switch", "select", "number", "button"], re: /swing|fan|display|light|sleep|quiet|eco|turbo|clean|beep|health|ion|purif|self|timer|mode/i, many: 1, hint: "ac_controls_hint" },
+      { key: "readings", domains: ["sensor", "binary_sensor"], re: /temperature|humidity|power|energy|filter|outdoor|indoor|error|defrost/i, many: 1, hint: "ac_readings_hint" },
+    ],
+  },
+  vacuum: {
+    label: "vacuum",
+    slots: [
+      { key: "rooms", domains: ["button", "select", "switch"], re: /room|zone|segment|area|map|clean|spot|dock|empty|wash|dry/i, many: 1, hint: "vacuum_rooms_hint" },
+      { key: "care", domains: ["sensor", "binary_sensor"], re: /filter|brush|mop|cloth|bin|tank|dust|water|consumable|sensor_dirty|cleaning_time|cleaned_area|error|battery/i, many: 1, hint: "vacuum_care_hint" },
+      { key: "options", domains: ["switch", "select", "number"], re: /dnd|volume|carpet|child|mop|water|suction|mode|speed|voice|led|resume|boost/i, many: 1, hint: "vacuum_options_hint" },
+    ],
+  },
+  receiver: {
+    label: "receiver",
+    slots: [
+      { key: "remote", domains: ["remote"], hint: "tv_remote_hint" },
+      { key: "sound", domains: ["select", "switch", "number"], re: /sound|mode|zone|input|eq|bass|treble|dialog|night|dynamic|surround|pure|bypass|subwoofer/i, many: 1, hint: "receiver_sound_hint" },
+    ],
+  },
+  purifier: {
+    label: "purifier",
+    slots: [
+      { key: "air", domains: ["sensor"], re: /pm|aqi|air|filter|humidity|temperature|voc|co2|odor|dust/i, many: 1, hint: "purifier_air_hint" },
+      { key: "options", domains: ["switch", "select", "number", "button"], re: /led|buzzer|child|auto|favorite|mode|level|display|alarm|reset/i, many: 1, hint: "purifier_options_hint" },
+    ],
+  },
   tv: {
     label: "tv",
     slots: [
@@ -24,8 +53,16 @@ var DEVSETUP = {
 function devSetupKind(d) {
   if (!d || !d.id) return null;
   if (d.kind === "camera") return "camera";
-  if (d.kind === "media" && d.icon === "tv") return "tv";
+  if (d.kind === "climate") return "ac";
+  if (d.kind === "vacuum") return "vacuum";
+  if (d.kind === "fan" && /purif|air/i.test(d.icon + " " + d.name + " " + d.id)) return "purifier";
+  if (d.kind === "media") return d.icon === "tv" ? "tv" : /speaker|homepod|sonos|cast|echo/i.test(d.icon + " " + d.id) ? null : "receiver";
   return null;
+}
+
+/* Whether adding a device of this kind should open its setup page straight away: a TV and a camera always (they need their remote and stream), the others only when something belongs to them. */
+function devSetupAlways(kind) {
+  return kind === "tv" || kind === "camera";
 }
 
 function kName(eid) {

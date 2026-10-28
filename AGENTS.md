@@ -8,3 +8,4 @@
 - Test dashboard changes in a sealed copy that cannot write to Home Assistant, and check that user data is unchanged.
 - No personal data in the repository: no real entity ids, names, addresses or screenshots of a real home.
 - Licence GPL-3.0-or-later; Python files start with the SPDX line. Do not publish until the owner says so.
+- Tests: `.venv/bin/python -m pytest` (the integration) and `node --test tests/frontend` (the setup logic in `frontend/app/kinds.js`).
