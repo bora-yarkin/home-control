@@ -175,7 +175,7 @@ function hsRunning() {
 /* The id Hue knows a light by: a Hue light's own id, or the one a light made of zones (Hue gradient zones) is built on. */
 function hsLightRid(id) {
   var e = (H().entities || {})[id];
-  return e && e.platform === "hue" && dom(id) === "light" ? e.unique_id : A(id).hue_light_id || null;
+  return A(id).hue_light_id || (e && e.platform === "hue" && dom(id) === "light" ? e.unique_id : null);
 }
 
 /* The Spotify sync switch that plays on light `id` (the light itself, or any member of a group), or "". */

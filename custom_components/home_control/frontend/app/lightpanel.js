@@ -1041,15 +1041,9 @@ function lpFirstMode(root, colorOk, whiteOk) {
   return on && LP_COLOUR_MODES.indexOf(A(on).color_mode) >= 0 ? "color" : "white";
 }
 
-/* The light that has the effects: a light made of zones (Hue gradient zones) is not the Hue light itself, the Hue light behind it (the one with the same bridge id) has them. */
+/* The light that has the effects: the light itself (Philips Hue Plus gives a gradient light its effects as well as its zones). */
 function lpFxLight(e) {
-  var hid = A(e).hue_light_id;
-  if (!hid) return e;
-  var reg = H().entities,
-    hit = Object.keys(reg).filter(function (k) {
-      return reg[k].platform === "hue" && reg[k].unique_id === hid && dom(k) === "light";
-    })[0];
-  return hit || e;
+  return e;
 }
 
 /* The effects of a node's lights (what Home Assistant lists for them) and the Hue scenes of its room. */
