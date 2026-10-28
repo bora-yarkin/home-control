@@ -15,7 +15,7 @@ var AMODES = ["allow", "confirm", "view", "hide"],
     hide: _T("hidden"),
   };
 
-var ADMINPOP = /^(manage|pick-|access-|scene-edit|scene-pick|live-|areas|area-edit|lpscene:|stg-|adv:|settings$)/;
+var ADMINPOP = /^(kwiz|kpick|manage|pick-|access-|scene-edit|scene-pick|live-|areas|area-edit|lpscene:|stg-|adv:|settings$)/;
 
 function cleanRule(r) {
   if (!r || AMODES.indexOf(r.m) < 0) return null;

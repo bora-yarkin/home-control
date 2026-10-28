@@ -1105,6 +1105,17 @@ function devManage(b, key) {
         );
       }
     }
+    if (devSetupKind(d))
+      box.appendChild(
+        pill("tune", _T("set_up_this_device"), {
+          sub: function () {
+            return (d.links || []).length ? _T("linked_entities") + ": " + d.links.length : _T("nothing_linked_yet");
+          },
+          tap: function () {
+            showPopup("kwiz:" + key, true);
+          },
+        })
+      );
     box.appendChild(
       pill("swap", _T("move_to_another_section"), {
         tap: function () {
@@ -1268,9 +1279,13 @@ function devAdd(b, rid) {
               var d = { id: c.id, name: c.name, icon: defIcon(kind, c.name, c.id), kind: kind };
               if (kind === "media" && d.icon === "tv") d.sub = 1;
               devList(rid).push(d);
+              /* A TV or a camera has other entities that belong to it: link what is found, and offer the setup page. */
+              var setupKind = devSetupKind(d);
+              if (setupKind) kAuto(d);
               uiChanged();
               toast(_T("added") + c.name + "”");
-              list();
+              if (setupKind) showPopup("kwiz:" + rid + ":" + (devList(rid).length - 1), true);
+              else list();
             },
           })
         );

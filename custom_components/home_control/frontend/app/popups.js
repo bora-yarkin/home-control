@@ -47,6 +47,22 @@ function popupDefBase(key) {
         advPopup(b, id);
       },
     };
+  if (k === "kwiz")
+    return {
+      title: (devAt(id) && devAt(id).name ? devAt(id).name + " · " : "") + _T("device_setup"),
+      icon: "tune",
+      build: function (b) {
+        kwizPage(b, id);
+      },
+    };
+  if (k === "kpick")
+    return {
+      title: _T("choose_an_entity"),
+      icon: "search",
+      build: function (b) {
+        kpickPage(b, id);
+      },
+    };
   if (k === "pick-pin")
     return {
       title: _T("add_to_pinned"),

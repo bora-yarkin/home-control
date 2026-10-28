@@ -32,6 +32,7 @@ var APP_FILES = [
   "app/vacuum.js",
   "app/camera.js",
   "app/advanced.js",
+  "app/kinds.js",
   "app/popups.js",
   "app/model.js",
   "app/devices.js",

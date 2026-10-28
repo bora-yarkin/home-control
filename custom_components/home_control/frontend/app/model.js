@@ -147,6 +147,13 @@ function cleanDev(d) {
   var c = { id: id, name: d.name, icon: iconOk(d.icon) ? d.icon : "plug", kind: d.kind };
   if (typeof d.pop === "string" && POPRE.test(d.pop) && d.pop) c.pop = d.pop;
   if (d.sub) c.sub = 1;
+  if (d.setup) c.setup = 1;
+  if (Array.isArray(d.links)) {
+    var ls = d.links.filter(function (x, i) {
+      return typeof x === "string" && ENTRE.test(x) && x !== id && d.links.indexOf(x) === i;
+    });
+    if (ls.length) c.links = ls.slice(0, 12);
+  }
   if (d.keep) c.keep = 1;
   if (d.hide) c.hide = 1;
   if (d.dial && d.kind === "climate") c.dial = 1;
