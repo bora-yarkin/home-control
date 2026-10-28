@@ -1,0 +1,13 @@
+{
+  "domain": "home_control",
+  "name": "Home Control",
+  "codeowners": [],
+  "config_flow": true,
+  "dependencies": ["frontend", "http", "panel_custom"],
+  "documentation": "https://github.com/",
+  "integration_type": "service",
+  "iot_class": "calculated",
+  "issue_tracker": "https://github.com/",
+  "requirements": [],
+  "version": "0.1.0"
+}

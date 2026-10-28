@@ -1,0 +1,14 @@
+{
+  "config": {
+    "step": {"user": {"title": "Home Control", "description": "Adds the Home Control dashboard to the sidebar."}},
+    "abort": {"already_configured": "Home Control is already set up."}
+  },
+  "options": {
+    "step": {
+      "init": {
+        "title": "Home Control panel",
+        "data": {"url_path": "Address (the part after / in the browser)", "title": "Sidebar title", "icon": "Sidebar icon", "admin_only": "Only administrators may open it"}
+      }
+    }
+  }
+}

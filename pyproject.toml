@@ -1,0 +1,25 @@
+[project]
+name = "home-control"
+version = "0.1.0"
+description = "Home Control: a dashboard panel for Home Assistant."
+license = "GPL-3.0-or-later"
+requires-python = ">=3.14"
+
+[dependency-groups]
+dev = ["pytest-homeassistant-custom-component", "ruff"]
+
+[tool.pytest.ini_options]
+pythonpath = ["."]
+testpaths = ["tests"]
+asyncio_mode = "auto"
+
+[tool.ruff]
+line-length = 140
+target-version = "py314"
+
+[tool.ruff.lint]
+select = ["E", "F", "I", "UP", "B", "SIM", "C4", "RUF"]
+ignore = ["E501", "RUF012", "SIM117"]
+
+[tool.ruff.lint.isort]
+known-first-party = ["custom_components"]
