@@ -2,6 +2,7 @@
 """The integration serves the dashboard's files and registers its panel."""
 
 import json
+import re
 from pathlib import Path
 
 from homeassistant.components.frontend import DATA_PANELS
@@ -53,5 +54,5 @@ async def test_the_files_are_served_and_a_reload_does_not_register_them_twice(ha
 
 def test_every_file_the_application_loads_exists():
     source = (FRONTEND / "dashboard-app.js").read_text()
-    listed = [name for name in __import__("re").findall(r'"((?:app/)?[a-z0-9_-]+\.js)"', source)]
+    listed = re.findall(r'"((?:app/)?[a-z0-9_-]+\.js)"', source)
     assert listed and all((FRONTEND / name).exists() for name in listed)
