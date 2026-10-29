@@ -186,6 +186,8 @@ var CATS = [
   ["hist", _T("history"), "stg-hist", "clock"],
   ["notify", _T("notifications"), "stg-notify", "bell"],
   ["wall", _T("wall_mode"), "stg-wall", "tv"],
+  /* Only shown when Hue Plus is installed with its bridge module. */
+  ["hue", _T("hue_plus"), "stg-hue", "lights", function () { return hpShown(); }],
   ["data", _T("backup_and_about"), "stg-data", "sd"],
 ];
 
@@ -197,6 +199,7 @@ function stgNavSub(id) {
   if (id === "dev") return _T("new_devices_and_devices_that_are_not");
   if (id === "areas") return _T("where_the_lights_are_for_live_scenes");
   if (id === "access") return _T("who_can_do_what");
+  if (id === "hue") return _T("firmware_zigbee_matter_and_apps");
   if (id === "hist") return _T("recent_activity");
   if (id === "notify") {
     var a = Object.keys(NRULES).filter(function (k) {
@@ -215,6 +218,7 @@ var STG_INDEX = [
   [_T("users_and_access"), "access users permissions confirm hide read only", "access", null],
   [_T("history"), "history log changes undo", "hist", null],
   [_T("notifications"), "notifications alerts battery offline", "notify", null],
+  [_T("hue_plus"), "hue plus bridge firmware updates zigbee matter routines automations entertainment motion lights", "hue", null],
   [_T("backup_and_about"), "backup about diagnostics", "data", null],
   [_T("automatic_backups"), "snapshots restore automatic", "data", "manage-autobackup"],
   [_T("change_log"), "changes undo who", "data", "manage-log"],
@@ -247,7 +251,9 @@ function settingsRoot(b) {
       },
     })
   );
-  CATS.forEach(function (c) {
+  CATS.filter(function (c) {
+    return !c[4] || c[4]();
+  }).forEach(function (c) {
     list.appendChild(
       pill(c[3], c[1], {
         sub: function () {
@@ -268,6 +274,7 @@ function settingsRoot(b) {
     CUR = [];
     var toks = q.split(/\s+/),
       hits = STG_INDEX.filter(function (x) {
+        if (x[2] === "hue" && !hpShown()) return false;
         var h = (x[0] + " " + x[1]).toLowerCase();
         return toks.every(function (k) {
           return h.indexOf(k) >= 0;

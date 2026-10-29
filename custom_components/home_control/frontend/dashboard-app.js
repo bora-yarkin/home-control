@@ -57,6 +57,7 @@ var APP_FILES = [
   "app/conditions.js",
   "app/access.js",
   "app/settings.js",
+  "app/hueplus.js",
   "app/history.js",
   "app/notifications.js",
   "app/manage.js",

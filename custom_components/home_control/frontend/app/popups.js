@@ -39,6 +39,14 @@ function popupDefBase(key) {
   var p = key.split(":"),
     k = p[0],
     id = p.slice(1).join(":");
+  if (HP_PAGES[k])
+    return {
+      title: _T(HP_PAGES[k][0]),
+      icon: HP_PAGES[k][1],
+      build: function (b) {
+        HP_PAGES[k][2](b, id);
+      },
+    };
   if (k === "adv")
     return {
       title: (UIDEV[id] && UIDEV[id].name ? UIDEV[id].name + " · " : "") + _T("advanced"),

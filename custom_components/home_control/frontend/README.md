@@ -119,6 +119,15 @@ the sync) and a popup, both made of the shared controls only. The user adds the 
 found by their registry `unique_id` (`<box>_syncbox_<key>`, keys: `sync`, `mode`, `source`, `intensity`, `brightness`, `hdmi_signal`; see
 `Integrations.huesyncbox`). The box's brightness runs from 0 to 200, where 100 is the lights' normal brightness.
 
+## Hue Plus in Settings (`hue_plus`, optional)
+
+`app/hueplus.js` adds the Settings category *Hue Plus*, shown only when the integration is installed with its bridge module: the bridge
+(firmware, Zigbee, Matter, authorized apps), firmware updates, each light's set-up, the bridge's routines, entertainment areas and motion
+areas. Every page is made of the shared controls (`pill`, `switchPill`, `actionPill`, `selectTile`, `confirmDlg`). Lists the bridge itself holds
+come from `hue_plus.get_resources` (`Integrations.hueplus.resources`); everything else from the integration's entities, found by their
+registry `unique_id` (`Integrations.hueplus.bridge/lights/forLight/updates`). Pages are keyed `stg-hue` and `hue-*` in `HP_PAGES`. What is
+experimental in the integration (light set-up, streaming, the end state of an area) says so on its page.
+
 ## Trying a change
 
 `tests/frontend/harness/` runs the real panel against a pretend Home Assistant that writes nothing; see its README.

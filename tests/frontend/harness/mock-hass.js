@@ -17,14 +17,16 @@ export function makeHass(query) {
   const withSync = query.get("sync") !== "0";
   const withBox = query.get("box") !== "0";
   const states = Object.fromEntries([
-    state("light.desk_lamp", "on", { friendly_name: "Desk lamp", brightness: 180, supported_color_modes: ["xy", "color_temp"], color_mode: "xy", xy_color: [0.4, 0.4], effect_list: ["off", "candle", "prism"], hue_light_id: "light-1" }),
-    state("light.shelf_strip", "off", { friendly_name: "Shelf strip", supported_color_modes: ["xy"], hue_light_id: "light-2" }),
+    state("light.desk_lamp", "on", { friendly_name: "Desk lamp", brightness: 180, supported_color_modes: ["xy", "color_temp"], color_mode: "xy", xy_color: [0.4, 0.4], effect_list: ["off", "candle", "prism"], hue_light_id: "light-1", hue_function: "mixed", hue_min_brightness: 0.2, hue_gamut: "C" }),
+    state("light.shelf_strip", "off", { friendly_name: "Shelf strip", supported_color_modes: ["xy"], hue_light_id: "light-2", hue_function: "decorative", hue_gradient_orientation: "horizontal", hue_gradient_orientation_configurable: true, hue_gradient_order: "forward", hue_gradient_order_configurable: true }),
     state("light.ceiling_plain", "on", { friendly_name: "Ceiling (not Hue)", brightness: 255, supported_color_modes: ["brightness"] }),
     ...(withSync
       ? [
           state("switch.hue_spotify_sync", "off", { friendly_name: "Hue Spotify sync" }),
           state("number.hue_spotify_sync_sync_brightness", "80", { friendly_name: "Brightness", min: 1, max: 100, step: 1 }),
           state("switch.bridge_automatic_updates", "on", { friendly_name: "Automatic updates" }),
+          state("select.desk_lamp_power_on", "powerfail", { friendly_name: "Power-on behavior", options: ["safety", "powerfail", "last_on_state"] }),
+          state("button.desk_lamp_identify", "unknown", { friendly_name: "Identify" }),
           state("button.bridge_search_for_new_devices", "unknown", { friendly_name: "Search for new devices" }),
           state("sensor.bridge_zigbee_channel", "25", { friendly_name: "Zigbee channel", extended_pan_id: "fake-pan" }),
           state("sensor.bridge_matter_fabrics", "1", { friendly_name: "Matter fabrics", max_fabrics: 16, has_qr_code: true, fabrics: [{ id: "f1", label: "Home", vendor: "Apple", status: "paired" }] }),
@@ -59,6 +61,8 @@ export function makeHass(query) {
           reg("number.hue_spotify_sync_sync_brightness", "hue_plus", `${BRIDGE}_sync_brightness`, "dev-spotify"),
           reg("switch.bridge_automatic_updates", "hue_plus", `${BRIDGE}_auto_update`, "dev-bridge"),
           reg("button.bridge_search_for_new_devices", "hue_plus", `${BRIDGE}_search`, "dev-bridge"),
+          reg("select.desk_lamp_power_on", "hue_plus", `${BRIDGE}_powerup_light-1`, "dev-lamp"),
+          reg("button.desk_lamp_identify", "hue_plus", `${BRIDGE}_identify_light-1`, "dev-lamp"),
           reg("sensor.bridge_zigbee_channel", "hue_plus", `${BRIDGE}_zigbee_channel`, "dev-bridge", { entity_category: "diagnostic" }),
           reg("sensor.bridge_matter_fabrics", "hue_plus", `${BRIDGE}_matter_fabrics`, "dev-bridge", { entity_category: "diagnostic" }),
           reg("sensor.bridge_authorized_apps", "hue_plus", `${BRIDGE}_authorized_apps`, "dev-bridge", { entity_category: "diagnostic" }),
@@ -96,8 +100,10 @@ export function makeHass(query) {
       { id: "auto-2", name: "Evening timer", enabled: false, script: "Timers", status: "disabled" },
     ],
     rooms: [{ id: "room-1", name: "Living room", children: [{ id: "dev-lamp", name: "Desk lamp" }] }],
-    zones: [], scenes: [], smart_scenes: [], entertainment_areas: [{ id: "area-1", name: "TV", type: "screen", end_state: "last_state", lights: [] }],
-    motion_areas: { candidates: [], areas: [] },
+    zones: [], smart_scenes: [], scenes: [{ id: "scene-1", name: "Movie", group_id: "room-1" }],
+    entertainment_areas: [{ id: "area-1", name: "TV", type: "screen", end_state: "last_state", lights: [{ light_id: "light-1" }] }],
+    motion_areas: { candidates: [], areas: [{ id: "ma-1", metadata: { name: "Hallway" }, enabled: true }] },
+    apps: [{ id: "a1", name: "Hue app" }, { id: "a2", name: "Home Assistant" }],
   };
 
   const connection = {
