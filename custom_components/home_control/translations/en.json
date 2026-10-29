@@ -1,14 +1,32 @@
 {
   "config": {
-    "step": {"user": {"title": "Home Control", "description": "Adds the Home Control dashboard to the sidebar."}},
-    "abort": {"already_configured": "Home Control is already set up."}
+    "step": {
+      "user": {
+        "title": "Home Control",
+        "description": "Adds the Home Control dashboard to the sidebar."
+      }
+    },
+    "abort": {
+      "already_configured": "Home Control is already set up."
+    }
   },
   "options": {
     "step": {
       "init": {
-        "title": "Home Control panel",
-        "data": {"url_path": "Address (the part after / in the browser)", "title": "Sidebar title", "icon": "Sidebar icon", "admin_only": "Only administrators may open it"}
+        "title": "Home Control sidebar entry",
+        "description": "How the dashboard appears in the sidebar. Changing the address changes the web address of the dashboard.",
+        "data": {
+          "url_path": "Address (the part after / in the browser)",
+          "title": "Sidebar title",
+          "icon": "Sidebar icon",
+          "admin_only": "Only administrators may open it"
+        }
       }
+    },
+    "error": {
+      "invalid_address": "Use only lower-case letters, numbers and hyphens.",
+      "address_in_use": "Another sidebar entry already uses this address.",
+      "empty_title": "Give the entry a title."
     }
   }
 }

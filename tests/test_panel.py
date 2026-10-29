@@ -56,3 +56,35 @@ def test_every_file_the_application_loads_exists():
     source = (FRONTEND / "dashboard-app.js").read_text()
     listed = re.findall(r'"((?:app/)?[a-z0-9_-]+\.js)"', source)
     assert listed and all((FRONTEND / name).exists() for name in listed)
+
+
+async def test_the_settings_form_can_be_opened_the_way_the_settings_screen_opens_it(hass, hass_client):
+    """The screen asks the web API for the form; a form that cannot be written as JSON answers 500 ("Config flow could not be loaded")."""
+    from homeassistant.setup import async_setup_component
+
+    entry = await _setup(hass)
+    assert await async_setup_component(hass, "config", {})
+    client = await hass_client()
+    response = await client.post("/api/config/config_entries/options/flow", json={"handler": entry.entry_id})
+    assert response.status == 200, await response.text()
+    form = await response.json()
+    assert form["step_id"] == "init"
+    assert {field["name"] for field in form["data_schema"]} == {"url_path", "title", "icon", "admin_only"}
+
+
+async def test_the_settings_form_saves_what_is_typed_and_refuses_a_bad_or_taken_address(hass):
+    entry = await _setup(hass)
+    result = await hass.config_entries.options.async_init(entry.entry_id)
+    assert result["step_id"] == "init"
+    good = {"url_path": "house", "title": " House ", "icon": "mdi:home", "admin_only": True}
+    for bad, key in (
+        ({"url_path": "Bad Address"}, "invalid_address"),
+        ({"url_path": "config"}, "address_in_use"),
+        ({"title": "  "}, "empty_title"),
+    ):
+        again = await hass.config_entries.options.async_configure(result["flow_id"], {**good, **bad})
+        assert again["type"] == "form" and set(again["errors"].values()) == {key}, bad
+    done = await hass.config_entries.options.async_configure(result["flow_id"], good)
+    assert done["type"] == "create_entry" and done["data"]["title"] == "House"
+    await hass.async_block_till_done()
+    assert hass.data[DATA_PANELS]["house"].sidebar_title == "House" and hass.data[DATA_PANELS]["house"].require_admin is True

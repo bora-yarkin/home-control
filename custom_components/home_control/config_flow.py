@@ -3,12 +3,14 @@
 
 from __future__ import annotations
 
+import re
 from typing import Any
 
 import voluptuous as vol
+from homeassistant.components.frontend import DATA_PANELS
 from homeassistant.config_entries import ConfigEntry, ConfigFlow, ConfigFlowResult, OptionsFlow
 from homeassistant.core import callback
-from homeassistant.helpers import config_validation as cv
+from homeassistant.helpers.selector import BooleanSelector, IconSelector, TextSelector
 
 from .const import (
     CONF_ADMIN_ONLY,
@@ -38,19 +40,34 @@ class HomeControlConfigFlow(ConfigFlow, domain=DOMAIN):
         return HomeControlOptionsFlow()
 
 
+ADDRESS = re.compile(r"[a-z0-9-]+")
+
+
 class HomeControlOptionsFlow(OptionsFlow):
+    """The sidebar entry: its address, title and icon, and who may open it. The fields are selectors because the settings screen
+    receives the form as JSON, and only selectors (not arbitrary validators) can be written as JSON."""
+
     async def async_step_init(self, user_input: dict[str, Any] | None = None) -> ConfigFlowResult:
-        if user_input is not None:
-            return self.async_create_entry(data=user_input)
+        errors: dict[str, str] = {}
         options = self.config_entry.options
+        own = options.get(CONF_URL_PATH, DEFAULT_URL_PATH)
+        if user_input is not None:
+            path = user_input[CONF_URL_PATH].strip()
+            if not ADDRESS.fullmatch(path):
+                errors[CONF_URL_PATH] = "invalid_address"
+            elif path != own and path in self.hass.data.get(DATA_PANELS, {}):
+                errors[CONF_URL_PATH] = "address_in_use"
+            if not user_input[CONF_TITLE].strip():
+                errors[CONF_TITLE] = "empty_title"
+            if not errors:
+                return self.async_create_entry(data={**user_input, CONF_URL_PATH: path, CONF_TITLE: user_input[CONF_TITLE].strip()})
+        values = user_input or options
         schema = vol.Schema(
             {
-                vol.Required(CONF_URL_PATH, default=options.get(CONF_URL_PATH, DEFAULT_URL_PATH)): vol.All(
-                    cv.string, vol.Match(r"^[a-z0-9-]+$")
-                ),
-                vol.Required(CONF_TITLE, default=options.get(CONF_TITLE, DEFAULT_TITLE)): cv.string,
-                vol.Required(CONF_ICON, default=options.get(CONF_ICON, DEFAULT_ICON)): cv.icon,
-                vol.Required(CONF_ADMIN_ONLY, default=options.get(CONF_ADMIN_ONLY, False)): cv.boolean,
+                vol.Required(CONF_URL_PATH, default=values.get(CONF_URL_PATH, DEFAULT_URL_PATH)): TextSelector(),
+                vol.Required(CONF_TITLE, default=values.get(CONF_TITLE, DEFAULT_TITLE)): TextSelector(),
+                vol.Required(CONF_ICON, default=values.get(CONF_ICON, DEFAULT_ICON)): IconSelector(),
+                vol.Required(CONF_ADMIN_ONLY, default=values.get(CONF_ADMIN_ONLY, False)): BooleanSelector(),
             }
         )
-        return self.async_show_form(step_id="init", data_schema=schema)
+        return self.async_show_form(step_id="init", data_schema=schema, errors=errors)
