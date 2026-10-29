@@ -11,6 +11,8 @@
 <script type="module">
 import "/custom_components/home_control/frontend/dashboard-panel.js";
 import { makeHass } from "./mock-hass.js";
+import { auditSpacing } from "./audit.js";
+window.auditSpacing = auditSpacing;
 const panel = document.createElement("dashboard-panel");
 document.body.appendChild(panel);
 const hass = makeHass(new URLSearchParams(location.search));

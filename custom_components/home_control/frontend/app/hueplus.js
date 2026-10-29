@@ -309,16 +309,7 @@ function hpLights(b) {
 }
 
 function hpSelect(label, icon, opts, cur, pick, fmt) {
-  return selectTile(
-    label,
-    function () {
-      return opts;
-    },
-    cur,
-    pick,
-    icon,
-    fmt
-  );
+  return dropRow(label, opts, cur, pick, icon, fmt);
 }
 
 function hpLight(b, id) {
@@ -329,7 +320,7 @@ function hpLight(b, id) {
     };
   if (X.powerup)
     b.appendChild(
-      selectTile(
+      dropRow(
         _T("when_it_gets_power"),
         function () {
           return A(X.powerup).options || [];

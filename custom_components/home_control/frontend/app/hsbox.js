@@ -55,7 +55,7 @@ function hsboxRow(d) {
 }
 
 function hsboxSelect(E, key, label, icon) {
-  var t = selectTile(
+  var t = dropRow(
     label,
     function () {
       return A(E[key]).options || [];
