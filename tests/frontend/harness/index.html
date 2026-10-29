@@ -1,0 +1,21 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Dashboard harness</title>
+<style>html,body{margin:0;height:100%;background:#111}</style>
+</head>
+<body>
+<!-- Loads the real panel with a pretend Home Assistant (mock-hass.js). Nothing is written anywhere: see README.md. -->
+<script type="module">
+import "/custom_components/home_control/frontend/dashboard-panel.js";
+import { makeHass } from "./mock-hass.js";
+const panel = document.createElement("dashboard-panel");
+document.body.appendChild(panel);
+const hass = makeHass(new URLSearchParams(location.search));
+window.__hass = hass;
+panel.hass = hass;
+</script>
+</body>
+</html>

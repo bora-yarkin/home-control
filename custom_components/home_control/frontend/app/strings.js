@@ -1191,6 +1191,10 @@ var EN = {
   "intensity": "Intensity",
   "light_delay": "Light delay",
   "playing_on": "Playing on",
+  "hue_play_hdmi_sync_box": "Hue Play HDMI Sync Box",
+  "sync": "Sync",
+  "hdmi_input": "HDMI input",
+  "hdmi_signal": "HDMI signal",
 };
 
 var STR = EN;

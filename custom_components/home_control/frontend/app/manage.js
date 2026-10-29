@@ -525,7 +525,8 @@ function candidates(doms, roomId, q) {
       .filter(Boolean);
   Object.keys(h.states).forEach(function (id) {
     if (have[id]) return;
-    if (!any && doms.indexOf(Integrations.huesync.isSync(h, id) ? "light" : dom(id)) < 0) return;
+    if (!any && doms.indexOf(Integrations.huesync.isSync(h, id) || Integrations.huesyncbox.isBox(h, id) ? "light" : dom(id)) < 0)
+      return;
     var e = h.entities && h.entities[id];
     if (e && (e.entity_category || e.hidden)) return;
     var nm = A(id).friendly_name || id,
@@ -545,7 +546,8 @@ function candidates(doms, roomId, q) {
 }
 
 function defIcon(kind, name, id) {
-  if (id && Integrations.huesync.isSync(H(), id)) return "syncring";
+  if (id && (Integrations.huesync.isSync(H(), id) || Integrations.huesyncbox.isBox(H(), id)))
+    return "syncring";
   return kind === "sensor"
     ? id
       ? sensorIcon(id)

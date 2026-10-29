@@ -7,7 +7,8 @@
  apple_tv                         Apple TV remote, typing on the Apple TV
  androidtv_remote                 Android TV remote
  hue                              scenes: which one is on, playing, speed, brightness
- hue_plus (sync module)           Hue's Spotify sync: which entities belong to one bridge */
+ hue_plus (sync module)           Hue's Spotify sync: which entities belong to one bridge
+ hue_plus (sync box)              Hue Play HDMI Sync Box: which entities belong to one box */
 (function(){
 "use strict";
 
@@ -183,6 +184,34 @@ var huesync={
  isSync:function(h,id){return huesync.keyOf(h,id)==="sync"}
 };
 
+/* ---- Hue Play HDMI Sync Box (an entry of the Philips Hue Plus integration) ---- */
+
+var huesyncbox={
+ /* What each of its entities is for. The registry's unique_id of an entity is "<box>_syncbox_<key>". */
+ keys:["sync","mode","source","intensity","brightness","hdmi_signal"],
+ keyOf:function(h,id){
+  var e=h.entities[id];
+  if(!e||e.platform!=="hue_plus"||!e.unique_id)return null;
+  var at=e.unique_id.indexOf("_syncbox_");
+  if(at<0)return null;
+  var key=e.unique_id.slice(at+9);
+  return huesyncbox.keys.indexOf(key)>=0?key:null;
+ },
+ /* The entities of the box that owns entity `id`, as {sync, mode, source, intensity, brightness, hdmi_signal}, or null when `id` is not
+  an entity of a sync box (or the box has no sync switch). */
+ entities:function(h,id){
+  var key=huesyncbox.keyOf(h,id);
+  if(!key)return null;
+  var uid=h.entities[id].unique_id,box=uid.slice(0,uid.indexOf("_syncbox_")),out={};
+  Object.keys(h.entities).forEach(function(k){
+   var e=h.entities[k],kk=e.platform==="hue_plus"&&e.unique_id&&e.unique_id.indexOf(box+"_syncbox_")===0?huesyncbox.keyOf(h,k):null;
+   if(kk&&e.unique_id===box+"_syncbox_"+kk)out[kk]=k;
+  });
+  return out.sync?out:null;
+ },
+ isBox:function(h,id){return huesyncbox.keyOf(h,id)==="sync"}
+};
+
 /* ---- Philips Hue Plus (what it offers, so a screen shows only what exists) ---- */
 
 var hueplus={
@@ -191,5 +220,5 @@ var hueplus={
  has:function(h,service){return !!(h&&h.services&&h.services.hue_plus&&h.services.hue_plus[service])}
 };
 
-window.Integrations={media:media,vacuum:vacuum,scenes:scenes,huesync:huesync,hueplus:hueplus};
+window.Integrations={media:media,vacuum:vacuum,scenes:scenes,huesync:huesync,huesyncbox:huesyncbox,hueplus:hueplus};
 })();

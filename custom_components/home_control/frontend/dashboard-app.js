@@ -27,6 +27,7 @@ var APP_FILES = [
   "app/lights.js",
   "app/lightpanel.js",
   "app/hsync.js",
+  "app/hsbox.js",
   "app/media.js",
   "app/climate.js",
   "app/vacuum.js",

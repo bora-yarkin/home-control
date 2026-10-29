@@ -13,7 +13,7 @@ Home Assistant. Anything that Home Assistant does well (automations, helpers, gr
 | `dashboard-app.js` | The entry of the application. It only loads the files below, in the order listed in `APP_FILES`. |
 | `app/*.js` | The application, split by feature (`lights.js`, `vacuum.js`, `editor.js`, ...). They share one global scope and run in the order listed in `dashboard-app.js`; the first line of each file says what it holds. `app/main.js` is last and starts the app. They reach Home Assistant only through `window.HA` and integration specifics only through `window.Integrations`. |
 | `app/kinds.js` | Guided setup of a device that has other entities (a TV's remote, a camera's second stream, pan/tilt, privacy and detection entities): finds them by itself, offers a searchable list for the rest, keeps the links with the device, and says whether a TV gets the full or the basic remote. Add a kind of device in `DEVSETUP`. |
-| `integrations.js` | Everything that is specific to one integration (xiaomi_miot, robot_vacuum_map, samsungtv_smart, apple_tv, androidtv_remote, hue, hue_plus sync module). It draws nothing and reads nothing from the page. |
+| `integrations.js` | Everything that is specific to one integration (xiaomi_miot, robot_vacuum_map, samsungtv_smart, apple_tv, androidtv_remote, hue, hue_plus sync module, hue_plus sync box). It draws nothing and reads nothing from the page. |
 | `dashboard.css` | Styles. |
 | `mdi/` | Material Design Icons 7.4.47 (Apache 2.0, see `mdi/LICENSE.txt`): `index.json` is the list the icon picker searches, `a.json` to `z.json` hold the drawing paths by first letter. Same data as the npm package `@mdi/svg@7.4.47`. Nothing is fetched from the internet or from Home Assistant's own files. |
 | `vendor/hls.min.js` | hls.js 1.5.13, loaded only when HLS is needed. Same bytes as cdnjs (`sha512-bqtMkEqGSOPPb8qbYSd9gHwR7C5mgmN+Z5Uaquvhana/U9H3zppGvlLV9HOdM7eYHF/GzzhS1lOGzCMhUvYcjQ==`, source map comment removed). |
@@ -111,3 +111,14 @@ The panel runs in a frame that Home Assistant owns. The current page is kept in 
 
 Pages, rooms and devices are in Home Assistant system data `dashboard`; per-user options in user data `dashboard_prefs`.
 Local preferences use `localStorage` keys beginning `db_` and `dh_`.
+
+## Hue Play HDMI Sync Box (`hue_plus`, optional)
+
+`app/hsbox.js` draws the box like the Spotify sync: a row that looks like a light (the bar is the brightness, the icon starts and stops
+the sync) and a popup, both made of the shared controls only. The user adds the box's sync switch to a page like any device. Its entities are
+found by their registry `unique_id` (`<box>_syncbox_<key>`, keys: `sync`, `mode`, `source`, `intensity`, `brightness`, `hdmi_signal`; see
+`Integrations.huesyncbox`). The box's brightness runs from 0 to 200, where 100 is the lights' normal brightness.
+
+## Trying a change
+
+`tests/frontend/harness/` runs the real panel against a pretend Home Assistant that writes nothing; see its README.

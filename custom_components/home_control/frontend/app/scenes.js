@@ -1272,6 +1272,7 @@ function devRowRaw(d) {
   }
   if (d.kind === "switch") {
     if (Integrations.huesync.isSync(H(), d.id)) return hsyncRow(d);
+    if (Integrations.huesyncbox.isBox(H(), d.id)) return hsboxRow(d);
     pk = devPop(d);
     var pw = powerSib(d.id);
     return pill(d.icon || "plug", d.name, {

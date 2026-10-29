@@ -226,6 +226,14 @@ function popupDefBase(key) {
         hsyncPopup(b, id);
       },
     };
+  if (k === "hsbox")
+    return {
+      title: _T("hue_play_hdmi_sync_box"),
+      icon: "syncring",
+      build: function (b) {
+        hsboxPopup(b, id);
+      },
+    };
   if (k.indexOf("hsync-") === 0 && HS_PICK[k])
     return {
       title: _T(HS_PICK[k][0]),
@@ -881,7 +889,13 @@ function devPop(d) {
   /* Lights and switches have their own popup; the other devices use the popup of their type, or the generic one. */
   if (d.kind === "light") return "light:" + d.id;
   if (d.kind === "switch")
-    return (Integrations.huesync.isSync(H(), d.id) ? "hsync:" : "sw:") + d.id;
+    return (
+      (Integrations.huesync.isSync(H(), d.id)
+        ? "hsync:"
+        : Integrations.huesyncbox.isBox(H(), d.id)
+          ? "hsbox:"
+          : "sw:") + d.id
+    );
   var p = { media: "media:", climate: "ac:", fan: "fan:", vacuum: "vac:" }[d.kind];
   return p ? p + d.id : "dev:" + d.id;
 }
