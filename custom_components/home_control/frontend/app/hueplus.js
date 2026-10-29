@@ -17,6 +17,8 @@ var HP_PAGES = {
   "hue-marea": ["motion_area", "motion", hpMotionArea],
   "hue-apps": ["authorized_apps", "lock", hpApps],
   "hue-matter": ["matter", "scene", hpMatter],
+  "hue-import": ["import_from_the_hue_bridge", "target", hpImportList],
+  "hue-read": ["read_from_the_hue_bridge", "target", hpReadList],
 };
 
 function hpShown() {
@@ -541,7 +543,26 @@ function hpArea(b, id) {
     var scenes = (r.scenes || []).filter(function (s) {
         return s.group_id;
       }),
-      end = x.end_state || "last_state";
+      end = x.end_state || "last_state",
+      sceneTile = hpSelect(
+        _T("hp_scene"),
+        "scene",
+        scenes.map(function (s) {
+          return s.name;
+        }),
+        function () {
+          return "";
+        },
+        function (v) {
+          var sc = scenes.filter(function (s) {
+            return s.name === v;
+          })[0];
+          if (sc) hpDo(again, "set_streaming_end_state", { area: x.id, end_state: "scene", scene: sc.id });
+        },
+        function (v) {
+          return v || "–";
+        }
+      );
     box.appendChild(
       hpSelect(
         _T("after_the_sync"),
@@ -552,14 +573,16 @@ function hpArea(b, id) {
         },
         function (v) {
           end = v;
+          sceneTile.style.display = v === "scene" ? "" : "none";
           if (v !== "scene") hpDo(again, "set_streaming_end_state", { area: x.id, end_state: v });
-          else if (scenes.length) hpDo(again, "set_streaming_end_state", { area: x.id, end_state: v, scene: scenes[0].id });
         },
         function (v) {
           return _T("end_" + v);
         }
       )
     );
+    sceneTile.style.display = end === "scene" ? "" : "none";
+    box.appendChild(sceneTile);
     box.appendChild(hpNote(_T("experimental_only_the_last_state_has_been_seen_on_a_real_bridge")));
     box.appendChild(
       hpVal("lights", _T("lights"), function () {
@@ -638,6 +661,187 @@ function hpMotionArea(b, id) {
         },
         _T("delete_this_motion_area")
       )
+    );
+  });
+}
+
+/* ---- the dashboard's areas and the bridge's entertainment areas ----
+ The dashboard's areas hold any light, Hue or not, and work without Hue Plus. When it is installed they can exchange their Hue lights and positions with the
+ bridge's entertainment areas: nothing below runs, or is shown, without it. */
+
+function hpHueId(entity) {
+  return A(entity).hue_light_id || null;
+}
+
+function hpEntityOf(hueId) {
+  return (
+    Integrations.hueplus.lights(H()).filter(function (id) {
+      return hpHueId(id) === hueId;
+    })[0] || null
+  );
+}
+
+/* Rows at the end of the area editor: send this area's Hue lights to the bridge, or take positions from a bridge area. */
+function hpAreaActions(box, draft) {
+  if (!hpShown() || !ISADMIN) return;
+  var hue = draft.lights.filter(function (l) {
+    return hpHueId(l.id);
+  });
+  box.appendChild(
+    pill("target", _T("send_to_the_hue_bridge"), {
+      sub: function () {
+        var other = draft.lights.length - hue.length;
+        return cntS(hue.length, _T("hue_light"), _T("hue_lights")) + (other ? " · " + other + " " + _T("stay_here") : "");
+      },
+      tap: function () {
+        hpSendArea(draft);
+      },
+    })
+  );
+  box.appendChild(
+    pill("restart", _T("read_from_the_hue_bridge"), {
+      sub: function () {
+        return _T("takes_the_positions_of_its_lights");
+      },
+      tap: function () {
+        showPopup("hue-read", true);
+      },
+    })
+  );
+}
+
+/* The bridge's area of the same name is changed, or one is made. Only the area's Hue lights go: the others stay on the dashboard. */
+function hpSendArea(draft) {
+  var name = String(draft.name || "").trim(),
+    lights = draft.lights
+      .filter(function (l) {
+        return hpHueId(l.id);
+      })
+      .map(function (l) {
+        return { light: hpHueId(l.id), x: l.x, y: l.y, z: l.z };
+      });
+  if (!name) {
+    toast(_T("give_the_area_a_name"));
+    return;
+  }
+  if (!lights.length) {
+    toast(_T("no_hue_lights_in_this_area"));
+    return;
+  }
+  Integrations.hueplus.resources(["entertainment_areas"]).then(
+    function (r) {
+      var found = ((r && r.entertainment_areas) || []).filter(function (a) {
+        return String(a.name).toLowerCase() === name.toLowerCase();
+      })[0];
+      if (found) call("hue_plus", "update_entertainment_area", { area: found.id, lights: lights });
+      else call("hue_plus", "create_entertainment_area", { name: name, area_type: "other", lights: lights });
+      toast(_T("sent_to_the_hue_bridge"));
+    },
+    function () {
+      toast(_T("couldn_t_read_the_hue_bridge"));
+    }
+  );
+}
+
+/* A bridge area's lights as dashboard lights {id, x, y, z}: those Home Assistant has, and (when `only` is given) that belong to it. */
+function hpAreaLightsOf(area, only) {
+  var out = [];
+  (area.lights || []).forEach(function (l) {
+    var id = hpEntityOf(l.light_id);
+    if (!id || (only && !only[id])) return;
+    out.push({ id: id, x: eaClamp(l.x || 0), y: eaClamp(l.y || 0), z: eaClamp(l.z || 0) });
+  });
+  return out;
+}
+
+function hpBridgeAreas(b, draw) {
+  hpLoad(b, ["entertainment_areas"], function (box, r) {
+    var list = r.entertainment_areas || [];
+    if (!list.length) box.appendChild(hpNote(_T("nothing_found")));
+    list.forEach(function (a) {
+      draw(box, a);
+    });
+  });
+}
+
+/* In a room's list of areas: a new area made from one of the bridge. It opens in the editor, so nothing is saved until the user says so. */
+function hpAreaImport(box, room) {
+  if (!hpShown() || !ISADMIN) return;
+  box.appendChild(
+    pill("plus", _T("import_from_the_hue_bridge"), {
+      sub: function () {
+        return _T("an_entertainment_area_of_the_bridge");
+      },
+      tap: function () {
+        showPopup("hue-import:" + room, true);
+      },
+    })
+  );
+}
+
+function hpImportList(b, room) {
+  var here = {};
+  eaRoomLights(room).forEach(function (l) {
+    here[l.id] = 1;
+  });
+  hpBridgeAreas(b, function (box, a) {
+    var lights = hpAreaLightsOf(a, here);
+    box.appendChild(
+      pill("target", a.name, {
+        sub: function () {
+          return cntS(lights.length, _T("light"), _T("lights")) + " " + _T("in_this_room");
+        },
+        tap: function () {
+          if (!lights.length) {
+            toast(_T("none_of_its_lights_are_in_this_room"));
+            return;
+          }
+          closeLayer();
+          eaOpen(room, null, { id: "", name: a.name, room: room, lights: lights, dummies: [] });
+        },
+      })
+    );
+  });
+}
+
+/* In the area editor: the positions of a bridge area's lights, for the lights of this room. */
+function hpReadList(b) {
+  hpBridgeAreas(b, function (box, a) {
+    box.appendChild(
+      pill("target", a.name, {
+        sub: function () {
+          return cntS((a.lights || []).length, _T("light"), _T("lights"));
+        },
+        tap: function () {
+          var have = {};
+          eaRoomLights(EAD.room).forEach(function (l) {
+            have[l.id] = 1;
+          });
+          EAD.draft.lights.forEach(function (l) {
+            have[l.id] = 1;
+          });
+          var got = hpAreaLightsOf(a, have);
+          if (!got.length) {
+            toast(_T("none_of_its_lights_are_in_this_room"));
+            return;
+          }
+          got.forEach(function (g) {
+            var mine = EAD.draft.lights.filter(function (l) {
+              return l.id === g.id;
+            })[0];
+            if (mine) {
+              mine.x = g.x;
+              mine.y = g.y;
+              mine.z = g.z;
+            } else EAD.draft.lights.push(g);
+          });
+          closeLayer();
+          eaBuild();
+          eaTray();
+          eaInfo();
+          eaActions();
+        },
+      })
     );
   });
 }

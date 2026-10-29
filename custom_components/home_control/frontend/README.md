@@ -128,6 +128,13 @@ come from `hue_plus.get_resources` (`Integrations.hueplus.resources`); everythin
 registry `unique_id` (`Integrations.hueplus.bridge/lights/forLight/updates`). Pages are keyed `stg-hue` and `hue-*` in `HP_PAGES`. What is
 experimental in the integration (light set-up, streaming, the end state of an area) says so on its page.
 
+### Areas and the bridge's entertainment areas
+
+The dashboard's areas (Settings → Areas) hold any light and work without Hue Plus. With it installed (administrators only) a room's list of areas gets
+*Import from the Hue bridge* (a bridge area opens in the editor as a new area, with the lights that are in the room), and the editor gets *Send to the Hue bridge*
+(the area's Hue lights and positions go to the bridge's area of the same name, or a new one; other lights stay on the dashboard) and *Read from the Hue bridge*
+(positions for the lights already there). The code is in `app/hueplus.js`; `areas.js` only calls `hpAreaImport` and `hpAreaActions`.
+
 ## Trying a change
 
 `tests/frontend/harness/` runs the real panel against a pretend Home Assistant that writes nothing; see its README.

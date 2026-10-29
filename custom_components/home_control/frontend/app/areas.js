@@ -89,14 +89,14 @@ function eaRound(v) {
   return Math.round(v * 1000) / 1000;
 }
 
-function eaOpen(room, ar) {
+function eaOpen(room, ar, seed) {
   EAD = {
     room: room,
     isNew: !ar,
     sel: null,
     draft: ar
       ? JSON.parse(JSON.stringify(ar))
-      : { id: "", name: "", room: room, lights: [], dummies: [] },
+      : seed || { id: "", name: "", room: room, lights: [], dummies: [] },
   };
   showPopup("area-edit", true);
 }
@@ -122,6 +122,7 @@ function eaManager(b, room) {
       );
     });
     if (!mine.length) box.appendChild(pill("info", _T("no_areas_yet"), {}));
+    hpAreaImport(box, room);
     box.appendChild(
       pill("plus", _T("new_area"), {
         sub: function () {
@@ -705,6 +706,7 @@ function eaActions() {
   var box = EAD.v.box;
   redrawBox(box, function () {
     box.appendChild(pill("check", _T("save_area"), { tap: eaSave }));
+    hpAreaActions(box, EAD.draft);
     if (!EAD.isNew)
       box.appendChild(
         pill("trash", _T("delete_area"), {

@@ -1263,6 +1263,18 @@ var EN = {
   "hp_sunrise": "Start a sunrise",
   "hp_sunset": "Start a sunset",
   "hp_no_effect": "Stop it",
+  "hp_scene": "Scene",
+  "send_to_the_hue_bridge": "Send to the Hue bridge",
+  "read_from_the_hue_bridge": "Read from the Hue bridge",
+  "takes_the_positions_of_its_lights": "Takes the positions of its lights",
+  "hue_light": "Hue light",
+  "hue_lights": "Hue lights",
+  "stay_here": "stay here",
+  "no_hue_lights_in_this_area": "No Hue lights in this area",
+  "sent_to_the_hue_bridge": "Sent to the Hue bridge",
+  "import_from_the_hue_bridge": "Import from the Hue bridge",
+  "an_entertainment_area_of_the_bridge": "An entertainment area of the bridge",
+  "none_of_its_lights_are_in_this_room": "None of its lights are in this room",
 };
 
 var STR = EN;
