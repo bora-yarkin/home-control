@@ -154,6 +154,60 @@ function syncNotify(k) {
   return window.HA.automations.remove("dashboard_n_" + k).catch(function () {});
 }
 
+/* The automations are built here, so they only changed when someone saved a rule. What a rule watches also changes when a
+   device is added to the dashboard or a battery sensor is tracked. This brings each switched-on automation back to what its
+   rule builds now. It reads the automation in Home Assistant first and writes only when it differs, so opening the dashboard
+   on several screens does not rewrite it each time. */
+function stableForm(x, key) {
+  if (Array.isArray(x)) {
+    var a = x.map(function (v) {
+      return stableForm(v);
+    });
+    return key === "entity_id" ? a.sort() : a;
+  }
+  if (x && typeof x === "object") {
+    var o = {};
+    Object.keys(x)
+      .sort()
+      .forEach(function (k) {
+        o[k] = stableForm(x[k], k);
+      });
+    return o;
+  }
+  return x;
+}
+
+function notifyWatch(p) {
+  return JSON.stringify(stableForm({ triggers: p.triggers, actions: p.actions }));
+}
+
+var NRECON = 0;
+
+function notifyReconcile() {
+  if (!ISADMIN || !STORE_READY || !H() || OFFLINE) return;
+  Object.keys(NRULES).forEach(function (k) {
+    var p = nrule(k).on ? notifyPayload(k) : null;
+    if (!p) return;
+    window.HA.automations
+      .get(p.id)
+      .then(
+        function (cur) {
+          return notifyWatch(cur) === notifyWatch(p) ? null : window.HA.automations.save(p.id, p);
+        },
+        function (e) {
+          /* Only an automation that is not there is made again; a failed read says nothing about it. */
+          return e && e.status_code === 404 ? window.HA.automations.save(p.id, p) : null;
+        }
+      )
+      .catch(function () {});
+  });
+}
+
+function notifyReconcileSoon() {
+  clearTimeout(NRECON);
+  NRECON = setTimeout(notifyReconcile, 3000);
+}
+
 function notifyPage(b) {
   var box = mk("div");
   b.appendChild(box);

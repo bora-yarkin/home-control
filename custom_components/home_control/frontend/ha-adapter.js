@@ -159,6 +159,7 @@ var route={
 
 /* The automation editor of Home Assistant saves through this REST path; there is no websocket command for it. */
 var automations={
+ get:function(id){return hass.callApi("GET","config/automation/config/"+id)},
  save:function(id,config){return hass.callApi("POST","config/automation/config/"+id,config)},
  remove:function(id){return hass.callApi("DELETE","config/automation/config/"+id)}
 };

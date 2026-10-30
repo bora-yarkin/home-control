@@ -153,6 +153,7 @@ function newDevBoot() {
         uiChanged();
       }
       newDevBadge();
+      notifyReconcileSoon();
     });
   })();
   setInterval(function () {
@@ -473,6 +474,7 @@ function uiChanged() {
   buildDock();
   rerender();
   storeChanged();
+  notifyReconcileSoon();
 }
 
 function redrawBox(box, draw) {
