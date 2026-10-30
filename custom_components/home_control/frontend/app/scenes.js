@@ -72,17 +72,7 @@ function scnPick(b, key) {
         return _T("create_a_scene_and_add_it_here");
       },
       tap: function () {
-        openEditor(scope, null, { scope: scope, sid: e.id });
-      },
-    })
-  );
-  box.appendChild(
-    pill("palette", _T("new_live_scene"), {
-      sub: function () {
-        return _T("colours_that_move_across_the_lights_of_an_area");
-      },
-      tap: function () {
-        liveOpenEditor(scope, null, { scope: scope, sid: e.id });
+        showPopup("scene-kind:" + scope + ":" + e.id, true);
       },
     })
   );

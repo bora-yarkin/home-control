@@ -67,6 +67,29 @@ function liveSave(sc, st) {
   } catch (e) {}
 }
 
+/* The parts of a live scene beyond the palette, in the words of Hue Plus's services. */
+function liveParts(sc) {
+  var l = sc.live,
+    looks = {};
+  Object.keys(l.looks || {}).forEach(function (id) {
+    var k = l.looks[id],
+      o = {};
+    if (k.palette) o.palette = k.palette;
+    if (typeof k.bri === "number") o.brightness = Math.max(1, Math.min(255, Math.round(k.bri * 2.55)));
+    if (k.fx) o.effects = k.fx;
+    if (k.native) o.native = k.native;
+    if (Object.keys(o).length) looks[id] = o;
+  });
+  return {
+    colour_source: l.src || "palette",
+    effects: l.fx || [],
+    looks: looks,
+    actions: (l.also || []).map(function (a) {
+      return { entity_id: a.id, do: a.on ? "on" : "off" };
+    }),
+  };
+}
+
 /* What the engine is told to start: the area's lights the user may control, the palette and the settings. */
 function livePayload(sc) {
   var ar = eaById(sc.live.area);
@@ -83,11 +106,16 @@ function livePayload(sc) {
       lights.push({ id: q.id, x: q.x, y: q.y, z: q.z });
     });
   });
+  var parts = liveParts(sc);
   return {
     ids: lights.map(function (l) {
       return l.id;
     }),
     data: {
+      colour_source: parts.colour_source,
+      effects: parts.effects,
+      looks: parts.looks,
+      actions: parts.actions,
       scene_id: sc.id,
       lights: lights.map(function (l) {
         return { entity_id: l.id, x: l.x, y: l.y, z: l.z };
@@ -130,9 +158,14 @@ function hpAreaPayload(ar) {
 function hpScenePayload(sc) {
   var ar = sc.live ? eaById(sc.live.area) : null;
   if (!ar || !hpAreaPayload(ar)) return null; /* a scene whose area cannot be written could not start there */
+  var parts = liveParts(sc);
   return {
     id: hpId(sc.id),
     name: sc.name || sc.id,
+    colour_source: parts.colour_source,
+    effects: parts.effects,
+    looks: parts.looks,
+    actions: parts.actions,
     palette: sc.live.palette,
     speed: sc.live.speed,
     range: sc.live.range,
@@ -441,6 +474,10 @@ function liveEmptyDraft(room) {
       range: 100,
       bri: 100,
       spread: "x",
+      src: "palette",
+      fx: [],
+      looks: {},
+      also: [],
     },
   };
 }
@@ -706,9 +743,27 @@ function liveEditor(b) {
       })
     );
     box.appendChild(sep(_T("colours"), "palette"));
-    liveColourEditor(box, d, draw);
+    box.appendChild(
+      seg(
+        [
+          ["palette", _T("palette")],
+          ["rainbow", _T("rainbow")],
+        ],
+        d.live.src || "palette",
+        function (v) {
+          d.live.src = v;
+          draw(true);
+        }
+      )
+    );
+    var rainbow = d.live.src === "rainbow";
+    if (rainbow) {
+      var rh = mk("div", "hint");
+      rh.textContent = _T("the_colours_go_round_the_colour_wheel");
+      box.appendChild(rh);
+    } else liveColourEditor(box, d, draw);
     var ar = liveAreaOf(d.live.area);
-    if (ar)
+    if (ar && !rainbow)
       box.appendChild(
         pill("light", _T("take_colours_from_the_lights"), {
           sub: function () {
@@ -801,6 +856,62 @@ function liveEditor(b) {
       );
     });
     box.appendChild(sp);
+    box.appendChild(sep(_T("brightness_effects"), "tune"));
+    liveFxEditor(box, d.live, "fx", draw);
+    if (ar) {
+      var singles = ar.lights.filter(function (l) {
+        return !eaIsBar(l.id);
+      });
+      if (singles.length) {
+        box.appendChild(sep(_T("single_lights"), "light"));
+        singles.forEach(function (l) {
+          box.appendChild(
+            pill("light", entName(l.id), {
+              on: function () {
+                return !!(d.live.looks && d.live.looks[l.id] && Object.keys(d.live.looks[l.id]).length);
+              },
+              sub: function () {
+                return liveLookSummary(d.live.looks && d.live.looks[l.id]);
+              },
+              tap: function () {
+                LSD.sel = 0;
+                showPopup("live-look:" + l.id, true);
+              },
+            })
+          );
+        });
+      }
+    }
+    box.appendChild(sep(_T("also_switch"), "plug"));
+    var ah = mk("div", "hint");
+    ah.textContent = _T("also_switch_hint");
+    box.appendChild(ah);
+    (d.live.also || []).forEach(function (a, i) {
+      box.appendChild(sep(entName(a.id), "plug"));
+      box.appendChild(
+        seg(
+          [
+            ["on", _T("switch_on")],
+            ["off", _T("switch_off")],
+            ["rm", _T("remove_from_list")],
+          ],
+          a.on ? "on" : "off",
+          function (v) {
+            if (v === "rm") d.live.also.splice(i, 1);
+            else a.on = v === "on";
+            draw(true);
+          }
+        )
+      );
+    });
+    if (d.live.also.length < 12)
+      box.appendChild(
+        pill("plus", _T("add_device"), {
+          tap: function () {
+            showPopup("live-also", true);
+          },
+        })
+      );
     box.appendChild(pill("check", _T("save_scene"), { tap: liveSaveScene }));
     if (!LSD.isNew)
       box.appendChild(
@@ -814,6 +925,273 @@ function liveEditor(b) {
     if (live) refresh();
   }
   draw(false);
+}
+
+var LIVE_FX_NAMES = ["pulse", "flicker", "sparkle", "lightning"];
+
+/* The brightness effects of a scene or of one light: each with its speed and strength, and the effects that can still be added. */
+function liveFxEditor(box, holder, key, redraw) {
+  var list = holder[key];
+  list.forEach(function (f, i) {
+    box.appendChild(sep(_T("fx_" + f.type), "tune"));
+    box.appendChild(
+      sliderRow({
+        icon: "tune",
+        name: _T("speed"),
+        min: 1,
+        max: Integrations.scenes.speedSteps,
+        step: 1,
+        get: function () {
+          return f.speed;
+        },
+        fmt: function (v) {
+          return v + " / " + Integrations.scenes.speedSteps;
+        },
+        commit: function (v) {
+          f.speed = v;
+        },
+      })
+    );
+    box.appendChild(
+      sliderRow({
+        icon: "bright",
+        name: _T("strength"),
+        min: 1,
+        max: 100,
+        step: 1,
+        get: function () {
+          return f.strength;
+        },
+        fmt: function (v) {
+          return v + "%";
+        },
+        commit: function (v) {
+          f.strength = v;
+        },
+      })
+    );
+    box.appendChild(
+      pill("trash", _T("remove_this_effect"), {
+        tap: function () {
+          list.splice(i, 1);
+          redraw(true);
+        },
+      })
+    );
+  });
+  if (list.length < 4) {
+    var g = mk("div", "gridl g2");
+    LIVE_FX_NAMES.forEach(function (name) {
+      g.appendChild(
+        pill("plus", _T("fx_" + name), {
+          sub: function () {
+            return _T("fx_" + name + "_sub");
+          },
+          tap: function () {
+            list.push({ type: name, speed: 6, strength: 60 });
+            redraw(true);
+          },
+        })
+      );
+    });
+    box.appendChild(g);
+  }
+}
+
+/* One line about what a single light does differently, for the list of lights. */
+function liveLookSummary(k) {
+  if (!k || !Object.keys(k).length) return _T("follows_the_scene");
+  var parts = [];
+  if (k.native) parts.push(k.native);
+  if (k.palette) parts.push(_T("own_colours"));
+  if (typeof k.bri === "number") parts.push(k.bri + "%");
+  if (k.fx) parts.push(k.fx.length ? k.fx.map(function (f) { return _T("fx_" + f.type); }).join(", ") : _T("no_effects"));
+  return parts.join(" · ") || _T("follows_the_scene");
+}
+
+/* The sheet of one light of a scene: what it does differently from the rest. Opened from the list of single lights. */
+function liveLook(b, id) {
+  var d = LSD.draft;
+  d.live.looks = d.live.looks || {};
+  /* Kept attached while the sheet is open, even when empty; an empty look is dropped when the scene is saved. */
+  var k = d.live.looks[id] || (d.live.looks[id] = {}),
+    box = mk("div");
+  b.appendChild(box);
+  function draw(live) {
+    var prev = CUR;
+    if (live) SLIVE.length = 0;
+    CUR = SLIVE;
+    box.innerHTML = "";
+    var h = mk("div", "hint");
+    h.textContent = entName(id) + " · " + _T("look_hint");
+    box.appendChild(h);
+    box.appendChild(sep(_T("colours"), "palette"));
+    box.appendChild(
+      seg(
+        [
+          ["scene", _T("scene_colours")],
+          ["own", _T("own_colours")],
+        ],
+        k.palette ? "own" : "scene",
+        function (v) {
+          if (v === "own") k.palette = JSON.parse(JSON.stringify(d.live.palette));
+          else delete k.palette;
+          LSD.sel = 0;
+          draw(true);
+        }
+      )
+    );
+    if (k.palette) liveColourEditor(box, { live: k }, draw);
+    box.appendChild(sep(_T("brightness"), "bright"));
+    box.appendChild(
+      seg(
+        [
+          ["scene", _T("scene_brightness")],
+          ["own", _T("own_brightness")],
+        ],
+        typeof k.bri === "number" ? "own" : "scene",
+        function (v) {
+          if (v === "own") k.bri = d.live.bri;
+          else delete k.bri;
+          draw(true);
+        }
+      )
+    );
+    if (typeof k.bri === "number")
+      box.appendChild(
+        sliderRow({
+          icon: "bright",
+          name: _T("brightness"),
+          min: 1,
+          max: 100,
+          step: 1,
+          get: function () {
+            return k.bri;
+          },
+          fmt: function (v) {
+            return v + "%";
+          },
+          commit: function (v) {
+            k.bri = v;
+          },
+        })
+      );
+    box.appendChild(sep(_T("brightness_effects"), "tune"));
+    box.appendChild(
+      seg(
+        [
+          ["scene", _T("scene_effects")],
+          ["own", _T("own_effects")],
+          ["none", _T("no_effects")],
+        ],
+        !k.fx ? "scene" : k.fx.length ? "own" : "none",
+        function (v) {
+          if (v === "scene") delete k.fx;
+          else if (v === "none") k.fx = [];
+          else k.fx = (d.live.fx || []).map(function (f) { return { type: f.type, speed: f.speed, strength: f.strength }; });
+          draw(true);
+        }
+      )
+    );
+    if (k.fx && k.fx.length) liveFxEditor(box, k, "fx", draw);
+    var offered = (A(id).effect_list || []).filter(function (e) {
+      return LIVE_NATIVE.indexOf(e) >= 0;
+    });
+    if (offered.length) {
+      box.appendChild(sep(_T("the_lights_own_effect"), "light"));
+      var g = mk("div", "gridl g2");
+      [""].concat(offered).forEach(function (name) {
+        g.appendChild(
+          pill("light", name ? lpFxLabel(name) : _T("none"), {
+            on: function () {
+              return (k.native || "") === name;
+            },
+            tap: function () {
+              if (name) k.native = name;
+              else delete k.native;
+              draw(true);
+            },
+          })
+        );
+      });
+      box.appendChild(g);
+      if (k.native) {
+        var nh = mk("div", "hint");
+        nh.textContent = _T("own_effect_hint");
+        box.appendChild(nh);
+      }
+    }
+    box.appendChild(
+      pill("undo", _T("follow_the_scene"), {
+        tap: function () {
+          Object.keys(k).forEach(function (x) {
+            delete k[x];
+          });
+          draw(true);
+        },
+      })
+    );
+    CUR = prev;
+    if (live) refresh();
+  }
+  draw(false);
+}
+
+/* The devices of this room that a scene can switch when it starts, not yet listed. */
+function liveAlsoPick(b) {
+  var d = LSD.draft,
+    have = {};
+  (d.live.also || []).forEach(function (a) {
+    have[a.id] = 1;
+  });
+  var inScene = {};
+  var ar = liveAreaOf(d.live.area);
+  if (ar)
+    ar.lights.forEach(function (l) {
+      inScene[l.id] = 1;
+    });
+  var list = roomDevs(LSD.room).filter(function (x) {
+    return x.id && !have[x.id] && !inScene[x.id] && LIVE_ALSO.indexOf(x.id.split(".")[0]) >= 0;
+  });
+  if (!list.length) b.appendChild(pill("info", _T("every_suitable_device_is_listed"), {}));
+  list.forEach(function (x) {
+    b.appendChild(
+      pill(x.icon, x.name, {
+        tap: function () {
+          d.live.also.push({ id: x.id, on: false });
+          popBack();
+        },
+      })
+    );
+  });
+}
+
+/* The first question of a new scene: fixed settings (lights, AC, TV at set levels) or colours and effects. */
+function sceneKindPage(b, key) {
+  var q = key.split(":"),
+    scope = q[0],
+    e = secById(scope, q[1]);
+  if (!e) return;
+  b.appendChild(
+    pill("scene", _T("fixed_settings"), {
+      sub: function () {
+        return _T("fixed_settings_sub");
+      },
+      tap: function () {
+        openEditor(scope, null, { scope: scope, sid: e.id });
+      },
+    })
+  );
+  b.appendChild(
+    pill("palette", _T("colours_and_effects"), {
+      sub: function () {
+        return _T("colours_and_effects_sub");
+      },
+      tap: function () {
+        liveOpenEditor(scope, null, { scope: scope, sid: e.id });
+      },
+    })
+  );
 }
 
 function liveSaveScene() {

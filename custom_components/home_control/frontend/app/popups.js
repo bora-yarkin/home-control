@@ -172,6 +172,28 @@ function popupDefBase(key) {
       icon: "palette",
       build: liveEditor,
     };
+  if (k === "live-look")
+    return {
+      title: entName(id),
+      icon: "light",
+      build: function (b) {
+        liveLook(b, id);
+      },
+    };
+  if (k === "live-also")
+    return {
+      title: _T("also_switch"),
+      icon: "plug",
+      build: liveAlsoPick,
+    };
+  if (k === "scene-kind")
+    return {
+      title: _T("what_kind_of_scene"),
+      icon: "scene",
+      build: function (b) {
+        sceneKindPage(b, id);
+      },
+    };
   if (k === "live-import")
     return {
       title: _T("import_a_live_scene_from_hue"),

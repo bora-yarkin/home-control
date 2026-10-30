@@ -83,6 +83,60 @@ function cleanLiveInt(v, lo, hi, def) {
   return typeof v === "number" && isFinite(v) ? Math.max(lo, Math.min(hi, Math.round(v))) : def;
 }
 
+var LIVE_SRC = ["palette", "rainbow"],
+  LIVE_FX = ["pulse", "flicker", "sparkle", "lightning"],
+  LIVE_NATIVE = ["candle", "fire", "sparkle", "glisten", "opal", "prism", "underwater", "cosmos", "sunbeam", "enchant"],
+  LIVE_ALSO = ["light", "switch", "fan", "media_player", "climate", "humidifier", "input_boolean", "cover"];
+
+/* Brightness effects of a scene or a light: up to 4, each a type, a speed (1 to 12) and a strength (1 to 100). */
+function cleanLiveFx(list) {
+  var out = [];
+  (Array.isArray(list) ? list : []).slice(0, 16).forEach(function (f) {
+    if (out.length >= 4 || !f || LIVE_FX.indexOf(f.type) < 0) return;
+    out.push({ type: f.type, speed: cleanLiveInt(f.speed, 1, 12, 6), strength: cleanLiveInt(f.strength, 1, 100, 60) });
+  });
+  return out;
+}
+
+/* What single lights do differently: their own colours, brightness, brightness effects and the light's own effect. */
+function cleanLiveLooks(m) {
+  var out = {};
+  if (!m || typeof m !== "object") return out;
+  Object.keys(m)
+    .slice(0, 32)
+    .forEach(function (id) {
+      var k = m[id];
+      if (!/^light\.[a-z0-9_]{1,80}$/.test(id) || !k || typeof k !== "object") return;
+      var o = {};
+      if (Array.isArray(k.palette)) {
+        var pal = [];
+        k.palette.slice(0, 16).forEach(function (c) {
+          var x = cleanLiveColour(c);
+          if (x) pal.push(x);
+        });
+        if (pal.length) o.palette = pal;
+      }
+      if (typeof k.bri === "number") o.bri = cleanLiveInt(k.bri, 1, 100, 100);
+      if (Array.isArray(k.fx)) o.fx = cleanLiveFx(k.fx);
+      if (LIVE_NATIVE.indexOf(k.native) >= 0) o.native = k.native;
+      if (Object.keys(o).length) out[id] = o;
+    });
+  return out;
+}
+
+/* Devices a scene switches when it starts: on or off, in a fixed list of domains. */
+function cleanLiveAlso(list) {
+  var out = [],
+    seen = {};
+  (Array.isArray(list) ? list : []).slice(0, 12).forEach(function (a) {
+    if (!a || typeof a.id !== "string" || !/^[a-z_]+\.[a-z0-9_]+$/.test(a.id) || seen[a.id]) return;
+    if (LIVE_ALSO.indexOf(a.id.split(".")[0]) < 0) return;
+    seen[a.id] = 1;
+    out.push({ id: a.id, on: a.on !== false });
+  });
+  return out;
+}
+
 /* The live part of a scene: which area it plays on, its palette and how it moves. */
 function cleanLive(l) {
   if (!l || typeof l !== "object") return null;
@@ -99,6 +153,10 @@ function cleanLive(l) {
     range: cleanLiveInt(l.range, 0, 100, 100),
     bri: cleanLiveInt(l.bri, 1, 100, 100),
     spread: ["x", "y", "z", "radial"].indexOf(l.spread) >= 0 ? l.spread : "x",
+    src: LIVE_SRC.indexOf(l.src) >= 0 ? l.src : "palette",
+    fx: cleanLiveFx(l.fx),
+    looks: cleanLiveLooks(l.looks),
+    also: cleanLiveAlso(l.also),
   };
 }
 
