@@ -826,7 +826,7 @@ function eaSave() {
   });
   STORE.eareas.push(a);
   uiChanged();
-  hpSyncLibrary();
+  hpPush([], [a]);
   toast(_T("area_saved"));
   if (STACK.length) popBack();
   else closeSheet();
@@ -846,7 +846,7 @@ function eaDelete() {
     return x.id !== id;
   });
   uiChanged();
-  hpSyncLibrary();
+  hpForget(null, id);
   toast(_T("area_deleted"));
   if (STACK.length) popBack();
   else closeSheet();

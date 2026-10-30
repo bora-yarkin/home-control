@@ -102,8 +102,9 @@ function livePayload(sc) {
   };
 }
 
-/* The live scenes and areas are saved into the Hue Plus integration as well (it keeps them, so automations can start a scene by its id).
-   Whatever the dashboard holds is pushed; what the integration holds and the dashboard does not is deleted. Only an administrator does this. */
+/* Hue Plus keeps the live scenes and areas (so an automation can start a scene by its id, and so it works without this dashboard).
+   The dashboard writes what it saves, deletes what it deletes, and, when an administrator opens it, creates what Hue Plus lacks.
+   It never deletes or overwrites anything it did not change: a scene made in Hue Plus stays there. */
 var HPLIB = { t: 0, once: false };
 
 function hpId(id) {
@@ -120,6 +121,49 @@ function hpAreaLights(ar) {
   return out.slice(0, 32);
 }
 
+function hpAreaPayload(ar) {
+  var lights = hpAreaLights(ar);
+  if (!lights.length) return null;
+  return { id: hpId(ar.id), name: ar.name || ar.id, lights: lights, ui: { room: ar.room || "" } };
+}
+
+function hpScenePayload(sc) {
+  var ar = sc.live ? eaById(sc.live.area) : null;
+  if (!ar || !hpAreaPayload(ar)) return null; /* a scene whose area cannot be written could not start there */
+  return {
+    id: hpId(sc.id),
+    name: sc.name || sc.id,
+    palette: sc.live.palette,
+    speed: sc.live.speed,
+    range: sc.live.range,
+    brightness: Math.max(1, Math.min(255, Math.round(sc.live.bri * 2.55))),
+    spread: sc.live.spread,
+    area: hpId(sc.live.area),
+    ui: { room: sc.room || "" },
+  };
+}
+
+/* Writes the scenes and areas the administrator just saved (the areas first: a scene names one). */
+function hpPush(scenes, areas) {
+  if (!ISADMIN || !engineSensor()) return;
+  areas.forEach(function (ar) {
+    var p = hpAreaPayload(ar);
+    if (p) callRaw("hue_plus", "area_save", p);
+  });
+  scenes.forEach(function (sc) {
+    var p = hpScenePayload(sc);
+    if (p) callRaw("hue_plus", "scene_save", p);
+  });
+}
+
+/* Deletes what the administrator just deleted. */
+function hpForget(sceneId, areaId) {
+  if (!ISADMIN || !engineSensor()) return;
+  if (sceneId) callRaw("hue_plus", "scene_delete", { id: hpId(sceneId) });
+  if (areaId) callRaw("hue_plus", "area_delete", { id: hpId(areaId) });
+}
+
+/* Creates in Hue Plus what it lacks (a new bridge, lost storage). What it already has is left alone. */
 function hpSyncLibrary(first) {
   if (!ISADMIN || (first && HPLIB.once)) return;
   if (first) HPLIB.once = true;
@@ -128,35 +172,22 @@ function hpSyncLibrary(first) {
     if (!engineSensor()) return;
     HA.serviceResponse("hue_plus", "get_library", {})
       .then(function (lib) {
-        var areas = {},
-          scenes = {};
-        STORE.eareas.forEach(function (ar) {
-          var lights = hpAreaLights(ar);
-          if (!lights.length) return;
-          areas[hpId(ar.id)] = 1;
-          callRaw("hue_plus", "area_save", { id: hpId(ar.id), name: ar.name || ar.id, lights: lights, ui: { room: ar.room || "" } });
-        });
-        STORE.scenes.forEach(function (sc) {
-          if (!sc.live || !eaById(sc.live.area)) return;
-          scenes[hpId(sc.id)] = 1;
-          callRaw("hue_plus", "scene_save", {
-            id: hpId(sc.id),
-            name: sc.name || sc.id,
-            palette: sc.live.palette,
-            speed: sc.live.speed,
-            range: sc.live.range,
-            brightness: Math.max(1, Math.min(255, Math.round(sc.live.bri * 2.55))),
-            spread: sc.live.spread,
-            area: hpId(sc.live.area),
-            ui: { room: sc.room || "" },
-          });
+        var haveAreas = {},
+          haveScenes = {};
+        (lib.areas || []).forEach(function (a) {
+          haveAreas[a.id] = 1;
         });
         (lib.scenes || []).forEach(function (s) {
-          if (!scenes[s.id]) callRaw("hue_plus", "scene_delete", { id: s.id });
+          haveScenes[s.id] = 1;
         });
-        (lib.areas || []).forEach(function (a) {
-          if (!areas[a.id]) callRaw("hue_plus", "area_delete", { id: a.id });
-        });
+        hpPush(
+          STORE.scenes.filter(function (sc) {
+            return !haveScenes[hpId(sc.id)];
+          }),
+          STORE.eareas.filter(function (ar) {
+            return !haveAreas[hpId(ar.id)];
+          })
+        );
       })
       .catch(function () {});
   }, 1500);
@@ -830,7 +861,7 @@ function liveSaveScene() {
   /* A scene that is playing takes the new colours and settings at once. */
   if (liveRun(sc)) liveStart(sc);
   uiChanged();
-  hpSyncLibrary();
+  hpPush([sc], [eaById(sc.live.area)].filter(Boolean));
   toast(_T("scene_saved"));
   closeSheet();
 }
@@ -843,7 +874,7 @@ function liveDeleteScene() {
   });
   pruneSceneRefs();
   uiChanged();
-  hpSyncLibrary();
+  hpForget(id, null);
   toast(_T("scene_deleted"));
   closeSheet();
 }
