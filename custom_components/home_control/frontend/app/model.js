@@ -199,6 +199,13 @@ function cleanUI(u) {
           })
           .slice(0, 200)
       : [],
+    batsOff: Array.isArray(u.batsOff)
+      ? u.batsOff
+          .filter(function (x) {
+            return typeof x === "string" && ENTRE.test(x);
+          })
+          .slice(0, 200)
+      : [],
     meta: cleanMeta(u.meta),
   };
   /* Per-light "turn on" defaults: brightness 1-100 and colour temperature 2000-6500 K; either may be absent (= last used). */

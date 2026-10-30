@@ -677,7 +677,7 @@ var EN = {
   "humidity_sensor": "Humidity sensor",
   "remove_the_humidity_sensor": "Remove the humidity sensor",
   "battery_sensors_checked_for_the_low_":
-    "Battery sensors checked for the low battery alert and the Batteries tile. Tap one to remove it.",
+    "Battery sensors checked for the low battery alert and the Batteries tile. New ones are added by themselves; tap one to remove it, and it stays off the list.",
   "stop_tracking": "Stop tracking “",
   "add_battery_sensor": "Add battery sensor",
   "choose_a_battery_sensor": "Choose a battery sensor",

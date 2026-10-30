@@ -153,12 +153,49 @@ function newDevBoot() {
         uiChanged();
       }
       newDevBadge();
+      batsAutoAdd();
       notifyReconcileSoon();
     });
   })();
   setInterval(function () {
-    if (!document.hidden) regLoad(false).then(newDevBadge);
+    if (!document.hidden)
+      regLoad(false).then(function () {
+        newDevBadge();
+        batsAutoAdd();
+      });
   }, 120000);
+}
+
+/* A battery sensor that Home Assistant gains after the dashboard was set up is tracked, unless it was taken off the list
+   (UI.batsOff remembers those). Sensors from before that point are left to the list as it is. */
+function batsAutoAdd() {
+  var h = H();
+  if (!h || !ISADMIN || !STORE_READY || !REG || !UI.newSince) return;
+  var have = {},
+    off = UI.batsOff || [],
+    added = 0;
+  UI.bats.forEach(function (x) {
+    have[x[1]] = 1;
+  });
+  REG.forEach(function (e) {
+    var id = e.entity_id;
+    if (
+      UI.bats.length >= 30 ||
+      dom(id) !== "sensor" ||
+      !h.states[id] ||
+      A(id).device_class !== "battery" ||
+      e.disabled_by ||
+      e.hidden_by ||
+      (e.created_at || 0) <= UI.newSince ||
+      have[id] ||
+      off.indexOf(id) >= 0
+    )
+      return;
+    UI.bats.push([(A(id).friendly_name || id).replace(/\s*battery\s*$/i, "").slice(0, 40), id]);
+    have[id] = 1;
+    added++;
+  });
+  if (added) uiChanged();
 }
 
 function roomForEntity(id) {

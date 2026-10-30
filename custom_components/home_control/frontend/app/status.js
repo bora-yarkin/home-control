@@ -463,6 +463,9 @@ function batsPage(b) {
           tap: function () {
             confirmDlg(_T("stop_tracking") + x[0] + "”?", function () {
               UI.bats.splice(i, 1);
+              UI.batsOff = (UI.batsOff || []).filter(function (o) {
+                return o !== x[1];
+              }).concat([x[1]]).slice(-200);
               uiChanged();
               redrawBox(box, draw);
             });
@@ -482,6 +485,9 @@ function batsPage(b) {
                 (A(id).friendly_name || id).replace(/\s*battery\s*$/i, "").slice(0, 40),
                 id,
               ]);
+              UI.batsOff = (UI.batsOff || []).filter(function (o) {
+                return o !== id;
+              });
               uiChanged();
             },
             function (id) {
