@@ -7,8 +7,7 @@ function sceneIds(area) {
     .filter(function (id) {
       if (id.indexOf("scene.") !== 0) return false;
       var e = h.entities[id];
-      /* An entity Home Assistant hides is not listed: Hue Plus hides the Hue integration's copy of every Hue scene. */
-      if (!e || e.hidden) return false;
+      if (!e) return false;
       var d = e.device_id && h.devices ? h.devices[e.device_id] : null;
       return (e.area_id || (d && d.area_id)) === area;
     })
