@@ -115,7 +115,8 @@ var vacuum={
 
 var scenes={
  /* Philips Hue: a scene entity says nothing about being on, but the room has a "Scene" select entity (same device) whose state is the name of the scene that is on. */
- isHue:function(h,id){var e=h.entities[id];return id.indexOf("scene.")===0&&!!e&&e.platform==="hue"},
+ /* Hue Plus runs the Hue integration's scenes itself (platform hue_plus), with the same attributes, and its own activate_scene service. */
+ isHue:function(h,id){var e=h.entities[id];return id.indexOf("scene.")===0&&!!e&&(e.platform==="hue"||e.platform==="hue_plus")},
  /* The light that stands for the whole room of a Hue scene: the Hue group light on the same device. Its "dynamics" attribute says whether a live scene is playing. */
  group:function(h,id){
   var e=h.entities[id];
@@ -123,8 +124,8 @@ var scenes={
   return Object.keys(h.states).filter(function(k){var x=h.entities[k];return k.indexOf("light.")===0&&x&&x.device_id===e.device_id&&h.states[k].attributes.is_hue_group})[0]||null;
  },
  /* The service call that starts a scene live, at a speed (0 to 100) and brightness (1 to 255). It is the only way to change a scene's speed; dynamic:false does not stop a live scene. */
- start:function(id,speed,brightness){
-  return["hue","activate_scene",{entity_id:id,dynamic:true,speed:Math.max(0,Math.min(100,Math.round(speed))),brightness:Math.max(1,Math.min(255,Math.round(brightness)))}];
+ start:function(h,id,speed,brightness){
+  return[h.entities[id].platform==="hue_plus"?"hue_plus":"hue","activate_scene",{entity_id:id,dynamic:true,speed:Math.max(0,Math.min(100,Math.round(speed))),brightness:Math.max(1,Math.min(255,Math.round(brightness)))}];
  },
  /* The Hue app sets a scene's speed in 12 steps. The service takes 0 to 100, so step 1 is 0 and step 12 is 100. */
  speedSteps:12,
@@ -151,10 +152,10 @@ var scenes={
  },
  active:function(h,id){
   var nm=h.states[id]&&h.states[id].attributes.name,e=h.entities[id];
-  if(!nm||!e||e.platform!=="hue"||!e.device_id)return false;
+  if(!nm||!e||(e.platform!=="hue"&&e.platform!=="hue_plus")||!e.device_id)return false;
   return Object.keys(h.states).some(function(k){
    var se=h.entities[k];
-   return k.indexOf("select.")===0&&se&&se.platform==="hue"&&se.device_id===e.device_id&&(h.states[k].attributes.options||[]).indexOf(nm)>=0&&h.states[k].state===nm;
+   return k.indexOf("select.")===0&&se&&se.platform===e.platform&&se.device_id===e.device_id&&(h.states[k].attributes.options||[]).indexOf(nm)>=0&&h.states[k].state===nm;
   });
  }
 };

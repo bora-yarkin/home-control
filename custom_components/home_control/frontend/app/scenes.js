@@ -601,7 +601,7 @@ function hueSceneStart(id) {
     delete HFROZEN[grp];
     liveStopOn([grp]);
   }
-  var c = Integrations.scenes.start(id, st.speed, Math.max(1, bri) * 2.55);
+  var c = Integrations.scenes.start(H(), id, st.speed, Math.max(1, bri) * 2.55);
   call(c[0], c[1], c[2]);
 }
 

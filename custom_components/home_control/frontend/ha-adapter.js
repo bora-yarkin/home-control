@@ -46,10 +46,17 @@ var SOURCES=[
   id:function(f){return f.floor_id}}
 ];
 
+/* Hue Plus runs every Hue entity itself, so with Hue Plus installed the panel shows nothing from the Hue integration. */
+function withoutHue(rows){
+ rows=rows||[];
+ if(!rows.some(function(r){return r.platform==="hue_plus"}))return rows;
+ return rows.filter(function(r){return r.platform!=="hue"});
+}
+
 function loadRegistry(src,attempt){
  return ws({type:src.list}).then(function(rows){
   var out={};
-  (rows||[]).forEach(function(r){var v=src.pick(r);if(v)out[src.id(r)]=v});
+  (src.key==="entities"?withoutHue(rows):rows||[]).forEach(function(r){var v=src.pick(r);if(v)out[src.id(r)]=v});
   registry[src.key]=out;
   schedule();
  },function(err){
@@ -176,7 +183,7 @@ window.HA={
  logbook:function(params){return withType("logbook/get_events",params)},
  statistics:function(params){return withType("recorder/statistics_during_period",params)},
  users:function(){return ws({type:"config/auth/list"})},
- entityRegistry:function(){return ws({type:"config/entity_registry/list"})},
+ entityRegistry:function(){return ws({type:"config/entity_registry/list"}).then(withoutHue)},
  serviceResponse:serviceResponse,
  camera:camera,
  route:route,

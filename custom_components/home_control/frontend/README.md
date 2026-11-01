@@ -33,6 +33,8 @@ Only a change to this one file needs that number raised (and a Home Assistant re
 
 ## What it needs from Home Assistant
 
+When any entity belongs to the `hue_plus` integration, `ha-adapter.js` leaves the entities of the `hue` integration out of the registry it hands to the panel (Hue Plus runs every one of them itself). Hue Plus's scenes are then the Hue scenes, started with `hue_plus.activate_scene`.
+
 If an update to Home Assistant breaks the panel, these are the only places to look, and every one is used only from
 `ha-adapter.js`.
 
