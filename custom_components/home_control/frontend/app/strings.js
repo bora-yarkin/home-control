@@ -1,6 +1,7 @@
 /* Text shown to the user: the English strings and the lookup function _T(). */
 
 var EN = {
+  "range": "Colour spread",
   "preview": "Preview",
   "play_it_on_the_lights": "Plays the scene on the lights while you edit",
   "turn_on_at_least_one_light": "Turn on at least one light for the scene",
@@ -1286,11 +1287,6 @@ var EN = {
   "an_entertainment_area_of_the_bridge": "An entertainment area of the bridge",
   "none_of_its_lights_are_in_this_room": "None of its lights are in this room",
   "rainbow": "Rainbow",
-  "strength": "Strength",
-  "fx_pulse": "Pulse",
-  "fx_flicker": "Flicker",
-  "fx_sparkle": "Sparkle",
-  "fx_lightning": "Lightning",
   "what_kind_of_scene": "What kind of scene?",
 };
 

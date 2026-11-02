@@ -1,13 +1,6 @@
-/* The live scene maker. A live scene is a palette that moves across the lights of one or more areas. The maker is the light popup of the dashboard with one more light in it, Colors, whose colours are the palette: separate it into up to 10 colours, give each its colour and brightness, join a colour with a light to give that light the colour, turn the lights of the areas on and off, set each light's brightness and effect on its own tabs. Under the lights come the effects of the whole scene and its settings. The lights follow every change at once, as a preview; saving keeps what they show in the scene and puts the lights back as they were. */
+/* The live scene maker. A live scene is a palette that moves across the lights of one or more areas. The maker is the light popup of the dashboard with one more light in it, Colors, whose colours are the palette: separate it into up to 10 colours, give each its colour and brightness, join a colour with a light to give that light the colour, turn the lights of the areas on and off, set each light's brightness and effect on its own tabs. Under the lights come the settings of the whole scene. The lights follow every change at once, as a preview; saving keeps what they show in the scene and puts the lights back as they were. */
 
 var LMK = null;
-
-var LMK_FX = [
-  ["pulse", "fx_pulse"],
-  ["flicker", "fx_flicker"],
-  ["sparkle", "fx_sparkle"],
-  ["lightning", "fx_lightning"],
-];
 
 /* An area of the editor: the one an import is about to create is only here until the scene is saved. */
 function liveAreaOf(id) {
@@ -384,7 +377,6 @@ function liveMakerBuild(b) {
   });
   b.appendChild(stepper);
   liveMakerColours(stepper, root, colorNode);
-  liveMakerEffects(b);
   liveMakerSettings(b);
   guardUnsaved({
     dirty: liveMakerDirty,
@@ -464,77 +456,6 @@ function liveMakerColours(box, root, colorNode) {
       S.select(S.sel);
     }
     draw();
-  }
-  draw();
-}
-
-/* The effects of the whole scene, each with its speed and strength. */
-function liveMakerEffects(b) {
-  b.appendChild(sep(_T("effects"), "sparkle"));
-  var box = mk("div");
-  b.appendChild(box);
-  function draw() {
-    box.innerHTML = "";
-    LMK_FX.forEach(function (f) {
-      var cur = LMK.live.fx.filter(function (x) {
-        return x.type === f[0];
-      })[0];
-      box.appendChild(
-        pill("sparkle", _T(f[1]), {
-          on: function () {
-            return !!cur;
-          },
-          sub: function () {
-            return cur ? _T("speed") + " " + cur.speed + " · " + _T("strength") + " " + cur.strength + "%" : _T("off");
-          },
-          tap: function () {
-            if (cur) LMK.live.fx = LMK.live.fx.filter(function (x) {
-              return x !== cur;
-            });
-            else LMK.live.fx.push({ type: f[0], speed: 6, strength: 60 });
-            draw();
-          },
-        })
-      );
-      if (cur) {
-        box.appendChild(
-          sliderRow({
-            icon: "clock",
-            name: _T("speed"),
-            min: 1,
-            max: 12,
-            step: 1,
-            get: function () {
-              return cur.speed;
-            },
-            fmt: function (v) {
-              return String(v);
-            },
-            commit: function (v) {
-              cur.speed = v;
-            },
-          })
-        );
-        box.appendChild(
-          sliderRow({
-            icon: "tune",
-            name: _T("strength"),
-            min: 1,
-            max: 100,
-            step: 1,
-            get: function () {
-              return cur.strength;
-            },
-            fmt: function (v) {
-              return v + "%";
-            },
-            commit: function (v) {
-              cur.strength = v;
-            },
-          })
-        );
-      }
-    });
   }
   draw();
 }
