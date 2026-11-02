@@ -1010,19 +1010,24 @@ function devManage(b, key) {
     }
     if (d.kind === "media" && d.id)
       box.appendChild(
-        pill("media", _T("artwork_card"), {
-          on: function () {
-            return !!d.art;
+        dropRow(
+          _T("now_playing"),
+          ["off", "on", "art"],
+          function () {
+            return d.art ? "art" : d.sub ? "on" : "off";
           },
-          sub: function () {
-            return _T("a_large_now_playing_card_with_cover__2");
-          },
-          tap: function () {
-            if (d.art) delete d.art;
-            else d.art = 1;
+          function (v) {
+            delete d.art;
+            delete d.sub;
+            if (v === "art") d.art = 1;
+            else if (v === "on") d.sub = 1;
             uiChanged();
           },
-        })
+          "media",
+          function (v) {
+            return { off: _T("off"), on: _T("on_2"), art: _T("artwork_card") }[v];
+          }
+        )
       );
     if (d.kind === "light" && d.id) {
       if (lightRaw(d.id).color && lightRaw(d.id).white)

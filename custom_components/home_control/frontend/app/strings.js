@@ -1,6 +1,14 @@
 /* Text shown to the user: the English strings and the lookup function _T(). */
 
 var EN = {
+  "only_the_first_20_lights_were_kept": "A scene holds 20 devices; the first 20 lights were kept",
+  "no_light_is_on": "No light is on",
+  "save_the_lights_as_they_are_sub": "A classic scene from the lights that are on now: brightness, colour or temperature, and effects",
+  "save_the_lights_as_they_are": "Save the lights as they are",
+  "this_light_has_no_colour": "This light has no colour",
+  "all_saved": "All saved",
+  "turning_the_lights_on": "Turning the lights on",
+  "turn_all_lights_on": "Turn all lights on",
   "range": "Colour spread",
   "preview": "Preview",
   "play_it_on_the_lights": "Plays the scene on the lights while you edit",
@@ -420,7 +428,6 @@ var EN = {
   "vacuum": "Vacuum",
   "camera": "Camera",
   "volume": "Volume",
-  "all_presets": "All presets",
   "new_quick_action": "New scene",
   "edit_quick_action": "Edit scene",
   "edit_scene": "Edit scene",
@@ -579,8 +586,8 @@ var EN = {
   "turn_the_light_on_to_save_its_colour": "Turn the light on to save its colour",
   "k_2": " K",
   "presets": "Presets",
-  "no_presets_yet": "No presets yet",
-  "edit_presets": "Edit presets",
+  "no_presets_yet": "Nothing saved yet",
+  "edit_saved": "Edit saved",
   "tap_a_preset_to_apply_it_to_this_lig":
     "Tap a preset to apply it to this light. Tap the + to add it to this light’s own presets.",
   "tap_a_preset_to_apply_it_to_this_lig_2": "Tap a preset to apply it to this light.",
@@ -619,8 +626,6 @@ var EN = {
   "zones": "zones",
   "play": "Play",
   "freeze": "Freeze",
-  "colour_and_white_swatches": "Colour and white swatches",
-  "shown_in_the_light_popup": "Shown in the light popup",
   "manual": "Manual",
   "light_colour_in_popups": "Light colour in popups",
   "popups_use_the_accent_colour": "Popups use the accent colour",
@@ -1008,8 +1013,6 @@ var EN = {
   "a_round_dial_instead_of_the_slider_i":
     "A round dial instead of the slider in this air conditioner’s popup",
   "artwork_card": "Artwork card",
-  "a_large_now_playing_card_with_cover__2":
-    "A large now-playing card with cover art in this remote’s popup",
   "no_alerts_right_now": "No alerts right now",
   "lights_fans_and_media_left_on_and_pr":
     "Lights, fans and media left on, and problems, show up here",
@@ -1086,7 +1089,6 @@ var EN = {
   "choose_what_the_new_section_shows_yo":
     "Choose what the new section shows. You can change the type later.",
   "section_type_tap_to_change_it": "Section type. Tap to change it",
-  "widgets_in_this_section": "Widgets in this section",
   "section_type": "Section type",
   "choose_the_section_it_moves_to": "Choose the section it moves to.",
   "moved_to_2": "Moved to",

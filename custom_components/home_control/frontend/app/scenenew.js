@@ -57,6 +57,16 @@ function sceneNewPage(b, key) {
     })
   );
   b.appendChild(
+    pill("light", _T("save_the_lights_as_they_are"), {
+      sub: function () {
+        return _T("save_the_lights_as_they_are_sub");
+      },
+      tap: function () {
+        sceneFromLights(scope, target);
+      },
+    })
+  );
+  b.appendChild(
     pill("palette", _T("live_scene"), {
       sub: function () {
         return engineSensor() ? _T("live_scene_sub") : _T("live_scene_needs_hue_plus");
@@ -71,6 +81,27 @@ function sceneNewPage(b, key) {
       },
     })
   );
+}
+
+/* A classic scene made from the lights as they are: each light that is on keeps its brightness and its colour, white temperature or running effect; the lights of the page that are off are switched off by it. The editor opens on it, not saved yet. */
+function sceneFromLights(scope, target) {
+  var on = roomDevs(scope).filter(function (d) {
+    return d.type === "light" && V_(d.id) === "on";
+  });
+  if (!on.length) {
+    toast(_T("no_light_is_on"));
+    return;
+  }
+  var acts = lightUnits(
+    on.map(function (d) {
+      return d.id;
+    })
+  ).map(lightAct);
+  if (acts.length > 20) {
+    toast(_T("only_the_first_20_lights_were_kept"));
+    acts = acts.slice(0, 20);
+  }
+  staticOpen(scope, null, target, { others: "lights", acts: acts });
 }
 
 /* The areas picked for a new live scene. */

@@ -14,12 +14,7 @@ main{position:fixed;inset:0;z-index:1;overflow-y:auto;touch-action:pan-y;padding
 /* Sections are placed by script (see masonLayout): list order and measured heights decide every position, nothing else. */
 .mason{position:relative}
 .mason>*{position:absolute;left:0;top:0}
-.mason.anim>*{transition:transform .26s cubic-bezier(.2,.8,.2,1)}
-.mason>.ed-lift{z-index:30;box-shadow:0 14px 34px -10px rgba(0,0,0,.6)}
-.mason.anim>.ed-lift{transition:none}
 .sec-hid{opacity:.5}
-.mason>.mason-ph{border:1.5px dashed var(--edge);border-radius:var(--r-m);background:color-mix(in srgb,var(--ink) 6%,transparent);pointer-events:none;z-index:1}
-body.lifting,body.lifting *{-webkit-user-select:none;user-select:none}
 .sec-h svg{width:18px;height:18px;fill:none;stroke:currentColor;stroke-width:1.6;stroke-linecap:round;stroke-linejoin:round;flex:none}
 .pill{display:flex;align-items:center;gap:12px;min-height:58px;padding:8px 18px 8px 8px;cursor:pointer;user-select:none;transition:transform .12s,background .25s}
 /* Every pressable element shrinks while it is pressed: widgets.js puts the class on it. */
@@ -406,7 +401,6 @@ body.editing .pg .pill.ed-t.ed-del.ed-h{padding-right:162px}
 .ed-del>.edtag{right:84px}
 .edgrip svg{width:16px;height:16px;fill:none;stroke:currentColor;stroke-width:1.8;stroke-linecap:round}
 .tile .edgrip,.gb .edgrip,.qa .edgrip{top:6px;right:6px;transform:none;width:32px;height:32px}
-.edgrab{cursor:grab;touch-action:none}
 .ed-drag{position:relative;z-index:30;transition:none!important;box-shadow:0 14px 34px -10px rgba(0,0,0,.6)}
 .ed-add{border-style:dashed!important}
 .tile .edtag{top:auto;bottom:8px;transform:none;right:8px}
@@ -617,8 +611,6 @@ body.pinhdr:not(.editing) .wrap::before{content:"";position:fixed;top:0;left:0;r
 .lw-pin.drag .lw-tag:not(:empty){opacity:1}
 .lw-pin.drag .lw-lbl{opacity:0}
 .lw-anim .lw-dot,.lw-anim .lw-pin{transition:left .3s cubic-bezier(.2,.9,.3,1),top .3s cubic-bezier(.2,.9,.3,1)}
-.lp-fold{overflow:hidden;transition:height .26s cubic-bezier(.2,.9,.3,1),opacity .2s}
-.lp-fold.closed{pointer-events:none}
 /* the light panel: stage, icon tabs, brightness button, tiles, effects, group circle */
 .lp-stage{position:relative}
 .lp-view{overflow-x:clip;transition:opacity .25s}
@@ -791,3 +783,6 @@ body.pinhdr:not(.editing) .wrap::before{content:"";position:fixed;top:0;left:0;r
 .openc>.dslide{grid-template-rows:1fr;opacity:1}
 .dinner{overflow:hidden;min-height:0}
 @media(prefers-reduced-motion:reduce){.dslide{transition:none}}
+
+/* The thin line between the scenes, the live scenes and the Hue scenes of a scenes section. */
+.scn-div{grid-column:1/-1;height:1px;margin:6px 2px;background:var(--f-line)}

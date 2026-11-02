@@ -335,6 +335,7 @@ function compileScene(sc) {
         var d = {};
         if (a.bri) d.brightness_pct = a.bri;
         if (a.col) applyPresetData(d, a.col, a.id);
+        if (a.fx) d.effect = a.fx;
         acts.push({ action: "light.turn_on", target: { entity_id: a.id }, data: d });
       }
     } else if (dm === "climate") {

@@ -852,7 +852,7 @@ function lpAutoSplit(S, n) {
   });
 }
 
-/* The state of one panel: what is separated (S.ex) or joined by hand (S.joined), what is selected, and the pieces that must follow (the circles in S.subs, the brightness row S.bsl, the temperature section S.tempBox). 'both' is true when there are Colour and White tabs. */
+/* The state of one panel: what is separated (S.ex) or joined by hand (S.joined), what is selected, and the pieces that must follow (the circles in S.subs, the brightness row S.bsl). 'both' is true when there are Colour and White tabs. */
 function lpState(root, both) {
   var S = {
     root: root,
@@ -869,7 +869,6 @@ function lpState(root, both) {
     modes: [],
     stage: null,
     bsl: null,
-    tempBox: null,
   };
   /* One lights joined by hand: a marker that stands for several, moving them together. */
   S.makeVirtual = function (kids, icon) {
@@ -995,31 +994,6 @@ function lpState(root, both) {
     S.rebuild();
   };
   lpAutoSplit(S, root);
-  /* The temperatures belong to the White tab: the section folds away on the Colour tab. */
-  S.paintTemp = function (anim) {
-    var f = S.tempBox;
-    if (!f) return;
-    var show = S.mode === "white";
-    if (f._show === show) return;
-    f._show = show;
-    f.classList.toggle("closed", !show);
-    if (!anim) {
-      f.style.height = show ? "" : "0px";
-      f.style.opacity = show ? "" : "0";
-    } else if (show) {
-      /* It opens to its height and then goes back to its natural one, so a change inside it still fits. */
-      f.style.height = f.scrollHeight + "px";
-      f.style.opacity = "";
-      setTimeout(function () {
-        if (f._show) f.style.height = "";
-      }, 300);
-    } else {
-      f.style.height = f.offsetHeight + "px";
-      void f.offsetHeight;
-      f.style.height = "0px";
-      f.style.opacity = "0";
-    }
-  };
   return S;
 }
 
@@ -2172,7 +2146,6 @@ function lpStage(S, host) {
   });
   view.appendChild(track);
   function paint(anim) {
-    S.paintTemp(anim);
     track.style.transform = "translateX(" + (-modes.indexOf(S.mode) * 100) / modes.length + "%)";
     modes.forEach(function (m) {
       panes[m].classList.toggle("off", m !== S.mode);
@@ -2328,70 +2301,55 @@ function tempList() {
     .slice(0, 12);
 }
 
-/* The temperature presets: tapping one sets it on what is selected (the whole when nothing is). 'target()' gives that. The + saves the temperature the selected light shows now. */
-function lpTemps(b, target) {
-  var P = {
-    title: _T("temperature"),
-    icon: "thermo",
-    saveSub: _T("the_current_temperature"),
-    list: function () {
-      return tempList().map(function (k) {
-        return {
-          label: k + " K",
-          icon: "thermo",
-          stops: [cssRgb(kelvinRgb(k))],
-          apply: function () {
-            var n = target(),
-              kr = lpKrange(n);
-            if (!lpCap(n, "white").length) {
-              toast(_T("this_light_has_no_white_temperature"));
-              return;
-            }
-            lpPush(n, "white", { color_temp_kelvin: Math.max(kr[0], Math.min(kr[1], k)) });
-          },
-          rm: function () {
-            STORE.temps = tempList().filter(function (x) {
-              return x !== k;
-            });
-            storeChanged();
-          },
-        };
-      });
-    },
-    add: function () {
-      var n = target(),
-        c = lpCap(n, "white"),
-        r = c.filter(isOn)[0] || c[0],
-        k = r ? lpKelvin(r) : null;
-      if (!k || V_(r) !== "on" || (A(r).color_mode !== "color_temp" && !lpSplit(r))) {
-        toast(_T("select_a_light_that_shows_a_white_temperature"));
-        return false;
-      }
-      k = Math.round(k);
-      var list = tempList();
-      if (
-        list.some(function (x) {
-          return Math.abs(x - k) < 15;
-        })
-      ) {
-        toast(_T("already_a_preset"));
-        return false;
-      }
-      if (list.length >= 16) {
-        toast(_T("preset_limit_reached"));
-        return false;
-      }
-      STORE.temps = list.concat([k]).sort(function (a, c2) {
-        return a - c2;
-      });
-      storeChanged();
-      return true;
-    },
-  };
-  var box = mk("div");
-  b.appendChild(box);
-  lpPresets(box, P);
-  return box;
+/* The white temperatures a person saved, as items of the Saved section: tapping one sets it on what is selected (the whole when nothing is). 'target()' gives that. */
+function lpSavedTemps(target) {
+  return tempList().map(function (k) {
+    return {
+      label: k + " K",
+      icon: "thermo",
+      stops: [cssRgb(kelvinRgb(k))],
+      apply: function () {
+        lpApplyPreset(target(), { k: k });
+      },
+      rm: function () {
+        STORE.temps = tempList().filter(function (x) {
+          return x !== k;
+        });
+        storeChanged();
+      },
+    };
+  });
+}
+
+/* Saves the temperature the selected light shows now. */
+function lpSaveTemp(target) {
+  var n = target(),
+    c = lpCap(n, "white"),
+    r = c.filter(isOn)[0] || c[0],
+    k = r ? lpKelvin(r) : null;
+  if (!k || V_(r) !== "on" || (A(r).color_mode !== "color_temp" && !lpSplit(r))) {
+    toast(_T("select_a_light_that_shows_a_white_temperature"));
+    return false;
+  }
+  k = Math.round(k);
+  var list = tempList();
+  if (
+    list.some(function (x) {
+      return Math.abs(x - k) < 15;
+    })
+  ) {
+    toast(_T("already_a_preset"));
+    return false;
+  }
+  if (list.length >= 16) {
+    toast(_T("preset_limit_reached"));
+    return false;
+  }
+  STORE.temps = list.concat([k]).sort(function (a, c2) {
+    return a - c2;
+  });
+  storeChanged();
+  return true;
 }
 
 /* ---- the panel ---- */
@@ -2412,45 +2370,58 @@ function lightPanel(b, root, o) {
     b.appendChild(S.bsl);
   }
   if (any && o.sliders) lpSliders(b, root, colorOk, whiteOk);
-  if (whiteOk) {
-    S.tempBox = lpTemps(b, S.target);
-    S.tempBox.classList.add("lp-fold");
-    S.paintTemp(false);
-  }
-  if (any && o.id && popSwatches(o.id)) b.appendChild(pickerBlock(o.id, colorOk, whiteOk));
   var all =
     any && o.id
       ? function () {
-          return pill("palette", _T("all_presets"), {
+          return pill("palette", _T("all_saved"), {
             tap: function () {
               lpGo(S, "presets-all:" + o.id);
             },
-          });
+          })
         }
       : null;
-  if (o.presets) {
+  var saved = typeof o.presets === "function" ? o.presets(S) : o.presets;
+  if (saved) {
     var pbox = mk("div");
     b.appendChild(pbox);
-    lpPresets(pbox, o.presets, all);
+    lpPresets(pbox, saved, all);
   } else if (all) b.appendChild(all());
 }
 
-/* ---- presets ---- */
+/* A colour or white temperature on a node: the lights of it that can show it take it. */
+function lpApplyPreset(n, p) {
+  if (p.k) {
+    if (!lpCap(n, "white").length) {
+      toast(_T("this_light_has_no_white_temperature"));
+      return;
+    }
+    var kr = lpKrange(n);
+    lpPush(n, "white", { color_temp_kelvin: Math.max(kr[0], Math.min(kr[1], p.k)) });
+    return;
+  }
+  if (!lpCap(n, "color").length) {
+    toast(_T("this_light_has_no_colour"));
+    return;
+  }
+  lpPush(n, "color", { hs_color: [p.h, p.s] });
+}
+
+/* ---- saved ---- */
 
 /* The presets under the colour circle: buttons in two columns (an odd one out at the end takes the full width), each with the saved colours as its background. 'more' (optional) makes one more button at the end. 'P' has list() of { label, sub, stops, apply, rm }, and add() to save what the lights show now. */
 function lpPresets(pbox, P, more) {
   var edit = false;
   function draw() {
     pbox.innerHTML = "";
-    var hd = sep(P.title || _T("presets"), P.icon || "palette"),
+    var hd = sep(P.title || _T("saved"), P.icon || "palette"),
       items = P.list();
     if (ISADMIN && items.some(function (it) {
       return it.rm;
     })) {
       var pen = mk("div", "rnd pane sm secact" + (edit ? " act" : ""), svg("edit"));
       pen.setAttribute("role", "button");
-      pen.setAttribute("aria-label", _T("edit_presets"));
-      pen.title = _T("edit_presets");
+      pen.setAttribute("aria-label", _T("edit_saved"));
+      pen.title = _T("edit_saved");
       pen.addEventListener("click", function () {
         edit = !edit;
         draw();
@@ -2461,7 +2432,7 @@ function lpPresets(pbox, P, more) {
     var g = mk("div", "gridl g2 lp-pg");
     items.forEach(function (it) {
       var held = null;
-      var r = pill(P.icon || "palette", it.label, {
+      var r = pill(it.icon || P.icon || "palette", it.label, {
         sub: it.sub
           ? function () {
               return it.sub;
@@ -2507,8 +2478,8 @@ function lpPresets(pbox, P, more) {
   draw();
 }
 
-/* The presets of one light, own and inherited from its light group, as buttons. */
-function lpPresetsOf(id) {
+/* What is saved for one light: its own colours and the ones from its light group, and the saved white temperatures. */
+function lpPresetsOf(id, target) {
   function item(p, own) {
     return {
       label: p.z ? _T("zone_colours") : p.k ? p.k + " K" : _T("colour") + " " + p.h + "°",
@@ -2530,6 +2501,7 @@ function lpPresetsOf(id) {
     };
   }
   return {
+    title: _T("saved"),
     list: function () {
       return presetsFor(id)
         .filter(function (p) {
@@ -2546,14 +2518,12 @@ function lpPresetsOf(id) {
             .map(function (p) {
               return item(p, false);
             })
-        );
+        )
+        .concat(lightCaps(id).white ? lpSavedTemps(target) : []);
     },
     add: function () {
       var c = curPreset(id);
-      if (c && c.k) {
-        toast(_T("save_whites_in_the_temperature_section"));
-        return false;
-      }
+      if (c && c.k) return lpSaveTemp(target);
       addCurrentPreset(id);
       return true;
     },

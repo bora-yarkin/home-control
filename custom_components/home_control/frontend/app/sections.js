@@ -584,7 +584,7 @@ function customSection(s) {
   }
   if (add) body.push(add);
   var sx = section(ttl, ico, body);
-  /* Lights: one tap turns off every light in the section; shown only while one is on. */
+  /* Lights: one tap turns off every light in the section, or, when all of them are off, turns them on as they were. */
   if (k === "lights" && !ed && !s.noall) {
     var ids = src
         .filter(function (d) {
@@ -595,15 +595,22 @@ function customSection(s) {
         }),
       ao = mk("div", "rnd pane sm secact", svg("power"));
     ao.setAttribute("role", "button");
-    ao.setAttribute("aria-label", _T("turn_all_lights_off"));
-    ao.title = _T("turn_all_lights_off");
     ao.addEventListener("click", function () {
-      call("light", "turn_off", { entity_id: ids });
-      toast(_T("turning_the_lights_off"));
+      if (countOn(lightUnits(ids)) > 0) {
+        call("light", "turn_off", { entity_id: ids });
+        toast(_T("turning_the_lights_off"));
+        return;
+      }
+      lightsBack(lightUnits(ids));
+      toast(_T("turning_the_lights_on"));
     });
     sx.firstChild.appendChild(ao);
     reg(function () {
-      ao.style.display = countOn(lightUnits(ids)) > 0 ? "" : "none";
+      var on = countOn(lightUnits(ids)) > 0,
+        label = on ? _T("turn_all_lights_off") : _T("turn_all_lights_on");
+      ao.classList.toggle("on", on);
+      ao.title = label;
+      ao.setAttribute("aria-label", label);
     });
   }
   return sx;

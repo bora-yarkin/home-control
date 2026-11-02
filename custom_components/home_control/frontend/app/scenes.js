@@ -809,7 +809,9 @@ function scenesSection(room, extra) {
     dyn.innerHTML = "";
     dyn.className = e.lay === "grid2" ? "gridl g2" : e.lay === "grid3" ? "gridl g3" : "";
     var mine = secScenes(e),
-      rows = mine.map(function (sc) {
+      ents = extra ? extra() : [];
+    function sceneRows(list) {
+      return list.map(function (sc) {
         return edDel(
           sceneRow(sc),
           function () {
@@ -819,16 +821,27 @@ function scenesSection(room, extra) {
           _T("remove_from_this_section")
         );
       });
-    rows.forEach(function (r) {
-      dyn.appendChild(r);
-    });
+    }
+    /* Scenes made here and devices come first, then live scenes, then the scenes Hue made; a thin line divides the groups that are there. */
+    var classic = mine.filter(function (sc) {
+        return !sc.live;
+      }),
+      lives = mine.filter(function (sc) {
+        return sc.live;
+      }),
+      classicRows = sceneRows(classic),
+      liveRows = sceneRows(lives),
+      hueItems = hueSceneOrder(e, ents.filter(function (x) {
+        return x.hue;
+      })),
+      first = classicRows.slice();
     /* A scenes section can also hold devices, such as a switch that starts a lighting effect. */
     (e.devs || []).forEach(function (d) {
       if (!editing() && (d.hide || (d.id && modeOf(d.id).mode === "hide"))) return;
       var r = devRow(d);
       if (!r && editing()) r = pill(d.icon || "plug", d.name, {});
       if (r)
-        dyn.appendChild(
+        first.push(
           edDel(edMark(r, devEditor(lk, d), !!d.hide), function () {
             var i = e.devs.indexOf(d);
             if (i >= 0) {
@@ -839,11 +852,24 @@ function scenesSection(room, extra) {
           })
         );
     });
-    if (editing())
-      edSort(rows, function (f, t) {
+    ents.forEach(function (x) {
+      if (!x.hue) first.push(x.row);
+    });
+    var hueRows = hueItems.map(function (x) {
+      return x.row;
+    });
+    [first, liveRows, hueRows].forEach(function (g) {
+      if (!g.length) return;
+      if (dyn.children.length) dyn.appendChild(mk("div", "scn-div"));
+      g.forEach(function (r) {
+        dyn.appendChild(r);
+      });
+    });
+    if (editing()) {
+      edSort(classicRows, function (f, t) {
         edReorder(
           e.scn,
-          mine.map(function (x) {
+          classic.map(function (x) {
             return x.id;
           }),
           f,
@@ -851,10 +877,26 @@ function scenesSection(room, extra) {
         );
         uiChanged();
       });
-    if (extra)
-      extra().forEach(function (x) {
-        dyn.appendChild(x);
+      edSort(liveRows, function (f, t) {
+        edReorder(
+          e.scn,
+          lives.map(function (x) {
+            return x.id;
+          }),
+          f,
+          t
+        );
+        uiChanged();
       });
+      edSort(hueRows, function (f, t) {
+        var ids = hueItems.map(function (x) {
+          return x.id;
+        });
+        ids.splice(t, 0, ids.splice(f, 1)[0]);
+        e.hord = ids;
+        uiChanged();
+      });
+    }
     if (editing())
       dyn.appendChild(
         edAdd(_T("add_a_scene"), function () {
@@ -969,24 +1011,43 @@ function devRowRaw(d) {
   return null;
 }
 
+/* The Hue scenes in the order the administrator gave them (the section's hord); the ones not in it follow, by name. */
+function hueSceneOrder(e, items) {
+  var pos = {};
+  (e.hord || []).forEach(function (id, i) {
+    pos[id] = i;
+  });
+  return items.slice().sort(function (x, y) {
+    var px = x.id in pos ? pos[x.id] : 1e6,
+      py = y.id in pos ? pos[y.id] : 1e6;
+    return px - py;
+  });
+}
+
 function lightingScenesExtra(key) {
   var r = UIROOM[key];
   if (!r || !r.area || !sceneIds(r.area).length) return null;
   if (!ISADMIN && ["view", "hide"].indexOf(modeOf("", key).mode) >= 0) return null;
+  /* The scene entities of the room's area, each with whether Hue made it. */
   return function () {
     return sceneIds(r.area)
       .filter(function (s) {
         return editing() || !Integrations.scenes.isHue(H(), s[0]) || !hueSceneHidden(r, s[0]);
       })
       .map(function (s) {
-        var nm = A(s[0]).friendly_name || s[0];
+        var nm = A(s[0]).friendly_name || s[0],
+          hue = Integrations.scenes.isHue(H(), s[0]);
         if (nm.indexOf(r.name) === 0) nm = nm.slice(r.name.length).replace(/^\s+/, "") || nm;
         var row = sceneEntRow(s[0], nm, "palette", null, r);
-        return Integrations.scenes.isHue(H(), s[0])
-          ? edMark(row, function () {
-              showPopup(hueScenePopupKey(s[0], r), true);
-            }, hueSceneHidden(r, s[0]))
-          : row;
+        return {
+          id: s[0],
+          hue: hue,
+          row: hue
+            ? edMark(row, function () {
+                showPopup(hueScenePopupKey(s[0], r), true);
+              }, hueSceneHidden(r, s[0]))
+            : row,
+        };
       });
   };
 }

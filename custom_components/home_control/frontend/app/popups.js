@@ -349,7 +349,7 @@ function popupDefBase(key) {
 
   if (k === "presets-all")
     return {
-      title: _T("all_presets"),
+      title: _T("all_saved"),
       icon: "palette",
       build: function (b) {
         presetsAll(b, id);

@@ -31,7 +31,9 @@ function page(extra = {}) {
     ...extra,
   };
   vm.createContext(sandbox);
-  for (const file of ["store.js", "livescenes.js", "livemaker.js", "vlights.js", "staticmaker.js", "scenenew.js"]) vm.runInContext(read(file), sandbox);
+  for (const file of ["store.js", "livescenes.js", "livemaker.js", "vlights.js", "staticmaker.js", "scenenew.js", "scenes.js", "conditions.js", "lighteditor.js"]) vm.runInContext(read(file), sandbox);
+  /* What a test replaces wins over the file's own function of that name. */
+  Object.assign(sandbox, extra);
   return sandbox;
 }
 
@@ -157,4 +159,50 @@ test("opening a scene in the maker puts its lights as the scene has them, so sav
     ["turn_on", { entity_id: "light.b" }],
     ["turn_off", { entity_id: "light.c" }],
   ]);
+});
+
+test("the Hue scenes of a section follow the order it was given, and new ones come after, by name", () => {
+  const p = page();
+  const items = ["a", "b", "c", "d"].map((id) => ({ id: "scene." + id }));
+  const order = (hord) => plain(p.hueSceneOrder({ hord }, items)).map((x) => x.id);
+  assert.deepEqual(order(undefined), ["scene.a", "scene.b", "scene.c", "scene.d"]);
+  assert.deepEqual(order(["scene.c", "scene.a"]), ["scene.c", "scene.a", "scene.b", "scene.d"]);
+  assert.deepEqual(order(["scene.gone", "scene.d"]), ["scene.d", "scene.a", "scene.b", "scene.c"]);
+});
+
+test("a light in a classic scene keeps a running effect, and the scene runs it", () => {
+  const p = page();
+  const sc = p.cleanScene({
+    id: "s",
+    name: "Calm",
+    room: "r",
+    acts: [
+      { id: "light.a", on: true, bri: 40, fx: "candle" },
+      { id: "light.b", on: true, fx: "off" },
+      { id: "light.c", on: true, fx: "bad;name" },
+    ],
+  });
+  assert.deepEqual(plain(sc.acts), [{ id: "light.a", on: true, bri: 40, fx: "candle" }, { id: "light.b", on: true }, { id: "light.c", on: true }]);
+  Object.assign(p, { ORDER: ["r"], UIROOM: { r: {} }, ROOMLIGHTS: {}, A: () => ({}), roomDevs: () => [] });
+  const run = plain(p.compileScene(sc)).filter((a) => a.action === "light.turn_on");
+  assert.deepEqual(run[0].data, { brightness_pct: 40, effect: "candle" });
+});
+
+test("a scene made from the lights as they are keeps the lights that are on and turns the others off", () => {
+  const made = [];
+  const states = { "light.a": "on", "light.b": "off", "light.c": "on" };
+  const p = page({
+    roomDevs: () => ["light.a", "light.b", "light.c"].map((id) => ({ id, type: "light" })),
+    V_: (id) => states[id],
+    lightUnits: (ids) => ids,
+    lightAct: (id) => ({ id, on: true }),
+    staticOpen: (...args) => made.push(plain(args)),
+    toast() {},
+  });
+  p.sceneFromLights("r", { scope: "r", sid: "sec" });
+  assert.deepEqual(made[0], ["r", null, { scope: "r", sid: "sec" }, { others: "lights", acts: [{ id: "light.a", on: true }, { id: "light.c", on: true }] }]);
+  made.length = 0;
+  states["light.a"] = states["light.c"] = "off";
+  p.sceneFromLights("r", null);
+  assert.equal(made.length, 0); // nothing on, nothing to save
 });

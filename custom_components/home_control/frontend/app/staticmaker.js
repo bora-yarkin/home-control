@@ -2,9 +2,11 @@
 
 var SCD = null;
 
-function staticOpen(room, sc, target) {
-  var draft = sc ? JSON.parse(JSON.stringify(sc)) : { id: "", name: "", room: room, others: "keep", acts: [] };
-  SCD = { room: room, isNew: !sc, target: target || null, draft: draft, open: {}, saved: staticSnapshot(draft) };
+/* `start` (optional) is what a new scene begins with, as when it is made from the lights as they are now; it counts as not saved. */
+function staticOpen(room, sc, target, start) {
+  var empty = { id: "", name: "", room: room, others: "keep", acts: [] },
+    draft = sc ? JSON.parse(JSON.stringify(sc)) : Object.assign(empty, start || {});
+  SCD = { room: room, isNew: !sc, target: target || null, draft: draft, open: {}, saved: staticSnapshot(sc ? draft : { others: "keep", acts: [] }) };
   showPopup("scene-edit", true);
 }
 
@@ -39,7 +41,8 @@ function staticSummary(a) {
   if (dm !== "light") return _T("on_2");
   var p = [_T("on_2")];
   if (a.bri) p.push(a.bri + "%");
-  if (a.col) p.push(a.col.k ? a.col.k + " K" : _T("colour"));
+  if (a.fx) p.push(cap(String(a.fx).replace(/_/g, " ")));
+  else if (a.col) p.push(a.col.k ? a.col.k + " K" : _T("colour"));
   return p.join(" · ");
 }
 

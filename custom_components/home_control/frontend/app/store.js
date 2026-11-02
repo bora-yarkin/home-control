@@ -243,6 +243,7 @@ function cleanScene(s) {
         if (typeof a.bri === "number") o.bri = Math.max(1, Math.min(100, Math.round(a.bri)));
         var c = cleanPreset(a.col);
         if (c) o.col = c;
+        if (typeof a.fx === "string" && a.fx !== "off" && /^[A-Za-z0-9 _.-]{1,40}$/.test(a.fx)) o.fx = a.fx;
       }
     }
     acts.push(o);

@@ -36,7 +36,9 @@ function lightAct(id) {
   var a = A(id),
     act = { id: id, on: true };
   if (typeof a.brightness === "number") act.bri = Math.max(1, Math.min(100, Math.round(a.brightness / 2.55)));
-  if (a.color_mode === "color_temp" && a.color_temp_kelvin) act.col = { k: Math.round(a.color_temp_kelvin) };
+  /* A light playing an effect is kept as that effect, not as the colour it passes through. */
+  if (a.effect && a.effect !== "off") act.fx = a.effect;
+  else if (a.color_mode === "color_temp" && a.color_temp_kelvin) act.col = { k: Math.round(a.color_temp_kelvin) };
   else {
     var hs = lpHs(id);
     if (hs) act.col = { h: Math.round(hs[0]), s: Math.round(hs[1]) };

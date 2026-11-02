@@ -2,23 +2,6 @@
 
 var EDIT = false;
 
-function editMove(sc, id, dir) {
-  var o = secOrder(sc),
-    i = -1;
-  o.forEach(function (s, k) {
-    if (s.id === id) i = k;
-  });
-  if (i < 0) return;
-  var j = i + dir;
-  while (j >= 0 && j < o.length && o[j].hide) j += dir;
-  if (j < 0 || j >= o.length) return;
-  var m = o.splice(i, 1)[0];
-  o.splice(j, 0, m);
-  setSecOrder(sc, o);
-  uiChanged();
-  render();
-}
-
 /* ---- Page editor ----
  Settings → Edit this page (admins). While editing, items on the page are edited where they are: tapping one opens its
  settings instead of using it, its grip drags it to a new place, and each section has its own "add" button.
@@ -831,25 +814,11 @@ function editPageSettings(b, key) {
   redrawBox(box, draw);
 }
 
-/* Sections move by the same drag grip as the items inside them; arrow keys on the grip move one step for keyboard users. */
+/* The tools of a section while the page is edited: its settings, hiding it and deleting it. Sections are ordered in the Reorder sections popup. */
 function editDecorate(sc, s) {
   var tb = mk("div", "edtb"),
-    gr = mk("div", "rnd pane sm edgrab", svg("drag")),
     cg = mk("div", "rnd pane sm", svg("tune"));
   s.el.dataset.sid = s.id;
-  gr.tabIndex = 0;
-  gr.setAttribute("role", "button");
-  gr.setAttribute("aria-label", _T("drag_to_move"));
-  gr.addEventListener("pointerdown", function (e) {
-    secDrag(e, sc, s.el);
-  });
-  gr.addEventListener("keydown", function (e) {
-    var d = e.key === "ArrowUp" ? -1 : e.key === "ArrowDown" ? 1 : 0;
-    if (d) {
-      e.preventDefault();
-      editMove(sc, s.id, d);
-    }
-  });
   cg.addEventListener("click", function () {
     showPopup("manage-sec:" + (sc === "home" ? "home" : sc.slice(5)) + ":" + s.id, false);
   });
@@ -886,7 +855,6 @@ function editDecorate(sc, s) {
     setSecOrder(sc, secOrder(sc));
     uiChanged();
   });
-  tb.appendChild(gr);
   tb.appendChild(cg);
   tb.appendChild(ey);
   tb.appendChild(dl);
@@ -901,181 +869,6 @@ function editDecorate(sc, s) {
     else s.el.insertBefore(tb, s.el.firstChild);
   };
   s.el._attach();
-}
-
-/* Sections use the shared drag engine; reordering them re-runs the page's column layout. */
-function secDrag(e, sc, el) {
-  var body = el._flowBody;
-  if (!body) return;
-  var h = body._flowNodes[0];
-  masonDrag(e, h, el, function (vis, did) {
-    var full = secOrder(sc).slice(),
-      di = full.findIndex(function (s) {
-        return s.id === did;
-      });
-    if (di < 0) return;
-    var d0 = full.splice(di, 1)[0],
-      p = vis.indexOf(did),
-      at;
-    if (p > 0)
-      at =
-        full.findIndex(function (s) {
-          return s.id === vis[p - 1];
-        }) + 1;
-    else {
-      at = full.findIndex(function (s) {
-        return s.id === vis[1];
-      });
-      if (at < 0) at = 0;
-    }
-    full.splice(at, 0, d0);
-    setSecOrder(sc, full);
-    uiChanged();
-  });
-}
-
-/* Dragging a section: every possible landing spot is planned up front (the same plan the page uses), the others slide to the plan for the spot the pointer is in, and the dragged one follows the pointer. Dropping puts it exactly where the plan showed. */
-function masonDrag(e, h, el, onDone) {
-  e.preventDefault();
-  e.stopPropagation();
-  var its = masonVisible(h),
-    idx = its.findIndex(function (it) {
-      return it.el === el;
-    });
-  if (idx < 0 || its.length < 2) return;
-  var n = colCount(h),
-    W = h.clientWidth,
-    hts = its.map(function (it) {
-      return outerH(it.el);
-    }),
-    me = its[idx],
-    sp = scrollParent(el) || document.querySelector("main"),
-    plans = [],
-    k;
-  for (k = 0; k < its.length; k++) {
-    var ord = its.filter(function (_, j) {
-        return j !== idx;
-      }),
-      hs = ord.map(function (it) {
-        return hts[its.indexOf(it)];
-      });
-    ord.splice(k, 0, me);
-    hs.splice(k, 0, hts[idx]);
-    plans.push({ ord: ord, pl: masonPlan(ord, masonFlags(ord, n), hs, W, n, 24) });
-  }
-  var cs = getComputedStyle(el),
-    mt = parseFloat(cs.marginTop) || 0,
-    r0 = el.getBoundingClientRect(),
-    gx = e.clientX - r0.left,
-    gy = e.clientY - r0.top,
-    lx = e.clientX,
-    ly = e.clientY,
-    cur = idx,
-    live = true,
-    raf = 0;
-  function slot(kk) {
-    return plans[kk].pl.pos[plans[kk].ord.indexOf(me)];
-  }
-  function inside(p, x, y) {
-    return x >= p.x && x <= p.x + p.w && y >= p.y && y <= p.y + p.h;
-  }
-  function show(kk) {
-    var P = plans[kk];
-    P.ord.forEach(function (it, j) {
-      if (it !== me) masonPlace(it, P.pl.pos[j]);
-    });
-    h.style.height = Math.max(P.pl.H, 0) + "px";
-  }
-  function work(scroll) {
-    if (!live) return;
-    if (scroll) {
-      var r = sp.getBoundingClientRect(),
-        v = 0;
-      if (ly < r.top + 80) v = -Math.min(20, (r.top + 80 - ly) / 4 + 2);
-      else if (ly > r.bottom - 120) v = Math.min(20, (ly - (r.bottom - 120)) / 4 + 2);
-      if (v) sp.scrollTop += v;
-    }
-    var cr = h.getBoundingClientRect(),
-      px = lx - cr.left,
-      py = ly - cr.top;
-    el.style.transform = "translate(" + (px - gx) + "px," + (py - gy - mt) + "px) scale(1.012)";
-    /* Over its own spot nothing changes. Over another section it goes before that one when the pointer is in its upper half and after it otherwise, so the pointer, not a far-off spot, decides. */
-    if (!inside(slot(cur), px, py)) {
-      var P = plans[cur],
-        others = P.ord.filter(function (it) {
-          return it !== me;
-        }),
-        hit = -1;
-      P.ord.forEach(function (it, j) {
-        if (it !== me && inside(P.pl.pos[j], px, py)) {
-          hit = j;
-        }
-      });
-      if (hit >= 0) {
-        var X = P.ord[hit],
-          ix = others.indexOf(X),
-          pp = P.pl.pos[hit],
-          nk = py < pp.y + pp.h / 2 ? ix : ix + 1;
-        if (nk !== cur) {
-          cur = nk;
-          show(cur);
-        }
-      }
-    }
-    var s2 = slot(cur);
-    ph.style.width = s2.w + "px";
-    ph.style.height = s2.h + "px";
-    ph.style.transform = "translate(" + s2.x + "px," + s2.y + "px)";
-  }
-  function step() {
-    if (!live) return;
-    work(true);
-    raf = requestAnimationFrame(step);
-  }
-  function move(ev) {
-    lx = ev.clientX;
-    ly = ev.clientY;
-    work(false);
-  }
-  function up() {
-    live = false;
-    cancelAnimationFrame(raf);
-    document.removeEventListener("pointermove", move);
-    document.removeEventListener("pointerup", up);
-    document.removeEventListener("pointercancel", up);
-    var s = slot(cur);
-    el.style.transition = "transform .2s cubic-bezier(.2,.8,.2,1)";
-    el.style.transform = "translate(" + s.x + "px," + s.y + "px)";
-    setTimeout(function () {
-      h.classList.remove("anim");
-      ph.remove();
-      el.classList.remove("ed-lift");
-      document.body.classList.remove("lifting");
-      el.style.transition = "";
-      dragging--;
-      EDRAG = false;
-      if (cur !== idx)
-        onDone(
-          plans[cur].ord.map(function (it) {
-            return it.id;
-          }),
-          me.id
-        );
-      else masonLayout(h);
-    }, 210);
-  }
-  var ph = mk("div", "mason-ph");
-  h.appendChild(ph);
-  dragging++;
-  EDRAG = true;
-  document.body.classList.add("lifting");
-  h.classList.add("anim");
-  el.classList.add("ed-lift");
-  document.addEventListener("pointermove", move);
-  document.addEventListener("pointerup", up);
-  document.addEventListener("pointercancel", up);
-  raf = requestAnimationFrame(step);
-  work(false);
 }
 
 function devEditor(rid, d) {
@@ -1324,22 +1117,6 @@ function secEditor(b, key) {
         })
       );
     if (k === "lights")
-      box.appendChild(
-        pill("palette", _T("colour_and_white_swatches"), {
-          on: function () {
-            return !!e.swatches;
-          },
-          sub: function () {
-            return e.swatches ? _T("shown_in_the_light_popup") : _T("hidden");
-          },
-          tap: function () {
-            if (e.swatches) delete e.swatches;
-            else e.swatches = 1;
-            save();
-            redrawBox(box, draw);
-          },
-        })
-      );
     if (k === "energy") {
       box.appendChild(sep(_T("cost"), "plug"));
       box.appendChild(
@@ -1460,34 +1237,6 @@ function secEditor(b, key) {
             600
           )
         ));
-    if (ty.own) {
-      box.appendChild(sep(_T("widgets_in_this_section"), "plug"));
-      var cdr = [];
-      (e.devs || []).forEach(function (d, i) {
-        var p2 = pill(d.icon || "plug", d.name, {
-          sub: function () {
-            return KINDLAB[d.kind] + (d.hide ? _T("hidden_2") : "");
-          },
-          tap: function () {
-            showPopup("manage-dev:~" + scope + "~" + sid + ":" + i, true);
-          },
-        });
-        box.appendChild(p2);
-        cdr.push(p2);
-      });
-      makeSortable(box, cdr, function (f, to) {
-        e.devs.splice(to, 0, e.devs.splice(f, 1)[0]);
-        save();
-        redrawBox(box, draw);
-      });
-      box.appendChild(
-        pill("plus", widgetAddLabel(k), {
-          tap: function () {
-            widgetAdd("~" + scope + "~" + sid, k);
-          },
-        })
-      );
-    }
     if (k === "pinned")
       box.appendChild(
         pill("pin", _T("pinned_items"), {

@@ -387,7 +387,6 @@ function cleanLayout(a) {
     if (k === "lights" && s.master) o.master = 1;
     if (k === "lights" && s.nowheel) o.nowheel = 1;
     if (k === "lights" && s.accent) o.accent = 1;
-    if (k === "lights" && s.swatches) o.swatches = 1;
     if (k === "pinned" && Array.isArray(s.pins)) o.pins = cleanPins(s.pins);
     if ((k === "quick" || k === "scenes") && Array.isArray(s.scn))
       o.scn = s.scn
@@ -395,6 +394,15 @@ function cleanLayout(a) {
           return typeof x === "string" && /^[a-z0-9_-]{1,24}$/.test(x) && a.indexOf(x) === i;
         })
         .slice(0, 40);
+    /* The order of the Hue scenes a scenes section shows. */
+    if (k === "scenes" && Array.isArray(s.hord)) {
+      var hord = s.hord
+        .filter(function (x, i, a) {
+          return typeof x === "string" && /^scene\.[a-z0-9_]{1,80}$/.test(x) && a.indexOf(x) === i;
+        })
+        .slice(0, 80);
+      if (hord.length) o.hord = hord;
+    }
     if (ty.own) {
       o.devs = [];
       (Array.isArray(s.devs) ? s.devs : []).slice(0, 80).forEach(function (d) {
