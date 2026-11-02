@@ -219,7 +219,6 @@ function livePatch() {
   }
   LIVEPATCH_WAITING = false;
   applyUI();
-  startViewApply();
   buildDock();
   if (VIEW !== "home" && !UIROOM[VIEW]) VIEW = "home";
   var b = document.getElementById("body"),

@@ -79,34 +79,23 @@ function initTheme() {
   } catch (e) {}
   mergePrefs(deviceGet("db_prefs", null));
   applyTheme();
-  var h = H();
-  if (h)
-    HA.data
-      .get("user", "dashboard_prefs")
-      .then(function (v) {
-        if (v) {
-          mergePrefs(v);
-          savePrefsLocal();
-          applyTheme();
-          if (startViewApply()) {
-            render();
-            buildDock();
-          }
-        }
-      })
-      .catch(function () {});
+  /* This person's choices as saved in Home Assistant (this device's copy is already in). Resolves once they are in, or when they cannot be read, and the device's copy stands. */
+  return HA.data
+    .get("user", "dashboard_prefs")
+    .then(function (v) {
+      if (v) {
+        mergePrefs(v);
+        savePrefsLocal();
+        applyTheme();
+      }
+    })
+    .catch(function () {});
 }
 
-var START_DONE = false;
-
-/* Opens the "Start on" page once. The list of pages and the saved choice both arrive after the first paint, so this runs again when either one does. */
+/* The page the dashboard opens on: the one chosen in Start on, unless the address names a page. Once, when the page is first drawn. */
 function startViewApply() {
-  if (START_DONE || VIEW !== "home" || !PREFS.startView || ORDER.indexOf(PREFS.startView) < 0)
-    return false;
-  START_DONE = true;
-  if (window.HA.route.get()) return false;
-  VIEW = PREFS.startView;
-  return true;
+  var want = PREFS.startView;
+  if (VIEW === "home" && want && ORDER.indexOf(want) >= 0) VIEW = want;
 }
 
 function setPref(k, v) {

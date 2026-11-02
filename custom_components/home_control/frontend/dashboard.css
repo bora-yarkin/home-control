@@ -643,7 +643,8 @@ body.pinhdr:not(.editing) .wrap::before{content:"";position:fixed;top:0;left:0;r
 /* The slider is the button grown upward: the same width and corners, the same bottom edge, only the height changes (50 to 250 px). Nothing is scaled, so the corners never stretch. It is drawn over the button while it opens and until it has shrunk back. */
 .lp-bri-sl{position:absolute;right:0;bottom:0;width:76px;height:50px;box-sizing:border-box;border-radius:25px;overflow:hidden;background:var(--f-card);border:1px solid var(--f-line);box-shadow:0 0 0 rgba(0,0,0,0);touch-action:none;z-index:12;opacity:0;pointer-events:none;transition:height .3s cubic-bezier(.2,.9,.25,1),background-color .3s,border-color .3s,box-shadow .3s,opacity .01s .3s}
 .lp-bri.open .lp-bri-sl{height:250px;opacity:1;pointer-events:auto;background:var(--f-raise);border-color:var(--f-line2);box-shadow:0 14px 36px rgba(0,0,0,.5);transition-delay:0s}
-.lp-bri-fill{position:absolute;left:0;right:0;bottom:0;height:0;background:linear-gradient(180deg,#eceef2,#9a9ca6);transition:height .14s}
+.lp-bri-fill{position:absolute;left:0;right:0;bottom:0;height:0;background:linear-gradient(180deg,#eceef2,#9a9ca6);opacity:0;transition:height .14s,opacity .3s}
+.lp-bri.open .lp-bri-fill{opacity:1;transition:height .14s,opacity .1s}
 .lp-bri-sl.drag .lp-bri-fill{transition:none}
 .lp-bri-ico{position:absolute;left:0;right:0;bottom:0;height:50px;display:flex;align-items:center;justify-content:center;color:var(--ink2);transition:color .25s ease}
 .lp-bri-ico.on{color:var(--ink)}
@@ -716,7 +717,7 @@ body.pinhdr:not(.editing) .wrap::before{content:"";position:fixed;top:0;left:0;r
 @keyframes lw-dotpop{0%{scale:.4}55%{scale:1.35}100%{scale:1}}
 .lw-ring{position:absolute;width:26px;height:26px;margin:-13px 0 0 -13px;border-radius:50%;border:2px solid rgba(255,255,255,.9);pointer-events:none;animation:lw-ring .6s ease-out forwards}
 @keyframes lw-ring{from{scale:.6;opacity:.9}to{scale:3.4;opacity:0}}
-@media(prefers-reduced-motion:reduce){.lw-pin.pop,.lw-dot.pop,.lw-ring{animation:none}.lp-bri-sl,.lp-track,.lp-bri-ico{transition:none}}
+@media(prefers-reduced-motion:reduce){.lw-pin.pop,.lw-dot.pop,.lw-ring{animation:none}.lp-bri-sl,.lp-bri-fill,.lp-track,.lp-bri-ico{transition:none}}
 .lw-bub{position:absolute;border-radius:50%;box-sizing:border-box;border:2px solid #fff;background:rgba(36,36,38,.55);backdrop-filter:saturate(.5);box-shadow:0 10px 30px rgba(0,0,0,.45);pointer-events:none;will-change:transform;animation:lw-bub .32s linear}
 .lw-bub.closing{animation:lw-bubout .12s ease-in forwards}
 @keyframes lw-bub{0.0%{transform:scale(0.05)}5.3%{transform:scale(0.26)}10.3%{transform:scale(0.475)}15.6%{transform:scale(0.665)}20.9%{transform:scale(0.81)}25.9%{transform:scale(0.92)}31.2%{transform:scale(0.997)}36.6%{transform:scale(1.04)}41.6%{transform:scale(1.06)}46.9%{transform:scale(1.068)}51.9%{transform:scale(1.068)}57.2%{transform:scale(1.057)}62.5%{transform:scale(1.047)}67.8%{transform:scale(1.037)}72.8%{transform:scale(1.027)}78.1%{transform:scale(1.017)}83.4%{transform:scale(1.01)}88.4%{transform:scale(1.007)}93.8%{transform:scale(1.003)}100.0%{transform:scale(1)}}

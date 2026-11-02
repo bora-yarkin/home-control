@@ -1,9 +1,14 @@
 /* Start-up: the refresh loop and starting the app. */
 
+/* True once the page has been drawn (see start). Updates that arrive before it have nothing to update. */
+var BOOTED = false;
+
 function refresh() {
-  if (!H()) return;
+  if (!H() || !BOOTED) return;
   a11yScan();
   dockState();
+  hdrLive();
+  connCheck();
   relayout();
   lpTrackTick();
   /* A drag that never ended must not freeze the page for good. */
@@ -17,6 +22,7 @@ function refresh() {
   if (LIVEPATCH_WAITING) livePatch();
 }
 
+/* The page is drawn once, from what is saved: the layout and this person's choices (the theme, the page to start on). Drawn earlier it showed what Home Assistant's own data suggests (every area a room, every unavailable light an alert, the Home page) and then changed. Until both are in, the skeleton stays. */
 function start() {
   if (APP_FAILED.length) return;
   if (!H()) {
@@ -25,10 +31,23 @@ function start() {
     return;
   }
   initLG();
-  initTheme();
+  var waiting = setTimeout(function () {
+    var body = document.getElementById("body");
+    if (body && !BOOTED) {
+      body.textContent = "";
+      body.appendChild(mk("div", "sec-h", _T("still_waiting_for_the_saved_dashboard")));
+    }
+  }, 15000);
+  Promise.all([initTheme(), initStore()]).then(function () {
+    clearTimeout(waiting);
+    boot();
+  });
+}
+
+function boot() {
   applyUI();
   startViewApply();
-  initStore();
+  BOOTED = true;
   render();
   buildDock();
   initSearchBtn();
@@ -55,10 +74,7 @@ function start() {
   });
   setInterval(clock, 1000);
   setInterval(refresh, 1500);
-  setInterval(hdrLive, 2000);
   refresh();
-  setInterval(connCheck, 2000);
-  connCheck();
   wallBoot();
   newDevBoot();
   window.addEventListener("resize", relayout);

@@ -494,7 +494,10 @@ function storeLoad() {
       return v && typeof v === "object" && v.v === 1 ? v : null;
     })
     .then(storeTake)
-    .catch(function () {});
+    .catch(function () {
+      /* Until the saved layout is in nothing can be drawn, so it is asked for again. */
+      if (!STORE_READY) setTimeout(storeLoad, 2000);
+    });
 }
 
 /* Takes over saved data that differs from what is open and brings the open page up to date in place. */
@@ -528,15 +531,17 @@ function storeTake(v) {
     storeSave();
   }
   var js = JSON.stringify(n);
-  STORE_READY = true;
   if ((force && ISADMIN) || js !== STORE_JSON) {
     STORE = n;
     STORE_JSON = js;
     STORE_VER++;
     UI = n.ui;
-    if (JSON.stringify(UI) + JSON.stringify(STORE.access) !== prevUI) livePatch();
+    /* Before the first drawing there is no page to bring up to date; the first drawing is made from this. */
+    if (BOOTED && JSON.stringify(UI) + JSON.stringify(STORE.access) !== prevUI) livePatch();
     refresh();
   }
+  STORE_READY = true;
+  STORE_FIRST_IN();
   if (ISADMIN && !STORE.access && !SEEDACC) {
     SEEDACC = 1;
     seedAccess();
@@ -567,6 +572,12 @@ function storeEvent(v) {
   } catch (e) {}
 }
 
+/* Resolves when the saved dashboard data has been taken over for the first time. */
+var STORE_FIRST_IN,
+  STORE_FIRST = new Promise(function (res) {
+    STORE_FIRST_IN = res;
+  });
+
 function initStore() {
   try {
     ISADMIN = !!H().user.is_admin;
@@ -582,6 +593,7 @@ function initStore() {
   } catch (e) {
     setInterval(storeLoad, 60000);
   }
+  return STORE_FIRST;
 }
 
 function storeChanged() {

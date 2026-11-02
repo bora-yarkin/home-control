@@ -486,7 +486,6 @@ function devIndex(o) {
 }
 
 function applyUI() {
-  if (!UI) UI = cleanUI(seedUI());
   devIndex(UI);
   accessInit();
   var mt = UI.meta || {

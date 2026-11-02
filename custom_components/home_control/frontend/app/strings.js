@@ -1,6 +1,7 @@
 /* Text shown to the user: the English strings and the lookup function _T(). */
 
 var EN = {
+  "still_waiting_for_the_saved_dashboard": "Still waiting for the saved dashboard",
   "nothing_saved_yet": "Nothing saved yet",
   "saved_colours": "Saved colours",
   "added_to_this_room": "Added to this room",
