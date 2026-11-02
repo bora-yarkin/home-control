@@ -7,11 +7,11 @@ Home Assistant. Anything that Home Assistant does well (automations, helpers, gr
 
 | File | What it is |
 | --- | --- |
-| `dashboard-panel.js` | The panel element Home Assistant loads. Reads `version.json`, loads the files below, passes `hass` on. |
+| `dashboard-panel.js` | The panel element Home Assistant loads. Reads `version.json`, requests every file at once, runs them in order, passes `hass` on. |
 | `ha-adapter.js` | The only code that talks to Home Assistant. No other file sends a websocket message, calls a REST path or reads the connection; everything else calls `window.HA`. |
 | `camera-stream.js` | Live camera playback: WebRTC, then HLS, with black-picture and stall recovery. Uses `HA.camera`. |
-| `dashboard-app.js` | The entry of the application. It only loads the files below, in the order listed in `APP_FILES`. |
-| `app/*.js` | The application, split by feature (`lights.js`, `vacuum.js`, `editor.js`, ...). They share one global scope and run in the order listed in `dashboard-app.js`; the first line of each file says what it holds. `app/main.js` is last and starts the app. They reach Home Assistant only through `window.HA` and integration specifics only through `window.Integrations`. |
+| `dashboard-app.js` | The entry of the application. It runs the files below, in the order of `files` in `version.json`. |
+| `app/*.js` | The application, split by feature (`lights.js`, `vacuum.js`, `editor.js`, ...). They share one global scope and run in the order of `files` in `version.json`; the first line of each file says what it holds. `app/main.js` is last and starts the app. They reach Home Assistant only through `window.HA` and integration specifics only through `window.Integrations`. |
 | `app/lighteditor.js` | The light popup as part of an editor: opens the dashboard's own light popup (colour wheel, groups separated into single lights, effects) with a tick in place of the close button; a tick keeps what the lights show, leaving any other way puts them back. Used by the classic scene editor. |
 | `app/scenenew.js` | Making a scene: the + of a scenes section (administrators), the question classic or live, the areas of a live scene, and `guardUnsaved`, the Save / Discard question every editor asks before changes are lost. |
 | `app/staticmaker.js` | Classic scenes: the editor (a light opens the light popup, other devices slide open in place, live scenes can be added), saving, deleting. |
@@ -22,7 +22,7 @@ Home Assistant. Anything that Home Assistant does well (automations, helpers, gr
 | `dashboard.css` | Styles. |
 | `mdi/` | Material Design Icons 7.4.47 (Apache 2.0, see `mdi/LICENSE.txt`): `index.json` is the list the icon picker searches, `a.json` to `z.json` hold the drawing paths by first letter. Same data as the npm package `@mdi/svg@7.4.47`. Nothing is fetched from the internet or from Home Assistant's own files. |
 | `vendor/hls.min.js` | hls.js 1.5.13, loaded only when HLS is needed. Same bytes as cdnjs (`sha512-bqtMkEqGSOPPb8qbYSd9gHwR7C5mgmN+Z5Uaquvhana/U9H3zppGvlLV9HOdM7eYHF/GzzhS1lOGzCMhUvYcjQ==`, source map comment removed). |
-| `version.json` | `{"version": N}`. Raise N after changing any other file. |
+| `version.json` | `{"version": N, "files": [...]}`. Raise N after changing any other file. `files` lists the files `dashboard-app.js` runs, in order; the panel requests them all together with the stylesheet while the registries load. |
 
 ## Updating
 
@@ -31,7 +31,7 @@ Home Assistant. Anything that Home Assistant does well (automations, helpers, gr
    address each time, so browsers and Cloudflare never serve an old file.
 3. Reload the panel.
 
-To add a file, put it in `app/` and add it to `APP_FILES` in `dashboard-app.js`; no change to the panel configuration is needed.
+To add a file, put it in `app/` and add it to `files` in `version.json` (a test fails when the two differ); no change to the panel configuration is needed.
 
 `dashboard-panel.js` is requested by Home Assistant itself with the `?v=` from `panel_custom` in `configuration.yaml`.
 Only a change to this one file needs that number raised (and a Home Assistant restart).

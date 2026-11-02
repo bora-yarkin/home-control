@@ -1,5 +1,5 @@
 /* Loader for the Dashboard panel. Home Assistant gives this element its `hass` object; everything else is loaded from this folder.
- version.json is read fresh on every start and its number is put on every file below, so an update only needs that number raised. */
+ version.json is read fresh on every start; its number is put on every file below, so an update only needs that number raised, and its list of files is requested together with the rest. */
 const BASE = new URL(".", import.meta.url);
 
 const MARKUP = `<main><div class="wrap">
@@ -10,13 +10,22 @@ const MARKUP = `<main><div class="wrap">
 
 const SCRIPTS = ["ha-adapter.js", "camera-stream.js", "dashboard-app.js"];
 
-async function currentVersion() {
-  try {
-    const res = await fetch(new URL("version.json?t=" + Date.now(), BASE), { cache: "no-store" });
-    return String((await res.json()).version);
-  } catch (e) {
-    return "0";
-  }
+/* The version, and the application's files in the order they run. */
+async function currentRelease() {
+  const res = await fetch(new URL("version.json?t=" + Date.now(), BASE), { cache: "no-store" });
+  if (!res.ok) throw new Error("version.json answered " + res.status);
+  const release = await res.json();
+  if (!Array.isArray(release.files)) throw new Error("version.json lists no files");
+  return { version: String(release.version), files: release.files };
+}
+
+/* Asks for a script now and keeps it for the script element that runs it later. */
+function preload(href) {
+  const el = document.createElement("link");
+  el.rel = "preload";
+  el.as = "script";
+  el.href = href;
+  document.head.appendChild(el);
 }
 
 function load(tag, attrs) {
@@ -54,7 +63,7 @@ class DashboardPanel extends HTMLElement {
     if (this._started || !this._hass) return;
     this._started = true;
     try {
-      const v = await currentVersion();
+      const { version: v, files } = await currentRelease();
       const asset = (name) => new URL(name + "?v=" + v, BASE).href;
 
       const viewport = document.createElement("meta");
@@ -62,7 +71,11 @@ class DashboardPanel extends HTMLElement {
       viewport.content = "width=device-width,initial-scale=1";
       document.head.appendChild(viewport);
       document.documentElement.lang = "en";
-      await load("link", { rel: "stylesheet", href: asset("dashboard.css") });
+      /* Everything is requested at once, here; what runs is run below in order, from what has already arrived, while the registries load. */
+      const styles = load("link", { rel: "stylesheet", href: asset("dashboard.css") });
+      SCRIPTS.concat(files).forEach((name) => preload(asset(name)));
+      window.APP_FILES = files;
+      await styles;
       this.innerHTML = MARKUP;
 
       await load("script", { src: asset(SCRIPTS[0]) });

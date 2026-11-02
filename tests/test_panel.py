@@ -2,7 +2,6 @@
 """The integration serves the dashboard's files and registers its panel."""
 
 import json
-import re
 from pathlib import Path
 
 from homeassistant.components.frontend import DATA_PANELS
@@ -52,10 +51,13 @@ async def test_the_files_are_served_and_a_reload_does_not_register_them_twice(ha
     assert (await client.get("/home_control_static/nothing.js")).status == 404
 
 
-def test_every_file_the_application_loads_exists():
-    source = (FRONTEND / "dashboard-app.js").read_text()
-    listed = re.findall(r'"((?:app/)?[a-z0-9_-]+\.js)"', source)
-    assert listed and all((FRONTEND / name).exists() for name in listed)
+def test_the_list_of_files_the_panel_loads_is_every_file_of_the_application():
+    """The panel requests the files in version.json together and the app runs them in that order, so a file missing from the list never runs."""
+    files = json.loads((FRONTEND / "version.json").read_text())["files"]
+    assert len(files) == len(set(files))
+    on_disk = {"integrations.js"} | {f"app/{path.name}" for path in (FRONTEND / "app").glob("*.js")}
+    assert set(files) == on_disk
+    assert files[-1] == "app/main.js"
 
 
 async def test_the_settings_form_can_be_opened_the_way_the_settings_screen_opens_it(hass, hass_client):
