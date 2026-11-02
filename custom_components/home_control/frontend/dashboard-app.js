@@ -38,36 +38,20 @@ function showLoadFailure() {
   body.appendChild(again);
 }
 
-/* The panel has requested every file already and hands over their list. The panel itself reaches a browser only when Home Assistant has been restarted (or its cached copy has expired), so an older panel may still be here: it gives no list, and it is read from version.json instead. Remove this once Home Assistant has been restarted on the version with the new panel. */
-function appFileList() {
-  if (window.APP_FILES) return Promise.resolve(window.APP_FILES);
-  return fetch(new URL("version.json?t=" + Date.now(), APPSRC), { cache: "no-store" })
-    .then(function (res) {
-      return res.json();
-    })
-    .then(function (release) {
-      return release.files;
-    });
-}
-
-appFileList().then(
-  function (files) {
-    files.forEach(function (name) {
-      var el = document.createElement("script");
-      el.src = appFile(name);
-      /* async = false: the files run one after the other in this order. */
-      el.async = false;
-      el.onerror = function () {
-        console.error("[dashboard] could not load " + name);
-        APP_FAILED.push(name);
-        showLoadFailure();
-      };
-      document.body.appendChild(el);
-    });
-  },
-  function (e) {
-    console.error("[dashboard] could not read the list of files", e);
-    APP_FAILED.push("version.json");
-    showLoadFailure();
-  }
-);
+if (!Array.isArray(window.APP_FILES)) {
+  console.error("[dashboard] the panel gave no list of files");
+  APP_FAILED.push("the list of files");
+  showLoadFailure();
+} else
+  window.APP_FILES.forEach(function (name) {
+    var el = document.createElement("script");
+    el.src = appFile(name);
+    /* async = false: the files run one after the other in this order. */
+    el.async = false;
+    el.onerror = function () {
+      console.error("[dashboard] could not load " + name);
+      APP_FAILED.push(name);
+      showLoadFailure();
+    };
+    document.body.appendChild(el);
+  });
