@@ -636,17 +636,16 @@ body.pinhdr:not(.editing) .wrap::before{content:"";position:fixed;top:0;left:0;r
 .lp-mode{display:flex;flex-direction:column;align-items:center;gap:8px;padding:16px 8px 12px;border-radius:16px;background:var(--f-raise);color:var(--ink);cursor:pointer;transition:background .2s,color .2s}
 .lp-mode.picked{background:var(--ink);color:var(--f-bg)}
 .lp-mode-n{font-size:var(--fs-s,12px);font-weight:600;letter-spacing:.12em;text-transform:uppercase}
-.lp-bri-btn{width:76px;height:50px;border-radius:25px;box-sizing:border-box;display:flex;align-items:center;justify-content:center;background:var(--f-card);border:1px solid var(--f-line);color:var(--ink2);cursor:pointer;touch-action:none;transition:opacity .01s .3s}
+.lp-bri-btn{width:76px;height:50px;border-radius:25px;box-sizing:border-box;display:flex;align-items:center;justify-content:center;background:var(--f-card);border:1px solid var(--f-line);color:var(--ink2);cursor:pointer;touch-action:none}
 .lp-bri-btn.on{color:var(--ink)}
 .lp-bri-btn svg,.lp-bri-ico svg{width:26px;height:26px;fill:none;stroke:currentColor;stroke-width:1.7;stroke-linecap:round}
-.lp-bri.open .lp-bri-btn{opacity:0;transition-delay:0s}
 /* The slider is the button grown upward: the same width and corners, the same bottom edge, only the height changes (50 to 250 px). Nothing is scaled, so the corners never stretch. It is drawn over the button while it opens and until it has shrunk back. */
 .lp-bri-sl{position:absolute;right:0;bottom:0;width:76px;height:50px;box-sizing:border-box;border-radius:25px;overflow:hidden;background:var(--f-card);border:1px solid var(--f-line);box-shadow:0 0 0 rgba(0,0,0,0);touch-action:none;z-index:12;opacity:0;pointer-events:none;transition:height .3s cubic-bezier(.2,.9,.25,1),background-color .3s,border-color .3s,box-shadow .3s,opacity .01s .3s}
 .lp-bri.open .lp-bri-sl{height:250px;opacity:1;pointer-events:auto;background:var(--f-raise);border-color:var(--f-line2);box-shadow:0 14px 36px rgba(0,0,0,.5);transition-delay:0s}
 .lp-bri-fill{position:absolute;left:0;right:0;bottom:0;height:0;background:linear-gradient(180deg,#eceef2,#9a9ca6);opacity:0;transition:height .14s,opacity .3s}
 .lp-bri.open .lp-bri-fill{opacity:1;transition:height .14s,opacity .1s}
 .lp-bri-sl.drag .lp-bri-fill{transition:none}
-.lp-bri-ico{position:absolute;left:0;right:0;bottom:0;height:50px;display:flex;align-items:center;justify-content:center;color:var(--ink2);transition:color .25s ease}
+.lp-bri-ico{position:absolute;left:0;right:0;bottom:-1px;height:50px;display:flex;align-items:center;justify-content:center;color:var(--ink2);transition:color .25s ease}
 .lp-bri-ico.on{color:var(--ink)}
 .lp-bri-ico.dark{color:#16181d}
 .lp-bri-val{position:absolute;right:50%;bottom:262px;transform:translateX(50%);padding:4px 10px;border-radius:12px;font-size:var(--fs-s,12px);font-weight:600;letter-spacing:.06em;background:var(--f-raise);color:var(--ink);opacity:0;pointer-events:none;transition:opacity .2s;z-index:12;white-space:nowrap}
