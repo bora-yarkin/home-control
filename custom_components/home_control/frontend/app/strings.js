@@ -1,6 +1,8 @@
 /* Text shown to the user: the English strings and the lookup function _T(). */
 
 var EN = {
+  "hue_scenes": "Hue scenes",
+  "classic_scenes": "Classic scenes",
   "nothing_saved_yet": "Nothing saved yet",
   "saved_colours": "Saved colours",
   "added_to_this_room": "Added to this room",

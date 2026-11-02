@@ -709,10 +709,21 @@ function scenesSection(room, extra) {
     var hueRows = hueItems.map(function (x) {
       return x.row;
     });
-    [first, liveRows, hueRows].forEach(function (g) {
-      if (!g.length) return;
-      if (dyn.children.length) dyn.appendChild(mk("div", "scn-div"));
-      g.forEach(function (r) {
+    /* With more than one group, each says where its scenes come from. */
+    var groups = [
+      [_T("classic_scenes"), first],
+      [_T("live_scenes"), liveRows],
+      [_T("hue_scenes"), hueRows],
+    ].filter(function (g) {
+      return g[1].length;
+    });
+    groups.forEach(function (g) {
+      if (groups.length > 1) {
+        var d = mk("div", "scn-div");
+        d.textContent = g[0];
+        dyn.appendChild(d);
+      }
+      g[1].forEach(function (r) {
         dyn.appendChild(r);
       });
     });
