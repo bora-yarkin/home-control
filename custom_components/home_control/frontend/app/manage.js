@@ -1014,13 +1014,13 @@ function devManage(b, key) {
           _T("now_playing"),
           ["off", "on", "art"],
           function () {
-            return d.art ? "art" : d.sub ? "on" : "off";
+            return d.art ? "art" : d.nonp ? "off" : "on";
           },
           function (v) {
             delete d.art;
-            delete d.sub;
+            delete d.nonp;
             if (v === "art") d.art = 1;
-            else if (v === "on") d.sub = 1;
+            else if (v === "off") d.nonp = 1;
             uiChanged();
           },
           "media",

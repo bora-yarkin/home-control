@@ -534,14 +534,7 @@ function customSection(s) {
     if (!r && ed) r = k === "read" ? readTile(d) : pill(d.icon || "plug", d.name, {});
     if (!r) return;
     rows.push(
-      edDel(edMark(r, devEditor(lk, d), !!d.hide), function () {
-        var i = s.devs.indexOf(d);
-        if (i >= 0) {
-          s.devs.splice(i, 1);
-          devIndex(UI);
-          uiChanged();
-        }
-      })
+      edMark(r, devEditor(lk, d), !!d.hide)
     );
     src.push(d);
   });

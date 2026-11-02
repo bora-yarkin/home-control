@@ -811,22 +811,6 @@ function editDecorate(sc, s) {
   cg.addEventListener("click", function () {
     showPopup("manage-sec:" + (sc === "home" ? "home" : sc.slice(5)) + ":" + s.id, false);
   });
-  var dl = mk("div", "rnd pane sm", svg("trash"));
-  dl.tabIndex = 0;
-  dl.setAttribute("role", "button");
-  dl.setAttribute("aria-label", _T("delete_this_section"));
-  dl.title = _T("delete_this_section");
-  dl.addEventListener("click", function () {
-    confirmDlg(_T("delete_this_section_the_devices_stay"), function () {
-      setSecOrder(
-        sc,
-        secOrder(sc).filter(function (x) {
-          return x.id !== s.id;
-        })
-      );
-      uiChanged();
-    });
-  });
   var scopeId = sc === "home" ? "home" : sc.slice(5),
     ent = function () {
       return secById(scopeId, s.id);
@@ -846,7 +830,6 @@ function editDecorate(sc, s) {
   });
   tb.appendChild(cg);
   tb.appendChild(ey);
-  tb.appendChild(dl);
   /* The toolbar goes in the section heading, wherever the section keeps it (a section that rebuilds its content calls _attach again). */
   s.el._attach = function () {
     if (s.el.contains(tb)) return;

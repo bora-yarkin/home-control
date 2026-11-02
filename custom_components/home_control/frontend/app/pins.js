@@ -234,14 +234,7 @@ function quickActions() {
         },
       });
       g.appendChild(
-        edDel(edMark(el, devEditor(lk, d), !!d.hide), function () {
-          var i = e.devs.indexOf(d);
-          if (i >= 0) {
-            e.devs.splice(i, 1);
-            devIndex(UI);
-            uiChanged();
-          }
-        })
+        edMark(el, devEditor(lk, d), !!d.hide)
       );
     });
     devEls.forEach(function (x) {

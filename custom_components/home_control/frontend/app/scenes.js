@@ -693,14 +693,7 @@ function scenesSection(room, extra) {
       if (!r && editing()) r = pill(d.icon || "plug", d.name, {});
       if (r)
         first.push(
-          edDel(edMark(r, devEditor(lk, d), !!d.hide), function () {
-            var i = e.devs.indexOf(d);
-            if (i >= 0) {
-              e.devs.splice(i, 1);
-              devIndex(UI);
-              uiChanged();
-            }
-          })
+          edMark(r, devEditor(lk, d), !!d.hide)
         );
     });
     ents.forEach(function (x) {

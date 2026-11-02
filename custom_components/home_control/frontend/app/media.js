@@ -52,7 +52,14 @@ function artCard(id, icon) {
   return c;
 }
 
+/* The now-playing block of a remote popup, as the device's Now playing setting says: nothing (off), a row with the title (on), or the artwork card. */
+function addNowPlaying(b, id, icon) {
+  var np = nowPlaying(id, icon);
+  if (np) b.appendChild(np);
+}
+
 function nowPlaying(id, icon) {
+  if ((UIDEV[id] || {}).nonp) return null;
   if ((UIDEV[id] || {}).art) return artCard(id, icon);
   var p = pill(icon, _T("now_playing"), {
     sub: function () {
@@ -247,7 +254,7 @@ function kbDlg(sendText) {
 }
 
 function samsungRemote(b, remote, media) {
-  b.appendChild(nowPlaying(media, "tv"));
+  addNowPlaying(b, media, "tv");
   var r1 = mk(
     "div",
     "rrow"
@@ -362,7 +369,7 @@ function samsungRemote(b, remote, media) {
 }
 
 function appleRemote(b, remote, media, tvRemote, entry) {
-  b.appendChild(nowPlaying(media, "apple"));
+  addNowPlaying(b, media, "apple");
   var r1 = mk("div", "rrow");
   r1.appendChild(
     rbtn("power", function () {
@@ -715,7 +722,7 @@ function mediaPopup(b, id) {
 }
 
 function androidRemote(b, remote, media) {
-  b.appendChild(nowPlaying(media, "tv"));
+  addNowPlaying(b, media, "tv");
   var r1 = mk("div", "rrow");
   r1.appendChild(
     rbtn("power", function () {
@@ -828,7 +835,7 @@ function mediaGeneric(b, id, icon) {
       },
     })
   );
-  b.appendChild(nowPlaying(id, icon || "media"));
+  addNowPlaying(b, id, icon || "media");
   var tr = mk("div", "rrow");
   tr.appendChild(
     rbtn("prev", function () {

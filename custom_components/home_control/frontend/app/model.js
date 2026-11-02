@@ -158,6 +158,7 @@ function cleanDev(d) {
   if (d.hide) c.hide = 1;
   if (d.dial && d.kind === "climate") c.dial = 1;
   if (d.art && d.kind === "media") c.art = 1;
+  if (d.nonp && d.kind === "media" && !c.art) c.nonp = 1;
   if (d.split && d.kind === "light") c.split = 1;
   if (d.noadv) c.noadv = 1;
   if (d.noslide && d.kind === "lock") c.noslide = 1;
