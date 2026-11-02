@@ -111,9 +111,7 @@ function acDial(id) {
   }
   sv.addEventListener("pointerdown", function (e) {
     drag = true;
-    try {
-      sv.setPointerCapture(e.pointerId);
-    } catch (x) {}
+    capturePointer(sv, e);
     val = fromEvent(e);
     paint(val);
   });

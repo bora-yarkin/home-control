@@ -209,12 +209,15 @@ function sectionSig(el) {
 }
 
 /* Brings the open page up to date with changed dashboard data without rebuilding it: a section that looks the same stays as it is and keeps updating live; a changed one is replaced in place, a new one is added and a removed one is taken out. */
+var LIVEPATCH_WAITING = false;
+
 function livePatch() {
   if (!H()) return;
   if (dragging > 0) {
-    setTimeout(livePatch, 500);
+    LIVEPATCH_WAITING = true;
     return;
   }
+  LIVEPATCH_WAITING = false;
   applyUI();
   startViewApply();
   buildDock();
@@ -243,11 +246,7 @@ function livePatch() {
     CUR = outer;
   }
   list.forEach(function (s) {
-    (s.el._live || []).forEach(function (g) {
-      try {
-        g();
-      } catch (e) {}
-    });
+    runUpdates(s.el._live || [], "section update");
   });
   var old = {};
   h._items.forEach(function (it) {
@@ -347,9 +346,7 @@ function initSwipe() {
         return;
       }
       mode = 2;
-      try {
-        m.setPointerCapture(e.pointerId);
-      } catch (x) {}
+      capturePointer(m, e);
       dir = ddx < 0 ? 1 : -1;
       key = neighbour(dir);
       still = null;
@@ -475,6 +472,9 @@ function motionOff() {
   return window.matchMedia("(prefers-reduced-motion: reduce)").matches;
 }
 
+/* The pill under the selected dock item follows that item whenever it changes size or place (a larger display size, a font that arrives late, a room added), instead of being placed once. */
+var DOCK_WATCH = typeof ResizeObserver === "function" ? new ResizeObserver(movePill) : null;
+
 function movePill() {
   var d = document.getElementById("dock"),
     dp = d.querySelector(".dp"),
@@ -500,6 +500,13 @@ function buildDock() {
     });
     d.appendChild(b);
   });
+  if (DOCK_WATCH) {
+    DOCK_WATCH.disconnect();
+    DOCK_WATCH.observe(d);
+    [].forEach.call(d.querySelectorAll(".di"), function (item) {
+      DOCK_WATCH.observe(item);
+    });
+  }
   dockSort(d);
   movePill();
 }
@@ -640,11 +647,7 @@ function pgBegin(key, dir) {
   body.style.position = "relative";
   body.appendChild(nw.el);
   /* Bring the incoming page fully up to date (live values and column layout) before it moves, so nothing changes when it lands. */
-  nw.live.forEach(function (f) {
-    try {
-      f();
-    } catch (e) {}
-  });
+  runUpdates(nw.live, "page update");
   relayout();
   main.style.overflowX = "hidden";
   main.scrollTop = 0;

@@ -38,9 +38,7 @@ function attachSlide(el, h) {
     dragging++;
     DRAGAT = Date.now();
     watchRelease(e.pointerId);
-    try {
-      el.setPointerCapture(e.pointerId);
-    } catch (x) {}
+    capturePointer(el, e);
     held = false;
     clearTimeout(timer);
     if (h.onHold)
@@ -211,7 +209,7 @@ function slideIcon(r, o, refresh) {
     from = e.clientX - x;
     drag = true;
     moved = false;
-    icn.setPointerCapture(e.pointerId);
+    capturePointer(icn, e);
   });
   icn.addEventListener("pointermove", function (e) {
     if (!drag) return;
@@ -659,9 +657,7 @@ function rbtn(icon, fn, label, hold) {
     delay = setTimeout(function () {
       rep = setInterval(fn, 130);
     }, 380);
-    try {
-      b.setPointerCapture(e.pointerId);
-    } catch (x) {}
+    capturePointer(b, e);
   });
   b.addEventListener("pointerup", stop);
   b.addEventListener("pointercancel", stop);

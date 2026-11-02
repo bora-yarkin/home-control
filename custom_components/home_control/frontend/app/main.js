@@ -12,16 +12,9 @@ function refresh() {
     dragging = 0;
   }
   ruleTick();
-  LIVE.forEach(function (f) {
-    try {
-      f();
-    } catch (e) {}
-  });
-  SLIVE.forEach(function (f) {
-    try {
-      f();
-    } catch (e) {}
-  });
+  runUpdates(LIVE, "live update");
+  runUpdates(SLIVE, "live update");
+  if (LIVEPATCH_WAITING) livePatch();
 }
 
 function start() {
@@ -52,10 +45,6 @@ function start() {
       refresh();
   }, 30000);
   dockState();
-  fitSab();
-  setTimeout(fitSab, 600);
-  setTimeout(fitSab, 1800);
-  window.addEventListener("resize", fitSab);
   initSwipe();
   edInit();
   document.addEventListener("contextmenu", function (e) {
@@ -72,10 +61,7 @@ function start() {
   connCheck();
   wallBoot();
   newDevBoot();
-  window.addEventListener("resize", function () {
-    movePill();
-    relayout();
-  });
+  window.addEventListener("resize", relayout);
   document.addEventListener("visibilitychange", function () {
     if (document.hidden) stopStreams();
     else if (CAMPAGE && CAMPAGE.box.isConnected)

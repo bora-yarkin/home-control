@@ -414,11 +414,7 @@ function secLinkPage(b, key) {
 function liveOf(el) {
   var f = function () {
     if (el._dead) return;
-    el._live.forEach(function (g) {
-      try {
-        g();
-      } catch (e) {}
-    });
+    runUpdates(el._live, "section update");
   };
   f._el = el;
   return f;

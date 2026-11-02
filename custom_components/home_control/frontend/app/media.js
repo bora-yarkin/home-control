@@ -120,9 +120,7 @@ function swipePad(t, fire, onTap, onDir, onHold) {
     sx = e.clientX;
     sy = e.clientY;
     pressedAt = Date.now();
-    try {
-      t.setPointerCapture(e.pointerId);
-    } catch (x) {}
+    capturePointer(t, e);
     stopHold();
     if (onHold)
       hold = setTimeout(function () {

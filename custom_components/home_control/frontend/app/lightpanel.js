@@ -102,11 +102,7 @@ var LPMEM = lpMemLoad(),
   lpTrackAt = 0;
 
 function lpMemLoad() {
-  try {
-    return JSON.parse(localStorage.getItem("lp.mem") || "{}") || {};
-  } catch (e) {
-    return {};
-  }
+  return deviceGet("lp.mem", {});
 }
 
 function lpRemember(e, key, v) {
@@ -115,9 +111,7 @@ function lpRemember(e, key, v) {
   m[key] = v;
   clearTimeout(lpMemT);
   lpMemT = setTimeout(function () {
-    try {
-      localStorage.setItem("lp.mem", JSON.stringify(LPMEM));
-    } catch (x) {}
+    deviceSet("lp.mem", LPMEM);
   }, 1500);
 }
 
@@ -701,9 +695,7 @@ function lpCircle(S, mode) {
       cur = hit;
     } else cur = nearest(e);
     if (!cur) return;
-    try {
-      circ.setPointerCapture(e.pointerId);
-    } catch (x) {}
+    capturePointer(circ, e);
     far = !cur.inBub && lpReach(circ, e, cur) > 34;
     if (far) {
       wasSel = false;
@@ -1229,18 +1221,10 @@ function lpScenePalette(id, done) {
 }
 
 /* What was chosen for each effect (kept in this browser): { effect: { hs: [hue, saturation] or k: kelvin, speed: 1 to 12 } }. An effect with nothing chosen runs as it is by default. */
-var LPFXS = (function () {
-  try {
-    return JSON.parse(localStorage.getItem("lp.fxs") || "{}") || {};
-  } catch (e) {
-    return {};
-  }
-})();
+var LPFXS = deviceGet("lp.fxs", {});
 
 function lpFxSave() {
-  try {
-    localStorage.setItem("lp.fxs", JSON.stringify(LPFXS));
-  } catch (x) {}
+  deviceSet("lp.fxs", LPFXS);
 }
 
 /* The effect that the settings popups are for, and the state of the panel that opened them. */
@@ -1289,28 +1273,14 @@ var LPFX = {
 };
 
 /* Effects made with Create (kept in this browser): { effect: [{ n: id, label }] }. Their colour and speed are in LPFXS under the variant's id, "effect:n". */
-var LPFXC = (function () {
-  try {
-    return JSON.parse(localStorage.getItem("lp.fxc") || "{}") || {};
-  } catch (e) {
-    return {};
-  }
-})();
+var LPFXC = deviceGet("lp.fxc", {});
 
 /* Which variant of each effect was started last, so the tile that is running can be told apart from its siblings: { effect: id }. */
-var LPFXRUN = (function () {
-  try {
-    return JSON.parse(localStorage.getItem("lp.fxr") || "{}") || {};
-  } catch (e) {
-    return {};
-  }
-})();
+var LPFXRUN = deviceGet("lp.fxr", {});
 
 function lpFxSaveMore() {
-  try {
-    localStorage.setItem("lp.fxc", JSON.stringify(LPFXC));
-    localStorage.setItem("lp.fxr", JSON.stringify(LPFXRUN));
-  } catch (x) {}
+  deviceSet("lp.fxc", LPFXC);
+  deviceSet("lp.fxr", LPFXRUN);
 }
 
 /* Effects applied once: { effect: { after: the id of the tile it was made from, hs | k, speed, bri } }. Kept until another version of that effect is started. */
@@ -1840,9 +1810,7 @@ function lpFxColourPopup(b, name) {
   circ.appendChild(m.pin);
   circ.addEventListener("pointerdown", function (e) {
     down = true;
-    try {
-      circ.setPointerCapture(e.pointerId);
-    } catch (x) {}
+    capturePointer(circ, e);
     m.pin.classList.add("press");
     at(e);
   });
@@ -2109,9 +2077,7 @@ function briControl(o) {
   wrap.addEventListener("pointerdown", function (e) {
     if (e.button) return;
     e.preventDefault();
-    try {
-      wrap.setPointerCapture(e.pointerId);
-    } catch (x) {}
+    capturePointer(wrap, e);
     var onBtn = btn.contains(e.target) || ico.contains(e.target);
     drag = { y0: e.clientY, v0: o.pct(), v: o.pct(), t0: Date.now(), moved: false, onBtn: onBtn, hold: onBtn && !open };
     if (!open) setOpen(true);

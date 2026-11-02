@@ -59,10 +59,10 @@ function hpLoad(b, kinds, draw) {
   return box;
 }
 
-/* A change to the bridge, then the list is read again once the bridge has taken it. */
+/* A change to the bridge, then the list is read again. The service finishes when the bridge has answered, so the list is read after the change succeeded or failed, never before. */
 function hpDo(again, service, data) {
-  call("hue_plus", service, data);
-  setTimeout(again, 900);
+  var done = callRaw("hue_plus", service, data);
+  Promise.resolve(done).then(again, again);
 }
 
 function hpUpdateText(id) {

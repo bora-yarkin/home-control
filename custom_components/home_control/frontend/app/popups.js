@@ -708,11 +708,7 @@ function sheetDrag(sh) {
         mode = 2;
         sh.style.transition = "none";
         if (SHEET) SHEET.bg.style.transition = "none";
-        if (e && e.pointerId !== undefined) {
-          try {
-            sh.setPointerCapture(e.pointerId);
-          } catch (x2) {}
-        }
+        capturePointer(sh, e);
       } else {
         mode = 3;
         return;

@@ -41,11 +41,7 @@ var LIVESET = {};
 
 function liveOverrides(id) {
   if (!LIVESET[id]) {
-    var s = null;
-    try {
-      s = JSON.parse(localStorage.getItem("db_ls_" + id) || "null");
-    } catch (e) {}
-    LIVESET[id] = s || {};
+    LIVESET[id] = deviceGet("db_ls_" + id, {});
   }
   return LIVESET[id];
 }
@@ -62,9 +58,7 @@ function liveSet(sc) {
 
 function liveSave(sc, st) {
   LIVESET[sc.id] = st;
-  try {
-    localStorage.setItem("db_ls_" + sc.id, JSON.stringify(st));
-  } catch (e) {}
+  deviceSet("db_ls_" + sc.id, st);
 }
 
 /* The parts of a live scene beyond the palette, in the words of Hue Plus's services. */

@@ -2,19 +2,15 @@
 
 /* Runs before anything is drawn so the page never shows the wrong theme first: a saved light theme adds the class and the accent colour is set at once. */
 (function () {
-  try {
-    var p = JSON.parse(localStorage.getItem("db_prefs") || "null") || {},
-      light =
-        p.theme === "light" ||
-        (p.theme === "auto" &&
-          !!window.matchMedia &&
-          window.matchMedia("(prefers-color-scheme: light)").matches);
-    if (light) document.body.classList.add("light");
-    document.documentElement.style.setProperty(
-      "--acc",
-      "hsl(" + (typeof p.accH === "number" ? p.accH : 174) + ",82%," + (light ? 46 : 62) + "%)"
-    );
-  } catch (e) {}
+  var p = deviceGet("db_prefs", {}),
+    light =
+      p.theme === "light" ||
+      (p.theme === "auto" && !!window.matchMedia && window.matchMedia("(prefers-color-scheme: light)").matches);
+  if (light) document.body.classList.add("light");
+  document.documentElement.style.setProperty(
+    "--acc",
+    "hsl(" + (typeof p.accH === "number" ? p.accH : 174) + ",82%," + (light ? 46 : 62) + "%)"
+  );
 })();
 
 (function () {
@@ -36,28 +32,44 @@
 
 var VIEW = window.HA.route.get() || "home";
 
-/* The safe areas (notch and home indicator) keep the header, the dock and the content clear; Home Assistant passes them to the panel as --safe-area-inset-* and the page reads them into --sat and --sab. */
-function fitSab() {
-  var root = document.documentElement,
-    styles = getComputedStyle(root);
-  var cssValue = function (name) {
-    var v = parseFloat(styles.getPropertyValue(name));
-    return Number.isFinite(v) ? v : 0;
-  };
-  var bottom = cssValue("--safe-area-inset-bottom"),
-    top = cssValue("--safe-area-inset-top");
-  if (!bottom && !top) {
-    var probe = document.createElement("div");
-    probe.style.cssText =
-      "position:fixed;visibility:hidden;pointer-events:none;padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px)";
-    document.body.appendChild(probe);
-    var ps = getComputedStyle(probe);
-    bottom = parseFloat(ps.paddingBottom) || 0;
-    top = parseFloat(ps.paddingTop) || 0;
-    probe.remove();
+/* This device's own storage. The browser can refuse it (private windows, a full quota) and the page works without it, so a failed read is "nothing stored" and a failed write is dropped. Values are kept as JSON. */
+function deviceGet(key, fallback) {
+  try {
+    var raw = localStorage.getItem(key);
+    var v = raw === null ? null : JSON.parse(raw);
+    return v === null ? fallback : v;
+  } catch (e) {
+    return fallback;
   }
-  root.style.setProperty("--sab", bottom + "px");
-  root.style.setProperty("--sat", top + "px");
+}
+
+function deviceSet(key, value) {
+  try {
+    localStorage.setItem(key, JSON.stringify(value));
+  } catch (e) {}
+}
+
+/* Keeps a drag with the element that started it. The browser refuses when the pointer has already gone (a quick lift), and then there is nothing to keep. */
+function capturePointer(el, e) {
+  if (!e || e.pointerId === undefined) return;
+  try {
+    el.setPointerCapture(e.pointerId);
+  } catch (x) {}
+}
+
+/* Runs each live update on its own so that one that fails does not stop the others. A failure is written to the console once per message, not on every refresh. */
+var UPDATE_FAILURES = {};
+function runUpdates(list, what) {
+  list.forEach(function (f) {
+    try {
+      f();
+    } catch (e) {
+      var key = what + ": " + (e && e.message);
+      if (UPDATE_FAILURES[key]) return;
+      UPDATE_FAILURES[key] = true;
+      console.error("Home Control: " + what + " failed", e);
+    }
+  });
 }
 
 var LIVE = [],

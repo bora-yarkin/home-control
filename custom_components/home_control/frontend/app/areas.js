@@ -419,9 +419,7 @@ function eaAttach(el, key) {
     start = eaPoint(e);
     dragging++;
     DRAGAT = Date.now();
-    try {
-      el.setPointerCapture(e.pointerId);
-    } catch (x) {}
+    capturePointer(el, e);
     if (EAD.sel !== key) eaSelect(key);
   });
   el.addEventListener("pointermove", function (e) {
@@ -459,9 +457,7 @@ function eaAttachEnd(el, key) {
     down = true;
     dragging++;
     DRAGAT = Date.now();
-    try {
-      el.setPointerCapture(e.pointerId);
-    } catch (x) {}
+    capturePointer(el, e);
     if (EAD.sel !== key) eaSelect(key);
   });
   el.addEventListener("pointermove", function (e) {

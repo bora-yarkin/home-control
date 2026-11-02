@@ -572,11 +572,7 @@ function sceneEntRow(id, name, icon, sub, room) {
 
 /* Speed and brightness a Hue scene is started with, kept on this device. */
 function hueSceneSet(id) {
-  var s = null;
-  try {
-    s = JSON.parse(localStorage.getItem("db_hsc_" + id) || "null");
-  } catch (e) {}
-  s = s || {};
+  var s = deviceGet("db_hsc_" + id, {});
   return {
     speed: typeof s.speed === "number" ? s.speed : Math.round((A(id).speed || 0.5) * 100),
     bri: typeof s.bri === "number" ? s.bri : Math.round((A(id).brightness || 255) / 2.55),
@@ -584,9 +580,7 @@ function hueSceneSet(id) {
 }
 
 function hueSceneSave(id, st) {
-  try {
-    localStorage.setItem("db_hsc_" + id, JSON.stringify(st));
-  } catch (e) {}
+  deviceSet("db_hsc_" + id, st);
 }
 
 /* The room's Hue group light of the scene that was frozen last, so the Freeze button can show it. */

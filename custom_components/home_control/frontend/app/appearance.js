@@ -5,16 +5,10 @@ var LG = false;
 
 function applyLG() {
   document.body.classList.toggle("lg", LG);
-  setTimeout(movePill, 60);
-  setTimeout(movePill, 400);
 }
 
 function initLG() {
-  var s = null;
-  try {
-    s = localStorage.getItem("db_large");
-  } catch (e) {}
-  LG = s === "1";
+  LG = deviceGet("db_large", 0) === 1;
   applyLG();
 }
 
@@ -51,9 +45,7 @@ function mergePrefs(v) {
 }
 
 function savePrefsLocal() {
-  try {
-    localStorage.setItem("db_prefs", JSON.stringify(PREFS));
-  } catch (e) {}
+  deviceSet("db_prefs", PREFS);
 }
 
 function themeLight() {
@@ -85,9 +77,7 @@ function initTheme() {
       if (PREFS.theme === "auto") applyTheme();
     });
   } catch (e) {}
-  try {
-    mergePrefs(JSON.parse(localStorage.getItem("db_prefs") || "null"));
-  } catch (e) {}
+  mergePrefs(deviceGet("db_prefs", null));
   applyTheme();
   var h = H();
   if (h)
@@ -212,9 +202,7 @@ function appearancePage(b) {
         },
         tap: function () {
           LG = !LG;
-          try {
-            localStorage.setItem("db_large", LG ? "1" : "0");
-          } catch (e) {}
+          deviceSet("db_large", LG ? 1 : 0);
           applyLG();
           refresh();
         },

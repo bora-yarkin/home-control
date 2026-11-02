@@ -290,11 +290,7 @@ var LMEM = {},
 function lzone(id) {
   var m = LMEM[id];
   if (!m) {
-    try {
-      m = JSON.parse(localStorage.getItem("db_lzone_" + id) || "{}");
-    } catch (e) {
-      m = {};
-    }
+    m = deviceGet("db_lzone_" + id, {});
     LMEM[id] = m;
   }
   var a = A(id),
@@ -307,11 +303,7 @@ function lzone(id) {
     m.k = a.color_temp_kelvin;
     ch = true;
   }
-  if (ch) {
-    try {
-      localStorage.setItem("db_lzone_" + id, JSON.stringify(m));
-    } catch (e) {}
-  }
+  if (ch) deviceSet("db_lzone_" + id, m);
   return m;
 }
 

@@ -138,7 +138,7 @@ function ruleTick() {
   var sig = ruleSig(scope);
   if (sig !== RULESIG[scope]) {
     RULESIG[scope] = sig;
-    setTimeout(livePatch, 0);
+    LIVEPATCH_WAITING = true;
   }
 }
 
