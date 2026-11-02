@@ -143,3 +143,18 @@ test("a save that did not happen keeps the editor guarded", () => {
   p.guardUnsaved({ dirty: () => false, save: () => true });
   assert.equal(p.POPGUARD(() => {}), false);
 });
+
+test("opening a scene in the maker puts its lights as the scene has them, so saving keeps their brightness and effect", () => {
+  const calls = [];
+  const p = page({ callRaw: (d, s, data) => calls.push([s, plain(data)]) });
+  p.vcolLoad([{ hs: [0, 100] }]);
+  vm.runInContext("LMK = { joins: [], lights: ['light.a', 'light.b', 'light.c'] };", p);
+  p.liveMakerShowScene({
+    live: { off: ["light.c"], looks: { "light.a": { bri: 40, native: "candle" }, "light.b": { palette: [{ hs: [1, 1] }] } } },
+  });
+  assert.deepEqual(calls, [
+    ["turn_on", { entity_id: "light.a", brightness_pct: 40, effect: "candle" }],
+    ["turn_on", { entity_id: "light.b" }],
+    ["turn_off", { entity_id: "light.c" }],
+  ]);
+});

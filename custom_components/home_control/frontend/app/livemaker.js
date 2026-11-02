@@ -128,12 +128,22 @@ function liveMakerShowScene(sc) {
   (sc.live.off || []).forEach(function (id) {
     off[id] = 1;
   });
+  var looks = sc.live.looks || {};
   LMK.lights.forEach(function (id) {
-    callRaw("light", off[id] ? "turn_off" : "turn_on", { entity_id: id });
+    if (off[id]) {
+      callRaw("light", "turn_off", { entity_id: id });
+      return;
+    }
+    /* A light shows its own brightness and effect, which is how the maker knows to keep them when the scene is saved. */
+    var d = { entity_id: id },
+      look = looks[id];
+    if (look && typeof look.bri === "number") d.brightness_pct = look.bri;
+    if (look && look.native) d.effect = look.native;
+    callRaw("light", "turn_on", d);
   });
   var pal = vcolPalette(),
     ids = vcolIds();
-  Object.keys(sc.live.looks || {}).forEach(function (light) {
+  Object.keys(looks).forEach(function (light) {
     var look = sc.live.looks[light];
     if (!look.palette || !look.palette.length) return;
     var i = pal.findIndex(function (c) {
