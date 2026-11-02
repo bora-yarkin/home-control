@@ -25,8 +25,8 @@ function engineSensor() {
   return ENGINE.id;
 }
 
-/* The icons of the kinds of scene: a classic scene keeps its own (the scene icon unless one was chosen), a live scene the sparkle (unless one was chosen; the palette was the old default and counts as none), a Hue scene the lights. */
-var SCENE_ICON_HUE = "lights",
+/* The icons of the kinds of scene: a classic scene keeps its own (the scene icon unless one was chosen), a live scene the sparkle (unless one was chosen; the palette was the old default and counts as none), a Hue scene the palette. */
+var SCENE_ICON_HUE = "palette",
   SCENE_ICON_LIVE = "sparkle";
 
 function liveIcon(sc) {

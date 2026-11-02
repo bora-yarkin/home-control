@@ -207,11 +207,11 @@ test("a scene made from the lights as they are keeps the lights that are on and 
   assert.equal(made.length, 0); // nothing on, nothing to save
 });
 
-test("each kind of scene has its own icon: a live scene the sparkle unless one was chosen, a Hue scene the lights", () => {
+test("each kind of scene has its own icon: a live scene the sparkle unless one was chosen, a Hue scene the palette", () => {
   const p = page();
   assert.equal(p.liveIcon({ icon: "palette" }), "sparkle"); // what live scenes were given before the sparkle
   assert.equal(p.liveIcon({}), "sparkle");
   assert.equal(p.liveIcon({ icon: "moon" }), "moon");
-  assert.equal(p.SCENE_ICON_HUE, "lights");
+  assert.equal(p.SCENE_ICON_HUE, "palette");
   assert.notEqual(p.SCENE_ICON_HUE, p.SCENE_ICON_LIVE);
 });
