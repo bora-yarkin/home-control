@@ -148,6 +148,11 @@ function lpTrackTick() {
   });
 }
 
+/* The colours of every white wheel: warm at the top, white, cool at the bottom, the same for all lights. A light's own range only decides where on the wheel it sits, so the wheels do not change colour with the lights in a popup (a master with a deep orange bulb used to be red). */
+function lpWhiteWheel() {
+  return "linear-gradient(180deg," + cssRgb(kelvinRgb(2200)) + ",#fff 70%,#d3f0ff)";
+}
+
 function lpKrange(n) {
   var c = lpCap(n, "white");
   if (!c.length) return [2000, 6500];
@@ -427,7 +432,7 @@ function lpCircle(S, mode) {
     // a press away from every marker: nothing happens until the finger drags, then the nearest marker follows
     far = false;
   if (!isColor)
-    circ.style.background = "linear-gradient(180deg," + cssRgb(kelvinRgb(krange[0])) + ",#fff 70%,#d3f0ff)";
+    circ.style.background = lpWhiteWheel();
 
   function ref(n) {
     var c = lpCap(n, mode);
@@ -1740,7 +1745,7 @@ function lpFxColourPopup(b, name) {
   function shape() {
     circ.className = "lw-c " + (mode === "color" ? "col" : "wht");
     circ.style.background =
-      mode === "color" ? "" : "linear-gradient(180deg," + cssRgb(kelvinRgb(krange[0])) + ",#fff 70%,#d3f0ff)";
+      mode === "color" ? "" : lpWhiteWheel();
     [].forEach.call(tabs.children, function (x) {
       x.classList.toggle("on", x.dataset.m === mode);
     });
