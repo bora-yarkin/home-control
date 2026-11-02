@@ -784,6 +784,3 @@ body.pinhdr:not(.editing) .wrap::before{content:"";position:fixed;top:0;left:0;r
 .dinner{overflow:hidden;min-height:0}
 @media(prefers-reduced-motion:reduce){.dslide{transition:none}}
 
-/* The heading of each group of a scenes section (classic, live, Hue), with a thin line after it. */
-.scn-div{grid-column:1/-1;display:flex;align-items:center;gap:10px;margin:12px 2px 2px;font-size:var(--fs-s);color:var(--ink2)}
-.scn-div::after{content:"";flex:1;height:1px;background:var(--f-line)}

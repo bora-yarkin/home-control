@@ -673,7 +673,7 @@ function scenesSection(room, extra) {
         );
       });
     }
-    /* Scenes made here and devices come first, then live scenes, then the scenes Hue made; a thin line divides the groups that are there. */
+    /* Scenes made here and devices come first, then live scenes, then the scenes Hue made. They are drawn as one list; each kind is reordered among its own. */
     var classic = mine.filter(function (sc) {
         return !sc.live;
       }),
@@ -702,21 +702,9 @@ function scenesSection(room, extra) {
     var hueRows = hueItems.map(function (x) {
       return x.row;
     });
-    /* With more than one group, each says where its scenes come from. */
-    var groups = [
-      [_T("classic_scenes"), first],
-      [_T("live_scenes"), liveRows],
-      [_T("hue_scenes"), hueRows],
-    ].filter(function (g) {
-      return g[1].length;
-    });
-    groups.forEach(function (g) {
-      if (groups.length > 1) {
-        var d = mk("div", "scn-div");
-        d.textContent = g[0];
-        dyn.appendChild(d);
-      }
-      g[1].forEach(function (r) {
+    /* One list of scenes: the ones made here, the live ones, then Hue's. */
+    [first, liveRows, hueRows].forEach(function (g) {
+      g.forEach(function (r) {
         dyn.appendChild(r);
       });
     });
