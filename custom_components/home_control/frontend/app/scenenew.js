@@ -67,7 +67,7 @@ function sceneNewPage(b, key) {
     })
   );
   b.appendChild(
-    pill("palette", _T("live_scene"), {
+    pill(SCENE_ICON_LIVE, _T("live_scene"), {
       sub: function () {
         return engineSensor() ? _T("live_scene_sub") : _T("live_scene_needs_hue_plus");
       },

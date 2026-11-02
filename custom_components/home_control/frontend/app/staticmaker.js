@@ -183,7 +183,7 @@ function staticSlideRow(a, info, redraw) {
 function staticDeviceRow(a, redraw) {
   if (a.live) {
     var sc = sceneById(a.live),
-      r = pill(sc && sc.icon ? sc.icon : "palette", sc ? sc.name : _T("scene_missing"), {
+      r = pill(sc ? liveIcon(sc) : SCENE_ICON_LIVE, sc ? sc.name : _T("scene_missing"), {
         sub: function () {
           return staticSummary(a);
         },
@@ -366,10 +366,10 @@ function scenePick(b) {
   var lives = STORE.scenes.filter(function (sc) {
     return sc.live && sceneAllowed(sc) && !liveHave[sc.id] && sc.id !== SCD.draft.id;
   });
-  if (lives.length) b.appendChild(sep(_T("live_scenes"), "palette"));
+  if (lives.length) b.appendChild(sep(_T("live_scenes"), SCENE_ICON_LIVE));
   lives.forEach(function (sc) {
     b.appendChild(
-      pill(sc.icon || "palette", sc.name, {
+      pill(liveIcon(sc), sc.name, {
         sub: function () {
           return TITLES[sc.room] || "";
         },

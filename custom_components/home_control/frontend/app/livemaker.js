@@ -95,7 +95,7 @@ function liveMakerOpen(room, sc, target, areas, draft, pending) {
     pending: pending || null,
     id: sc ? sc.id : "",
     name: src ? src.name : "",
-    icon: (src && src.icon) || "palette",
+    icon: liveIcon(src),
     areas: areas.slice(),
     live: JSON.parse(
       JSON.stringify(
@@ -317,7 +317,7 @@ function liveMakerDelete() {
 function liveMakerDef() {
   return {
     title: LMK && !LMK.isNew ? _T("edit_scene") : _T("new_live_scene"),
-    icon: "palette",
+    icon: SCENE_ICON_LIVE,
     build: liveMakerBuild,
   };
 }
@@ -328,7 +328,7 @@ function liveMakerBuild(b) {
     LMK.joins = liveMakerJoins();
     LMK.S = null;
   }
-  var w = mk("div", "sqw pane", svg("palette")),
+  var w = mk("div", "sqw pane", svg(SCENE_ICON_LIVE)),
     inp = mk("input", "sq");
   inp.type = "text";
   inp.maxLength = 40;

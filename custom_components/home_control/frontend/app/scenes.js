@@ -881,7 +881,7 @@ function lightingScenesExtra(key) {
         var nm = A(s[0]).friendly_name || s[0],
           hue = Integrations.scenes.isHue(H(), s[0]);
         if (nm.indexOf(r.name) === 0) nm = nm.slice(r.name.length).replace(/^\s+/, "") || nm;
-        var row = sceneEntRow(s[0], nm, "palette", null, r);
+        var row = sceneEntRow(s[0], nm, hue ? SCENE_ICON_HUE : "scene", null, r);
         return {
           id: s[0],
           hue: hue,

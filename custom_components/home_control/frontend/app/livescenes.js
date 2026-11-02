@@ -25,6 +25,14 @@ function engineSensor() {
   return ENGINE.id;
 }
 
+/* The icons of the kinds of scene: a classic scene keeps its own (the scene icon unless one was chosen), a live scene the sparkle (unless one was chosen; the palette was the old default and counts as none), a Hue scene the lights. */
+var SCENE_ICON_HUE = "lights",
+  SCENE_ICON_LIVE = "sparkle";
+
+function liveIcon(sc) {
+  return sc && sc.icon && sc.icon !== "palette" ? sc.icon : SCENE_ICON_LIVE;
+}
+
 function liveRun(sc) {
   var id = engineSensor(),
     s = id ? A(id).sessions : null;
@@ -275,7 +283,7 @@ function liveSub(sc) {
 
 function liveRow(sc) {
   return edMark(
-    pill(sc.icon || "palette", sc.name, {
+    pill(liveIcon(sc), sc.name, {
       on: function () {
         return !!liveRun(sc);
       },
@@ -288,7 +296,7 @@ function liveRow(sc) {
       iconTap: function () {
         liveToggle(sc);
       },
-      pin: { kind: "cscene", sid: sc.id, name: sc.name, icon: sc.icon || "palette", room: TITLES[sc.room] },
+      pin: { kind: "cscene", sid: sc.id, name: sc.name, icon: liveIcon(sc), room: TITLES[sc.room] },
     }),
     function () {
       liveMakerEdit(sc);

@@ -151,7 +151,7 @@ function popupDefBase(key) {
       hsRoom = hs[1] ? roomById(hs[1]) : null;
     return {
       title: A(hsId).name || A(hsId).friendly_name || _T("scenes"),
-      icon: "palette",
+      icon: SCENE_ICON_HUE,
       build: function (b) {
         hueScenePopup(b, hsId, hsRoom);
       },
@@ -161,7 +161,7 @@ function popupDefBase(key) {
     var ls = sceneById(id);
     return {
       title: ls ? ls.name : _T("scenes"),
-      icon: "palette",
+      icon: ls ? liveIcon(ls) : SCENE_ICON_LIVE,
       build: function (b) {
         liveScenePopup(b, id);
       },
