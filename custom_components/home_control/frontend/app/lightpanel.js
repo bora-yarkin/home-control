@@ -2011,7 +2011,7 @@ function lpStylePopup(b, id) {
   });
 }
 
-/* The brightness button with the slider that rises from it. Pressing it opens the slider smoothly: held, the slider follows the finger and closes when it is let go; tapped, it stays open until something else is tapped. The light popup and the Spotify sync popup both use it. `o` says what it controls: pct() the brightness now, lit() whether it is on (the button is bright), live(v) while the finger moves, commit(v) when it is let go, and stage() the element that gets the class bri-open while the slider is open, so the rest of that popup can be dimmed. */
+/* The brightness button with the slider that rises from it. 'o' has pct(), lit(), live(v), commit(v), stage() and, to show the number in another way than as a percent of the slider, fmt(v).  Pressing it opens the slider smoothly: held, the slider follows the finger and closes when it is let go; tapped, it stays open until something else is tapped. The light popup and the Spotify sync popup both use it. `o` says what it controls: pct() the brightness now, lit() whether it is on (the button is bright), live(v) while the finger moves, commit(v) when it is let go, and stage() the element that gets the class bri-open while the slider is open, so the rest of that popup can be dimmed. */
 function briControl(o) {
   var wrap = mk("div", "lp-bri"),
     btn = mk("div", "lp-bri-btn", svg("bright")),
@@ -2026,10 +2026,17 @@ function briControl(o) {
   wrap.appendChild(val);
   wrap.appendChild(sl);
   wrap.appendChild(btn);
+  /* The sun is as light as the button's until the fill is behind it, then dark; it changes colour smoothly. */
+  function lit() {
+    var on = !!o.lit();
+    btn.classList.toggle("on", on);
+    ico.classList.toggle("on", on);
+  }
   function paint(v) {
     fill.style.height = v + "%";
-    val.textContent = v + "%";
-    btn.classList.toggle("on", !!o.lit());
+    val.textContent = o.fmt ? o.fmt(v) : v + "%";
+    ico.classList.toggle("dark", v >= 12);
+    lit();
   }
   function outside(e) {
     if (wrap.contains(e.target)) return;
@@ -2049,6 +2056,7 @@ function briControl(o) {
     if (open === on) return;
     open = on;
     wrap.classList.toggle("open", on);
+    if (!on) ico.classList.remove("dark");
     var stage = o.stage && o.stage();
     if (stage) stage.classList.toggle("bri-open", on);
     if (on) {
@@ -2089,11 +2097,13 @@ function briControl(o) {
   wrap.addEventListener("pointercancel", up);
   wrap.refresh = function () {
     if (open && !drag) paint(o.pct());
-    else btn.classList.toggle("on", !!o.lit());
+    else lit();
   };
   reg(function () {
     if (wrap.isConnected) wrap.refresh();
   });
+  /* The sun starts as lit as the button, so nothing changes colour when the slider opens. */
+  lit();
   return wrap;
 }
 

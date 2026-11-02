@@ -71,23 +71,60 @@ function hsboxSelect(E, key, label, icon) {
   return t;
 }
 
+/* The brightness of the box in the popup: the button of the light popup with the slider that rises from it, as on the Spotify sync. The slider is in percent of the box's range (0 to 200, where the middle is the normal brightness of the lights), and the number it shows is the box's own. */
+function hbBrightnessButton(E, root) {
+  var g = mk("div", "hs-set one"),
+    col = mk("div", "hs-col");
+  function toBox(v) {
+    return Math.round((v * HB_MAX) / 100);
+  }
+  col.appendChild(mk("div", "hs-cap")).textContent = _T("brightness");
+  col.appendChild(
+    briControl({
+      pct: function () {
+        return Math.round(((hbNumber(E.brightness) || 0) * 100) / HB_MAX);
+      },
+      lit: function () {
+        return isOn(E.sync);
+      },
+      fmt: function (v) {
+        return toBox(v) + "%";
+      },
+      live: function (v) {
+        callLive("hb-bri", "number", "set_value", { entity_id: E.brightness, value: toBox(v) });
+      },
+      commit: function (v) {
+        call("number", "set_value", { entity_id: E.brightness, value: toBox(v) });
+      },
+      stage: function () {
+        return root;
+      },
+    })
+  );
+  g.appendChild(col);
+  return g;
+}
+
 function hsboxPopup(b, id) {
   var E = Integrations.huesyncbox.entities(H(), id);
   if (!E) {
     b.appendChild(pill("info", _T("nothing_found"), {}));
     return;
   }
-  b.appendChild(switchPill("syncring", _T("sync"), E.sync));
-  b.appendChild(hsboxSelect(E, "mode", _T("mode"), "tv"));
-  b.appendChild(hsboxSelect(E, "source", _T("hdmi_input"), "plug"));
+  /* `hs` is what dims the rest of the popup while the brightness slider is open. */
+  var root = mk("div", "hs");
+  b.appendChild(root);
+  root.appendChild(switchPill("syncring", _T("sync"), E.sync));
+  root.appendChild(hsboxSelect(E, "mode", _T("mode"), "tv"));
+  root.appendChild(hsboxSelect(E, "source", _T("hdmi_input"), "plug"));
   /* The box keeps an intensity for video, game and music only, so there is nothing to choose in the other modes. */
   var intensity = hsboxSelect(E, "intensity", _T("intensity"), "wave3");
-  b.appendChild(intensity);
+  root.appendChild(intensity);
   reg(function () {
     intensity.style.display = V_(E.intensity) === "unavailable" ? "none" : "";
   });
-  b.appendChild(hbBrightness(E, _T("brightness"), "bright"));
-  b.appendChild(
+  root.appendChild(hbBrightnessButton(E, root));
+  root.appendChild(
     pill("tv", _T("hdmi_signal"), {
       val: function () {
         return isOn(E.hdmi_signal) ? _T("on_2") : _T("off");

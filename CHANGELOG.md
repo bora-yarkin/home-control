@@ -4,6 +4,7 @@ Format: [Keep a Changelog](https://keepachangelog.com/). Versions follow [semant
 
 ## [Unreleased]
 
+- Sync popups use the light popup's brightness button (frontend v207). On the Spotify sync, Style, Intensity, Colour and Brightness are all 76 px wide, as the slider's button is; the Hue Play HDMI sync box popup gets the same button and rising slider in place of its brightness bar (it shows the box's own 0 to 200 scale). The sun in the slider starts as light as the button and turns dark over the fill with a fade, instead of changing colour at once.
 - The brightness slider of the light popup opens upward from its button (frontend v205): it is the button grown taller, with the same width, corners and bottom edge, instead of a pill that was scaled into place and stretched its corners. Closing shrinks it back the same way.
 - Scenes are told apart by their icon (frontend v203): classic scenes keep the scene icon, live scenes get the sparkle (also the old palette default; an icon someone chose stays), and Hue scenes get the palette icon.
 - Deleting moved into settings (frontend v201): sections and devices no longer have a trash button in edit mode; they are deleted from their settings popups (Delete this section, Remove from the room). Now playing, a media device's setting, now decides what the remote popup shows: nothing (Off), the title row (On, as before) or the artwork card; it no longer touches the subtitle under the device's name on the page.
