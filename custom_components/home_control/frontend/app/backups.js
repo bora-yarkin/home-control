@@ -175,7 +175,10 @@ function pageExportJSON(sc) {
     }),
     areaIds = {};
   scenes.forEach(function (x) {
-    if (x.live) areaIds[x.live.area] = 1;
+    if (x.live)
+      (x.live.areas && x.live.areas.length ? x.live.areas : [x.live.area]).forEach(function (a) {
+        areaIds[a] = 1;
+      });
   });
   return JSON.stringify(
     {

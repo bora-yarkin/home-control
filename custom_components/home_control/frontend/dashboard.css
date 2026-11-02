@@ -785,3 +785,9 @@ body.pinhdr:not(.editing) .wrap::before{content:"";position:fixed;top:0;left:0;r
 .hs-sw{width:54px;height:16px;border-radius:999px;flex:none;margin-left:auto;border:1px solid var(--f-line2)}
 .hs-sw+.ck{margin-left:10px}
 .lp-mode.hs-m svg{fill:none}
+
+/* A device of a classic scene whose settings slide open and shut. */
+.dslide{display:grid;grid-template-rows:0fr;opacity:0;transition:grid-template-rows .28s ease,opacity .2s ease}
+.openc>.dslide{grid-template-rows:1fr;opacity:1}
+.dinner{overflow:hidden;min-height:0}
+@media(prefers-reduced-motion:reduce){.dslide{transition:none}}

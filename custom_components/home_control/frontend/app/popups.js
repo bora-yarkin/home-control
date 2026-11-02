@@ -87,6 +87,7 @@ function popupDefBase(key) {
         scnPick(b, id);
       },
     };
+  if (k === "light-edit") return lightEditDef();
   if (k === "settings") return { title: _T("settings"), icon: "cog", build: settingsRoot };
   if (k === "stg-wall") return { title: _T("wall_mode"), icon: "tv", build: wallSettings };
   if (k === "ed-order")
@@ -166,32 +167,21 @@ function popupDefBase(key) {
       },
     };
   }
-  if (k === "live-edit")
-    return {
-      title: LSD && !LSD.isNew ? _T("edit_scene") : _T("new_live_scene"),
-      icon: "palette",
-      build: liveEditor,
-    };
-  if (k === "live-look")
-    return {
-      title: entName(id),
-      icon: "light",
-      build: function (b) {
-        liveLook(b, id);
-      },
-    };
-  if (k === "live-also")
-    return {
-      title: _T("also_switch"),
-      icon: "plug",
-      build: liveAlsoPick,
-    };
-  if (k === "scene-kind")
+  if (k === "live-edit") return liveMakerDef();
+  if (k === "scene-new")
     return {
       title: _T("what_kind_of_scene"),
       icon: "scene",
       build: function (b) {
-        sceneKindPage(b, id);
+        sceneNewPage(b, id);
+      },
+    };
+  if (k === "scene-areas")
+    return {
+      title: _T("choose_an_area"),
+      icon: "target",
+      build: function (b) {
+        sceneAreasPage(b, id);
       },
     };
   if (k === "live-import")
@@ -819,18 +809,20 @@ function showPopup(key, push, layer) {
   SLIVE = [];
   CUR = SLIVE;
   var h = mk("div", "sh-h");
-  if (STACK.length) {
+  if (STACK.length || def.tick) {
     var back = mk("div", "rnd pane", svg("back"));
     back.addEventListener("click", function () {
-      popBack();
+      if (def.tick && LAYERS.length) closeLayer();
+      else popBack();
     });
     h.appendChild(back);
   }
   var t = mk("div", "sh-t pane", ic(def.icon) + "<span></span>");
   t.querySelector("span:last-child").textContent = def.title;
   h.appendChild(t);
-  var x = mk("div", "rnd pane", svg("close"));
-  x.addEventListener("click", LAYERS.length ? closeLayer : closeSheet);
+  var x = mk("div", "rnd pane" + (def.tick ? " tick" : ""), svg(def.tick ? "check" : "close"));
+  if (def.tick) x.setAttribute("aria-label", _T("save"));
+  x.addEventListener("click", def.tick || (LAYERS.length ? closeLayer : closeSheet));
   h.appendChild(x);
   sh.appendChild(h);
   var body = mk("div");

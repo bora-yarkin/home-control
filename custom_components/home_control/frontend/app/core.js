@@ -90,7 +90,11 @@ function H() {
   return window.HA.hass();
 }
 
+/* Lights that exist only in the dashboard (see vlights.js): read before Home Assistant's own. */
+var VLIGHT = {};
+
 function S(id) {
+  if (VLIGHT[id]) return VLIGHT[id];
   var h = H();
   return h ? h.states[id] : undefined;
 }
@@ -185,6 +189,10 @@ function offlineInit() {
 }
 
 function callRaw(d, s, data) {
+  if (d === "light") {
+    data = vlightDispatch(s, data);
+    if (!data) return Promise.resolve();
+  }
   var h = H();
   if (!h) {
     toast(_T("can_t_reach_home_assistant"));

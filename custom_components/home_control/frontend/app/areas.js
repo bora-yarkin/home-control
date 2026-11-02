@@ -822,7 +822,7 @@ function eaSave() {
   });
   STORE.eareas.push(a);
   uiChanged();
-  hpPush([], [a]);
+  hpPush(liveScenesIn(a.id), [a]);
   toast(_T("area_saved"));
   if (STACK.length) popBack();
   else closeSheet();
@@ -831,7 +831,7 @@ function eaSave() {
 function eaDelete() {
   var id = EAD.draft.id,
     used = STORE.scenes.filter(function (s) {
-      return s.live && s.live.area === id;
+      return s.live && (s.live.areas && s.live.areas.length ? s.live.areas : [s.live.area]).indexOf(id) >= 0;
     });
   if (used.length) {
     toast(_T("scenes_use_this_area") + used[0].name);

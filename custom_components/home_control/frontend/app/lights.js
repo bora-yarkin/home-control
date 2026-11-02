@@ -717,7 +717,7 @@ function lightsMasterRow(sid, ids, wheel) {
 }
 
 /* The popup of a light or a light group: the light panel (app/lightpanel.js). */
-function lightPopup(b, id) {
+function lightPopup(b, id, o) {
   var cp = lightCaps(id);
   if (!cp.bright) {
     b.appendChild(
@@ -736,6 +736,7 @@ function lightPopup(b, id) {
     id: id,
     presets: cp.color || cp.white ? lpPresetsOf(id) : null,
     sliders: LWHEEL[id] === false,
+    ready: o && o.ready,
   });
 }
 

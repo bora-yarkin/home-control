@@ -28,6 +28,7 @@ function page() {
   vm.createContext(sandbox);
   vm.runInContext(read("store.js"), sandbox);
   vm.runInContext(read("livescenes.js"), sandbox);
+  vm.runInContext(read("livemaker.js"), sandbox);
   vm.runInContext("engineSensor = function () { return 'sensor.live_scenes'; }; ISADMIN = true;", sandbox);
   const plain = (value) => JSON.parse(JSON.stringify(value));
   return { sandbox, calls, plain, clean: (live) => plain(sandbox.cleanLive(live)) };

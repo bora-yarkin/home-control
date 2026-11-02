@@ -72,7 +72,7 @@ function scnPick(b, key) {
         return _T("create_a_scene_and_add_it_here");
       },
       tap: function () {
-        showPopup("scene-kind:" + scope + ":" + e.id, true);
+        showPopup("scene-new:" + scope + ":" + e.id, true);
       },
     })
   );
@@ -458,7 +458,7 @@ function filterActs(acts) {
   var dropped = false,
     out = [];
   acts.forEach(function (a) {
-    if (a.delay) {
+    if (a.delay || a.live) {
       out.push(a);
       return;
     }
@@ -485,6 +485,13 @@ function execActs(acts) {
       t += a.delay.milliseconds || 0;
       return;
     }
+    if (a.live) {
+      setTimeout(function () {
+        var live = sceneById(a.live);
+        if (live && live.live) liveStart(live);
+      }, t);
+      return;
+    }
     var p = a.action.split("."),
       data = { entity_id: a.target && a.target.entity_id };
     for (var k in a.data || {}) data[k] = a.data[k];
@@ -505,7 +512,7 @@ function runScene(sc) {
   }
   var f = filterActs(compileScene(sc)),
     ids = actionIds(f.acts);
-  if (!ids.length) {
+  if (!ids.length && !f.acts.some(function (a) { return a.live; })) {
     toast(_T("this_is_view_only_for_you"));
     return;
   }
@@ -782,7 +789,7 @@ function sceneRow(sc) {
       },
     }),
     function () {
-      openEditor(sc.room, sc);
+      staticOpen(sc.room, sc);
     }
   );
 }
@@ -854,23 +861,12 @@ function scenesSection(room, extra) {
           showPopup("pick-scene:" + scope + ":" + e.id, true);
         })
       );
-    s.style.display = dyn.children.length ? "" : "none";
+    s.style.display = dyn.children.length || ISADMIN ? "" : "none";
   }
+  if (ISADMIN && !editing()) s.firstChild.appendChild(sceneAddButton(scope, e));
   reg(build);
   build();
   return s;
-}
-
-function openEditor(room, sc, target) {
-  SCD = {
-    room: room,
-    isNew: !sc,
-    target: target || null,
-    draft: sc
-      ? JSON.parse(JSON.stringify(sc))
-      : { id: "", name: "", room: room, others: "keep", acts: [] },
-  };
-  showPopup("scene-edit", true);
 }
 
 function seg(opts, val, fn) {
@@ -885,333 +881,6 @@ function seg(opts, val, fn) {
     g.appendChild(b);
   });
   return g;
-}
-
-function colourChoices(id) {
-  var seen = {},
-    list = [];
-  function add(p) {
-    var k = pkeyP(p);
-    if (seen[k] || !compat(id, p)) return;
-    seen[k] = 1;
-    list.push(p);
-  }
-  presetsFor(id).forEach(add);
-  Object.keys(STORE.presets).forEach(function (l) {
-    presetsFor(l).forEach(add);
-  });
-  return list.slice(0, 18);
-}
-
-function actSummary(a) {
-  var dm = dom(a.id);
-  if (dm === "climate")
-    return a.mode === "cool" || a.mode === "heat"
-      ? cap(a.mode) + " " + (a.temp || defTemp(a.id)) + TEMPU()
-      : "Off";
-  if (a.on === false) return "Off";
-  if (dm !== "light") return "On";
-  var p = ["On"];
-  if (a.bri) p.push(a.bri + "%");
-  if (a.col) p.push(a.col.k ? a.col.k + " K" : _T("colour"));
-  return p.join(" · ");
-}
-
-function devBlock(a, i, redraw) {
-  var dm = dom(a.id),
-    info = roomDevs(SCD.room).filter(function (x) {
-      return x.id === a.id;
-    })[0] || { name: a.id, icon: "plug" },
-    w = mk("div", "dev"),
-    body = mk("div", "dbody");
-  var h = pill(info.icon, info.name, {
-    sub: function () {
-      return actSummary(a);
-    },
-    tap: function () {
-      a._open = !a._open;
-      body.style.display = a._open ? "" : "none";
-      h.classList.toggle("openc", !!a._open);
-    },
-  });
-  var x = mk("div", "rnd pane sm", svg("close"));
-  x.addEventListener("click", function (e) {
-    e.stopPropagation();
-    SCD.draft.acts.splice(i, 1);
-    redraw(true);
-  });
-  h.appendChild(x);
-  h.appendChild(mk("span", "chv", svg("chev")));
-  w.appendChild(h);
-  w.appendChild(body);
-  body.style.display = a._open ? "" : "none";
-  h.classList.toggle("openc", !!a._open);
-  if (dm === "climate") {
-    body.appendChild(
-      seg(
-        [
-          ["off", _T("off")],
-          ["cool", _T("cool")],
-          ["heat", _T("heat")],
-        ],
-        a.mode || "off",
-        function (v) {
-          a.mode = v;
-          if (v !== "off" && !a.temp) a.temp = defTemp(a.id);
-          redraw(true);
-        }
-      )
-    );
-    if (a.mode === "cool" || a.mode === "heat") {
-      var a0 = A(a.id);
-      body.appendChild(
-        sliderRow({
-          icon: "thermo",
-          name: _T("temperature"),
-          min: a0.min_temp || 16,
-          max: a0.max_temp || 30,
-          step: 1,
-          get: function () {
-            return a.temp || defTemp(a.id);
-          },
-          fmt: function (v) {
-            return v + TEMPU();
-          },
-          commit: function (v) {
-            a.temp = v;
-          },
-        })
-      );
-    }
-    return w;
-  }
-  body.appendChild(
-    seg(
-      [
-        ["on", _T("on_2")],
-        ["off", _T("off")],
-      ],
-      a.on === false ? "off" : "on",
-      function (v) {
-        a.on = v === "on";
-        redraw(true);
-      }
-    )
-  );
-  if (dm === "light" && a.on !== false) {
-    body.appendChild(
-      seg(
-        [
-          ["keep", _T("keep_brightness")],
-          ["set", _T("set_brightness")],
-        ],
-        a.bri ? "set" : "keep",
-        function (v) {
-          a.bri = v === "set" ? a.bri || 100 : null;
-          redraw(true);
-        }
-      )
-    );
-    if (a.bri)
-      body.appendChild(
-        sliderRow({
-          icon: "bright",
-          name: _T("brightness"),
-          min: 1,
-          max: 100,
-          step: 1,
-          get: function () {
-            return a.bri || 100;
-          },
-          fmt: function (v) {
-            return v + "%";
-          },
-          commit: function (v) {
-            a.bri = v;
-          },
-        })
-      );
-    var cp = lightCaps(a.id);
-    if (cp.color || cp.white || !cp.known) {
-      var row = mk("div", "pre"),
-        keep = mk("div", "rbtn pane keepc" + (a.col ? "" : " act"));
-      keep.textContent = _T("keep_colour");
-      keep.addEventListener("click", function () {
-        a.col = null;
-        redraw(true);
-      });
-      row.appendChild(keep);
-      colourChoices(a.id).forEach(function (p) {
-        row.appendChild(
-          swatch(p, {
-            act: same(a.col, p),
-            tap: function () {
-              a.col = same(a.col, p) ? null : JSON.parse(JSON.stringify(p));
-              redraw(true);
-            },
-          })
-        );
-      });
-      body.appendChild(row);
-    }
-  }
-  return w;
-}
-
-function sceneEditor(b) {
-  var d = SCD.draft,
-    w = mk("div", "sqw pane", svg("scene")),
-    inp = mk("input", "sq");
-  inp.type = "text";
-  inp.maxLength = 40;
-  inp.placeholder = SCD.room === "home" ? _T("quick_action_name") : _T("scene_name");
-  inp.value = d.name;
-  inp.addEventListener("input", function () {
-    d.name = inp.value;
-  });
-  w.appendChild(inp);
-  b.appendChild(w);
-  var ir = iconPick(QAICONS, d.icon || "scene", function (n) {
-    d.icon = n;
-  });
-  b.appendChild(ir);
-  var box = mk("div");
-  b.appendChild(box);
-  function draw(live) {
-    var prev = CUR;
-    if (live) SLIVE.length = 0;
-    CUR = SLIVE;
-    box.innerHTML = "";
-    box.appendChild(sep(_T("devices_2"), "plug"));
-    d.acts.forEach(function (a, i) {
-      box.appendChild(devBlock(a, i, draw));
-    });
-    box.appendChild(
-      pill("plus", _T("add_device"), {
-        tap: function () {
-          showPopup("scene-pick", true);
-        },
-      })
-    );
-    box.appendChild(
-      sep(
-        SCD.room === "home"
-          ? _T("everything_else_in_the_home")
-          : _T("everything_else_in_this_room"),
-        "power"
-      )
-    );
-    box.appendChild(
-      seg(
-        [
-          ["keep", _T("leave_as_is")],
-          ["lights", _T("lights_off")],
-          ["all", _T("all_off")],
-        ],
-        d.others,
-        function (v) {
-          d.others = v;
-          draw(true);
-        }
-      )
-    );
-    var hint = mk("div", "hint");
-    hint.textContent =
-      d.others === "all"
-        ? _T("turns_off_the_other_lights_tvs_fans_") +
-          (SCD.room === "home" ? _T("in_the_home") : _T("in_this_room"))
-        : d.others === "lights"
-          ? _T("turns_off_every_other_light") +
-            (SCD.room === "home" ? _T("in_the_home") : _T("in_this_room"))
-          : _T("devices_not_listed_above_are_not_tou");
-    box.appendChild(hint);
-    box.appendChild(pill("check", _T("save_scene"), { tap: saveScene }));
-    if (!SCD.isNew)
-      box.appendChild(
-        pill("trash", _T("delete_scene"), {
-          tap: function () {
-            confirmDlg(_T("delete") + d.name + "”?", deleteScene);
-          },
-        })
-      );
-    CUR = prev;
-    if (live) refresh();
-  }
-  draw(false);
-}
-
-function saveScene() {
-  var d = SCD.draft,
-    name = String(d.name || "").trim();
-  if (!name) {
-    toast(_T("give_the_scene_a_name"));
-    return;
-  }
-  if (!d.acts.length && d.others === "keep") {
-    toast(_T("add_a_device_or_choose_what_else_to_"));
-    return;
-  }
-  var sc = cleanScene({
-    id: d.id || "s" + Date.now().toString(36),
-    name: name,
-    room: SCD.room,
-    icon: d.icon,
-    others: d.others,
-    acts: d.acts,
-  });
-  if (!sc) {
-    toast(_T("couldn_t_save_this_scene"));
-    return;
-  }
-  STORE.scenes = STORE.scenes.filter(function (x) {
-    return x.id !== sc.id;
-  });
-  STORE.scenes.push(sc);
-  if (SCD.isNew && SCD.target) {
-    var te = secById(SCD.target.scope, SCD.target.sid);
-    if (te) scnToggle(te, sc.id);
-  }
-  uiChanged();
-  toast(_T("scene_saved"));
-  closeSheet();
-}
-
-function deleteScene() {
-  var id = SCD.draft.id;
-  STORE.scenes = STORE.scenes.filter(function (x) {
-    return x.id !== id;
-  });
-  pruneSceneRefs();
-  uiChanged();
-  toast(_T("scene_deleted"));
-  closeSheet();
-}
-
-function scenePick(b) {
-  var have = {};
-  SCD.draft.acts.forEach(function (a) {
-    have[a.id] = 1;
-  });
-  var list = roomDevs(SCD.room).filter(function (x) {
-    return !have[x.id];
-  });
-  if (!list.length) b.appendChild(pill("info", _T("every_device_in_this_room_is_already"), {}));
-  list.forEach(function (x) {
-    b.appendChild(
-      pill(x.icon, x.name, {
-        tap: function () {
-          var a = { id: x.id };
-          if (x.type === "climate") a.mode = "off";
-          else {
-            a.on = true;
-          }
-          a._open = true;
-          SCD.draft.acts.push(a);
-          popBack();
-        },
-      })
-    );
-  });
 }
 
 function devRow(d) {

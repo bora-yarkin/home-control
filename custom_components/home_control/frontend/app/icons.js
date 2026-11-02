@@ -90,6 +90,7 @@ var IC = {
     "<rect x='2' y='6' width='20' height='12' rx='2'/><path d='M6 10h1M10 10h1M14 10h1M18 10h1M7 14h10'/>",
   expand: "<path d='M4 9V4h5M20 9V4h-5M4 15v5h5M20 15v5h-5'/>",
   plus: "<path d='M12 5v14M5 12h14'/>",
+  minus: "<path d='M5 12h14'/>",
   edit: "<path d='M4 20l4-1 11-11-3-3L5 16z'/><path d='M14 6l3 3'/>",
   trash: "<path d='M5 7h14M10 7V4h4v3M7 7l1 13h8l1-13'/>",
   eye: "<path d='M2 12s3.5-6.5 10-6.5S22 12 22 12s-3.5 6.5-10 6.5S2 12 2 12z'/><circle cx='12' cy='12' r='3'/>",

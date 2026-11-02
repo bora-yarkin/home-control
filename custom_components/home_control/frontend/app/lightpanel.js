@@ -16,7 +16,10 @@ function lpNodeOf(id, icon) {
   if (members.length)
     n.kids = members.map(function (m, i) {
       var k = lpNodeOf(m, n.zones ? n.icon : null);
-      if (n.zones) k.name = _T("zone").charAt(0).toUpperCase() + _T("zone").slice(1) + " " + (i + 1);
+      if (n.zones) {
+        var word = A(id).zone_label || _T("zone");
+        k.name = word.charAt(0).toUpperCase() + word.slice(1) + " " + (i + 1);
+      }
       k.parent = n;
       return k;
     });
@@ -2402,6 +2405,7 @@ function lightPanel(b, root, o) {
   S.mode = lpFirstMode(root, colorOk, whiteOk);
   S.restore = LPBACK && LPBACK.root === root.key ? LPBACK : null;
   LPBACK = null;
+  if (o.ready) o.ready(S);
   if (any && !o.sliders) lpStage(S, b);
   else {
     S.bsl = lpBrightnessRow(S);

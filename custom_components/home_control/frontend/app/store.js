@@ -7,8 +7,7 @@ var STORE_SCOPE = "system",
   STORE_VER = 0,
   STORE_JSON = "",
   STORE_SAVED = 0,
-  ISADMIN = false,
-  SCD = null;
+  ISADMIN = false;
 
 var QAICONS = [
   "scene",
@@ -146,7 +145,15 @@ function cleanLive(l) {
     if (x) pal.push(x);
   });
   if (!pal.length) return null;
-  return {
+  var areas = [],
+    off = [];
+  (Array.isArray(l.areas) ? l.areas : []).slice(0, 12).forEach(function (id) {
+    if (typeof id === "string" && /^[a-z0-9_-]{1,24}$/.test(id) && areas.indexOf(id) < 0 && areas.length < 6) areas.push(id);
+  });
+  (Array.isArray(l.off) ? l.off : []).slice(0, 64).forEach(function (id) {
+    if (typeof id === "string" && /^light\.[a-z0-9_]{1,80}$/.test(id) && off.indexOf(id) < 0 && off.length < 32) off.push(id);
+  });
+  var out = {
     area: typeof l.area === "string" && /^[a-z0-9_-]{1,24}$/.test(l.area) ? l.area : "",
     palette: pal,
     speed: cleanLiveInt(l.speed, 1, 12, 6),
@@ -158,6 +165,11 @@ function cleanLive(l) {
     looks: cleanLiveLooks(l.looks),
     also: cleanLiveAlso(l.also),
   };
+  if (areas.length) {
+    out.areas = areas;
+    out.off = off;
+  }
+  return out;
 }
 
 /* An entertainment area: lights placed in a cube from -1 to 1 (x left to right, y back to front, z floor to ceiling) and dummy objects that only show where things are. */
@@ -213,6 +225,10 @@ function cleanScene(s) {
   if (s.live && !live) return null;
   var acts = [];
   (Array.isArray(s.acts) ? s.acts : []).slice(0, 20).forEach(function (a) {
+    if (a && typeof a.live === "string" && /^[a-z0-9_-]{1,24}$/.test(a.live)) {
+      acts.push({ live: a.live });
+      return;
+    }
     if (!a || typeof a.id !== "string" || !/^[a-z_]+\.[a-z0-9_]+$/.test(a.id)) return;
     var dm = dom(a.id);
     if (["light", "media_player", "fan", "climate", "switch", "input_boolean"].indexOf(dm) < 0)

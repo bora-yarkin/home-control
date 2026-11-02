@@ -297,6 +297,7 @@ function compileScene(sc) {
     offL = [],
     byDom = {};
   sc.acts.forEach(function (a) {
+    if (a.live) return;
     listed[a.id] = 1;
     var m = A(a.id).entity_id;
     if (Array.isArray(m))
@@ -323,6 +324,10 @@ function compileScene(sc) {
   });
   if (acts.length && sc.acts.length) acts.push({ delay: { milliseconds: 350 } });
   sc.acts.forEach(function (a) {
+    if (a.live) {
+      acts.push({ live: a.live });
+      return;
+    }
     var dm = dom(a.id);
     if (dm === "light") {
       if (a.on === false) acts.push({ action: "light.turn_off", target: { entity_id: a.id } });

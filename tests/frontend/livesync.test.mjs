@@ -6,7 +6,9 @@ import { readFileSync } from "node:fs";
 import test from "node:test";
 import vm from "node:vm";
 
-const SOURCE = readFileSync(new URL("../../custom_components/home_control/frontend/app/livescenes.js", import.meta.url), "utf8");
+const APP = "../../custom_components/home_control/frontend/app/";
+// livescenes.js plays and shares scenes; livemaker.js says which area a scene plays in.
+const SOURCE = ["livescenes.js", "livemaker.js"].map((f) => readFileSync(new URL(APP + f, import.meta.url), "utf8")).join("\n");
 
 const LIGHTS = [
   { id: "light.left", x: -1, y: 0, z: 0 },

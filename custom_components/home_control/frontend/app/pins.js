@@ -250,7 +250,7 @@ function quickActions() {
       });
       edDel(
         edMark(el, function () {
-          openEditor(sc.room, sc);
+          staticOpen(sc.room, sc);
         }),
         function () {
           scnToggle(e, sc.id);
