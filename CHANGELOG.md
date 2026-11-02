@@ -4,6 +4,7 @@ Format: [Keep a Changelog](https://keepachangelog.com/). Versions follow [semant
 
 ## [Unreleased]
 
+- The brightness slider of the light popup opens upward from its button (frontend v205): it is the button grown taller, with the same width, corners and bottom edge, instead of a pill that was scaled into place and stretched its corners. Closing shrinks it back the same way.
 - Scenes are told apart by their icon (frontend v203): classic scenes keep the scene icon, live scenes get the sparkle (also the old palette default; an icon someone chose stays), and Hue scenes get the palette icon.
 - Deleting moved into settings (frontend v201): sections and devices no longer have a trash button in edit mode; they are deleted from their settings popups (Delete this section, Remove from the room). Now playing, a media device's setting, now decides what the remote popup shows: nothing (Off), the title row (On, as before) or the artwork card; it no longer touches the subtitle under the device's name on the page.
 - The white wheel has the same colours in every light popup (frontend v198). Its top was the colour of the lowest temperature among the popup's lights, so a master with a deep orange bulb showed a red wheel; a light's range now only decides where on the wheel it sits.
