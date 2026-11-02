@@ -6,14 +6,21 @@ the connection Home Assistant gives every panel; it does not replace Home Assist
 server. Layouts and settings are stored by Home Assistant for each user.
 
 Parts that belong to one integration appear only when that integration is installed: for example, Hue effects, gradient
-styles, live scenes and the Spotify sync appear when [Philips Hue Plus](../hue-plus) is installed, and nothing Hue shows
+styles, live scenes and the Spotify sync appear when [Philips Hue Plus](https://github.com/bora-yarkin/hue-plus) is installed, and nothing Hue shows
 without it.
 
 ## Install
 
-HACS: add this repository as a custom repository (category *Integration*), install, restart Home Assistant, then
+HACS (this repository is not in the default list, so add it yourself): *Custom repositories*, `https://github.com/bora-yarkin/home-control`, category *Integration*; download *Home Control*, restart Home Assistant, then
 *Settings → Devices & services → Add integration → Home Control*. The panel appears in the sidebar. The address, title,
 icon and who may open it are options of the integration.
+
+Adding it changes nothing else on your Home Assistant: your own dashboards, your default dashboard and your Hue setup stay as they are. The dashboard
+appears in the sidebar; to open it first, choose it under *Profile, Default dashboard* (a setting of each browser, which an integration cannot change).
+
+With [Philips Hue Plus](https://github.com/bora-yarkin/hue-plus) installed, the dashboard shows Hue Plus's lights, scenes and sensors and leaves out the
+Hue integration's copies of them (matched by unique id), whether Hue Plus hid the Hue entities or left them alone. Without Hue Plus it shows the
+Hue integration's as usual.
 
 Without HACS: copy `custom_components/home_control` into your configuration folder and restart.
 

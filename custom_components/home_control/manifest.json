@@ -1,13 +1,19 @@
 {
   "domain": "home_control",
   "name": "Home Control",
-  "codeowners": [],
+  "codeowners": [
+    "@bora-yarkin"
+  ],
   "config_flow": true,
-  "dependencies": ["frontend", "http", "panel_custom"],
-  "documentation": "https://github.com/",
+  "dependencies": [
+    "frontend",
+    "http",
+    "panel_custom"
+  ],
+  "documentation": "https://github.com/bora-yarkin/home-control",
   "integration_type": "service",
   "iot_class": "calculated",
-  "issue_tracker": "https://github.com/",
+  "issue_tracker": "https://github.com/bora-yarkin/home-control/issues",
   "requirements": [],
-  "version": "0.1.0"
+  "version": "0.2.0"
 }

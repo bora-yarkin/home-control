@@ -38,7 +38,7 @@ Only a change to this one file needs that number raised (and a Home Assistant re
 
 ## What it needs from Home Assistant
 
-When any entity belongs to the `hue_plus` integration, `ha-adapter.js` leaves the entities of the `hue` integration out of the registry it hands to the panel (Hue Plus runs every one of them itself). Hue Plus's scenes are then the Hue scenes, started with `hue_plus.activate_scene`.
+When entities belong to the `hue_plus` integration, `ha-adapter.js` leaves an entity of the `hue` integration out of the registry it hands to the panel when a Hue Plus entity with the same domain and unique id stands in for it (`withoutHue`); a Hue entity Hue Plus has none for stays. This holds whether Hue Plus hid and renamed the Hue entities or left them alone and ended its own in `_plus`. Hue Plus's scenes are then the Hue scenes, started with `hue_plus.activate_scene`.
 
 If an update to Home Assistant breaks the panel, these are the only places to look, and every one is used only from
 `ha-adapter.js`.
@@ -137,7 +137,7 @@ experimental in the integration (light set-up, streaming, the end state of an ar
 
 ### Areas and the bridge's entertainment areas
 
-The dashboard's areas (Settings → Areas) hold any light and work without Hue Plus. With it installed (administrators only) a room's list of areas gets
+The dashboard's areas (Settings → Areas) hold any light and work without Hue Plus. When Hue Plus runs next to the Hue integration it says so in `get_library` (`hue_only`) and the area editor then offers Hue Plus's lights only. With it installed (administrators only) a room's list of areas gets
 *Import from the Hue bridge* (a bridge area opens in the editor as a new area, with the lights that are in the room), and the editor gets *Send to the Hue bridge*
 (the area's Hue lights and positions go to the bridge's area of the same name, or a new one; other lights stay on the dashboard) and *Read from the Hue bridge*
 (positions for the lights already there). The code is in `app/hueplus.js`; `areas.js` only calls `hpAreaImport` and `hpAreaActions`.

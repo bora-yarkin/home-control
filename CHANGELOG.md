@@ -4,6 +4,10 @@ Format: [Keep a Changelog](https://keepachangelog.com/). Versions follow [semant
 
 ## [Unreleased]
 
+## [0.2.0]
+
+First public version. Changes since the private 0.1.0:
+
 - Works next to Hue Plus when Hue Plus leaves the Hue integration alone (frontend v212). The panel leaves out an entity of the Hue integration only when a Hue Plus entity with the same unique id stands in for it (before, it left out every Hue entity as soon as Hue Plus had any), so lights, scenes and sensors Hue Plus does not cover stay. When Hue Plus says scenes are Hue-only, only Hue lights can be placed in an area. The setup screen says that nothing else on Home Assistant changes and how to make the dashboard the default (Profile, Default dashboard: a setting of each browser, which an integration cannot change).
 - The loader no longer reads `version.json` itself when the panel gives no list of files (frontend v211). That was kept for browsers holding the old panel; Home Assistant has been restarted since, and the panel is registered with the new version, so every browser gets the new one. An old panel would now show the load-failure message instead.
 - The sun of the brightness slider no longer flashes or shifts when the slider closes (frontend v210). The button was hidden while the slider was open and shown again 0.3 s after it closed, in step with the slider hiding, so on some frames both or neither were visible; and the slider's sun sat 1 px higher than the button's. The button now stays in place under the slider, which is hidden over it at the end of closing, and the two suns are drawn at the same spot.
