@@ -3,7 +3,7 @@
     "step": {
       "user": {
         "title": "Home Control",
-        "description": "Adds the Home Control dashboard to the sidebar."
+        "description": "Adds the Home Control dashboard to the sidebar. Nothing else on your Home Assistant is changed: your own dashboards and your default dashboard stay as they are. To open Home Control first, choose it under Profile, Default dashboard (a setting of each browser)."
       }
     },
     "abort": {

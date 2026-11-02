@@ -46,11 +46,16 @@ var SOURCES=[
   id:function(f){return f.floor_id}}
 ];
 
-/* Hue Plus runs every Hue entity itself, so with Hue Plus installed the panel shows nothing from the Hue integration. */
+/* Hue Plus makes its own entity for each entity of the Hue integration (the same unique id), so with Hue Plus installed the panel shows only Hue Plus's: an entity of the Hue integration is left out when a Hue Plus entity stands in for it. One Hue Plus has no entity for (a module switched off) stays. */
 function withoutHue(rows){
  rows=rows||[];
- if(!rows.some(function(r){return r.platform==="hue_plus"}))return rows;
- return rows.filter(function(r){return r.platform!=="hue"});
+ var stood={};
+ rows.forEach(function(r){
+  if(r.platform==="hue_plus"&&!r.disabled_by&&r.unique_id)stood[r.entity_id.split(".")[0]+"|"+r.unique_id]=1;
+ });
+ return rows.filter(function(r){
+  return !(r.platform==="hue"&&r.unique_id&&stood[r.entity_id.split(".")[0]+"|"+r.unique_id]);
+ });
 }
 
 function loadRegistry(src,attempt){

@@ -26,12 +26,17 @@ var EA_SLOTS = [
   [0.7, 0],
 ];
 
+/* Hue Plus next to the Hue integration plays scenes on Hue lights only (it says so when the library is read), so only those can be placed in an area. */
+function eaAllowed(id) {
+  return !HPLIB.hueOnly || ((H().entities[id] || {}).platform === "hue_plus");
+}
+
 /* What can be placed in a room: a light made of zones (a gradient tube or strip) is ONE item, a bar with a direction, and its zones follow it; any other group (a Hue room light) is replaced by its members so each bulb can be placed on its own. */
 function eaRoomLights(room) {
   var out = [],
     seen = {};
   roomDevs(room).forEach(function (d) {
-    if (d.type !== "light") return;
+    if (d.type !== "light" || !eaAllowed(d.id)) return;
     if (zoneMembers(d.id).length > 1) {
       if (!seen[d.id]) {
         seen[d.id] = 1;
@@ -41,7 +46,7 @@ function eaRoomLights(room) {
     }
     var all = lightIndividuals([d.id]);
     all.forEach(function (id) {
-      if (seen[id]) return;
+      if (seen[id] || !eaAllowed(id)) return;
       seen[id] = 1;
       out.push({ id: id, name: all.length > 1 ? entName(id) : d.name, icon: d.icon });
     });

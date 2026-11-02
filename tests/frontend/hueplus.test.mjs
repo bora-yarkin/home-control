@@ -1,5 +1,5 @@
 // SPDX-License-Identifier: GPL-3.0-or-later
-// With Hue Plus installed the panel shows nothing from the Hue integration, and Hue Plus's scenes are driven as Hue scenes.
+// With Hue Plus installed the panel shows nothing from the Hue integration that Hue Plus has an entity for, and Hue Plus's scenes are driven as Hue scenes.
 // Run: node --test tests/frontend
 import assert from "node:assert/strict";
 import { readFileSync } from "node:fs";
@@ -31,12 +31,29 @@ async function adapter(rows) {
   return HA;
 }
 
-const row = (entity_id, platform) => ({ entity_id, platform });
+const row = (entity_id, platform, unique_id = entity_id.replace(/_hue$/, ""), disabled_by = null) => ({ entity_id, platform, unique_id, disabled_by });
 
 test("with Hue Plus installed, entities of the Hue integration are not in the panel's registry", async () => {
   const HA = await adapter([row("scene.read", "hue_plus"), row("scene.read_hue", "hue"), row("light.lamp", "hue_plus"), row("light.other", "matter")]);
   assert.deepEqual(Object.keys(plain(HA.hass().entities)).sort(), ["light.lamp", "light.other", "scene.read"]);
   assert.deepEqual(plain(await HA.entityRegistry()).map((e) => e.entity_id).sort(), ["light.lamp", "light.other", "scene.read"]);
+});
+
+test("an entity of the Hue integration stays when Hue Plus has no entity for it, or its entity is disabled", async () => {
+  const HA = await adapter([
+    row("light.a", "hue_plus"),
+    row("light.a_hue", "hue"),
+    row("light.kept", "hue", "kept"), // Hue Plus has none for it (a module is off)
+    row("sensor.b", "hue_plus", "b", "user"), // Hue Plus's is disabled
+    row("sensor.b_hue", "hue", "b"),
+    row("switch.a", "hue", "a"), // the same unique id in another domain is another entity
+  ]);
+  assert.deepEqual(Object.keys(plain(HA.hass().entities)).sort(), ["light.a", "light.kept", "sensor.b_hue", "switch.a"]);
+});
+
+test("next to the Hue integration (nothing hidden or renamed) the panel still shows Hue Plus's entities only", async () => {
+  const HA = await adapter([row("light.floor", "hue", "u1"), row("light.floor_plus", "hue_plus", "u1"), row("light.tv", "matter", "m1")]);
+  assert.deepEqual(Object.keys(plain(HA.hass().entities)).sort(), ["light.floor_plus", "light.tv"]);
 });
 
 test("without Hue Plus, the Hue integration's entities are shown as before", async () => {

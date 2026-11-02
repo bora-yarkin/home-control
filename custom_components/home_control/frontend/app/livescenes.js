@@ -207,6 +207,7 @@ function hpSyncLibrary(first) {
     if (!engineSensor()) return;
     HA.serviceResponse("hue_plus", "get_library", {})
       .then(function (lib) {
+        HPLIB.hueOnly = !!lib.hue_only;
         var haveAreas = {},
           haveScenes = {};
         (lib.areas || []).forEach(function (a) {
