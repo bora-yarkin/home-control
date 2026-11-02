@@ -183,40 +183,6 @@ function swFill(p) {
   return "rgb(" + c.map(Math.round).join(",") + ")";
 }
 
-/* Presets saved for a light group are offered on the single lights of that group too. */
-function presetsInherited(id) {
-  var out = [],
-    own = presetsFor(id);
-  Object.keys(H().states).forEach(function (g) {
-    if (dom(g) !== "light" || g === id) return;
-    var m = A(g).entity_id;
-    if (!Array.isArray(m) || m.indexOf(id) < 0) return;
-    presetsFor(g).forEach(function (p) {
-      if (!compat(id, p)) return;
-      if (
-        own.concat(out).some(function (x) {
-          return same(x, p);
-        })
-      )
-        return;
-      out.push(p);
-    });
-  });
-  return out;
-}
-
-function presetsFor(id) {
-  var a = STORE.presets[id];
-  return Array.isArray(a) ? a : [];
-}
-
-function compat(id, p) {
-  if (p.z) return zoneMembers(id).length === p.z.length;
-  var c = lightCaps(id);
-  if (!c.known) return true;
-  return p.k ? c.white || c.color : c.color;
-}
-
 function curPreset(id) {
   var a = A(id);
   if (V_(id) !== "on") return null;
@@ -242,59 +208,6 @@ function curPreset(id) {
   if (a.hs_color) return { h: Math.round(a.hs_color[0]), s: Math.round(a.hs_color[1]) };
   if (a.color_temp_kelvin) return { k: Math.round(a.color_temp_kelvin) };
   return null;
-}
-
-function addPreset(id, p) {
-  var a = presetsFor(id).slice();
-  if (
-    a.some(function (x) {
-      return same(x, p);
-    })
-  ) {
-    toast(_T("already_a_preset"));
-    return;
-  }
-  if (a.length >= 40) {
-    toast(_T("preset_limit_reached"));
-    return;
-  }
-  a.push(p);
-  STORE.presets[id] = a;
-  storeChanged();
-}
-
-function removePreset(id, p) {
-  STORE.presets[id] = presetsFor(id).filter(function (x) {
-    return pkeyP(x) !== pkeyP(p);
-  });
-  storeChanged();
-}
-
-function addCurrentPreset(id) {
-  var c = curPreset(id);
-  if (!c) {
-    toast(_T("turn_the_light_on_to_save_its_colour"));
-    return;
-  }
-  addPreset(id, c);
-}
-
-function applyPreset(id, p) {
-  if (p.z) {
-    zoneMembers(id).forEach(function (m, i) {
-      if (p.z[i]) call("light", "turn_on", { entity_id: m, xy_color: [p.z[i].x, p.z[i].y] });
-    });
-    return;
-  }
-  var a = A(id),
-    d = { entity_id: id };
-  if (p.k) {
-    d.color_temp_kelvin = Math.max(
-      a.min_color_temp_kelvin || 0,
-      Math.min(a.max_color_temp_kelvin || 99999, p.k)
-    );
-  } else d.hs_color = [p.h, p.s];
-  call("light", "turn_on", d);
 }
 
 function swatch(p, o) {
@@ -330,68 +243,6 @@ function withSlive(fn) {
   } finally {
     CUR = prev;
   }
-}
-
-function presetsAll(b, id) {
-  var box = mk("div"),
-    key = null;
-  b.appendChild(box);
-  function build() {
-    var own = presetsFor(id),
-      cur = curPreset(id),
-      seen = {},
-      list = [];
-    function add(p) {
-      var k = pkeyP(p);
-      if (seen[k]) return;
-      seen[k] = 1;
-      if (compat(id, p)) list.push(p);
-    }
-    own.forEach(add);
-    Object.keys(STORE.presets).forEach(function (l) {
-      presetsFor(l).forEach(add);
-    });
-    var k =
-      STORE_VER +
-      "|" +
-      list.map(pkeyP).join(",") +
-      "|" +
-      (cur ? pkeyP(cur) : "") +
-      "|" +
-      own.length;
-    if (k === key) return;
-    key = k;
-    withSlive(function () {
-      box.innerHTML = "";
-      var hint = mk("div", "hint");
-      hint.textContent = ISADMIN
-        ? _T("tap_a_preset_to_apply_it_to_this_lig")
-        : _T("tap_a_preset_to_apply_it_to_this_lig_2");
-      box.appendChild(hint);
-      var row = mk("div", "pre");
-      list.forEach(function (p) {
-        var mine = own.some(function (x) {
-          return same(x, p);
-        });
-        row.appendChild(
-          swatch(p, {
-            act: same(p, cur),
-            badge: ISADMIN && !mine ? "plus" : null,
-            onBadge: function () {
-              addPreset(id, p);
-            },
-            tap: function () {
-              applyPreset(id, p);
-            },
-          })
-        );
-      });
-      if (!list.length) row.appendChild(pill("info", _T("no_presets_saved_yet"), {}));
-      box.appendChild(row);
-    });
-  }
-  reg(build);
-  build();
 }
 
 /* scenes */
@@ -1052,23 +903,3 @@ function lightingScenesExtra(key) {
   };
 }
 
-/* scenes and presets overview */
-function presetsOverview(b, rid) {
-  (UI.devs[rid] || [])
-    .filter(function (d) {
-      return d.kind === "light" && !d.hide;
-    })
-    .forEach(function (d) {
-      b.appendChild(
-        pill(d.icon || "light", d.name, {
-          sub: function () {
-            var n = presetsFor(d.id).length;
-            return n + (n === 1 ? _T("preset") : _T("presets_2"));
-          },
-          tap: function () {
-            showPopup("light:" + d.id, true);
-          },
-        })
-      );
-    });
-}

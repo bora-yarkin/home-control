@@ -58,6 +58,7 @@ var APP_FILES = [
   "app/access.js",
   "app/settings.js",
   "app/hueplus.js",
+  "app/saved.js",
   "app/lighteditor.js",
   "app/scenenew.js",
   "app/staticmaker.js",

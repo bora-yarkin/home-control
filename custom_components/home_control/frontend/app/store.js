@@ -3,7 +3,7 @@
 /* ---- shared store (presets + scenes), HA system data: readable by all users, writable by admins ---- */
 var STORE_SCOPE = "system",
   STORE_KEY = "dashboard",
-  STORE = { v: 1, presets: {}, scenes: [], eareas: [], notify: null },
+  STORE = { v: 1, presets: {}, saved: {}, scenes: [], eareas: [], notify: null },
   STORE_VER = 0,
   STORE_JSON = "",
   STORE_SAVED = 0,
@@ -307,29 +307,11 @@ function legacyPins() {
   return s && s.pins ? s.pins : [];
 }
 
-/* A saved palette of a lights master: for each light its colour or white temperature and brightness, or that it is off. */
-function cleanPalette(p) {
-  if (!Array.isArray(p)) return null;
-  var out = [];
-  p.slice(0, 30).forEach(function (x) {
-    if (!x || typeof x.id !== "string" || x.id.indexOf("light.") !== 0 || !ENTRE.test(x.id)) return;
-    if (x.off) {
-      out.push({ id: x.id, off: 1 });
-      return;
-    }
-    var c = cleanPreset(x) || {};
-    if (typeof x.b === "number" && x.b >= 1 && x.b <= 100) c.b = Math.round(x.b);
-    if (!c.k && c.h === undefined && !c.b) return;
-    c.id = x.id;
-    out.push(c);
-  });
-  return out.length ? out : null;
-}
 function cleanStore(v) {
   var o = {
     v: 1,
     presets: {},
-    lpal: {},
+    saved: {},
     scenes: [],
     eareas: [],
     qaSeeded: !!(v && v.qaSeeded),
@@ -350,17 +332,25 @@ function cleanStore(v) {
       });
       o.presets[id] = out;
     });
-  if (v && v.lpal && typeof v.lpal === "object")
-    Object.keys(v.lpal)
+  /* Saved colours and white temperatures, by room (see saved.js). */
+  if (v && v.saved && typeof v.saved === "object")
+    Object.keys(v.saved)
       .slice(0, 40)
-      .forEach(function (sid) {
-        if (!/^[a-z0-9_-]{1,24}$/.test(sid) || !Array.isArray(v.lpal[sid])) return;
+      .forEach(function (room) {
+        if (!/^[a-z0-9_-]{1,24}$/.test(room) || !Array.isArray(v.saved[room])) return;
         var list = [];
-        v.lpal[sid].slice(0, 20).forEach(function (p) {
-          var c = cleanPalette(p);
-          if (c) list.push(c);
+        v.saved[room].slice(0, SAVED_MAX).forEach(function (p) {
+          var c = cleanPreset(p);
+          if (
+            c &&
+            !c.z &&
+            !list.some(function (x) {
+              return JSON.stringify(x) === JSON.stringify(c);
+            })
+          )
+            list.push(c);
         });
-        o.lpal[sid] = list;
+        if (list.length) o.saved[room] = list;
       });
   if (v && Array.isArray(v.scenes))
     v.scenes.slice(0, 60).forEach(function (s) {
@@ -442,7 +432,7 @@ function cleanCfg(c, legacy) {
 }
 
 function seedStore() {
-  var o = { v: 1, presets: {}, lpal: {}, scenes: [], eareas: [] };
+  var o = { v: 1, presets: {}, saved: {}, scenes: [], eareas: [] };
   Object.keys(LNAME).forEach(function (id) {
     var a = A(id),
       c = lightCaps(id);

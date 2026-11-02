@@ -141,11 +141,11 @@ function aboutPage(b) {
   );
   b.appendChild(
     entRow(
-      _T("light_presets"),
+      _T("saved_colours"),
       n(function () {
         var c = 0;
-        Object.keys(STORE.presets).forEach(function (k) {
-          c += STORE.presets[k].length;
+        Object.keys(STORE.saved || {}).forEach(function (k) {
+          c += STORE.saved[k].length;
         });
         return c;
       })

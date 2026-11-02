@@ -441,7 +441,7 @@ var UIKEYLAB = {
   },
   PARTLAB = {
     scenes: "scenes",
-    presets: "light presets",
+    saved: "saved colours",
     access: "access rules",
     sched: "schedules",
     notify: "notifications",

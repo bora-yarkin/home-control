@@ -689,17 +689,6 @@ function editPageSettings(b, key) {
           },
         })
       );
-      if ((ROOMLIGHTS[room] || []).length)
-        box.appendChild(
-          pill("palette", _T("light_presets"), {
-            sub: function () {
-              return cntS((ROOMLIGHTS[room] || []).length, _T("light_2"), _T("lights_2"));
-            },
-            tap: function () {
-              showPopup("manage-presets:" + room, true);
-            },
-          })
-        );
     } else
       box.appendChild(
         pill("edit", _T("names_and_header"), {

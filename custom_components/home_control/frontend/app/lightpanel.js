@@ -2285,76 +2285,9 @@ function lpSliders(b, root, colorOk, whiteOk) {
 }
 
 /* The white temperatures saved for every light. Until one is added or removed here, they are the whites already saved as presets of lights. */
-function tempList() {
-  if (Array.isArray(STORE.temps)) return STORE.temps;
-  var seen = {};
-  Object.keys(STORE.presets).forEach(function (id) {
-    presetsFor(id).forEach(function (p) {
-      if (p.k) seen[p.k] = 1;
-    });
-  });
-  return Object.keys(seen)
-    .map(Number)
-    .sort(function (a, b) {
-      return a - b;
-    })
-    .slice(0, 12);
-}
-
-/* The white temperatures a person saved, as items of the Saved section: tapping one sets it on what is selected (the whole when nothing is). 'target()' gives that. */
-function lpSavedTemps(target) {
-  return tempList().map(function (k) {
-    return {
-      label: k + " K",
-      icon: "thermo",
-      stops: [cssRgb(kelvinRgb(k))],
-      apply: function () {
-        lpApplyPreset(target(), { k: k });
-      },
-      rm: function () {
-        STORE.temps = tempList().filter(function (x) {
-          return x !== k;
-        });
-        storeChanged();
-      },
-    };
-  });
-}
-
-/* Saves the temperature the selected light shows now. */
-function lpSaveTemp(target) {
-  var n = target(),
-    c = lpCap(n, "white"),
-    r = c.filter(isOn)[0] || c[0],
-    k = r ? lpKelvin(r) : null;
-  if (!k || V_(r) !== "on" || (A(r).color_mode !== "color_temp" && !lpSplit(r))) {
-    toast(_T("select_a_light_that_shows_a_white_temperature"));
-    return false;
-  }
-  k = Math.round(k);
-  var list = tempList();
-  if (
-    list.some(function (x) {
-      return Math.abs(x - k) < 15;
-    })
-  ) {
-    toast(_T("already_a_preset"));
-    return false;
-  }
-  if (list.length >= 16) {
-    toast(_T("preset_limit_reached"));
-    return false;
-  }
-  STORE.temps = list.concat([k]).sort(function (a, c2) {
-    return a - c2;
-  });
-  storeChanged();
-  return true;
-}
-
 /* ---- the panel ---- */
 
-/* 'root' is the node tree of what the popup controls. 'o': presets (what lpPresets takes, or null), id (a single light: colour and white swatches and All presets), and sliders (the colour wheel is turned off for this light or section: the old colour slider is shown instead). */
+/* 'root' is the node tree of what the popup controls. 'o': room (the room whose saved colours are shown, or null for none), and sliders (the colour wheel is turned off for this light or section: the old colour slider is shown instead). */
 function lightPanel(b, root, o) {
   var colorOk = lpCap(root, "color").length > 0,
     whiteOk = lpCap(root, "white").length > 0,
@@ -2370,22 +2303,11 @@ function lightPanel(b, root, o) {
     b.appendChild(S.bsl);
   }
   if (any && o.sliders) lpSliders(b, root, colorOk, whiteOk);
-  var all =
-    any && o.id
-      ? function () {
-          return pill("palette", _T("all_saved"), {
-            tap: function () {
-              lpGo(S, "presets-all:" + o.id);
-            },
-          })
-        }
-      : null;
-  var saved = typeof o.presets === "function" ? o.presets(S) : o.presets;
-  if (saved) {
+  if (any && o.room) {
     var pbox = mk("div");
     b.appendChild(pbox);
-    lpPresets(pbox, saved, all);
-  } else if (all) b.appendChild(all());
+    lpSaved(pbox, S, o.room);
+  }
 }
 
 /* A colour or white temperature on a node: the lights of it that can show it take it. */
@@ -2408,175 +2330,71 @@ function lpApplyPreset(n, p) {
 
 /* ---- saved ---- */
 
-/* The presets under the colour circle: buttons in two columns (an odd one out at the end takes the full width), each with the saved colours as its background. 'more' (optional) makes one more button at the end. 'P' has list() of { label, sub, stops, apply, rm }, and add() to save what the lights show now. */
-function lpPresets(pbox, P, more) {
+/* The Saved section: the colours and white temperatures saved for the room, one tap each, set on what is selected (the whole when nothing is). Administrators get a + that saves the colour or temperature the selected light (or group) shows now, and a pencil that turns on removing; while removing, All saved opens the colours of the other rooms to copy one here. */
+function lpSaved(pbox, S, room) {
   var edit = false;
+  function round(icon, label, fn, on) {
+    var b = mk("div", "rnd pane sm secact" + (on ? " act" : ""), svg(icon));
+    b.setAttribute("role", "button");
+    b.setAttribute("aria-label", label);
+    b.title = label;
+    b.addEventListener("click", fn);
+    return b;
+  }
   function draw() {
     pbox.innerHTML = "";
-    var hd = sep(P.title || _T("saved"), P.icon || "palette"),
-      items = P.list();
-    if (ISADMIN && items.some(function (it) {
-      return it.rm;
-    })) {
-      var pen = mk("div", "rnd pane sm secact" + (edit ? " act" : ""), svg("edit"));
-      pen.setAttribute("role", "button");
-      pen.setAttribute("aria-label", _T("edit_saved"));
-      pen.title = _T("edit_saved");
-      pen.addEventListener("click", function () {
-        edit = !edit;
-        draw();
-      });
-      hd.appendChild(pen);
+    var hd = sep(_T("saved"), "palette"),
+      items = savedOf(room);
+    if (ISADMIN) {
+      hd.appendChild(
+        round("plus", _T("save"), function () {
+          var c = savedCapture(S.target());
+          if (c && savedAdd(room, c)) draw();
+        })
+      );
+      if (items.length)
+        hd.appendChild(
+          round(
+            "edit",
+            _T("edit_saved"),
+            function () {
+              edit = !edit;
+              draw();
+            },
+            edit
+          )
+        );
     }
     pbox.appendChild(hd);
     var g = mk("div", "gridl g2 lp-pg");
-    items.forEach(function (it) {
-      var held = null;
-      var r = pill(it.icon || P.icon || "palette", it.label, {
-        sub: it.sub
-          ? function () {
-              return it.sub;
-            }
-          : null,
+    items.forEach(function (p) {
+      var r = pill("palette", p.k ? p.k + " K" : _T("colour") + " " + p.h + "°", {
         tap: function () {
-          if (held && held()) return;
-          if (edit && it.rm) {
-            it.rm();
+          if (edit) {
+            savedRemove(room, p);
             draw();
-          } else it.apply();
+          } else lpApplyPreset(S.target(), p);
         },
       });
-      var st = it.stops.length === 1 ? [it.stops[0], it.stops[0]] : it.stops;
       r.classList.add("pal");
-      if (ISADMIN && it.scene && !edit)
-        held = onHold(r, function () {
-          presetSceneShow(it.scene, it.label);
-        });
-      if (st.length) r.style.setProperty("background", "linear-gradient(90deg," + st.join(",") + ")", "important");
-      if (edit && it.rm) r.appendChild(mk("span", "lw-x", svg("close")));
+      r.style.setProperty("background", "linear-gradient(90deg," + presetCss(p) + "," + presetCss(p) + ")", "important");
+      if (edit) r.appendChild(mk("span", "lw-x", svg("close")));
       g.appendChild(r);
     });
-    if (ISADMIN && P.add && !edit)
+    if (edit)
       g.appendChild(
-        pill("plus", _T("save"), {
-          sub: function () {
-            return P.saveSub || _T("the_current_colours");
-          },
+        pill("palette", _T("all_saved"), {
           tap: function () {
-            if (P.add()) draw();
+            lpGo(S, "presets-all:" + room);
           },
         })
       );
-    if (more && !edit) g.appendChild(more());
     pbox.appendChild(g);
     if (!items.length && !ISADMIN) {
       var hn = mk("div", "hint");
-      hn.textContent = _T("no_presets_yet");
+      hn.textContent = _T("nothing_saved_yet");
       pbox.appendChild(hn);
     }
   }
   draw();
 }
-
-/* What is saved for one light: its own colours and the ones from its light group, and the saved white temperatures. */
-function lpPresetsOf(id, target) {
-  function item(p, own) {
-    return {
-      label: p.z ? _T("zone_colours") : p.k ? p.k + " K" : _T("colour") + " " + p.h + "°",
-      sub: p.z ? cntS(p.z.length, _T("zone"), _T("zones")) : null,
-      stops: p.z
-        ? p.z.map(function (c) {
-            return cssRgb(hsv2rgb(c.h, c.s));
-          })
-        : [presetCss(p)],
-      scene: p.z ? null : { room: ownerRoom(id), acts: [{ id: id, on: true, col: p }] },
-      apply: function () {
-        applyPreset(id, p);
-      },
-      rm: own
-        ? function () {
-            removePreset(id, p);
-          }
-        : null,
-    };
-  }
-  return {
-    title: _T("saved"),
-    list: function () {
-      return presetsFor(id)
-        .filter(function (p) {
-          return !p.k;
-        })
-        .map(function (p) {
-          return item(p, true);
-        })
-        .concat(
-          presetsInherited(id)
-            .filter(function (p) {
-              return !p.k;
-            })
-            .map(function (p) {
-              return item(p, false);
-            })
-        )
-        .concat(lightCaps(id).white ? lpSavedTemps(target) : []);
-    },
-    add: function () {
-      var c = curPreset(id);
-      if (c && c.k) return lpSaveTemp(target);
-      addCurrentPreset(id);
-      return true;
-    },
-  };
-}
-
-/* The saved palettes of a lights master. */
-function lpPalettesOf(sid, ids) {
-  return {
-    list: function () {
-      return ((STORE.lpal && STORE.lpal[sid]) || []).map(function (p, i) {
-        var stops = p
-          .filter(function (e) {
-            return e.k || e.h !== undefined;
-          })
-          .map(presetCss);
-        return {
-          label: _T("palette") + " " + (i + 1),
-          sub: cntS(p.length, _T("light"), _T("lights")),
-          stops: stops,
-          scene: { room: ownerRoom(ids[0]), acts: paletteActs(p) },
-          apply: function () {
-            applyPalette(p);
-          },
-          rm: function () {
-            STORE.lpal[sid] = STORE.lpal[sid].filter(function (x) {
-              return x !== p;
-            });
-            storeChanged();
-          },
-        };
-      });
-    },
-    add: function () {
-      var cur = capturePalette(ids);
-      STORE.lpal = STORE.lpal || {};
-      var list = (STORE.lpal[sid] = STORE.lpal[sid] || []);
-      if (
-        list.some(function (p) {
-          return JSON.stringify(p) === JSON.stringify(cur);
-        })
-      ) {
-        toast(_T("already_a_preset"));
-        return false;
-      }
-      if (list.length >= 20) {
-        toast(_T("preset_limit_reached"));
-        return false;
-      }
-      list.push(cur);
-      storeChanged();
-      return true;
-    },
-  };
-}
-

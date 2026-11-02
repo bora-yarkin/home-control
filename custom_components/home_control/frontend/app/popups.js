@@ -206,14 +206,6 @@ function popupDefBase(key) {
       icon: "target",
       build: eaEditor,
     };
-  if (k === "lpscene")
-    return {
-      title: _T("new_scene"),
-      icon: "scene",
-      build: function (b) {
-        presetScenePopup(b, id);
-      },
-    };
   if (k === "lfxs")
     return {
       title: _T("effect_settings"),
@@ -352,7 +344,7 @@ function popupDefBase(key) {
       title: _T("all_saved"),
       icon: "palette",
       build: function (b) {
-        presetsAll(b, id);
+        savedAllPage(b, id);
       },
     };
   if (k === "scene-edit")
@@ -420,14 +412,6 @@ function popupDefBase(key) {
       },
     };
   if (k === "manage-bats") return { title: _T("batteries"), icon: "battery", build: batsPage };
-  if (k === "manage-presets")
-    return {
-      title: _T("light_presets"),
-      icon: "palette",
-      build: function (b) {
-        presetsOverview(b, id);
-      },
-    };
   if (k === "manage-backup")
     return { title: _T("backup_and_restore"), icon: "sd", build: backupPage };
   if (k === "manage-check") return { title: _T("layout_check"), icon: "tune", build: checkPage };

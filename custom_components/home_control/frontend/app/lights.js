@@ -405,142 +405,6 @@ function presetCss(p) {
   return p.k ? cssRgb(kelvinRgb(p.k)) : cssRgb(hsv2rgb(p.h, p.s));
 }
 
-/* What a list of lights shows now: for each its colour or white temperature and brightness, or that it is off. */
-function capturePalette(ids) {
-  return ids.map(function (id) {
-    if (V_(id) !== "on") return { id: id, off: 1 };
-    var e = { id: id },
-      c = curPreset(id);
-    if (c) {
-      if (c.k) e.k = c.k;
-      else {
-        e.h = c.h;
-        e.s = c.s;
-      }
-    }
-    var b = Math.round((A(id).brightness || 0) / 2.55);
-    if (b > 0) e.b = Math.min(100, b);
-    return e;
-  });
-}
-
-function applyPalette(p) {
-  p.forEach(function (e) {
-    if (e.off) {
-      call("light", "turn_off", { entity_id: e.id });
-      return;
-    }
-    var d = { entity_id: e.id },
-      a = A(e.id);
-    if (e.k)
-      d.color_temp_kelvin = Math.max(
-        a.min_color_temp_kelvin || 0,
-        Math.min(a.max_color_temp_kelvin || 99999, e.k)
-      );
-    else if (e.h !== undefined) d.hs_color = [e.h, e.s];
-    if (e.b) d.brightness_pct = e.b;
-    call("light", "turn_on", d);
-  });
-}
-
-/* The scene actions that show a saved palette: lights that were off stay off, the others get their colour and brightness. */
-function paletteActs(p) {
-  return p.map(function (e) {
-    if (e.off) return { id: e.id, on: false };
-    var a = { id: e.id, on: true };
-    if (e.b) a.bri = e.b;
-    if (e.k) a.col = { k: e.k };
-    else if (e.h !== undefined) a.col = { h: e.h, s: e.s };
-    return a;
-  });
-}
-
-/* Press and hold on a preset: a popup to name it and add it as a scene to the scenes of its room. 'sc' is { room, acts }. */
-var PSCENES = {},
-  PSCENEN = 0;
-
-function presetSceneShow(sc, label) {
-  var key = "p" + ++PSCENEN;
-  PSCENES[key] = { room: sc.room || "home", acts: sc.acts, name: label, sel: {} };
-  var first = secOrder(scopeKey(PSCENES[key].room)).filter(function (e) {
-    return e.k === "scenes";
-  })[0];
-  if (first) PSCENES[key].sel[first.id] = 1;
-  showPopup("lpscene:" + key, true);
-}
-
-function presetScenePopup(b, key) {
-  var P = PSCENES[key];
-  if (!P) return;
-  var w = mk("div", "sqw pane", svg("scene")),
-    inp = mk("input", "sq");
-  inp.type = "text";
-  inp.maxLength = 40;
-  inp.placeholder = _T("scene_name");
-  inp.value = P.name;
-  inp.addEventListener("input", function () {
-    P.name = inp.value;
-  });
-  w.appendChild(inp);
-  b.appendChild(w);
-  var secs = secOrder(scopeKey(P.room)).filter(function (e) {
-    return e.k === "scenes";
-  });
-  b.appendChild(sep(_T("show_in"), "scene"));
-  if (!secs.length) {
-    var hn = mk("div", "hint");
-    hn.textContent = _T("this_room_has_no_scenes_section_the_");
-    b.appendChild(hn);
-  }
-  secs.forEach(function (e, i) {
-    b.appendChild(
-      pill("scene", e.t || _T("scenes") + (secs.length > 1 ? " " + (i + 1) : ""), {
-        sub: function () {
-          return TITLES[P.room] || "";
-        },
-        check: function () {
-          return P.sel[e.id];
-        },
-        tap: function () {
-          if (P.sel[e.id]) delete P.sel[e.id];
-          else P.sel[e.id] = 1;
-          refresh();
-        },
-      })
-    );
-  });
-  b.appendChild(
-    pill("check", _T("add_as_scene"), {
-      tap: function () {
-        var name = String(P.name || "").trim();
-        if (!name) {
-          toast(_T("give_the_scene_a_name"));
-          return;
-        }
-        var sc = cleanScene({
-          id: "s" + Date.now().toString(36),
-          name: name,
-          room: P.room,
-          icon: "scene",
-          others: "keep",
-          acts: P.acts,
-        });
-        if (!sc || !sc.acts.length) {
-          toast(_T("couldn_t_save_this_scene"));
-          return;
-        }
-        STORE.scenes.push(sc);
-        secs.forEach(function (e) {
-          if (P.sel[e.id]) scnToggle(e, sc.id);
-        });
-        uiChanged();
-        toast(_T("scene_saved"));
-        popBack();
-      },
-    })
-  );
-}
-
 /* Lights made of zones (the Hue gradient zones integration) report their zone colours in zone_colors and list the zones in entity_id. */
 function zoneMembers(id) {
   return Array.isArray(A(id).zone_colors) ? lightMembers(id) : [];
@@ -738,12 +602,7 @@ function lightPopup(b, id, o) {
   }
   lightPanel(b, lpNodeOf(id, null), {
     id: id,
-    presets:
-      cp.color || cp.white
-        ? function (S) {
-            return lpPresetsOf(id, S.target);
-          }
-        : null,
+    room: cp.color || cp.white ? savedRoomOf([id]) : null,
     sliders: LWHEEL[id] === false,
     ready: o && o.ready,
   });
@@ -753,7 +612,7 @@ function lightPopup(b, id, o) {
 function lightsMasterPopup(b, sid) {
   var ids = LMASTER[sid] || [];
   lightPanel(b, lpMasterNode(sid, ids), {
-    presets: lpPalettesOf(sid, lightIndividuals(ids)),
+    room: savedRoomOf(lightIndividuals(ids)),
     sliders: LWHEEL["m:" + sid] === false,
   });
 }
