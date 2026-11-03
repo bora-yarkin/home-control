@@ -176,6 +176,12 @@ var automations={
  remove:function(id){return hass.callApi("DELETE","config/automation/config/"+id)}
 };
 
+var scripts={
+ get:function(id){return hass.callApi("GET","config/script/config/"+id)},
+ save:function(id,config){return hass.callApi("POST","config/script/config/"+id,config)},
+ remove:function(id){return hass.callApi("DELETE","config/script/config/"+id)}
+};
+
 window.HA={
  attach:attach,
  onUpdate:onUpdate,
@@ -192,6 +198,7 @@ window.HA={
  serviceResponse:serviceResponse,
  camera:camera,
  route:route,
- automations:automations
+ automations:automations,
+ scripts:scripts
 };
 })();

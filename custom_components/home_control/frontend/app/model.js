@@ -223,6 +223,23 @@ function cleanUI(u) {
       : [],
     meta: cleanMeta(u.meta),
   };
+  /* Devices a room's "everything off" leaves alone, by room id (app/roomoff.js). */
+  if (u.offx && typeof u.offx === "object") {
+    var offx = {};
+    Object.keys(u.offx)
+      .slice(0, 60)
+      .forEach(function (r) {
+        var l = Array.isArray(u.offx[r])
+          ? u.offx[r]
+              .filter(function (x, i, a) {
+                return typeof x === "string" && ENTRE.test(x) && a.indexOf(x) === i;
+              })
+              .slice(0, 100)
+          : [];
+        if (/^[a-z0-9_-]{1,24}$/.test(r) && l.length) offx[r] = l;
+      });
+    if (Object.keys(offx).length) o.offx = offx;
+  }
   /* Per-light "turn on" defaults: brightness 1-100 and colour temperature 2000-6500 K; either may be absent (= last used). */
   if (u.on && typeof u.on === "object")
     Object.keys(u.on)

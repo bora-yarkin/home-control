@@ -1,5 +1,5 @@
 {
-  "version":213,
+  "version":215,
   "files": [
     "integrations.js",
     "app/strings.js",
@@ -48,6 +48,7 @@
     "app/livemaker.js",
     "app/history.js",
     "app/notifications.js",
+    "app/roomoff.js",
     "app/manage.js",
     "app/main.js"
   ]

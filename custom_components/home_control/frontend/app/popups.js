@@ -254,6 +254,14 @@ function popupDefBase(key) {
         HS_PICK[k][2](b, id);
       },
     };
+  if (k === "roomoff")
+    return {
+      title: _T("everything_off"),
+      icon: "power",
+      build: function (b) {
+        roomOffPage(b, id);
+      },
+    };
   if (k === "lmaster")
     return {
       title: LMASTER_NAME[id] || _T("lights_master"),

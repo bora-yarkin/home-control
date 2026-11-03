@@ -157,6 +157,7 @@ function newDevBoot() {
       newDevBadge();
       batsAutoAdd();
       notifyReconcileSoon();
+      roomOffReconcileSoon();
     });
   })();
   setInterval(function () {
@@ -514,6 +515,7 @@ function uiChanged() {
   rerender();
   storeChanged();
   notifyReconcileSoon();
+  roomOffReconcileSoon();
 }
 
 function redrawBox(box, draw) {

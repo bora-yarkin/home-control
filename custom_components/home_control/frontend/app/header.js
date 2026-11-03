@@ -125,6 +125,7 @@ function hdrBuild() {
 }
 
 function hdrLive() {
+  roomOffSync();
   var mt = UI.meta || {},
     eb = document.querySelector(".eyebrow");
   if (eb && mt.greet) {

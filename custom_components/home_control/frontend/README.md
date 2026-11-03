@@ -57,7 +57,7 @@ Websocket commands:
 - `camera/webrtc/get_client_config`, `camera/webrtc/offer`, `camera/webrtc/candidate`, `camera/stream`
 - `call_service` with `return_response` (`HA.serviceResponse`; xiaomi_miot only, see below)
 
-REST: `POST` and `DELETE` `config/automation/config/<id>` (notification rules; the same call the automation editor makes),
+REST: `POST` and `DELETE` `config/automation/config/<id>` (notification rules; the same call the automation editor makes) and `config/script/config/<id>` (the room-off scripts, see below),
 `/api/camera_proxy/<entity>?token=` (snapshot behind the live picture).
 
 What the adapter offers the rest of the panel: `HA.hass()` (a plain-data view of Home Assistant plus `callService`, not the `hass` object itself), `HA.data.get/set`, `HA.history`,
@@ -145,3 +145,10 @@ The dashboard's areas (Settings → Areas) hold any light and work without Hue P
 ## Trying a change
 
 `tests/frontend/harness/` runs the real panel against a pretend Home Assistant that writes nothing; see its README.
+
+## Everything off in a room (`app/roomoff.js`)
+
+A round power button sits first in the header's group of buttons (before search and settings) on every room's page that has something to switch off. It turns off every device on that room's pages (lights, media players, climate, fans, switches; hidden devices are left out; a light group and its lights count once), stops live scenes on those lights, and respects each person's view-only and confirm settings like a scene does.
+
+The dashboard also keeps one script per room in Home Assistant, `script.home_control_<room id>_off` (the room id is the one in the dashboard's layout, for example `r_living_room`), built from the same list, so an automation, a physical button or a voice assistant can run it. An administrator's dashboard writes the scripts when it starts and 3 seconds after any layout change: it reads each script first and writes only what differs, creates a missing one, and removes the script of a room that is gone or empty, but only one whose description carries the dashboard's mark (`home_control_room_off`). Edit the room's devices in the dashboard, not the script: changes made to the script are overwritten.
+
