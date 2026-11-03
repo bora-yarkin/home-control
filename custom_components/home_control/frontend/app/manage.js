@@ -236,10 +236,19 @@ function newDevPage(b) {
       box.appendChild(
         pill("check", all ? _T("everything_is_on_the_dashboard") : _T("no_new_devices"), {})
       );
-    l.slice(0, 60).forEach(function (e) {
+    /* Devices Home Assistant has put in no room come first, under their own heading: a room is chosen for them here, and only the dashboard is changed. */
+    var homeless = l.filter(function (e) {
+        return !areaName(e.entity_id);
+      }),
+      placed = l.filter(function (e) {
+        return !!areaName(e.entity_id);
+      });
+    if (homeless.length && placed.length) box.appendChild(sep(_T("no_room_in_home_assistant"), "home"));
+    homeless.concat(placed).slice(0, 60).forEach(function (e, n) {
       var id = e.entity_id,
         nm = A(id).friendly_name || id,
         kind = DOMKIND[dom(id)];
+      if (n === homeless.length && homeless.length && placed.length) box.appendChild(sep(_T("in_a_room_in_home_assistant"), "home"));
       box.appendChild(
         pill(defIcon(kind, nm, id), nm, {
           sub: function () {
@@ -299,6 +308,11 @@ function newDevOne(b) {
       return entVal(id) || V_(id);
     })
   );
+  if (!sg && !areaName(id)) {
+    var nr = mk("div", "hint");
+    nr.textContent = _T("this_device_is_in_no_room_in_home_assistant_choose");
+    b.appendChild(nr);
+  }
   b.appendChild(sep(_T("add_to_a_room"), "home"));
   (sg
     ? [sg].concat(
@@ -846,6 +860,7 @@ function devManage(b, key) {
           return d.id;
         })
       );
+    profileSettings(box, d, key);
     if (d.kind === "appliance")
       box.appendChild(
         pill("tune", _T("ap_set_up"), {
@@ -856,7 +871,7 @@ function devManage(b, key) {
       );
     if (d.kind === "remote")
       box.appendChild(
-        pill("mdi:gamepad-variant", _T("rm_edit_buttons"), {
+        pill("media", _T("rm_edit_buttons"), {
           tap: function () {
             RM.edit[d.rid] = true;
             showPopup("remote:" + d.rid, true);
@@ -1332,7 +1347,7 @@ function devAdd(b, rid) {
       /* A remote is not an entity: it is made here, then filled with buttons. */
       if (ADDDOMS[st.dom][1][0] === "__remote") {
         box.appendChild(
-          pill("mdi:gamepad-variant", _T("rm_new_remote"), {
+          pill("media", _T("rm_new_remote"), {
             sub: function () {
               return _T("rm_new_remote_sub");
             },

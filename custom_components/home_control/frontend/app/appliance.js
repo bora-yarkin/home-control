@@ -16,10 +16,10 @@ var AP_SLOTS = {
 
 /* A type only chooses which slots the editor offers first and the icon: every slot can still be used on any type. */
 var AP_TYPES = {
-  oven: { l: "ap_oven", icon: "mdi:stove", slots: ["program", "temperature", "duration", "start", "stop", "state", "progress", "remaining", "door", "permission"] },
-  washer: { l: "ap_washer", icon: "mdi:washing-machine", slots: ["program", "start", "stop", "state", "progress", "remaining", "door", "permission", "temperature", "duration"] },
-  dryer: { l: "ap_dryer", icon: "mdi:tumble-dryer", slots: ["program", "start", "stop", "state", "progress", "remaining", "door", "permission", "temperature", "duration"] },
-  dishwasher: { l: "ap_dishwasher", icon: "mdi:dishwasher", slots: ["program", "start", "stop", "state", "progress", "remaining", "door", "permission", "temperature", "duration"] },
+  oven: { l: "ap_oven", icon: "plug", slots: ["program", "temperature", "duration", "start", "stop", "state", "progress", "remaining", "door", "permission"] },
+  washer: { l: "ap_washer", icon: "drop", slots: ["program", "start", "stop", "state", "progress", "remaining", "door", "permission", "temperature", "duration"] },
+  dryer: { l: "ap_dryer", icon: "drop", slots: ["program", "start", "stop", "state", "progress", "remaining", "door", "permission", "temperature", "duration"] },
+  dishwasher: { l: "ap_dishwasher", icon: "drop", slots: ["program", "start", "stop", "state", "progress", "remaining", "door", "permission", "temperature", "duration"] },
   other: { l: "ap_appliance", icon: "plug", slots: ["state", "program", "start", "stop", "progress", "remaining", "door", "permission", "temperature", "duration"] },
 };
 var AP_EXTRA_DOMS = ["select", "input_select", "number", "input_number", "switch", "input_boolean", "binary_sensor", "sensor", "button", "input_button", "script"];
@@ -123,12 +123,12 @@ function apPage(b, aid) {
   }
   /* What it is doing: the state, how far, how long, the door. Rows only for what is bound. */
   ["state", "door"].forEach(function (k) {
-    if (s[k] && apHas(s[k])) b.appendChild(apRowOf(s[k], _T(AP_SLOTS[k].l), k === "door" ? "mdi:door" : "info"));
+    if (s[k] && apHas(s[k])) b.appendChild(apRowOf(s[k], _T(AP_SLOTS[k].l), k === "door" ? "lock" : "info"));
   });
   if (s.progress && apHas(s.progress))
     b.appendChild(
       sliderRow({
-        icon: "mdi:progress-clock",
+        icon: "clock",
         name: _T("ap_progress"),
         min: 0,
         max: 100,
@@ -154,7 +154,7 @@ function apPage(b, aid) {
     );
   /* What can be set before it starts. */
   ["program", "temperature", "duration"].forEach(function (k) {
-    if (s[k] && apHas(s[k])) b.appendChild(apRowOf(s[k], _T(AP_SLOTS[k].l), k === "program" ? "mdi:format-list-bulleted" : k === "temperature" ? "thermo" : "clock"));
+    if (s[k] && apHas(s[k])) b.appendChild(apRowOf(s[k], _T(AP_SLOTS[k].l), k === "program" ? "tune" : k === "temperature" ? "thermo" : "clock"));
   });
   ap.extra.forEach(function (x) {
     if (apHas(x.e)) b.appendChild(apRowOf(x.e, x.l || A(x.e).friendly_name || x.e, "tune"));

@@ -234,6 +234,45 @@ function cleanDev(d) {
     });
     if (ls.length) c.links = ls.slice(0, 12);
   }
+  /* Extras bound to a device (app/profiles.js): a vacuum's map, rooms, modes and care values; a camera's intercom and push to talk; a light's scenes entity. */
+  var ent = function (e, doms) {
+    return typeof e === "string" && ENTRE.test(e) && doms.indexOf(e.split(".")[0]) >= 0 ? e : null;
+  };
+  if (d.kind === "vacuum" && d.vx && typeof d.vx === "object") {
+    var vx = {},
+      m = ent(d.vx.map, ["camera", "image"]);
+    if (m) vx.map = m;
+    var rooms = (Array.isArray(d.vx.rooms) ? d.vx.rooms : [])
+      .filter(function (x) {
+        return x && ent(x.e, ["button", "input_button", "script", "scene", "switch"]);
+      })
+      .slice(0, 40)
+      .map(function (x) {
+        return { e: x.e, l: typeof x.l === "string" ? x.l.slice(0, 24) : "" };
+      });
+    if (rooms.length) vx.rooms = rooms;
+    [["modes", ["select", "input_select", "number", "input_number", "switch", "input_boolean"]], ["care", ["sensor", "binary_sensor", "number", "input_number"]]].forEach(function (g) {
+      var l = (Array.isArray(d.vx[g[0]]) ? d.vx[g[0]] : [])
+        .filter(function (e, i, a) {
+          return ent(e, g[1]) && a.indexOf(e) === i;
+        })
+        .slice(0, 40);
+      if (l.length) vx[g[0]] = l;
+    });
+    if (Object.keys(vx).length) c.vx = vx;
+  }
+  if (d.kind === "camera") {
+    if (d.talk) c.talk = 1;
+    if (d.ix && typeof d.ix === "object") {
+      var ix = {};
+      [["answer", ["button", "input_button", "script", "switch"]], ["reject", ["button", "input_button", "script", "switch"]], ["unlock", ["lock", "button", "input_button", "script", "switch"]], ["ring", ["binary_sensor", "input_boolean", "event", "sensor"]]].forEach(function (g) {
+        var e = ent(d.ix[g[0]], g[1]);
+        if (e) ix[g[0]] = e;
+      });
+      if (Object.keys(ix).length) c.ix = ix;
+    }
+  }
+  if (d.kind === "light" && ent(d.sx, ["select", "input_select"])) c.sx = d.sx;
   if (d.kind === "appliance") {
     c.aid = d.aid;
     c.ap = cleanAppliance(d.ap);

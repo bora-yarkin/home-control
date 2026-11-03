@@ -807,3 +807,11 @@ body.pinhdr:not(.editing) .wrap::before{content:"";position:fixed;top:0;left:0;r
 .rm-t.add{color:var(--ink2)}
 .rm-t:focus-visible{outline:2px solid var(--acc);outline-offset:2px}
 
+/* The camera's intercom controls and push to talk (app/profiles.js). */
+.cix{position:absolute;left:10px;bottom:10px;display:flex;gap:8px;z-index:3}
+.cix .ix-ans{color:#7be0a1}
+.cix .ix-rej{color:#ff8a84}
+.cix.ring .rnd{animation:cixring 1.2s ease-in-out infinite}
+@keyframes cixring{50%{box-shadow:0 0 0 4px color-mix(in srgb,var(--acc) 35%,transparent)}}
+@media(prefers-reduced-motion:reduce){.cix.ring .rnd{animation:none}}
+.cbtns .rnd.wait{opacity:.6}

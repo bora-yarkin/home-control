@@ -32,7 +32,7 @@ function remoteNew() {
     id: "",
     rid: "rm" + Date.now().toString(36).slice(-7),
     name: _T("remote"),
-    icon: "mdi:gamepad-variant",
+    icon: "media",
     kind: "remote",
     rm: { cols: 3, btns: [] },
   };
@@ -55,7 +55,7 @@ function remotePress(b) {
 }
 
 function remoteRow(d) {
-  return pill(d.icon || "mdi:gamepad-variant", d.name, {
+  return pill(d.icon || "media", d.name, {
     tap: function () {
       showPopup("remote:" + d.rid, true);
     },

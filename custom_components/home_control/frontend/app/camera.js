@@ -97,7 +97,9 @@ function stream(box, id, owner, tapOpen) {
   });
   bt.appendChild(mu);
   bt.appendChild(fs);
+  camTalkButton(box, id, bt);
   box.appendChild(bt);
+  camIntercom(box, id);
   if (tapOpen)
     box.addEventListener("click", function () {
       if (!box._fs) showPopup(tapOpen === true ? "camera" : tapOpen, true);

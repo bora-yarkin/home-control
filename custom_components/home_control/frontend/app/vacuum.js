@@ -988,6 +988,7 @@ function vacPopup(b, id) {
   if (rbRooms().length) robotCard(b);
   else vacGeneric(b, id);
   readingsBlock(b, id, { battery: true, noNums: true, noCare: true });
+  vacProfile(b, id);
 }
 
 function vacGeneric(b, id) {

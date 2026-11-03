@@ -606,6 +606,7 @@ function lightPopup(b, id, o) {
     );
     return;
   }
+  lightScenesRow(b, id);
   lightPanel(b, lpNodeOf(id, null), {
     id: id,
     room: cp.color || cp.white ? savedRoomOf([id]) : null,

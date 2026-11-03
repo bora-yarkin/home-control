@@ -233,5 +233,91 @@ function start(video,id){
  };
 }
 
+/* ---- push to talk ----
+ CameraTalk.start(entityId) opens the microphone and a second WebRTC session to the camera that carries it.
+ It returns {ready, stop}: ready resolves when the camera has accepted the audio and rejects (with userMessage) when it cannot be done;
+ stop ends everything and always releases the microphone. Whether a camera takes audio is read from its answer: it must be willing to receive. */
+
+function microphone(){
+ function get(md){
+  return md&&md.getUserMedia?md.getUserMedia({audio:{echoCancellation:true,noiseSuppression:true,autoGainControl:true}}):Promise.reject(Object.assign(new Error("no microphone support"),{name:"NotSupportedError"}));
+ }
+ /* The dashboard runs in a frame of the same site: when the frame may not use the microphone, the page around it may. */
+ return get(navigator.mediaDevices).catch(function(e){
+  var parentMedia=null;
+  try{parentMedia=window.parent&&window.parent!==window?window.parent.navigator.mediaDevices:null}catch(x){}
+  if(parentMedia)return get(parentMedia).catch(function(){throw e});
+  throw e;
+ });
+}
+
+function talkMessage(e){
+ var n=e&&e.name;
+ if(n==="NotAllowedError"||n==="SecurityError")return"The microphone is blocked. Allow it for this site in the browser, then try again.";
+ if(n==="NotFoundError")return"No microphone was found.";
+ if(n==="NotSupportedError"||!window.isSecureContext)return"Talking needs a secure (https) connection and a browser with a microphone.";
+ return(e&&e.userMessage)||"Talking did not start.";
+}
+
+/* Whether the answer's audio line takes what was sent (the camera receives): recvonly or sendrecv. */
+function takesAudio(sdp){
+ var audio=String(sdp).split(/\r?\nm=/).filter(function(m){return/^audio/.test(m)})[0];
+ return!!audio&&/a=(recvonly|sendrecv)/.test(audio);
+}
+
+function talk(id){
+ var closed=false,pc=null,mic=null,unsub=null,sessionId=null,pending=[];
+ function candidate(c){HA.camera.candidate(id,sessionId,c).catch(function(){})}
+ function stop(){
+  closed=true;
+  try{unsub&&unsub()}catch(e){}
+  try{pc&&pc.close()}catch(e){}
+  if(mic)mic.getTracks().forEach(function(t){t.stop()});
+  mic=null;pc=null;
+ }
+ var ready=microphone().then(function(ms){
+  mic=ms;
+  if(closed){stop();throw Object.assign(new Error("cancelled"),{userMessage:""})}
+  return HA.camera.clientConfig(id);
+ }).then(function(cfg){
+  if(closed)throw Object.assign(new Error("cancelled"),{userMessage:""});
+  return new Promise(function(resolveOnce,rejectOnce){
+   var timer=null;
+   var resolve=function(v){clearTimeout(timer);resolveOnce(v)};
+   var reject=function(e){clearTimeout(timer);rejectOnce(e)};
+   var fail=function(m){reject(Object.assign(new Error(m),{userMessage:m}))};
+   pc=new RTCPeerConnection(cfg.configuration||{});
+   if(cfg.dataChannel)pc.createDataChannel(cfg.dataChannel);
+   mic.getAudioTracks().forEach(function(t){pc.addTrack(t,mic)});
+   pc.addTransceiver("video",{direction:"recvonly"});
+   pc.onicecandidate=function(ev){
+    if(!ev.candidate)return;
+    var c=ev.candidate.toJSON?ev.candidate.toJSON():ev.candidate;
+    if(sessionId)candidate(c);else pending.push(c);
+   };
+   pc.onconnectionstatechange=function(){if(pc&&pc.connectionState==="failed")fail("The connection to the camera failed.")};
+   pc.createOffer().then(function(o){return pc.setLocalDescription(o)}).then(function(){
+    if(closed)return;
+    return HA.camera.offer(id,pc.localDescription.sdp,function(ev){
+     if(closed)return;
+     if(ev.type==="session"){sessionId=ev.session_id;pending.forEach(candidate);pending=[]}
+     else if(ev.type==="answer"){
+      if(!takesAudio(ev.answer)){fail("This camera does not accept talking through Home Assistant.");return}
+      pc.setRemoteDescription({type:"answer",sdp:ev.answer}).then(resolve,function(){fail("The camera did not accept the audio.")});
+     }
+     else if(ev.type==="candidate"){pc.addIceCandidate(ev.candidate).catch(function(){})}
+     else if(ev.type==="error"){fail("The camera could not be reached.")}
+    });
+   }).then(function(u){if(closed&&u){try{u()}catch(e){}}else unsub=u}).catch(function(){fail("The camera could not be reached.")});
+   timer=setTimeout(function(){fail("The camera did not answer.")},10000);
+  });
+ }).catch(function(e){
+  stop();
+  throw Object.assign(new Error(e&&e.message),{userMessage:e&&e.userMessage!==undefined?e.userMessage:talkMessage(e)});
+ });
+ return{ready:ready,stop:stop};
+}
+
+window.CameraTalk={start:talk};
 window.CameraStream={start:start};
 })();

@@ -551,7 +551,7 @@ function popupDefBase(key) {
     var rmd = remoteFind(id);
     return {
       title: rmd ? rmd.name : _T("remote"),
-      icon: rmd ? rmd.icon : "mdi:gamepad-variant",
+      icon: rmd ? rmd.icon : "media",
       build: function (b) {
         remotePage(b, id);
       },
@@ -589,6 +589,22 @@ function popupDefBase(key) {
       icon: "tune",
       build: function (b) {
         apExtraPage(b, id);
+      },
+    };
+  if (k === "dslot")
+    return {
+      title: _T(DSLOT_LABEL[id.slice(id.lastIndexOf(":") + 1)] || "px_map"),
+      icon: "tune",
+      build: function (b) {
+        dslotPage(b, id);
+      },
+    };
+  if (k === "dlist")
+    return {
+      title: _T(DSLOT_LABEL[id.slice(id.lastIndexOf(":") + 1)] || "px_map"),
+      icon: "tune",
+      build: function (b) {
+        dlistPage(b, id);
       },
     };
   if (k === "remote-btn")
