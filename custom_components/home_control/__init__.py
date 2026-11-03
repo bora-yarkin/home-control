@@ -28,6 +28,7 @@ from .const import (
     PANEL_ELEMENT,
     URL_BASE,
 )
+from .images import URL_IMAGES, RemoteImageDeleteView, RemoteImageUploadView
 
 FRONTEND = Path(__file__).parent / "frontend"
 STATIC_REGISTERED = f"{DOMAIN}_static_registered"
@@ -41,7 +42,16 @@ def _dashboard_version() -> int:
 async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
     if not hass.data.get(STATIC_REGISTERED):
         # Registering twice (after a reload) is an error, and the folder does not change while Home Assistant runs.
-        await hass.http.async_register_static_paths([StaticPathConfig(URL_BASE, str(FRONTEND), cache_headers=False)])
+        folder = Path(hass.config.path("home_control_remotes"))
+        await hass.async_add_executor_job(lambda: folder.mkdir(parents=True, exist_ok=True))
+        await hass.http.async_register_static_paths(
+            [
+                StaticPathConfig(URL_BASE, str(FRONTEND), cache_headers=False),
+                StaticPathConfig(URL_IMAGES, str(folder), cache_headers=False),
+            ]
+        )
+        hass.http.register_view(RemoteImageUploadView(folder))
+        hass.http.register_view(RemoteImageDeleteView(folder))
         hass.data[STATIC_REGISTERED] = True
     version = await hass.async_add_executor_job(_dashboard_version)
     await panel_custom.async_register_panel(

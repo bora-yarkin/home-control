@@ -787,6 +787,16 @@ body.pinhdr:not(.editing) .wrap::before{content:"";position:fixed;top:0;left:0;r
 .openc>.dslide{grid-template-rows:1fr;opacity:1}
 .dinner{overflow:hidden;min-height:0}
 @media(prefers-reduced-motion:reduce){.dslide{transition:none}}
+/* Image remotes: a picture with invisible touch areas (app/remote.js). */
+.rm-img{position:relative;width:100%;line-height:0;border-radius:var(--r-m);overflow:hidden;touch-action:manipulation}
+.rm-img img{display:block;width:100%;height:auto;user-select:none;-webkit-user-drag:none}
+.rm-hs{position:absolute;cursor:pointer;background:transparent;transition:box-shadow .15s,background .15s;touch-action:none}
+.rm-hs.na{cursor:not-allowed}
+.rm-hs.pulse{box-shadow:inset 0 0 14px var(--acc),0 0 8px var(--acc);background:color-mix(in srgb,var(--acc) 14%,transparent)}
+.rm-hs.ed{outline:1px dashed color-mix(in srgb,var(--acc) 70%,#fff);background:color-mix(in srgb,var(--acc) 10%,transparent)}
+.rm-hs.sel{outline:2px solid var(--acc);background:color-mix(in srgb,var(--acc) 20%,transparent)}
+.rm-hs:focus-visible{outline:2px solid var(--acc);outline-offset:2px}
+.rm-grip{position:absolute;right:-7px;bottom:-7px;width:18px;height:18px;border-radius:50%;background:var(--acc);border:2px solid #fff;touch-action:none;cursor:nwse-resize}
 /* Custom remotes: a grid of buttons (app/remote.js). */
 .rm-grid{display:grid;grid-template-columns:repeat(var(--rc,3),minmax(0,1fr));gap:var(--sp-s)}
 .rm-t{display:flex;flex-direction:column;align-items:center;justify-content:center;gap:6px;min-height:76px;padding:10px 6px;border-radius:var(--r-m);cursor:pointer;user-select:none;text-align:center;color:var(--ink);transition:transform .08s,opacity .2s}

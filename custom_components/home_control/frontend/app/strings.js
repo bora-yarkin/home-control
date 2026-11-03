@@ -1,6 +1,18 @@
 /* Text shown to the user: the English strings and the lookup function _T(). */
 
 var EN = {
+  "rm_grid": "Grid",
+  "rm_picture": "Picture",
+  "rm_upload_a_picture": "Upload a picture",
+  "rm_upload_a_picture_sub": "A photo or drawing of the remote (PNG, JPEG or WebP, up to 5 MB)",
+  "rm_or_a_file_path": "Or a file path, for example /local/remote.png",
+  "rm_that_path_is_not_allowed": "That path is not allowed. Use a file under /local/",
+  "rm_the_picture_could_not_be_uploaded": "The picture could not be uploaded",
+  "rm_tap_the_picture_to_add_a_touch_area": "Tap the picture to add a touch area. Drag it to move it and drag its corner to resize it",
+  "rm_rectangle": "Rectangle",
+  "rm_ellipse": "Ellipse",
+  "rm_remove_touch_area": "Remove this touch area",
+  "rm_remove_the_picture": "Remove the picture",
   "ap_appliance": "Appliance",
   "ap_oven": "Oven",
   "ap_washer": "Washer",

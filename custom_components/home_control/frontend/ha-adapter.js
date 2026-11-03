@@ -186,6 +186,20 @@ var automations={
  remove:function(id){return hass.callApi("DELETE","config/automation/config/"+id)}
 };
 
+/* The pictures of image remotes: an administrator uploads one and gets its address; removing takes the file away again. */
+var remotePictures={
+ upload:function(file){
+  var body=new FormData();body.append("file",file);
+  return hass.fetchWithAuth("/api/home_control/remote_image",{method:"POST",body:body}).then(function(r){
+   return r.json().then(function(j){if(!r.ok)throw new Error(j&&j.message||"Upload failed");return j.url})
+  })
+ },
+ remove:function(url){
+  var name=String(url).split("/").pop();
+  return hass.fetchWithAuth("/api/home_control/remote_image/"+encodeURIComponent(name),{method:"DELETE"})
+ }
+};
+
 var scripts={
  get:function(id){return hass.callApi("GET","config/script/config/"+id)},
  save:function(id,config){return hass.callApi("POST","config/script/config/"+id,config)},
@@ -209,6 +223,7 @@ window.HA={
  camera:camera,
  route:route,
  automations:automations,
- scripts:scripts
+ scripts:scripts,
+ remotePictures:remotePictures
 };
 })();

@@ -150,7 +150,23 @@ function cleanHdr(a) {
 /* A custom remote's grid (app/remote.js): the number of columns and up to 60 buttons, each an entity of a kind that can be pressed, an icon, a short label and how many columns it takes. */
 function cleanRemote(r) {
   var cols = r && typeof r.cols === "number" ? Math.max(2, Math.min(6, Math.round(r.cols))) : 3,
-    out = { cols: cols, btns: [] };
+    out = { cols: cols, btns: [] },
+    img = r && r.img;
+  /* A picture of the remote: one of the integration's uploads or a file under /local/, with touch areas in percent of the picture. */
+  if (img && typeof img.u === "string" && /^(\/home_control_remotes\/[a-f0-9]{12}\.(png|jpg|webp)|\/local\/[A-Za-z0-9_\-./]{1,150})(\?[A-Za-z0-9=_\-]{1,20})?$/.test(img.u) && img.u.indexOf("..") < 0) {
+    var pct = function (v, lo, hi) {
+      return typeof v === "number" && isFinite(v) ? Math.max(lo, Math.min(hi, Math.round(v * 100) / 100)) : lo;
+    };
+    out.img = { u: img.u, hs: [] };
+    (Array.isArray(img.hs) ? img.hs : []).slice(0, 60).forEach(function (h) {
+      if (!h || typeof h.e !== "string" || !ENTRE.test(h.e)) return;
+      if (["script", "button", "input_button", "scene", "switch"].indexOf(h.e.split(".")[0]) < 0) return;
+      var w = pct(h.w, 3, 100),
+        hh = pct(h.h, 3, 100);
+      out.img.hs.push({ x: pct(h.x, 0, 100 - w), y: pct(h.y, 0, 100 - hh), w: w, h: hh, r: h.r === "ellipse" ? "ellipse" : "rect", e: h.e });
+    });
+    if (r.v === "i") out.v = "i";
+  }
   (r && Array.isArray(r.btns) ? r.btns : []).slice(0, 60).forEach(function (x) {
     if (!x || typeof x.e !== "string" || !ENTRE.test(x.e)) return;
     if (["script", "button", "input_button", "scene", "switch"].indexOf(x.e.split(".")[0]) < 0) return;
