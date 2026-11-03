@@ -1,6 +1,17 @@
 /* Text shown to the user: the English strings and the lookup function _T(). */
 
 var EN = {
+  "nw_alerts_for_any_entity": "Alerts for any entity",
+  "nw_add_an_alert": "Add an alert",
+  "nw_add_an_alert_sub": "When an entity reaches a state: a washer finishes, a door stays open, a call comes in",
+  "nw_new_alert": "New alert",
+  "nw_name": "Name (shown in the message)",
+  "nw_the_entity_to_watch": "The entity to watch",
+  "nw_when_it_becomes": "When it becomes",
+  "nw_state": "State",
+  "nw_state_exactly_as_shown_by_the_entity": "State, exactly as the entity shows it",
+  "nw_remove_this_alert": "Remove this alert",
+  "nw_choose_the_entity_the_state_and_a_recipient_first": "Choose the entity, the state and a recipient first",
   "px_map": "Map picture",
   "px_rooms": "Rooms",
   "px_modes": "Modes and options",

@@ -43,7 +43,221 @@ function cleanNotify(n) {
     }
     o.rules[k] = c;
   });
+  /* Alerts for any entity: when it reaches a state (a washer finished, a door left open, a call). */
+  o.watch = [];
+  (n && Array.isArray(n.watch) ? n.watch : []).slice(0, 20).forEach(function (w) {
+    if (!w || typeof w.id !== "string" || !/^w[a-z0-9]{1,10}$/.test(w.id) || o.watch.some(function (x) { return x.id === w.id; })) return;
+    var c = {
+      id: w.id,
+      name: typeof w.name === "string" ? w.name.slice(0, 40) : "",
+      e: typeof w.e === "string" && ENTRE.test(w.e) ? w.e : "",
+      to: typeof w.to === "string" ? w.to.slice(0, 40) : "",
+      on: !!w.on,
+      targets: [],
+    };
+    (Array.isArray(w.targets) ? w.targets : []).slice(0, 10).forEach(function (x) {
+      if (typeof x === "string" && /^[a-z0-9_]{1,60}$/.test(x)) c.targets.push(x);
+    });
+    o.watch.push(c);
+  });
   return o;
+}
+
+/* ---- alerts for any entity ---- */
+
+var WATCH_DOMS = ["sensor", "binary_sensor", "select", "input_select", "switch", "input_boolean", "light", "climate", "vacuum", "media_player", "event", "lock", "cover", "fan", "button", "person", "device_tracker", "update", "timer", "counter", "camera"];
+
+function watchRules() {
+  if (!STORE.notify) STORE.notify = cleanNotify(null);
+  return STORE.notify.watch || (STORE.notify.watch = []);
+}
+
+function watchPayload(w) {
+  if (!w.e || !w.to || !w.targets.length) return null;
+  var msg = w.name
+    ? w.name + ": {{ trigger.to_state.attributes.friendly_name }}"
+    : "{{ trigger.to_state.attributes.friendly_name }} is now {{ trigger.to_state.state }}";
+  return {
+    id: "dashboard_n_" + w.id,
+    alias: _T("dashboard_notify") + (w.name || w.e),
+    description: _T("managed_by_the_dashboard_app_setting_2"),
+    mode: "queued",
+    triggers: [{ trigger: "state", entity_id: w.e, to: w.to }],
+    conditions: [],
+    actions: w.targets.map(function (t) {
+      return { action: "notify." + t, data: { title: _T("home"), message: msg } };
+    }),
+  };
+}
+
+function syncWatch(w) {
+  var p = watchPayload(w);
+  if (w.on && p) return window.HA.automations.save(p.id, p);
+  return window.HA.automations.remove("dashboard_n_" + w.id).catch(function () {});
+}
+
+function watchEdit(b, id) {
+  var w = watchRules().filter(function (x) {
+      return x.id === id;
+    })[0],
+    box = mk("div");
+  if (!w) return;
+  b.appendChild(box);
+  function save() {
+    storeChanged();
+    syncWatch(w).catch(function (e) {
+      toast((e && e.body && e.body.message) || _T("couldn_t_update_the_automation_in_ho"));
+    });
+  }
+  function draw() {
+    box.appendChild(
+      pill("check", _T("send_this_notification"), {
+        on: function () {
+          return w.on;
+        },
+        sub: function () {
+          return w.on ? _T("on_2") : _T("off");
+        },
+        tap: function () {
+          if (!w.on && !watchPayload(Object.assign({}, w, { on: true }))) {
+            toast(_T("nw_choose_the_entity_the_state_and_a_recipient_first"));
+            return;
+          }
+          w.on = !w.on;
+          save();
+          redrawBox(box, draw);
+        },
+      })
+    );
+    box.appendChild(
+      textRow("edit", _T("nw_name"), w.name, function (v) {
+        w.name = v.slice(0, 40);
+        save();
+      }, 40)
+    );
+    box.appendChild(
+      pill("plug", w.e ? A(w.e).friendly_name || w.e : _T("ap_not_set"), {
+        sub: function () {
+          return w.e || _T("nw_the_entity_to_watch");
+        },
+        tap: function () {
+          pickEntity(_T("nw_the_entity_to_watch"), WATCH_DOMS, null, function (e) {
+            w.e = e;
+            w.to = "";
+            w.on = false;
+            save();
+            redrawBox(box, draw);
+          });
+        },
+      })
+    );
+    if (w.e) {
+      box.appendChild(sep(_T("nw_when_it_becomes"), "alert"));
+      var a = A(w.e),
+        opts = Array.isArray(a.options) && a.options.length ? a.options : dom(w.e) === "binary_sensor" || dom(w.e) === "input_boolean" || dom(w.e) === "switch" ? ["on", "off"] : null;
+      if (opts && opts.length <= 6)
+        box.appendChild(
+          seg(
+            opts.map(function (o) {
+              return [o, cap(o)];
+            }),
+            w.to,
+            function (v) {
+              w.to = v;
+              save();
+              redrawBox(box, draw);
+            }
+          )
+        );
+      else if (opts)
+        box.appendChild(selectTile(_T("nw_state"), function () { return opts; }, function () { return w.to; }, function (v) { w.to = v; save(); redrawBox(box, draw); }));
+      else
+        box.appendChild(
+          textRow("edit", _T("nw_state_exactly_as_shown_by_the_entity"), w.to, function (v) {
+            w.to = v.slice(0, 40);
+            save();
+          }, 40)
+        );
+    }
+    box.appendChild(sep(_T("recipients_2"), "person"));
+    var ts = notifyTargets();
+    if (!ts.length) box.appendChild(pill("info", _T("no_notification_services"), {}));
+    ts.forEach(function (t) {
+      box.appendChild(
+        pill("bell", notifyNice(t), {
+          on: function () {
+            return w.targets.indexOf(t) >= 0;
+          },
+          tap: function () {
+            var i = w.targets.indexOf(t);
+            if (i >= 0) w.targets.splice(i, 1);
+            else w.targets.push(t);
+            if (!w.targets.length) w.on = false;
+            save();
+            redrawBox(box, draw);
+          },
+        })
+      );
+    });
+    box.appendChild(
+      pill("trash", _T("nw_remove_this_alert"), {
+        tap: function () {
+          STORE.notify.watch = watchRules().filter(function (x) {
+            return x !== w;
+          });
+          storeChanged();
+          window.HA.automations.remove("dashboard_n_" + w.id).catch(function () {});
+          popBack();
+        },
+      })
+    );
+  }
+  draw();
+}
+
+function watchSection(box, redraw) {
+  box.appendChild(sep(_T("nw_alerts_for_any_entity"), "alert"));
+  watchRules().forEach(function (w) {
+    box.appendChild(
+      swRow("alert", w.name || (w.e ? A(w.e).friendly_name || w.e : _T("nw_new_alert")), {
+        sub: function () {
+          return w.e ? w.e + (w.to ? " → " + w.to : "") : _T("ap_not_set");
+        },
+        on: function () {
+          return w.on;
+        },
+        toggle: function () {
+          if (!w.on && !watchPayload(Object.assign({}, w, { on: true }))) {
+            toast(_T("nw_choose_the_entity_the_state_and_a_recipient_first"));
+            return;
+          }
+          w.on = !w.on;
+          storeChanged();
+          syncWatch(w).catch(function (e) {
+            toast((e && e.body && e.body.message) || _T("couldn_t_update_the_automation_in_ho"));
+          });
+          redraw();
+        },
+        open: function () {
+          showPopup("manage-nwatch:" + w.id, true);
+        },
+      })
+    );
+  });
+  if (watchRules().length < 20)
+    box.appendChild(
+      pill("plus", _T("nw_add_an_alert"), {
+        sub: function () {
+          return _T("nw_add_an_alert_sub");
+        },
+        tap: function () {
+          var w = { id: "w" + Date.now().toString(36).slice(-6), name: "", e: "", to: "", on: false, targets: [] };
+          watchRules().push(w);
+          storeChanged();
+          showPopup("manage-nwatch:" + w.id, true);
+        },
+      })
+    );
 }
 
 function nrule(k) {
@@ -209,6 +423,26 @@ function notifyReconcile() {
       )
       .catch(function () {});
   });
+  watchReconcile();
+}
+
+/* The alerts for any entity are brought to what they build now, the same way. */
+function watchReconcile() {
+  watchRules().forEach(function (w) {
+    var p = w.on ? watchPayload(w) : null;
+    if (!p) return;
+    window.HA.automations
+      .get(p.id)
+      .then(
+        function (cur) {
+          return notifyWatch(cur) === notifyWatch(p) ? null : window.HA.automations.save(p.id, p);
+        },
+        function (e) {
+          return e && e.status_code === 404 ? window.HA.automations.save(p.id, p) : null;
+        }
+      )
+      .catch(function () {});
+  });
 }
 
 function notifyReconcileSoon() {
@@ -258,6 +492,9 @@ function notifyPage(b) {
           },
         })
       );
+    });
+    watchSection(box, function () {
+      redrawBox(box, draw);
     });
     box.appendChild(sep(_T("worn_parts"), "vac"));
     var hp = mk("div", "hint");

@@ -138,3 +138,30 @@ test("a battery that only says low (a binary sensor) triggers when it turns on, 
   const onlyFlags = built({ ...options, bats: [options.bats[1]] }, "batt");
   assert.deepEqual(onlyFlags.triggers.map((t) => t.trigger), ["state"]);
 });
+
+test("an alert for any entity is kept when it names an entity, a state and recipients, and builds a state trigger and one message per recipient", () => {
+  const { sandbox } = load({ devices: [], rules: rules() });
+  const n = JSON.parse(
+    JSON.stringify(
+      sandbox.cleanNotify({
+        rules: {},
+        watch: [
+          { id: "wabc", name: "Washer", e: "sensor.washer_state", to: "finished", on: true, targets: ["mobile_app_phone", "bad target!"] },
+          { id: "wabc", e: "sensor.dup" },
+          { id: "BAD", e: "sensor.x" },
+          { id: "wxyz", e: "not an entity", to: "x".repeat(60), targets: [] },
+        ],
+      })
+    )
+  );
+  assert.deepEqual(n.watch.map((w) => w.id), ["wabc", "wxyz"]);
+  assert.deepEqual(n.watch[0].targets, ["mobile_app_phone"]);
+  assert.equal(n.watch[1].e, "");
+  assert.equal(n.watch[1].to.length, 40);
+  const p = JSON.parse(JSON.stringify(sandbox.watchPayload(n.watch[0])));
+  assert.equal(p.id, "dashboard_n_wabc");
+  assert.deepEqual(p.triggers, [{ trigger: "state", entity_id: "sensor.washer_state", to: "finished" }]);
+  assert.deepEqual(p.actions.map((a) => a.action), ["notify.mobile_app_phone"]);
+  assert.equal(sandbox.watchPayload({ ...n.watch[0], to: "" }), null, "no state, no automation");
+  assert.equal(sandbox.watchPayload({ ...n.watch[0], targets: [] }), null, "no recipient, no automation");
+});

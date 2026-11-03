@@ -398,6 +398,7 @@ function popupDefBase(key) {
         nruleEdit(b, id);
       },
     };
+  if (k === "manage-nwatch") return { title: _T("nw_alerts_for_any_entity"), icon: "bell", build: function (b) { watchEdit(b, id); } };
   if (k === "manage-log") return { title: _T("change_log"), icon: "restart", build: logPage };
   if (k === "manage-details") {
     var md2 = roomById(id);
