@@ -24,9 +24,9 @@ Each is a device kind of the page editor's "Add device" list. Its popup is built
 - P2-2 complete: an image remote: a picture (uploaded, or an existing `/local/` file) with touch areas drawn over it (rounded rectangle or ellipse), each bound to an entity. An error is shown only when a command fails.
 
 ## P3 Scenes with other brands
-- P3-1 planned: scene engine brought to Home Assistant 2026.10, tests and docs updated, published as its own repository.
-- P3-2 planned: scene engine plays scenes for any light and takes Hue's own abilities from Hue Plus (an expansion pack: nothing Hue-specific lives in scene engine); with both installed Hue lights are played by Hue Plus on a shared clock, so a mixed scene moves as one.
-- P3-3 planned: the dashboard shows one list of scenes and sends a scene to whoever owns it.
+- P3-1 complete (not published: the repository could not be created without the owner's permission): scene engine brought to Home Assistant 2026.10, tests and docs updated, published as its own repository.
+- P3-2 complete: scene engine plays scenes for any light and takes Hue's own abilities from Hue Plus (an expansion pack: nothing Hue-specific lives in scene engine); with both installed Hue lights are played by Hue Plus on a shared clock, so a mixed scene moves as one.
+- P3-3 complete (v222): the dashboard shows one list of scenes and sends a scene to whoever owns it.
 
 ## P4 Notifications and checks
 - P4-1 complete: a generic "when this entity reaches this state" notification rule (finished, needs attention, call).

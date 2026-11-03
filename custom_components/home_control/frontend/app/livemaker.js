@@ -236,7 +236,7 @@ function liveMakerScene() {
 }
 
 function liveMakerStopPreview() {
-  if (LMK && LMK.preview) callRaw("hue_plus", "scene_stop", { scene_id: "lm-preview" });
+  if (LMK && LMK.preview) liveCall(LMK.owner, "stop", { scene_id: "lm-preview" });
   if (LMK) LMK.preview = false;
 }
 
@@ -299,7 +299,7 @@ function liveMakerLightsOn() {
 function liveMakerDelete() {
   var id = LMK.id,
     sc = sceneById(id);
-  if (liveRun({ id: id })) callRaw("hue_plus", "scene_stop", { scene_id: id });
+  if (liveRun({ id: id })) liveCall(sc ? liveOwner(sc) : null, "stop", { scene_id: id });
   STORE.scenes = STORE.scenes.filter(function (x) {
     return x.id !== id;
   });
@@ -542,7 +542,8 @@ function liveMakerTools(box) {
           return;
         }
         p.data.scene_id = "lm-preview";
-        callRaw("hue_plus", "scene_start", p.data);
+        LMK.owner = liveOwner(cs);
+        liveCall(LMK.owner, "start", p.data);
         LMK.preview = true;
       },
     })

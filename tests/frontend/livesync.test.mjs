@@ -24,13 +24,13 @@ const SCENE = {
 };
 
 /* The page's globals that livescenes.js uses. `library` is what Hue Plus holds; every service call it receives is recorded in `calls`. */
-function load({ library = { scenes: [], areas: [] }, scenes = [SCENE], areas = [AREA], admin = true } = {}) {
+function load({ library = { scenes: [], areas: [] }, scenes = [SCENE], areas = [AREA], admin = true, engines = ["hue_plus"], platforms = {} } = {}) {
   const calls = [];
   const sandbox = {
     _T: (key) => key,
     ISADMIN: admin,
     STORE: { scenes: scenes.map((s) => ({ ...s })), eareas: areas.map((a) => ({ ...a })) },
-    H: () => ({ entities: {}, states: {} }),
+    H: () => ({ entities: Object.fromEntries(Object.entries(platforms).map(([id, platform]) => [id, { platform }])), states: {} }),
     eaIsBar: () => false,
     eaZonePoints: () => [],
     callRaw: (domain, service, data) => calls.push([domain, service, data]),
@@ -41,7 +41,12 @@ function load({ library = { scenes: [], areas: [] }, scenes = [SCENE], areas = [
   };
   vm.createContext(sandbox);
   vm.runInContext(SOURCE, sandbox);
-  vm.runInContext("engineSensor = function () { return 'sensor.live_scenes'; }", sandbox);
+  vm.runInContext(
+    `hpSensor = function () { return ${JSON.stringify(engines.includes("hue_plus") ? "sensor.live_scenes" : null)}; };
+     seSensor = function () { return ${JSON.stringify(engines.includes("scene_engine") ? "sensor.scene_engine" : null)}; };
+     engineSensor = function () { return hpSensor() || seSensor(); }`,
+    sandbox
+  );
   return { sandbox, calls, run: (code) => vm.runInContext(code, sandbox) };
 }
 
@@ -118,4 +123,32 @@ test("a failing read of Hue Plus's library changes nothing", async () => {
   sandbox.hpSyncLibrary(true);
   await settle();
   assert.deepEqual(calls, []);
+});
+
+test("with both installed, a scene whose lights are all Hue's stays in Hue Plus and one with another brand's light goes to Scene engine", async () => {
+  const platforms = { "light.left": "hue_plus", "light.right": "matter" };
+  const mixed = load({ engines: ["hue_plus", "scene_engine"], platforms });
+  assert.equal(mixed.run("liveOwner(STORE.scenes[0])"), "scene_engine");
+  mixed.sandbox.hpSyncLibrary(true);
+  await settle();
+  assert.deepEqual(mixed.calls.map(([domain, service]) => [domain, service]), [["scene_engine", "save_area"], ["scene_engine", "save_scene"]]);
+  const hueOnly = load({ engines: ["hue_plus", "scene_engine"], platforms: { "light.left": "hue_plus", "light.right": "hue" } });
+  assert.equal(hueOnly.run("liveOwner(STORE.scenes[0])"), "hue_plus");
+  const alone = load({ engines: ["scene_engine"], platforms });
+  assert.equal(alone.run("liveOwner(STORE.scenes[0])"), "scene_engine");
+  const hueAlone = load({ engines: ["hue_plus"], platforms });
+  assert.equal(hueAlone.run("liveOwner(STORE.scenes[0])"), "hue_plus");
+});
+
+test("the controls of a scene go to the integration that plays it, with that integration's own service names", () => {
+  const { sandbox, calls, run } = load({ engines: ["hue_plus", "scene_engine"], platforms: { "light.left": "hue_plus", "light.right": "matter" } });
+  run("liveCall(liveOwner(STORE.scenes[0]), 'freeze', { scene_id: 'x' }); liveCall('hue_plus', 'freeze', { scene_id: 'y' })");
+  assert.deepEqual(JSON.parse(JSON.stringify(calls)), [["scene_engine", "freeze", { scene_id: "x" }], ["hue_plus", "scene_freeze", { scene_id: "y" }]]);
+});
+
+test("stopping the Hue half of a mixed scene stops the whole scene through Scene engine", () => {
+  const { calls, run, sandbox } = load({ engines: ["hue_plus", "scene_engine"], platforms: { "light.left": "hue_plus" } });
+  run("liveSessions = function () { return { 'se-mix': { lights: ['light.left'] } }; }; lightIndividuals = function (l) { return l; }; dom = function (i) { return i.split('.')[0]; };");
+  run("liveStopOn(['light.left'])");
+  assert.deepEqual(JSON.parse(JSON.stringify(calls)), [["scene_engine", "stop", { scene_id: "mix" }]]);
 });

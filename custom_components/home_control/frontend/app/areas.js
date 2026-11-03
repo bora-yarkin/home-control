@@ -26,8 +26,10 @@ var EA_SLOTS = [
   [0.7, 0],
 ];
 
-/* Hue Plus next to the Hue integration plays scenes on Hue lights only (it says so when the library is read), so only those can be placed in an area. */
+/* Hue Plus next to the Hue integration plays scenes on Hue lights only (it says so when the library is read), so without Scene engine only those can be placed in an area. */
 function eaAllowed(id) {
+  /* With Scene engine installed, lights of other brands can be placed too: it plays them and hands the Hue lights to Hue Plus. */
+  if (typeof seSensor === "function" && seSensor()) return true;
   return !HPLIB.hueOnly || ((H().entities[id] || {}).platform === "hue_plus");
 }
 

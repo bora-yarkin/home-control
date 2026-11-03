@@ -10,19 +10,93 @@ var LIVE_SPREADS = [
 /* The engine's sensor lists the running scenes; it is found through its integration, so renaming it changes nothing. It is remembered, and looked for again at most every 5 seconds when it is not found. */
 var ENGINE = { id: null, at: 0 };
 
-function engineSensor() {
+function hpSensor() {
   var h = H();
   if (!h || !h.entities) return null;
   if (ENGINE.id && h.states[ENGINE.id]) return ENGINE.id;
   if (Date.now() - ENGINE.at < 5000) return null;
   ENGINE.at = Date.now();
-  hpSyncLibrary(true);
   ENGINE.id =
     Object.keys(h.states).filter(function (k) {
       var e = h.entities[k];
       return k.indexOf("sensor.") === 0 && e && e.platform === "hue_plus" && /_live_scenes$/.test(e.unique_id || "");
     })[0] || null;
   return ENGINE.id;
+}
+
+/* The Scene engine integration's sensor, found the same way. It plays the scenes that include lights that are not Hue's and hands the Hue lights to Hue Plus. */
+var SENGINE = { id: null, at: 0 };
+
+function seSensor() {
+  var h = H();
+  if (!h || !h.entities) return null;
+  if (SENGINE.id && h.states[SENGINE.id]) return SENGINE.id;
+  if (Date.now() - SENGINE.at < 5000) return null;
+  SENGINE.at = Date.now();
+  SENGINE.id =
+    Object.keys(h.states).filter(function (k) {
+      var e = h.entities[k];
+      return k.indexOf("sensor.") === 0 && e && e.platform === "scene_engine";
+    })[0] || null;
+  return SENGINE.id;
+}
+
+/* Live scenes are available when either integration is installed. */
+function engineSensor() {
+  var id = hpSensor() || seSensor();
+  if (id && !ENGINE.synced) {
+    ENGINE.synced = true;
+    hpSyncLibrary(true);
+  }
+  return id;
+}
+
+/* Whether a light is one of the Hue bridge's (Hue's own entity or Hue Plus's). */
+function liveHueLight(id) {
+  var e = (H().entities || {})[id];
+  return !!e && (e.platform === "hue" || e.platform === "hue_plus");
+}
+
+/* Who plays an area: Hue Plus when its lights are all Hue's (or Scene engine is not installed), Scene engine when any light is not Hue's (it hands the Hue lights to Hue Plus when that is installed too). */
+function areaOwner(ar) {
+  var hp = hpSensor(),
+    se = seSensor();
+  if (!se) return hp ? "hue_plus" : null;
+  if (!hp) return "scene_engine";
+  return ar.lights.some(function (l) {
+    return !liveHueLight(l.id);
+  })
+    ? "scene_engine"
+    : "hue_plus";
+}
+
+function liveOwner(sc) {
+  var ar = liveSceneArea(sc);
+  return ar ? areaOwner(ar) : hpSensor() ? "hue_plus" : seSensor() ? "scene_engine" : null;
+}
+
+/* The services of each integration. */
+var LIVESVC = {
+  hue_plus: { start: "scene_start", update: "scene_update", freeze: "scene_freeze", play: "scene_play", stop: "scene_stop", area: "area_save", scene: "scene_save", delScene: "scene_delete", delArea: "area_delete" },
+  scene_engine: { start: "start", update: "update", freeze: "freeze", play: "play", stop: "stop", area: "save_area", scene: "save_scene", delScene: "delete_scene", delArea: "delete_area" },
+};
+
+function liveCall(owner, verb, data) {
+  var o = owner || "hue_plus";
+  callRaw(o, LIVESVC[o][verb], data);
+}
+
+/* The running scenes of both integrations by scene id. */
+function liveSessions() {
+  var out = {};
+  [hpSensor(), seSensor()].forEach(function (id) {
+    var s = id ? A(id).sessions : null;
+    if (s)
+      Object.keys(s).forEach(function (k) {
+        out[k] = s[k];
+      });
+  });
+  return out;
 }
 
 /* The icons of the kinds of scene: a classic scene keeps its own (the scene icon unless one was chosen), a live scene the sparkle (unless one was chosen; the palette was the old default and counts as none), a Hue scene the palette. */
@@ -34,8 +108,7 @@ function liveIcon(sc) {
 }
 
 function liveRun(sc) {
-  var id = engineSensor(),
-    s = id ? A(id).sessions : null;
+  var s = engineSensor() ? liveSessions() : null;
   return s && s[sc.id] ? s[sc.id] : null;
 }
 
@@ -182,20 +255,25 @@ function hpScenePayload(sc) {
 function hpPush(scenes, areas) {
   if (!ISADMIN || !engineSensor()) return;
   areas.forEach(function (ar) {
-    var p = hpAreaPayload(ar);
-    if (p) callRaw("hue_plus", "area_save", p);
+    var p = hpAreaPayload(ar),
+      o = areaOwner(ar);
+    if (p && o) callRaw(o, LIVESVC[o].area, p);
   });
   scenes.forEach(function (sc) {
-    var p = hpScenePayload(sc);
-    if (p) callRaw("hue_plus", "scene_save", p);
+    var p = hpScenePayload(sc),
+      o = liveOwner(sc);
+    if (p && o) callRaw(o, LIVESVC[o].scene, p);
   });
 }
 
 /* Deletes what the administrator just deleted. */
 function hpForget(sceneId, areaId) {
   if (!ISADMIN || !engineSensor()) return;
-  if (sceneId) callRaw("hue_plus", "scene_delete", { id: hpId(sceneId) });
-  if (areaId) callRaw("hue_plus", "area_delete", { id: hpId(areaId) });
+  /* A scene or area may be in either integration (it moves when its lights change), so it is taken from both. */
+  [hpSensor() && "hue_plus", seSensor() && "scene_engine"].filter(Boolean).forEach(function (o) {
+    if (sceneId) callRaw(o, LIVESVC[o].delScene, { id: hpId(sceneId) });
+    if (areaId) callRaw(o, LIVESVC[o].delArea, { id: hpId(areaId) });
+  });
 }
 
 /* Creates in Hue Plus what it lacks (a new bridge, lost storage). What it already has is left alone. */
@@ -205,23 +283,31 @@ function hpSyncLibrary(first) {
   clearTimeout(HPLIB.t);
   HPLIB.t = setTimeout(function () {
     if (!engineSensor()) return;
-    HA.serviceResponse("hue_plus", "get_library", {})
-      .then(function (lib) {
-        HPLIB.hueOnly = !!lib.hue_only;
-        var haveAreas = {},
-          haveScenes = {};
-        (lib.areas || []).forEach(function (a) {
-          haveAreas[a.id] = 1;
+    var domains = [hpSensor() && "hue_plus", seSensor() && "scene_engine"].filter(Boolean),
+      haveAreas = {},
+      haveScenes = {};
+    Promise.all(
+      domains.map(function (o) {
+        return HA.serviceResponse(o, "get_library", {}).then(function (lib) {
+          if (o === "hue_plus") HPLIB.hueOnly = !!lib.hue_only;
+          (lib.areas || []).forEach(function (a) {
+            haveAreas[o + ":" + a.id] = 1;
+          });
+          (lib.scenes || []).forEach(function (sc) {
+            haveScenes[o + ":" + sc.id] = 1;
+          });
         });
-        (lib.scenes || []).forEach(function (s) {
-          haveScenes[s.id] = 1;
-        });
+      })
+    )
+      .then(function () {
         hpPush(
           STORE.scenes.filter(function (sc) {
-            return !haveScenes[hpId(sc.id)];
+            var o = sc.live ? liveOwner(sc) : null;
+            return o && !haveScenes[o + ":" + hpId(sc.id)];
           }),
           STORE.eareas.filter(function (ar) {
-            return !haveAreas[hpId(ar.id)];
+            var o = areaOwner(ar);
+            return o && !haveAreas[o + ":" + hpId(ar.id)];
           })
         );
       })
@@ -244,14 +330,13 @@ function liveStart(sc) {
     return;
   }
   gate(p.ids, function () {
-    callRaw("hue_plus", "scene_start", p.data);
+    liveCall(liveOwner(sc), "start", p.data);
   });
 }
 
 /* Something else is about to set these lights (a scene, a Hue scene): live scenes playing on any of them end, so the lights are left to what is set now. */
 function liveStopOn(ids) {
-  var sid = engineSensor(),
-    running = sid ? A(sid).sessions || {} : {},
+  var running = engineSensor() ? liveSessions() : {},
     mine = {};
   lightIndividuals(
     ids.filter(function (x) {
@@ -266,12 +351,14 @@ function liveStopOn(ids) {
         return mine[l];
       })
     )
-      callRaw("hue_plus", "scene_stop", { scene_id: scene });
+      /* Scene engine hands the Hue lights of its scenes to Hue Plus under "se-<id>"; stopping that one alone would leave the rest playing. */
+      if (/^se-/.test(scene) && seSensor()) callRaw("scene_engine", "stop", { scene_id: scene.slice(3) });
+      else callRaw("hue_plus", "scene_stop", { scene_id: scene });
   });
 }
 
 function liveToggle(sc) {
-  if (liveRun(sc)) callRaw("hue_plus", "scene_stop", { scene_id: sc.id });
+  if (liveRun(sc)) liveCall(liveOwner(sc), "stop", { scene_id: sc.id });
   else liveStart(sc);
 }
 
@@ -352,7 +439,7 @@ function liveScenePopup(b, id) {
   function upd(data) {
     if (run()) {
       data.scene_id = sc.id;
-      callRaw("hue_plus", "scene_update", data);
+      liveCall(liveOwner(sc), "update", data);
     }
   }
   b.appendChild(
@@ -437,7 +524,7 @@ function liveScenePopup(b, id) {
         return !!run() && run().state === "running";
       },
       tap: function () {
-        if (run()) callRaw("hue_plus", "scene_play", { scene_id: sc.id });
+        if (run()) liveCall(liveOwner(sc), "play", { scene_id: sc.id });
         else liveStart(sc);
       },
     })
@@ -448,7 +535,7 @@ function liveScenePopup(b, id) {
         return !!run() && run().state === "frozen";
       },
       tap: function () {
-        if (run()) callRaw("hue_plus", "scene_freeze", { scene_id: sc.id });
+        if (run()) liveCall(liveOwner(sc), "freeze", { scene_id: sc.id });
       },
     })
   );
