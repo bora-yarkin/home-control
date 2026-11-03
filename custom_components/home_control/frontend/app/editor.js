@@ -1054,6 +1054,23 @@ function secEditor(b, key) {
       );
     if (k === "lights" && e.master)
       box.appendChild(
+        pill("lights", _T("master_changes_the_whole_room"), {
+          on: function () {
+            return !!e.mall;
+          },
+          sub: function () {
+            return e.mall ? _T("every_light_of_the_section_even_those_") : _T("only_the_lights_that_are_on_or_all_if_none_is");
+          },
+          tap: function () {
+            if (e.mall) delete e.mall;
+            else e.mall = 1;
+            save();
+            redrawBox(box, draw);
+          },
+        })
+      );
+    if (k === "lights" && e.master)
+      box.appendChild(
         textRow(
           "edit",
           _T("all_lights"),

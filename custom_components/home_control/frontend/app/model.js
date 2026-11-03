@@ -16,6 +16,7 @@ var KINDS = [
   "camera",
   "special",
   "remote",
+  "appliance",
   "sensor",
   "number",
   "select",
@@ -164,6 +165,34 @@ function cleanRemote(r) {
   return out;
 }
 
+/* An appliance's slots (app/appliance.js): its type, the entity bound to each known slot (only slots the dashboard knows, only kinds of entity that fit them) and up to 12 free extra rows with a label. */
+function cleanAppliance(a) {
+  var slotDoms = {
+      state: ["sensor", "binary_sensor", "select", "input_select"],
+      program: ["select", "input_select"],
+      temperature: ["number", "input_number", "select", "input_select"],
+      duration: ["number", "input_number", "input_datetime", "select", "input_select"],
+      start: ["button", "input_button", "script", "switch", "input_boolean"],
+      stop: ["button", "input_button", "script", "switch", "input_boolean"],
+      progress: ["sensor", "number", "input_number"],
+      remaining: ["sensor", "input_datetime"],
+      door: ["binary_sensor", "sensor"],
+      permission: ["binary_sensor", "switch", "input_boolean"],
+    },
+    extraDoms = ["select", "input_select", "number", "input_number", "switch", "input_boolean", "binary_sensor", "sensor", "button", "input_button", "script"],
+    out = { type: "other", slots: {}, extra: [] };
+  if (a && ["oven", "washer", "dryer", "dishwasher", "other"].indexOf(a.type) >= 0) out.type = a.type;
+  Object.keys(slotDoms).forEach(function (k) {
+    var e = a && a.slots && a.slots[k];
+    if (typeof e === "string" && ENTRE.test(e) && slotDoms[k].indexOf(e.split(".")[0]) >= 0) out.slots[k] = e;
+  });
+  (a && Array.isArray(a.extra) ? a.extra : []).slice(0, 12).forEach(function (x) {
+    if (x && typeof x.e === "string" && ENTRE.test(x.e) && extraDoms.indexOf(x.e.split(".")[0]) >= 0)
+      out.extra.push({ e: x.e, l: typeof x.l === "string" ? x.l.slice(0, 30) : "" });
+  });
+  return out;
+}
+
 function cleanDev(d) {
   if (
     !d ||
@@ -176,7 +205,8 @@ function cleanDev(d) {
     return null;
   var id = typeof d.id === "string" ? d.id : "";
   if (id && !ENTRE.test(id)) return null;
-  if (!id && d.kind !== "special" && d.kind !== "remote") return null;
+  if (!id && d.kind !== "special" && d.kind !== "remote" && d.kind !== "appliance") return null;
+  if (d.kind === "appliance" && !(typeof d.aid === "string" && /^[a-z0-9_-]{1,24}$/.test(d.aid))) return null;
   if (d.kind === "remote" && !(typeof d.rid === "string" && /^[a-z0-9_-]{1,24}$/.test(d.rid))) return null;
   var c = { id: id, name: d.name, icon: iconOk(d.icon) ? d.icon : "plug", kind: d.kind };
   if (typeof d.pop === "string" && POPRE.test(d.pop) && d.pop) c.pop = d.pop;
@@ -187,6 +217,10 @@ function cleanDev(d) {
       return typeof x === "string" && ENTRE.test(x) && x !== id && d.links.indexOf(x) === i;
     });
     if (ls.length) c.links = ls.slice(0, 12);
+  }
+  if (d.kind === "appliance") {
+    c.aid = d.aid;
+    c.ap = cleanAppliance(d.ap);
   }
   if (d.kind === "remote") {
     c.rid = d.rid;
@@ -442,6 +476,7 @@ function cleanLayout(a) {
     if (k === "lights" && s.noall) o.noall = 1;
     if (k === "lights" && s.master) o.master = 1;
     if (k === "lights" && s.master && typeof s.mn === "string" && s.mn.trim()) o.mn = s.mn.trim().slice(0, 40);
+    if (k === "lights" && s.master && s.mall) o.mall = 1;
     if (k === "lights" && s.nowheel) o.nowheel = 1;
     if (k === "lights" && s.accent) o.accent = 1;
     if (k === "pinned" && Array.isArray(s.pins)) o.pins = cleanPins(s.pins);

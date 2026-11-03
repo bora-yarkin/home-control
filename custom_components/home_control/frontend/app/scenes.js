@@ -839,6 +839,7 @@ function devRowRaw(d) {
   if (d.kind === "cover") return coverRow(d);
   if (d.kind === "lock") return lockRow(d);
   if (d.kind === "remote") return remoteRow(d);
+  if (d.kind === "appliance") return apRow(d);
   if (d.kind === "special") {
     pk = devPop(d);
     if (!pk) return null;

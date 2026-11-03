@@ -504,12 +504,14 @@ function lightIndividuals(ids, depth) {
 var LMASTER = {};
 /* What the section called its lights master (its row, its popup and its panel), by section; empty when it was not renamed. */
 var LMASTER_NAME = {};
+/* Sections whose lights master changes the whole room (every light) instead of only the lights that are on. */
+var LMASTER_ALL = {};
 
 /* The lights a master slider changes: the ones that are on, or all of them when none is. */
-function lightTargets(ids) {
+function lightTargets(ids, all) {
   var units = lightUnits(ids),
     on = units.filter(isOn);
-  return on.length ? on : units;
+  return all ? units : on.length ? on : units;
 }
 
 function lightsMasterPct(ids) {
@@ -538,9 +540,10 @@ function lightsMasterToggle(ids) {
   if (plain.length) call("light", "turn_on", { entity_id: plain });
 }
 
-function lightsMasterRow(sid, ids, wheel, name) {
+function lightsMasterRow(sid, ids, wheel, name, all) {
   LMASTER[sid] = ids;
   LMASTER_NAME[sid] = name || "";
+  LMASTER_ALL[sid] = !!all;
   LWHEEL["m:" + sid] = wheel;
   var r = sliderRow({
     icon: "lights",
@@ -564,11 +567,11 @@ function lightsMasterRow(sid, ids, wheel, name) {
       return countOn(lightUnits(ids)) > 0;
     },
     live: function (v) {
-      if (v > 0) callLive("m:" + sid, "light", "turn_on", { entity_id: lightTargets(ids), brightness_pct: v });
+      if (v > 0) callLive("m:" + sid, "light", "turn_on", { entity_id: lightTargets(ids, all), brightness_pct: v });
     },
     commit: function (v) {
-      if (v <= 0) call("light", "turn_off", { entity_id: lightTargets(ids) });
-      else call("light", "turn_on", { entity_id: lightTargets(ids), brightness_pct: v });
+      if (v <= 0) call("light", "turn_off", { entity_id: lightTargets(ids, all) });
+      else call("light", "turn_on", { entity_id: lightTargets(ids, all), brightness_pct: v });
     },
     onHold: function () {
       showPopup("lmaster:" + sid, true);

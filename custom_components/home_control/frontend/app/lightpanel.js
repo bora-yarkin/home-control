@@ -2108,6 +2108,12 @@ function briControl(o) {
 }
 
 /* The brightness button at the bottom right of the light popup: it sets the brightness of what is selected (the whole when nothing is). */
+/* Whether the popup of a section's lights master changes the whole room (the section's choice) instead of only the lights that are on. */
+function lpAll(S) {
+  var k = S.root && S.root.key;
+  return !!(k && k.indexOf("m:") === 0 && LMASTER_ALL[k.slice(2)]);
+}
+
 function lpBrightness(S) {
   var ids = function () {
     return S.target().cmd;
@@ -2120,11 +2126,11 @@ function lpBrightness(S) {
       return countOn(ids()) > 0;
     },
     live: function (v) {
-      if (v > 0) callLive("lpb:" + S.root.key, "light", "turn_on", { entity_id: lightTargets(ids()), brightness_pct: v });
+      if (v > 0) callLive("lpb:" + S.root.key, "light", "turn_on", { entity_id: lightTargets(ids(), lpAll(S)), brightness_pct: v });
     },
     commit: function (v) {
-      if (v <= 0) call("light", "turn_off", { entity_id: lightTargets(ids()) });
-      else call("light", "turn_on", { entity_id: lightTargets(ids()), brightness_pct: v });
+      if (v <= 0) call("light", "turn_off", { entity_id: lightTargets(ids(), lpAll(S)) });
+      else call("light", "turn_on", { entity_id: lightTargets(ids(), lpAll(S)), brightness_pct: v });
     },
     stage: function () {
       return S.stage;
@@ -2250,13 +2256,13 @@ function lpBrightnessRow(S) {
     live: function (v) {
       if (v > 0)
         callLive("lpb:" + root.key, "light", "turn_on", {
-          entity_id: lightTargets(ids()),
+          entity_id: lightTargets(ids(), lpAll(S)),
           brightness_pct: v,
         });
     },
     commit: function (v) {
-      if (v <= 0) call("light", "turn_off", { entity_id: lightTargets(ids()) });
-      else call("light", "turn_on", { entity_id: lightTargets(ids()), brightness_pct: v });
+      if (v <= 0) call("light", "turn_off", { entity_id: lightTargets(ids(), lpAll(S)) });
+      else call("light", "turn_on", { entity_id: lightTargets(ids(), lpAll(S)), brightness_pct: v });
     },
     onTap: function () {
       lightsMasterToggle(ids());

@@ -316,6 +316,14 @@ function popupDefBase(key) {
       },
     };
   }
+  if (k === "dtime")
+    return {
+      title: A(id).friendly_name || id,
+      icon: "clock",
+      build: function (b) {
+        datetimePage(b, id);
+      },
+    };
   if (k === "sw") {
     var sd = UIDEV[id] || {};
     return {
@@ -543,12 +551,46 @@ function popupDefBase(key) {
     var rmd = remoteFind(id);
     return {
       title: rmd ? rmd.name : _T("remote"),
-      icon: rmd ? rmd.icon : "gamepad",
+      icon: rmd ? rmd.icon : "mdi:gamepad-variant",
       build: function (b) {
         remotePage(b, id);
       },
     };
   }
+  if (k === "appliance") {
+    var apd = apFind(id);
+    return {
+      title: apd ? apd.name : _T("ap_appliance"),
+      icon: apd ? apd.icon : "plug",
+      build: function (b) {
+        apPage(b, id);
+      },
+    };
+  }
+  if (k === "ap-edit")
+    return {
+      title: _T("ap_set_up"),
+      icon: "tune",
+      build: function (b) {
+        apEditPage(b, id);
+      },
+    };
+  if (k === "ap-slot")
+    return {
+      title: _T(AP_SLOTS[id.split(":")[1]] ? AP_SLOTS[id.split(":")[1]].l : "ap_appliance"),
+      icon: "plug",
+      build: function (b) {
+        apSlotPage(b, id);
+      },
+    };
+  if (k === "ap-extra")
+    return {
+      title: _T("ap_add_a_row"),
+      icon: "tune",
+      build: function (b) {
+        apExtraPage(b, id);
+      },
+    };
   if (k === "remote-btn")
     return {
       title: _T("rm_button"),
@@ -925,6 +967,7 @@ function closeLayer() {
 /* A saved popup choice is used only if it still leads somewhere; otherwise the device type decides. */
 function devPop(d) {
   if (d.kind === "remote") return "remote:" + d.rid;
+  if (d.kind === "appliance") return "appliance:" + d.aid;
   if (d.pop && popupDef(d.pop).title) return d.pop;
   if (!d.id) return "";
   /* Lights and switches have their own popup; the other devices use the popup of their type, or the generic one. */

@@ -421,7 +421,52 @@ function withToggle(d, o) {
   return o;
 }
 
+/* A date or time helper (input_datetime): its value is set with the browser's own time and date inputs. The popup is "dtime:<entity>". */
+function datetimeText(id) {
+  var a = A(id),
+    s = V_(id);
+  if (!s || s === "unknown" || s === "unavailable") return "–";
+  if (a.has_time && !a.has_date) return String(s).slice(0, 5);
+  return String(s).replace("T", " ").slice(0, a.has_time ? 16 : 10);
+}
+
+function datetimeSet(id, kind, value) {
+  var a = A(id),
+    data = { entity_id: id };
+  if (kind === "time") data.time = value.length === 5 ? value + ":00" : value;
+  else if (kind === "date") data.date = value;
+  else data.datetime = value.replace("T", " ") + (value.length === 16 ? ":00" : "");
+  call("input_datetime", "set_datetime", data);
+}
+
+function datetimePage(b, id) {
+  var a = A(id),
+    kind = a.has_date && a.has_time ? "datetime" : a.has_time ? "time" : "date",
+    inp = mk("input", "sq"),
+    w = mk("div", "sqw pane", svg("clock"));
+  inp.type = kind === "datetime" ? "datetime-local" : kind;
+  var cur = V_(id);
+  if (cur && cur !== "unknown" && cur !== "unavailable") inp.value = kind === "time" ? String(cur).slice(0, 5) : String(cur).replace(" ", "T").slice(0, kind === "date" ? 10 : 16);
+  inp.addEventListener("change", function () {
+    if (inp.value) datetimeSet(id, kind, inp.value);
+  });
+  w.appendChild(inp);
+  b.appendChild(w);
+}
+
+function datetimeRow(d) {
+  return pill(d.icon || "clock", d.name, {
+    val: function () {
+      return datetimeText(d.id);
+    },
+    tap: function () {
+      showPopup("dtime:" + d.id, true);
+    },
+  });
+}
+
 function sensorRow(d) {
+  if (dom(d.id) === "input_datetime") return datetimeRow(d);
   return pill(d.icon || sensorIcon(d.id), d.name, {
     on: function () {
       return dom(d.id) === "binary_sensor" && V_(d.id) === "on";

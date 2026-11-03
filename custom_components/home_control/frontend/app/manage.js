@@ -351,6 +351,7 @@ var KINDLAB = {
   camera: _T("camera"),
   special: _T("other"),
   remote: _T("remote"),
+  appliance: _T("ap_appliance"),
   sensor: _T("sensor_2"),
   number: _T("number"),
   select: _T("choice"),
@@ -423,6 +424,7 @@ var ADDDOMS = [
   [_T("helpers"), ["input_text", "input_datetime", "counter", "timer"]],
   [_T("all_entities"), ["*"]],
   [_T("remote"), ["__remote"]],
+  [_T("ap_appliance"), ["__appliance"]],
 ];
 
 var DOMKIND = {
@@ -842,6 +844,23 @@ function devManage(b, key) {
       box.appendChild(
         entRow(_T("entity"), function () {
           return d.id;
+        })
+      );
+    if (d.kind === "appliance")
+      box.appendChild(
+        pill("tune", _T("ap_set_up"), {
+          tap: function () {
+            showPopup("ap-edit:" + d.aid, true);
+          },
+        })
+      );
+    if (d.kind === "remote")
+      box.appendChild(
+        pill("mdi:gamepad-variant", _T("rm_edit_buttons"), {
+          tap: function () {
+            RM.edit[d.rid] = true;
+            showPopup("remote:" + d.rid, true);
+          },
         })
       );
     if (d.kind === "climate" && d.id)
@@ -1313,7 +1332,7 @@ function devAdd(b, rid) {
       /* A remote is not an entity: it is made here, then filled with buttons. */
       if (ADDDOMS[st.dom][1][0] === "__remote") {
         box.appendChild(
-          pill("gamepad", _T("rm_new_remote"), {
+          pill("mdi:gamepad-variant", _T("rm_new_remote"), {
             sub: function () {
               return _T("rm_new_remote_sub");
             },
@@ -1326,6 +1345,24 @@ function devAdd(b, rid) {
             },
           })
         );
+        return;
+      }
+      if (ADDDOMS[st.dom][1][0] === "__appliance") {
+        Object.keys(AP_TYPES).forEach(function (t) {
+          box.appendChild(
+            pill(AP_TYPES[t].icon, _T(AP_TYPES[t].l), {
+              sub: function () {
+                return _T("ap_choose_what_it_is_made_of");
+              },
+              tap: function () {
+                var d = apNew(t);
+                devList(rid).push(d);
+                uiChanged();
+                showPopup("ap-edit:" + d.aid, true);
+              },
+            })
+          );
+        });
         return;
       }
       var items = candidates(ADDDOMS[st.dom][1], rid, st.q),
