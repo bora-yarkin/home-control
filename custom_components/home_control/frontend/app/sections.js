@@ -558,7 +558,7 @@ function customSection(s) {
       .map(function (d) {
         return d.id;
       });
-    if (mids.length > 1) rows.unshift(lightsMasterRow(s.id, mids, !s.nowheel));
+    if (mids.length > 1) rows.unshift(lightsMasterRow(s.id, mids, !s.nowheel, s.mn));
   }
   var body = rows;
   if (k === "read") {

@@ -29,7 +29,7 @@ function lpNodeOf(id, icon) {
 /* All the lights of a section as one: its lights and groups are the first level below. */
 function lpMasterNode(sid, ids) {
   var units = lightUnits(ids),
-    n = { key: "m:" + sid, name: _T("all_lights"), icon: "lights", cmd: units, kids: null, parent: null, zones: false };
+    n = { key: "m:" + sid, name: LMASTER_NAME[sid] || _T("all_lights"), icon: "lights", cmd: units, kids: null, parent: null, zones: false };
   n.kids = units.map(function (u) {
     var k = lpNodeOf(u, null);
     k.parent = n;

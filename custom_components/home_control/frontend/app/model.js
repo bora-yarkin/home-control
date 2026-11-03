@@ -25,6 +25,19 @@ var KINDS = [
 
 /* The starting layout when nothing is saved yet: one room per Home Assistant area with its controllable devices,
  temperature and humidity tiles, and every battery sensor tracked. Built from Home Assistant, so it fits any home. */
+/* The lights that are the zones of another light (a gradient tube is one light with a light for each of its colour zones). They are not put on a page by themselves: the main light controls its zones, and one can still be added by hand. */
+function zoneLightIds(states) {
+  var out = {};
+  Object.keys(states).forEach(function (id) {
+    var a = states[id].attributes || {};
+    if (id.indexOf("light.") === 0 && Array.isArray(a.zone_colors) && Array.isArray(a.entity_id))
+      a.entity_id.forEach(function (m) {
+        if (m !== id) out[m] = 1;
+      });
+  });
+  return out;
+}
+
 function seedUI() {
   var h = H(),
     rooms = [],
@@ -33,9 +46,10 @@ function seedUI() {
     chips = [],
     bats = [],
     all = Object.keys(h.states),
+    zones = zoneLightIds(h.states),
     ids = all.filter(function (id) {
       var e = h.entities[id];
-      return !(e && (e.entity_category || e.hidden || e.disabled_by));
+      return !zones[id] && !(e && (e.entity_category || e.hidden || e.disabled_by));
     });
   function inArea(a, id) {
     return areaIdOf(id) === a;
@@ -386,6 +400,7 @@ function cleanLayout(a) {
       o.ref = s.ref;
     if (k === "lights" && s.noall) o.noall = 1;
     if (k === "lights" && s.master) o.master = 1;
+    if (k === "lights" && s.master && typeof s.mn === "string" && s.mn.trim()) o.mn = s.mn.trim().slice(0, 40);
     if (k === "lights" && s.nowheel) o.nowheel = 1;
     if (k === "lights" && s.accent) o.accent = 1;
     if (k === "pinned" && Array.isArray(s.pins)) o.pins = cleanPins(s.pins);

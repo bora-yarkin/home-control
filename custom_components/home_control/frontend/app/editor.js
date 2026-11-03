@@ -1052,6 +1052,20 @@ function secEditor(b, key) {
           },
         })
       );
+    if (k === "lights" && e.master)
+      box.appendChild(
+        textRow(
+          "edit",
+          _T("all_lights"),
+          e.mn || "",
+          function (v) {
+            if (v) e.mn = v.slice(0, 40);
+            else delete e.mn;
+            save();
+          },
+          40
+        )
+      );
     if (k === "lights")
       box.appendChild(
         pill("palette", _T("colour_circle"), {

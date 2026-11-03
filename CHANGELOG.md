@@ -4,6 +4,11 @@ Format: [Keep a Changelog](https://keepachangelog.com/). Versions follow [semant
 
 ## [Unreleased]
 
+## [0.2.1]
+
+- A new dashboard no longer puts the zones of a gradient light on a page (frontend v213): the zone lights of a light made of colour zones (a Play gradient tube) are left out of the first layout and of the list of new devices; the main light is added and controls its zones, and a zone can still be added by hand.
+- The lights master can be renamed (frontend v213): the section's settings have a name field under *Lights master*; the name is used for its row, its popup header and its light panel. Empty means "All lights".
+
 ## [0.2.0]
 
 First public version. Changes since the private 0.1.0:

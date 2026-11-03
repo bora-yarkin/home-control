@@ -114,10 +114,12 @@ function newDevs(all) {
     since = UI.newSince || 0,
     h = H();
   if (!h) return [];
+  var zones = zoneLightIds(h.states);
   return (REG || [])
     .filter(function (e) {
       return (
         NEWDOMS.test(e.entity_id) &&
+        !zones[e.entity_id] &&
         !e.entity_category &&
         !e.hidden_by &&
         !e.disabled_by &&

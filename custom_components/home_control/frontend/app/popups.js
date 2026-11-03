@@ -256,7 +256,7 @@ function popupDefBase(key) {
     };
   if (k === "lmaster")
     return {
-      title: _T("lights_master"),
+      title: LMASTER_NAME[id] || _T("lights_master"),
       icon: "lights",
       build: function (b) {
         lightsMasterPopup(b, id);

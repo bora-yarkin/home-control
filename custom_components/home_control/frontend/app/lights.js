@@ -502,6 +502,8 @@ function lightIndividuals(ids, depth) {
 
 /* The lights master of a Lights section: one light that stands for every light in the section. The section's lights are kept here for its popup. */
 var LMASTER = {};
+/* What the section called its lights master (its row, its popup and its panel), by section; empty when it was not renamed. */
+var LMASTER_NAME = {};
 
 /* The lights a master slider changes: the ones that are on, or all of them when none is. */
 function lightTargets(ids) {
@@ -536,12 +538,13 @@ function lightsMasterToggle(ids) {
   if (plain.length) call("light", "turn_on", { entity_id: plain });
 }
 
-function lightsMasterRow(sid, ids, wheel) {
+function lightsMasterRow(sid, ids, wheel, name) {
   LMASTER[sid] = ids;
+  LMASTER_NAME[sid] = name || "";
   LWHEEL["m:" + sid] = wheel;
   var r = sliderRow({
     icon: "lights",
-    name: _T("all_lights"),
+    name: name || _T("all_lights"),
     min: 0,
     max: 100,
     step: 1,
