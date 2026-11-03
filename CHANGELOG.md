@@ -4,6 +4,10 @@ Format: [Keep a Changelog](https://keepachangelog.com/). Versions follow [semant
 
 ## [Unreleased]
 
+## [0.3.0]
+
+Includes the changes of frontend v213 to v217 below (zones left out of a new dashboard, a renamable lights master, everything off in a room, connection notice, binary low batteries, custom remotes).
+
 - Custom remotes, part one (frontend v217): *Add device, Remote* makes a remote that shows as a normal row and opens a popup with a grid of buttons (3 columns by default; 2 to 6 per remote, and a button can take 2 columns). An administrator switches the popup to *Edit buttons* and uses a "+" tile: the entity selector (a script, button, input button, scene or switch), then the icon selector, a label, the width, the order and removal. A press runs the right service (script on, button press, scene on, switch toggle) and says nothing unless it fails or the entity is unavailable. Image remotes follow.
 - Connection notice (frontend v216): a "connection lost" notice that stayed after Home Assistant reported the connection back is cleared once Home Assistant has said connected for 3 seconds, and the dashboard follows a new connection object.
 - Low batteries that only say low (frontend v216): a battery binary sensor can be tracked; it shows Low or OK, counts in the batteries tile and is watched by the low-battery notification.
