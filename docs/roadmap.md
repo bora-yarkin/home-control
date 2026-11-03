@@ -19,7 +19,7 @@ Each is a device kind of the page editor's "Add device" list. Its popup is built
 - P1-5 planned: devices with no area of Home Assistant are listed on the new-devices page and placed in a room by the user (saved with the dashboard layout only).
 
 ## P2 Remotes
-- P2-1 planned: a remote kind: a grid of buttons (3 columns by default, adjustable per remote; a button can take 2 columns), each bound to an entity (script, button, input button, scene, switch) with an icon and an optional label; created in the page editor with a "+" tile.
+- P2-1 complete (grid, frontend v217): a remote kind: a grid of buttons (3 columns by default, adjustable per remote; a button can take 2 columns), each bound to an entity (script, button, input button, scene, switch) with an icon and an optional label; created in the page editor with a "+" tile.
 - P2-2 planned: an image remote: a picture (uploaded, or an existing `/local/` file) with touch areas drawn over it (rounded rectangle or ellipse), each bound to an entity. An error is shown only when a command fails.
 
 ## P3 Scenes with other brands

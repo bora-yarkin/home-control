@@ -838,6 +838,7 @@ function devRowRaw(d) {
   if (d.kind === "button") return buttonRow(d);
   if (d.kind === "cover") return coverRow(d);
   if (d.kind === "lock") return lockRow(d);
+  if (d.kind === "remote") return remoteRow(d);
   if (d.kind === "special") {
     pk = devPop(d);
     if (!pk) return null;

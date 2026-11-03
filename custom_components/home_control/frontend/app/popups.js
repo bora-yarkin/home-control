@@ -539,6 +539,24 @@ function popupDefBase(key) {
       },
     };
   }
+  if (k === "remote") {
+    var rmd = remoteFind(id);
+    return {
+      title: rmd ? rmd.name : _T("remote"),
+      icon: rmd ? rmd.icon : "gamepad",
+      build: function (b) {
+        remotePage(b, id);
+      },
+    };
+  }
+  if (k === "remote-btn")
+    return {
+      title: _T("rm_button"),
+      icon: "plus",
+      build: function (b) {
+        remoteBtnPage(b, id);
+      },
+    };
   if (k === "manage-move")
     return {
       title: _T("move_to_room"),
@@ -906,6 +924,7 @@ function closeLayer() {
 
 /* A saved popup choice is used only if it still leads somewhere; otherwise the device type decides. */
 function devPop(d) {
+  if (d.kind === "remote") return "remote:" + d.rid;
   if (d.pop && popupDef(d.pop).title) return d.pop;
   if (!d.id) return "";
   /* Lights and switches have their own popup; the other devices use the popup of their type, or the generic one. */

@@ -350,6 +350,7 @@ var KINDLAB = {
   vacuum: _T("vacuum"),
   camera: _T("camera"),
   special: _T("other"),
+  remote: _T("remote"),
   sensor: _T("sensor_2"),
   number: _T("number"),
   select: _T("choice"),
@@ -421,6 +422,7 @@ var ADDDOMS = [
   ],
   [_T("helpers"), ["input_text", "input_datetime", "counter", "timer"]],
   [_T("all_entities"), ["*"]],
+  [_T("remote"), ["__remote"]],
 ];
 
 var DOMKIND = {
@@ -1308,6 +1310,24 @@ function devAdd(b, rid) {
   }
   function list() {
     redrawBox(box, function () {
+      /* A remote is not an entity: it is made here, then filled with buttons. */
+      if (ADDDOMS[st.dom][1][0] === "__remote") {
+        box.appendChild(
+          pill("gamepad", _T("rm_new_remote"), {
+            sub: function () {
+              return _T("rm_new_remote_sub");
+            },
+            tap: function () {
+              var d = remoteNew();
+              devList(rid).push(d);
+              uiChanged();
+              RM.edit[d.rid] = true;
+              showPopup("remote:" + d.rid, true);
+            },
+          })
+        );
+        return;
+      }
       var items = candidates(ADDDOMS[st.dom][1], rid, st.q),
         shown = items.slice(0, 40);
       if (!items.length)

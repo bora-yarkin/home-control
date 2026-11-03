@@ -787,4 +787,13 @@ body.pinhdr:not(.editing) .wrap::before{content:"";position:fixed;top:0;left:0;r
 .openc>.dslide{grid-template-rows:1fr;opacity:1}
 .dinner{overflow:hidden;min-height:0}
 @media(prefers-reduced-motion:reduce){.dslide{transition:none}}
+/* Custom remotes: a grid of buttons (app/remote.js). */
+.rm-grid{display:grid;grid-template-columns:repeat(var(--rc,3),minmax(0,1fr));gap:var(--sp-s)}
+.rm-t{display:flex;flex-direction:column;align-items:center;justify-content:center;gap:6px;min-height:76px;padding:10px 6px;border-radius:var(--r-m);cursor:pointer;user-select:none;text-align:center;color:var(--ink);transition:transform .08s,opacity .2s}
+.rm-t svg{width:26px;height:26px;fill:none;stroke:currentColor;stroke-width:1.7;stroke-linecap:round;stroke-linejoin:round}
+.rm-l{max-width:100%;font-size:var(--fs-s);line-height:1.2;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.rm-t.na{opacity:.45}
+.rm-t.ed{outline:1px dashed var(--f-line2,var(--f-line));outline-offset:-4px}
+.rm-t.add{color:var(--ink2)}
+.rm-t:focus-visible{outline:2px solid var(--acc);outline-offset:2px}
 

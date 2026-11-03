@@ -15,6 +15,7 @@ var KINDS = [
   "vacuum",
   "camera",
   "special",
+  "remote",
   "sensor",
   "number",
   "select",
@@ -145,6 +146,24 @@ function cleanHdr(a) {
   return out;
 }
 
+/* A custom remote's grid (app/remote.js): the number of columns and up to 60 buttons, each an entity of a kind that can be pressed, an icon, a short label and how many columns it takes. */
+function cleanRemote(r) {
+  var cols = r && typeof r.cols === "number" ? Math.max(2, Math.min(6, Math.round(r.cols))) : 3,
+    out = { cols: cols, btns: [] };
+  (r && Array.isArray(r.btns) ? r.btns : []).slice(0, 60).forEach(function (x) {
+    if (!x || typeof x.e !== "string" || !ENTRE.test(x.e)) return;
+    if (["script", "button", "input_button", "scene", "switch"].indexOf(x.e.split(".")[0]) < 0) return;
+    var s = typeof x.s === "number" ? Math.round(x.s) : 1;
+    out.btns.push({
+      e: x.e,
+      i: iconOk(x.i) ? x.i : "info",
+      l: typeof x.l === "string" ? x.l.slice(0, 24) : "",
+      s: Math.max(1, Math.min(cols, 2, s)),
+    });
+  });
+  return out;
+}
+
 function cleanDev(d) {
   if (
     !d ||
@@ -157,7 +176,8 @@ function cleanDev(d) {
     return null;
   var id = typeof d.id === "string" ? d.id : "";
   if (id && !ENTRE.test(id)) return null;
-  if (!id && d.kind !== "special") return null;
+  if (!id && d.kind !== "special" && d.kind !== "remote") return null;
+  if (d.kind === "remote" && !(typeof d.rid === "string" && /^[a-z0-9_-]{1,24}$/.test(d.rid))) return null;
   var c = { id: id, name: d.name, icon: iconOk(d.icon) ? d.icon : "plug", kind: d.kind };
   if (typeof d.pop === "string" && POPRE.test(d.pop) && d.pop) c.pop = d.pop;
   if (d.sub) c.sub = 1;
@@ -167,6 +187,10 @@ function cleanDev(d) {
       return typeof x === "string" && ENTRE.test(x) && x !== id && d.links.indexOf(x) === i;
     });
     if (ls.length) c.links = ls.slice(0, 12);
+  }
+  if (d.kind === "remote") {
+    c.rid = d.rid;
+    c.rm = cleanRemote(d.rm);
   }
   if (d.keep) c.keep = 1;
   if (d.hide) c.hide = 1;
