@@ -184,7 +184,7 @@ function batsAutoAdd() {
     var id = e.entity_id;
     if (
       UI.bats.length >= 30 ||
-      dom(id) !== "sensor" ||
+      (dom(id) !== "sensor" && dom(id) !== "binary_sensor") ||
       !h.states[id] ||
       A(id).device_class !== "battery" ||
       e.disabled_by ||

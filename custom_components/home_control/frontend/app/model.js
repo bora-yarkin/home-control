@@ -92,7 +92,7 @@ function seedUI() {
     if (hu) stat[rid].push({ l: _T("humidity"), id: hu, u: "%", dp: 0 });
   });
   all.forEach(function (id) {
-    if (dom(id) === "sensor" && A(id).device_class === "battery")
+    if ((dom(id) === "sensor" || dom(id) === "binary_sensor") && A(id).device_class === "battery")
       bats.push([(A(id).friendly_name || id).replace(/\s*battery\s*$/i, "").slice(0, 40), id]);
   });
   return {

@@ -4,6 +4,8 @@ Format: [Keep a Changelog](https://keepachangelog.com/). Versions follow [semant
 
 ## [Unreleased]
 
+- Connection notice (frontend v216): a "connection lost" notice that stayed after Home Assistant reported the connection back is cleared once Home Assistant has said connected for 3 seconds, and the dashboard follows a new connection object.
+- Low batteries that only say low (frontend v216): a battery binary sensor can be tracked; it shows Low or OK, counts in the batteries tile and is watched by the low-battery notification.
 - Everything off in a room (frontend v215). A power button sits first in the header's group of buttons on every room's page that has something to switch off. It turns off every device on that room's pages (lights, media players, climate, fans, switches), stops live scenes on those lights and respects view-only and confirm settings. In the page editor, tapping it opens a list of those devices with a switch each; an administrator can switch one off to leave it as it is (an air purifier, say), and the choice is kept with the layout. The dashboard also keeps one script per room in Home Assistant, `script.home_control_<room id>_off`, built from the same list (it reads each script first and writes only what differs, and removes only a script that carries its mark), so an automation, a button or a voice assistant can run it.
 ## [0.2.1]
 

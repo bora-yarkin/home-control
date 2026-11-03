@@ -18,6 +18,7 @@ function load({ devices, bats = [], rules, live = {}, getError = {} }) {
     OFFLINE: false,
     H: () => ({ services: { notify: { mobile_app_phone: {} } } }),
     ENTRE: /^[a-z_]+\.[a-z0-9_]+$/,
+    dom: (id) => id.split(".")[0],
     UI: { bats },
     STORE: { notify: { rules } },
     devsOf: (kind) => devices.filter((d) => !kind || d.kind === kind),
@@ -124,4 +125,16 @@ test("a rule that is switched off, a non-admin and an offline page write nothing
   away.sandbox.notifyReconcile();
   await settle();
   assert.deepEqual([off.saved, guest.saved, away.saved], [[], [], []]);
+});
+
+test("a battery that only says low (a binary sensor) triggers when it turns on, a percentage below the limit", () => {
+  const options = { devices: [], bats: [["Door", "sensor.door_battery"], ["Window", "binary_sensor.window_battery_low"]], rules: rules({ batt: on({ thr: 20, ents: [], scope: "default" }) }) };
+  const p = built(options, "batt");
+  assert.deepEqual(p.triggers, [
+    { trigger: "numeric_state", entity_id: ["sensor.door_battery"], below: 20 },
+    { trigger: "state", entity_id: ["binary_sensor.window_battery_low"], to: "on" },
+  ]);
+  assert.match(p.actions[0].data.message, /binary_sensor/);
+  const onlyFlags = built({ ...options, bats: [options.bats[1]] }, "batt");
+  assert.deepEqual(onlyFlags.triggers.map((t) => t.trigger), ["state"]);
 });

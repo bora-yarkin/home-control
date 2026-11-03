@@ -16,6 +16,7 @@ var RETRY_MS=[2000,5000,15000,30000];
 function attach(h){
  hass=h;
  if(!facade)start();
+ bindConnection();
  schedule();
 }
 
@@ -124,8 +125,17 @@ function withType(type,params){return ws(Object.assign({type:type},params))}
 
 /* Called when the connection to Home Assistant is lost and when it is back. */
 function onConnection(lost,back){
- hass.connection.addEventListener("disconnected",lost);
- hass.connection.addEventListener("ready",back);
+ connHandlers.push({lost:lost,back:back});
+ bindConnection();
+}
+
+/* Home Assistant can hand the panel a new connection object (after a sign-in renewal, for instance); the handlers follow it, so a "back" is never missed on the old one. */
+var connHandlers=[],connBound=null;
+function bindConnection(){
+ var c=hass&&hass.connection;
+ if(!c||c===connBound||!connHandlers.length)return;
+ connBound=c;
+ connHandlers.forEach(function(x){c.addEventListener("disconnected",x.lost);c.addEventListener("ready",x.back)});
 }
 
 /* Settings saved in Home Assistant: scope is "user" (this user only) or "system" (everyone). Resolves to the saved value. */

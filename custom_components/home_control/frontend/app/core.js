@@ -217,9 +217,21 @@ function callRaw(d, s, data) {
   return p;
 }
 
+/* When the page has been told the connection is lost but Home Assistant has reported it connected for a few seconds, the "back" was missed (a new connection object, a dropped event); the page believes what Home Assistant reports. */
+var CONNOK = 0;
+
 function connCheck() {
-  var h = H();
-  document.body.classList.toggle("off", !h || h.connected === false);
+  var h = H(),
+    down = !h || h.connected === false;
+  document.body.classList.toggle("off", down);
+  if (OFFLINE && h && h.connected === true) {
+    if (!CONNOK) CONNOK = Date.now();
+    else if (Date.now() - CONNOK > 3000) {
+      CONNOK = 0;
+      offlineSet(false);
+    }
+  } else CONNOK = 0;
+  if (!OFFLINE && h && h.connected === false) offlineSet(true);
 }
 
 function entIds(data) {

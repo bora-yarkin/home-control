@@ -1,6 +1,8 @@
 /* Text shown to the user: the English strings and the lookup function _T(). */
 
 var EN = {
+  "battery_is_low": "Low",
+  "battery_is_ok": "OK",
   "the_button_at_the_top_of_this_room_s_": "The button at the top of this room's page, and the script that Home Assistant keeps for it, switch off the devices below. Switch one off here to leave it as it is, for example an air purifier. The script:",
   "nothing_here_can_be_switched_off": "Nothing on this room's pages can be switched off",
   "left_as_it_is": "Left as it is",

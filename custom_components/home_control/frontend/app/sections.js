@@ -1167,8 +1167,8 @@ function secGlance() {
         return editing()
           ? cntS(UI.bats.length, _T("sensor"), _T("sensors_2"))
           : BATLIST.filter(function (x) {
-              var v = Number(V_(x[1]));
-              return isFinite(v) && v >= 0 && v < batLow();
+              var r = batReading(x[1]);
+              return r && r.low;
             }).length +
               " " +
               _T("below") +

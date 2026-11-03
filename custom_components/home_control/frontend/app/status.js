@@ -122,14 +122,24 @@ function homeStatus() {
 /* ---- status, pins, alerts, quick actions, search, display ---- */
 var BATLIST = [];
 
+/* A tracked battery is low when its percentage is under the limit in Settings, or when a battery binary sensor reports on (those only say low or fine). Null when it has no reading. */
+function batReading(id) {
+  if (dom(id) === "binary_sensor") {
+    var s = V_(id);
+    return s === "on" ? { low: true, text: _T("battery_is_low") } : s === "off" ? { low: false, text: _T("battery_is_ok") } : null;
+  }
+  var v = Number(V_(id));
+  return isFinite(v) && v >= 0 ? { low: v < batLow(), text: Math.round(v) + "%" } : null;
+}
+
 /* alerts */
 /* Lights, fans and players that have been on longer than the "left on" limit in Settings, longest first. */
 function alertList() {
   var out = [],
     low = [];
   BATLIST.forEach(function (x) {
-    var v = Number(V_(x[1]));
-    if (isFinite(v) && v >= 0 && v < batLow()) low.push(x[0] + " " + Math.round(v) + "%");
+    var r = batReading(x[1]);
+    if (r && r.low) low.push(x[0] + " " + r.text);
   });
   if (alertOn("battery") && low.length)
     out.push([
@@ -458,7 +468,8 @@ function batsPage(b) {
             return x[1];
           },
           val: function () {
-            return entVal(x[1]);
+            var r = batReading(x[1]);
+            return r ? r.text : entVal(x[1]);
           },
           tap: function () {
             confirmDlg(_T("stop_tracking") + x[0] + "”?", function () {

@@ -625,6 +625,18 @@ function popupDefBase(key) {
       icon: "battery",
       build: function (b) {
         BATLIST.forEach(function (x) {
+          if (dom(x[1]) === "binary_sensor") {
+            /* A battery flag has no percentage: it says low or fine. */
+            b.appendChild(
+              pill("battery", x[0], {
+                val: function () {
+                  var r = batReading(x[1]);
+                  return r ? r.text : "";
+                },
+              })
+            );
+            return;
+          }
           b.appendChild(
             sliderRow({
               icon: "battery",

@@ -113,9 +113,17 @@ function notifyPayload(k) {
         : UI.bats.map(function (x) {
             return x[1];
           });
-    if (ents.length) trigs.push({ trigger: "numeric_state", entity_id: ents, below: r.thr });
+    /* A percentage sensor triggers below the limit; a battery binary sensor triggers when it reports low (on). */
+    var pct = ents.filter(function (id) {
+        return dom(id) !== "binary_sensor";
+      }),
+      flags = ents.filter(function (id) {
+        return dom(id) === "binary_sensor";
+      });
+    if (pct.length) trigs.push({ trigger: "numeric_state", entity_id: pct, below: r.thr });
+    if (flags.length) trigs.push({ trigger: "state", entity_id: flags, to: "on" });
     msg =
-      "{{ trigger.to_state.attributes.friendly_name }} battery is at {{ trigger.to_state.state }}%";
+      "{{ trigger.to_state.attributes.friendly_name }} battery is {{ 'low' if trigger.to_state.domain == 'binary_sensor' else 'at ' ~ trigger.to_state.state ~ '%' }}";
   } else if (k === "offline") {
     ents = offlineList(r);
     if (ents.length)
@@ -426,7 +434,7 @@ function nruleEdit(b, k) {
         box.appendChild(
           pill("plus", _T("add_another_battery_sensor"), {
             tap: function () {
-              pickEntity(_T("choose_a_battery_sensor"), ["sensor"], ["battery"], function (id) {
+              pickEntity(_T("choose_a_battery_sensor"), ["sensor", "binary_sensor"], ["battery"], function (id) {
                 if (r.ents.indexOf(id) < 0) r.ents.push(id);
                 save();
               });
