@@ -4,6 +4,10 @@ Format: [Keep a Changelog](https://keepachangelog.com/). Versions follow [semant
 
 ## [Unreleased]
 
+## [0.4.0]
+
+Includes frontend v216 to v222 below (the connection notice, binary low batteries, remotes, appliances, image remotes, vacuum extras, intercom and push to talk, alerts for any entity, scenes with other brands, the whole-room master option). The 0.3.0 version number was never released; its changes are included here.
+
 - Scenes with other brands (frontend v222): when Scene engine is installed, a live scene whose area has a light that is not Hue's is played by Scene engine (which hands the Hue lights to Hue Plus when that is installed too, so a mixed scene moves as one); a scene whose lights are all Hue's stays with Hue Plus. Starting, stopping, speed, range, brightness, play and freeze, the libraries and the area editor follow the owner; stopping the Hue half of a mixed scene stops the whole scene. Hue Plus's looks, brightness effects and native effects are not part of Scene engine's scenes.
 - Appliances, brand independent (frontend v218): *Add device, Appliance* (oven, washer, dryer, dishwasher or other) makes a device whose popup is built from slots the administrator binds with the entity selector: state, program, temperature, duration, start, stop, progress, time left, door, remote-start permission, and free extra rows. A slot that is not bound is not shown; each control follows its entity's own kind (a select is a selector, a number a slider, a button a button). Start is disabled, with the reason, while a bound remote-start permission is off or the Start entity is unavailable; nothing says "started" because a command was sent. A time left reads from a timestamp or a duration.
 - Date and time helpers (v218): an `input_datetime` is a row that opens the browser's own time or date input and sets the helper, instead of a sensor reading.
