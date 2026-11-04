@@ -447,7 +447,8 @@ function openMenu(anchor, options, current, pick, fmt) {
   closeMenu(true);
   var m = mk("div", "menu pane");
   options.forEach(function (o) {
-    var it = mk("div", "mi" + (String(o) === String(current) ? " on" : ""), fmt ? fmt(o) : cap(o));
+    var it = mk("div", "mi" + (String(o) === String(current) ? " on" : ""));
+    it.textContent = fmt ? fmt(o) : cap(o); /* an option comes from a device and is text, never markup */
     it.addEventListener("click", function (e) {
       e.stopPropagation();
       closeMenu();

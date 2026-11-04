@@ -355,10 +355,6 @@ function compileScene(sc) {
   return acts;
 }
 
-function one(x) {
-  return Array.isArray(x) && x.length === 1 ? x[0] : x;
-}
-
 function timeRow(icon, val, fn) {
   var w = mk("div", "sqw pane", svg(icon)),
     i = mk("input", "sq");
