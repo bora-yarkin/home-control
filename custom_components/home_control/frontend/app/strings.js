@@ -27,6 +27,8 @@ var EN = {
   "px_extras": "Extras",
   "px_entities": "entities",
   "px_open_the_door": "Open the door?",
+  "px_listen": "Listen to the door",
+  "px_listen_failed": "Nothing to listen to yet: answer the call first",
   "px_hold_to_talk": "Hold to talk",
   "px_talking_did_not_start": "Talking did not start",
   "px_intercom": "Intercom",

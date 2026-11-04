@@ -177,6 +177,14 @@ var route={
  }
 };
 
+/* ---- a short-lived signed address ---- */
+
+/* An audio or video element cannot send Home Assistant's login header, so a stream that needs it is played from an address Home
+ Assistant signs for a minute (`auth/sign_path`). */
+function signPath(path){
+ return ws({type:"auth/sign_path",path:path,expires:60}).then(function(r){return r.path});
+}
+
 /* ---- automations owned by the panel ---- */
 
 /* The automation editor of Home Assistant saves through this REST path; there is no websocket command for it. */
@@ -222,6 +230,7 @@ window.HA={
  serviceResponse:serviceResponse,
  camera:camera,
  route:route,
+ signPath:signPath,
  automations:automations,
  scripts:scripts,
  remotePictures:remotePictures
