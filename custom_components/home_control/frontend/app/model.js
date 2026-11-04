@@ -269,6 +269,9 @@ function cleanDev(d) {
         var e = ent(d.ix[g[0]], g[1]);
         if (e) ix[g[0]] = e;
       });
+      /* The door's audio during a call: a Home Assistant address that streams it (it is signed when played). */
+      if (typeof d.ix.listen === "string" && /^\/api\/[A-Za-z0-9_.\/-]{1,200}$/.test(d.ix.listen) && d.ix.listen.indexOf("..") < 0)
+        ix.listen = d.ix.listen;
       if (Object.keys(ix).length) c.ix = ix;
     }
   }

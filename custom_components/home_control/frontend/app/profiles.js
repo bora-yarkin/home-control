@@ -237,7 +237,7 @@ function ixUnlock(e) {
 function camIntercom(box, id) {
   var d = UIDEV[id],
     ix = d && d.ix;
-  if (!ix || !(ix.answer || ix.reject || ix.unlock)) return;
+  if (!ix || !(ix.answer || ix.reject || ix.unlock || ix.listen)) return;
   var bar = mk("div", "cix"),
     btns = {};
   [["answer", "ix-ans", "px_answer", "check"], ["reject", "ix-rej", "px_reject", "close"], ["unlock", "ix-unl", "px_unlock", "lock"]].forEach(function (g) {
@@ -254,11 +254,64 @@ function camIntercom(box, id) {
     btns[g[0]] = t;
     bar.appendChild(t);
   });
+  /* Listen: the door's audio as a live stream, from the moment the call is answered. */
+  var audio = null;
+  function stopListening() {
+    if (audio) {
+      try {
+        audio.pause();
+        audio.removeAttribute("src");
+        audio.load();
+      } catch (x) {}
+      audio = null;
+    }
+    if (btns.listen) btns.listen.classList.remove("act", "wait");
+  }
+  if (ix.listen) {
+    var ls = mk("div", "rnd pane ix-lis", svg("volup"));
+    ls.setAttribute("role", "button");
+    ls.setAttribute("aria-label", _T("px_listen"));
+    ls.title = _T("px_listen");
+    ls.addEventListener("click", function (e) {
+      e.stopPropagation();
+      if (audio) {
+        stopListening();
+        return;
+      }
+      ls.classList.add("wait");
+      window.HA.signPath(ix.listen).then(
+        function (url) {
+          var a = new Audio(url);
+          audio = a;
+          a.addEventListener("playing", function () {
+            if (audio === a) ls.classList.replace("wait", "act");
+          });
+          ["ended", "error"].forEach(function (ev) {
+            a.addEventListener(ev, function () {
+              if (audio !== a) return;
+              stopListening();
+              if (ev === "error") toast(_T("px_listen_failed"));
+            });
+          });
+          return a.play();
+        }
+      ).catch(function () {
+        stopListening();
+        toast(_T("px_listen_failed"));
+      });
+    });
+    btns.listen = ls;
+    bar.appendChild(ls);
+  }
   box.appendChild(bar);
   function up() {
     var r = ixRinging(ix);
     if (btns.answer) btns.answer.style.display = r ? "" : "none";
     if (btns.reject) btns.reject.style.display = r ? "" : "none";
+    if (btns.listen) {
+      btns.listen.style.display = r || audio ? "" : "none";
+      if (!r && audio) stopListening();
+    }
     bar.classList.toggle("ring", r && !!ix.ring);
   }
   up();

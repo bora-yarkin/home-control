@@ -55,6 +55,7 @@ Websocket commands:
 - `history/history_during_period`, `logbook/get_events`, `recorder/statistics_during_period`
 - `config/auth/list` (administrators only)
 - `camera/webrtc/get_client_config`, `camera/webrtc/offer`, `camera/webrtc/candidate`, `camera/stream`
+- `auth/sign_path` (a camera intercom's Listen button plays the stream at `ix.listen` from an address signed for a minute)
 - `call_service` with `return_response` (`HA.serviceResponse`; xiaomi_miot only, see below)
 
 REST: `POST` and `DELETE` `config/automation/config/<id>` (notification rules; the same call the automation editor makes) and `config/script/config/<id>` (the room-off scripts, see below),

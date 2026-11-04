@@ -44,6 +44,12 @@ test("a camera keeps push to talk and intercom entities that fit; a light keeps 
   assert.equal(cam.talk, 1);
   assert.deepEqual(cam.ix, { answer: "button.a", reject: "button.r", unlock: "lock.front", ring: "event.bell" });
   assert.equal(plain(c.cleanDev({ id: "camera.c", name: "C", icon: "cam", kind: "camera", ix: { unlock: "light.x" } })).ix, undefined);
+  // The door's audio address: only an /api path of Home Assistant, never an outside address or a way out of /api.
+  const listen = (value) => plain(c.cleanDev({ id: "camera.c", name: "C", icon: "cam", kind: "camera", ix: { listen: value } })).ix;
+  assert.deepEqual(listen("/api/hikvision_intercom/listen/abc/def"), { listen: "/api/hikvision_intercom/listen/abc/def" });
+  for (const bad of ["https://evil.example/api/x", "//evil.example/api/x", "/api/../auth/token", "/auth/token", "/api/a b", "", 5, null]) {
+    assert.equal(listen(bad), undefined, String(bad));
+  }
   assert.equal(plain(c.cleanDev({ id: "light.l", name: "L", icon: "light", kind: "light", sx: "select.scenes" })).sx, "select.scenes");
   assert.equal(plain(c.cleanDev({ id: "light.l", name: "L", icon: "light", kind: "light", sx: "sensor.scenes" })).sx, undefined);
   assert.equal(plain(c.cleanDev({ id: "switch.s", name: "S", icon: "plug", kind: "switch", talk: 1, vx: { map: "image.a" }, sx: "select.x" })).talk, undefined);
