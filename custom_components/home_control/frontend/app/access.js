@@ -205,7 +205,7 @@ function accSummary(uid) {
   if (!u) return _T("full_access");
   var n = Object.keys(u.rooms).length + Object.keys(u.devs).length;
   return (
-    _T("everything_else") +
+    _T("everything_else_value") +
     (u.def ? MODELAB[u.def.m] : _T("allowed")) +
     (n ? " · " + n + (n === 1 ? " exception" : " exceptions") : "")
   );

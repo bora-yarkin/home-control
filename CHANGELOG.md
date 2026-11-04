@@ -4,6 +4,12 @@ Format: [Keep a Changelog](https://keepachangelog.com/). Versions follow [semant
 
 ## [Unreleased]
 
+### Fixed
+- The heading "Everything else" in the entity picker no longer shows a trailing colon (a text key was defined twice and the later one, meant for the access summary, won).
+
+### Changed
+- Removed two unused helpers and two duplicated text keys (frontend v224).
+
 ## [0.4.1]
 
 - The camera intercom card has a Listen button that plays the door's audio during a call (frontend v223).

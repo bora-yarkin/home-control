@@ -431,8 +431,7 @@ function datetimeText(id) {
 }
 
 function datetimeSet(id, kind, value) {
-  var a = A(id),
-    data = { entity_id: id };
+  var data = { entity_id: id };
   if (kind === "time") data.time = value.length === 5 ? value + ":00" : value;
   else if (kind === "date") data.date = value;
   else data.datetime = value.replace("T", " ") + (value.length === 16 ? ":00" : "");
