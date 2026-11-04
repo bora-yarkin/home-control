@@ -4,6 +4,8 @@ Format: [Keep a Changelog](https://keepachangelog.com/). Versions follow [semant
 
 ## [Unreleased]
 
+## [0.4.2]
+
 ### Fixed
 - The options of a dropdown (a select entity's options, a climate's modes, a light's kinds) were put into the page as HTML; a device that named an option with markup could run script in the dashboard. They are now shown as text. The other places that build HTML from strings were checked: they only use fixed text, numbers, icons and names set as text.
 - The heading "Everything else" in the entity picker no longer shows a trailing colon (a text key was defined twice and the later one, meant for the access summary, won).
