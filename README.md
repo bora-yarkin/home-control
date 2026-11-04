@@ -11,7 +11,7 @@ without it.
 
 ## Install
 
-HACS (this repository is not in the default list, so add it yourself): *Custom repositories*, `https://github.com/bora-yarkin/home-control`, category *Integration*; download *Home Control*, restart Home Assistant, then
+Marketplace (Home Assistant 2026.11 and later; this repository is not in its default list, so add it yourself): *Settings → Marketplace → Add from link*, `https://github.com/bora-yarkin/home-control`; download *Home Control* (older versions: HACS, *Custom repositories*, category *Integration*), restart Home Assistant, then
 *Settings → Devices & services → Add integration → Home Control*. The panel appears in the sidebar. The address, title,
 icon and who may open it are options of the integration.
 
@@ -22,7 +22,7 @@ With [Philips Hue Plus](https://github.com/bora-yarkin/hue-plus) installed, the 
 Hue integration's copies of them (matched by unique id), whether Hue Plus hid the Hue entities or left them alone. Without Hue Plus it shows the
 Hue integration's as usual.
 
-Without HACS: copy `custom_components/home_control` into your configuration folder and restart.
+Without the Marketplace: copy `custom_components/home_control` into your configuration folder and restart.
 
 If you used the dashboard before as a `panel_custom` entry in `configuration.yaml`, remove that entry first; your layouts
 and settings are kept, because they live in Home Assistant, not in the files.

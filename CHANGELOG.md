@@ -4,6 +4,11 @@ Format: [Keep a Changelog](https://keepachangelog.com/). Versions follow [semant
 
 ## [Unreleased]
 
+## [0.4.1]
+
+- The camera intercom card has a Listen button that plays the door's audio during a call (frontend v223).
+- Installation notes now describe the Marketplace that replaces HACS in Home Assistant 2026.11.
+
 ## [0.4.0]
 
 Includes frontend v216 to v222 below (the connection notice, binary low batteries, remotes, appliances, image remotes, vacuum extras, intercom and push to talk, alerts for any entity, scenes with other brands, the whole-room master option). The 0.3.0 version number was never released; its changes are included here.
