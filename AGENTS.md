@@ -8,5 +8,5 @@
   present; the application must run with none of them installed.
 - Test dashboard changes in a sealed copy that cannot write to Home Assistant, and check that user data is unchanged.
 - No personal data in the repository: no real entity ids, names, addresses or screenshots of a real home.
-- Licence GPL-3.0-or-later; Python files start with the SPDX line. Public at https://github.com/bora-yarkin/home-control, installed through HACS as a custom repository (not in the HACS default list).
+- Licence GPL-3.0-or-later; Python files start with the SPDX line. Public at https://github.com/bora-yarkin/home-control, installed through the Marketplace (HACS inside Home Assistant) as a custom repository (not in its default list).
 - Tests: `.venv/bin/python -m pytest` (the integration) and `node --test tests/frontend` (the setup logic in `frontend/app/kinds.js`).
