@@ -29,10 +29,12 @@ test("every text of the menu is defined", () => {
     end_: ["last_state", "off", "pause", "scene"],
     hm_: ["horizontal", "vertical", "forward", "reversed"],
     hp_: ["sunrise", "sunset", "no_effect"],
+    hm_kind_: ["brighten", "dim", "off", "nothing", "scene", "cycle", "time"],
   };
   for (const [prefix, values] of Object.entries(families))
     for (const value of values) assert.ok(strings.includes(`"${prefix}${value}":`), `${prefix}${value} has no text`);
   for (const value of ["safety", "last_on_state", "powerfail", "custom"]) assert.ok(strings.includes(`"hm_pw_${value}_sub":`), `hm_pw_${value}_sub has no text`);
+  for (const value of ["scene_cycle", "single_scene", "brighten", "dim", "lights_off", "do_nothing"]) assert.ok(strings.includes(`"hm_${value}_sub":`), `hm_${value}_sub has no text`);
 });
 
 test("the menu puts no name of a device or of the bridge into the page as markup", () => {

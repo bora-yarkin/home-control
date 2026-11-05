@@ -100,7 +100,7 @@ export function makeHass(query) {
       { id: "auto-2", name: "Evening timer", enabled: false, script: "Timers", status: "disabled" },
     ],
     rooms: [{ id: "room-1", name: "Living room", children: [{ id: "dev-lamp", name: "Desk lamp" }] }],
-    zones: [], smart_scenes: [], scenes: [{ id: "scene-1", name: "Movie", group_id: "room-1" }],
+    zones: [], smart_scenes: [], scenes: [{ id: "scene-1", name: "Movie", group_id: "room-1" }, { id: "scene-2", name: "Relax", group_id: "room-1" }, { id: "scene-3", name: "Nightlight", group_id: "room-1" }],
     entertainment_areas: [
       {
         id: "area-1", name: "TV", type: "screen", end_state: "last_state", performance: "auto", performance_light: null,
@@ -115,10 +115,28 @@ export function makeHass(query) {
     accessories: [
       {
         id: "acc-1", name: "Desk dimmer", dials: 0, automation_id: "auto-1",
-        buttons: [{ id: "b1", number: 1, last_event: "short_release" }, { id: "b2", number: 2, last_event: null }, { id: "b3", number: 3, last_event: null }, { id: "b4", number: 4, last_event: "long_press" }],
-        actions: { b1: { on_short_release: {} }, b4: { on_long_press: {}, on_short_release: {} } },
+        buttons: [{ id: "b1", number: 1, last_event: "short_release" }, { id: "b2", number: 2, last_event: null }, { id: "b3", number: 3, last_event: null }, { id: "b4", number: 4, last_event: "long_release" }],
+        actions: {
+          b1: { on_short_release: { action: "dim_up" }, on_long_press: { action: "dim_up" } },
+          b2: {
+            on_short_release: { recall_single_extended: { actions: [{ action: { recall: { rid: "scene-1", rtype: "scene" } } }], with_off: { enabled: true } } },
+            on_long_press: { action: "do_nothing" },
+          },
+          b3: { on_short_release: { action: "dim_down" }, on_long_press: { action: "dim_down" } },
+          b4: {
+            on_short_release: {
+              scene_cycle_extended: {
+                repeat_timeout: { seconds: 3 },
+                slots: ["scene-1", "scene-2", "scene-3"].map((rid) => [{ action: { recall: { rid, rtype: "scene" } } }]),
+                with_off: { enabled: true },
+              },
+            },
+            on_long_press: { action: "do_nothing" },
+          },
+        },
+        targets: { b1: ["room-1"], b2: ["room-1"], b3: ["room-1"], b4: ["room-1"] },
       },
-      { id: "acc-2", name: "Door tap switch", dials: 1, automation_id: null, buttons: [{ id: "b5", number: 1, last_event: null }], actions: {} },
+      { id: "acc-2", name: "Door tap switch", dials: 1, automation_id: null, buttons: [{ id: "b5", number: 1, last_event: null }], actions: {}, targets: {} },
     ],
     bridge: { name: "Hue Bridge Pro", time_zone: "Europe/Istanbul", internet: "connected" },
   };
