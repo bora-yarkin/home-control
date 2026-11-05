@@ -101,9 +101,26 @@ export function makeHass(query) {
     ],
     rooms: [{ id: "room-1", name: "Living room", children: [{ id: "dev-lamp", name: "Desk lamp" }] }],
     zones: [], smart_scenes: [], scenes: [{ id: "scene-1", name: "Movie", group_id: "room-1" }],
-    entertainment_areas: [{ id: "area-1", name: "TV", type: "screen", end_state: "last_state", lights: [{ light_id: "light-1" }] }],
+    entertainment_areas: [
+      {
+        id: "area-1", name: "TV", type: "screen", end_state: "last_state", performance: "auto", performance_light: null,
+        lights: [
+          { light_id: "light-1", name: "Desk lamp", x: -0.6, y: -1, z: 0.4, balance: 1 },
+          { light_id: "light-2", name: "Shelf strip", x: 0.5, y: 0.9, z: -0.2, balance: 1.5 },
+        ],
+      },
+    ],
     motion_areas: { candidates: [], areas: [{ id: "ma-1", metadata: { name: "Hallway" }, enabled: true }] },
-    apps: [{ id: "a1", name: "Hue app" }, { id: "a2", name: "Home Assistant" }],
+    apps: [{ id: "a1", name: "Hue app", last_used: "2026-11-04T21:00:00" }, { id: "a2", name: "Home Assistant", last_used: "2026-11-05T01:12:00" }],
+    accessories: [
+      {
+        id: "acc-1", name: "Desk dimmer", dials: 0, automation_id: "auto-1",
+        buttons: [{ id: "b1", number: 1, last_event: "short_release" }, { id: "b2", number: 2, last_event: null }, { id: "b3", number: 3, last_event: null }, { id: "b4", number: 4, last_event: "long_press" }],
+        actions: { b1: { on_short_release: {} }, b4: { on_long_press: {}, on_short_release: {} } },
+      },
+      { id: "acc-2", name: "Door tap switch", dials: 1, automation_id: null, buttons: [{ id: "b5", number: 1, last_event: null }], actions: {} },
+    ],
+    bridge: { name: "Hue Bridge Pro", time_zone: "Europe/Istanbul", internet: "connected" },
   };
 
   const connection = {

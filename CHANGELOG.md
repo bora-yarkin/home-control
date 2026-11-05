@@ -4,6 +4,14 @@ Format: [Keep a Changelog](https://keepachangelog.com/). Versions follow [semant
 
 ## [Unreleased]
 
+## [0.4.3]
+
+### Fixed
+- Importing a Hue bridge's entertainment area into the area editor put every light in the wrong place (mirrored): the bridge and the editor count the room's depth the opposite way round. A light now stands where the Hue app shows it, in both directions.
+
+### Changed
+- The Hue Plus menu in Settings is redone to look and be organised like the settings of the Hue app: groups of flat rows (Devices, Bridges, MotionAware areas, Entertainment areas, Routines and automations, Smart home, Software update, Applications), lights as tiles, the set-up of a light, switches, checklists for a choice, and primary and delete buttons. Nothing else on the dashboard changes (frontend v226). A bridge's entertainment area can be edited in the placement editor directly: light placement writes to the bridge, with each light's brightness balance, and the performance (auto or one light) can be chosen. Needs Hue Plus 0.5.1.
+
 ## [0.4.2]
 
 ### Fixed
