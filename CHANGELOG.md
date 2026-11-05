@@ -4,6 +4,9 @@ Format: [Keep a Changelog](https://keepachangelog.com/). Versions follow [semant
 
 ## [Unreleased]
 
+### Changed
+- The Hue Plus menu in Settings is redone to look and be organised like the settings of the Hue app: groups of flat rows (Devices, Bridges, MotionAware areas, Entertainment areas, Routines and automations, Smart home, Software update, Applications), lights as tiles, the set-up of a light, switches, checklists for a choice, and primary and delete buttons. Nothing else on the dashboard changes (frontend v225).
+
 ## [0.4.2]
 
 ### Fixed

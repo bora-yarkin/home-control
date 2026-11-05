@@ -16,6 +16,7 @@ Home Assistant. Anything that Home Assistant does well (automations, helpers, gr
 | `app/scenenew.js` | Making a scene: the + of a scenes section (administrators), the question classic or live, the areas of a live scene, and `guardUnsaved`, the Save / Discard question every editor asks before changes are lost. |
 | `app/staticmaker.js` | Classic scenes: the editor (a light opens the light popup, other devices slide open in place, live scenes can be added), saving, deleting. |
 | `app/vlights.js` | Lights that exist only in the dashboard: the Colors light of the live scene maker and its colours (up to 10), which answer to the light popup like a light made of zones. `core.js` reads them before Home Assistant's states and `callRaw` gives them the commands meant for them. |
+| `app/huemenu.js` | The Hue Plus menu in Settings, laid out like the settings of the Hue app (see *Hue Plus in Settings*). `hueplus.js` keeps what it shares with the area editor. |
 | `app/livemaker.js` | The live scene maker: the light popup with the Colors light, the lights of the chosen areas, the effects and settings of the whole scene, preview and saving. `livescenes.js` keeps playing, sharing with Hue Plus and the scene's popup. |
 | `app/kinds.js` | Guided setup of a device that has other entities (a TV's remote, a camera's second stream, pan/tilt, privacy and detection entities): finds them by itself, offers a searchable list for the rest, keeps the links with the device, and says whether a TV gets the full or the basic remote. Add a kind of device in `DEVSETUP`. |
 | `integrations.js` | Everything that is specific to one integration (xiaomi_miot, robot_vacuum_map, samsungtv_smart, apple_tv, androidtv_remote, hue, hue_plus sync module, hue_plus sync box). It draws nothing and reads nothing from the page. |
@@ -129,12 +130,16 @@ found by their registry `unique_id` (`<box>_syncbox_<key>`, keys: `sync`, `mode`
 
 ## Hue Plus in Settings (`hue_plus`, optional)
 
-`app/hueplus.js` adds the Settings category *Hue Plus*, shown only when the integration is installed with its bridge module: the bridge
-(firmware, Zigbee, Matter, authorized apps), firmware updates, each light's set-up, the bridge's routines, entertainment areas and motion
-areas. Every page is made of the shared controls (`pill`, `switchPill`, `actionPill`, `selectTile`, `confirmDlg`). Lists the bridge itself holds
-come from `hue_plus.get_resources` (`Integrations.hueplus.resources`); everything else from the integration's entities, found by their
-registry `unique_id` (`Integrations.hueplus.bridge/lights/forLight/updates`). Pages are keyed `stg-hue` and `hue-*` in `HP_PAGES`. What is
-experimental in the integration (light set-up, streaming, the end state of an area) says so on its page.
+`app/huemenu.js` is the Settings category *Hue Plus*, shown only when the integration is installed with its bridge module. It is laid out like the settings of the Hue app:
+a first page of labelled groups (*In this home*: Devices, Bridges, MotionAware areas, Entertainment areas, Routines and automations, Smart home, Software update;
+*Advanced*: Applications), then one page for each: lights as tiles (a tap opens the dashboard's light popup, the gear the light's set-up), the set-up of a light (function, power
+on, orientation, timed effects), switches and their buttons, the bridge (status, id, software, settings), software update (firmware of the bridge and of each device, automatic updates),
+Matter, applications, routines, entertainment areas (what the lights do when a sync stops) and MotionAware areas. A choice is a checklist page (`hue-fn`, `hue-pw`, `hue-or`, `hue-od`,
+`hue-end`). The pieces are `hmRow`, `hmGroup`, `hmLabel`, `hmTitle`, `hmInfo`, `hmButton`, `hmCallout`, `hmChips` and the tiles, all drawn under the `.hm` class in `dashboard.css`, so nothing else on the dashboard
+changes; names and values from a device or the bridge are always set as text. Lists the bridge itself holds come from `hue_plus.get_resources` (`Integrations.hueplus.resources`); everything
+else from the integration's entities, found by their registry `unique_id` (`Integrations.hueplus.bridge/lights/forLight/updates`). Pages are keyed `stg-hue` and `hue-*` in `HP_PAGES`. What is
+experimental in the integration (light set-up, streaming, the end state of an area) says so on its page. `app/hueplus.js` keeps what the menu and the area editor share (is Hue Plus there,
+asking the bridge, the exchange of areas with the bridge).
 
 ### Areas and the bridge's entertainment areas
 

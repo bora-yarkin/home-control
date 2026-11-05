@@ -1,5 +1,5 @@
 {
-  "version":224,
+  "version":225,
   "files": [
     "integrations.js",
     "app/strings.js",
@@ -40,6 +40,7 @@
     "app/access.js",
     "app/settings.js",
     "app/hueplus.js",
+    "app/huemenu.js",
     "app/saved.js",
     "app/lighteditor.js",
     "app/scenenew.js",
