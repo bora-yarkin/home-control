@@ -4,8 +4,10 @@ Format: [Keep a Changelog](https://keepachangelog.com/). Versions follow [semant
 
 ## [Unreleased]
 
+## [0.4.4]
+
 ### Added
-- Switches in the Hue Plus menu: a switch lists its buttons, a button has a press and a long press, and each press is chosen like in the Hue app: scene cycle (scenes in order, seconds before it restarts, smart on/off), single scene, brighten, dim, lights off or do nothing. A press set to Time-based light in the Hue app is shown but cannot be set yet. Needs Hue Plus with scene cycle (the next release); experimental, not tried on a real dimmer (frontend v227).
+- Switches in the Hue Plus menu: a switch lists its buttons, a button has a press and a long press, and each press is chosen like in the Hue app: time-based light, scene cycle (scenes in order, seconds before it restarts, smart on/off), single scene, brighten, dim, lights off, entire home off or do nothing. Also Time-based light (the times and their scenes, the Hue app's own schedule in one tap) and Entire home off. Needs Hue Plus 0.6.0; experimental, not tried on a real dimmer (frontend v228).
 
 ## [0.4.3]
 

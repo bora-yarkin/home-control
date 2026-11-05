@@ -122,7 +122,7 @@ export function makeHass(query) {
             on_short_release: { recall_single_extended: { actions: [{ action: { recall: { rid: "scene-1", rtype: "scene" } } }], with_off: { enabled: true } } },
             on_long_press: { action: "do_nothing" },
           },
-          b3: { on_short_release: { action: "dim_down" }, on_long_press: { action: "dim_down" } },
+          b3: { on_short_release: { action: "dim_down" }, on_long_press: { action: "home_off" } },
           b4: {
             on_short_release: {
               scene_cycle_extended: {
@@ -131,7 +131,13 @@ export function makeHass(query) {
                 with_off: { enabled: true },
               },
             },
-            on_long_press: { action: "do_nothing" },
+            on_long_press: {
+              time_based_extended: {
+                repeat_timeout: { seconds: 3 },
+                slots: [["scene-1", 7, 0], ["scene-2", 20, 0], ["scene-3", 23, 0]].map(([rid, hour, minute]) => ({ actions: [{ action: { recall: { rid, rtype: "scene" } } }], start_time: { hour, minute } })),
+                with_off: { enabled: false },
+              },
+            },
           },
         },
         targets: { b1: ["room-1"], b2: ["room-1"], b3: ["room-1"], b4: ["room-1"] },

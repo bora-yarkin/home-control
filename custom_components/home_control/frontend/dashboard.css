@@ -878,3 +878,5 @@ body.pinhdr:not(.editing) .wrap::before{content:"";position:fixed;top:0;left:0;r
 .hm .hm-gear{position:absolute;right:10px;top:10px;width:36px;height:36px;border-radius:50%;border:0;background:transparent;color:var(--ink2);display:flex;align-items:center;justify-content:center;cursor:pointer}
 .hm .hm-gear:hover{background:var(--f-raise)}
 .hm .hm-gear svg{width:20px;height:20px}
+.hm .hm-time{flex:1;min-height:44px;padding:8px 12px;border-radius:var(--r-row);border:1px solid var(--f-line2);background:var(--f-raise);color:var(--ink);font:inherit;font-size:var(--fs-l);font-variant-numeric:tabular-nums}
+.hm .hm-time:focus-visible{outline:2px solid var(--acc);outline-offset:1px}

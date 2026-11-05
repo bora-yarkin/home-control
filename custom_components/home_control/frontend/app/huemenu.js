@@ -1166,14 +1166,14 @@ function hmPressKind(spec) {
   if (spec.recall_single_extended) return "scene";
   if (spec.scene_cycle_extended) return "cycle";
   if (spec.time_based_extended) return "time";
-  return { dim_up: "brighten", dim_down: "dim", all_off: "off" }[spec.action] || "nothing";
+  return { dim_up: "brighten", dim_down: "dim", all_off: "off", home_off: "homeoff" }[spec.action] || "nothing";
 }
 
 /* The scene ids a press recalls, in order. */
 function hmPressScenes(spec) {
-  var cfg = spec && (spec.recall_single_extended || spec.scene_cycle_extended);
+  var cfg = spec && (spec.recall_single_extended || spec.scene_cycle_extended || spec.time_based_extended);
   if (!cfg) return [];
-  var slots = spec.scene_cycle_extended ? cfg.slots || [] : [cfg.actions || []];
+  var slots = spec.scene_cycle_extended ? cfg.slots || [] : spec.time_based_extended ? (cfg.slots || []).map(function (s) { return s.actions || []; }) : [cfg.actions || []];
   return slots
     .map(function (slot) {
       var a = (slot[0] || {}).action || {};
@@ -1183,7 +1183,7 @@ function hmPressScenes(spec) {
 }
 
 function hmPressWithOff(spec) {
-  var cfg = spec && (spec.recall_single_extended || spec.scene_cycle_extended);
+  var cfg = spec && (spec.recall_single_extended || spec.scene_cycle_extended || spec.time_based_extended);
   return !!(cfg && cfg.with_off && cfg.with_off.enabled);
 }
 
@@ -1245,6 +1245,7 @@ function hmPressSummary(r, spec) {
     });
   if (kind === "scene") return _T("hm_single_scene") + (names[0] ? " · " + names[0] : "");
   if (kind === "cycle") return _T("hm_scene_cycle") + " · " + cntS(names.length, _T("hm_scene"), _T("hm_scenes"));
+  if (kind === "time") return _T("hm_time_based_light") + " · " + cntS(names.length, _T("hm_time"), _T("hm_times"));
   return _T("hm_kind_" + kind);
 }
 
@@ -1312,9 +1313,9 @@ function hmSetPress(k, what) {
 }
 
 var HM_CHOICES = [
-  ["hm_lights_turn_on", [["cycle", "scene_cycle", "hm_scene_cycle"], ["scene", "scene", "hm_single_scene"]]],
+  ["hm_lights_turn_on", [["time", "time_based", "hm_time_based_light"], ["cycle", "scene_cycle", "hm_scene_cycle"], ["scene", "scene", "hm_single_scene"]]],
   ["hm_lights_brighten_or_dim", [["brighten", "dim_up", "hm_brighten"], ["dim", "dim_down", "hm_dim"]]],
-  ["hm_lights_turn_off", [["off", "all_off", "hm_lights_off"]]],
+  ["hm_lights_turn_off", [["off", "all_off", "hm_lights_off"], ["homeoff", "home_off", "hm_entire_home_off"]]],
   ["hm_nothing_happens", [["nothing", "do_nothing", "hm_do_nothing"]]],
 ];
 
@@ -1345,6 +1346,7 @@ function hmPress(b, id) {
               tap: function () {
                 if (c[0] === "scene") showPopup("hue-scene:" + id, true);
                 else if (c[0] === "cycle") showPopup("hue-cycle:" + id, true);
+                else if (c[0] === "time") showPopup("hue-time:" + id, true);
                 else hmSetPress(k, { action: c[1] }).then(again, again).then(done);
               },
             });
@@ -1352,8 +1354,7 @@ function hmPress(b, id) {
         )
       );
     });
-    if (kind === "time") box.appendChild(hmCallout(_T("hm_time_based_note")));
-    if (kind === "scene" || kind === "cycle") {
+    if (kind === "scene" || kind === "cycle" || kind === "time") {
       box.appendChild(hmLabel(_T("hm_advanced")));
       box.appendChild(
         hmGroup([
@@ -1366,7 +1367,15 @@ function hmPress(b, id) {
               set: function () {
                 var off = !hmPressWithOff(f.spec),
                   ids = hmPressScenes(f.spec);
-                hmSetPress(k, kind === "scene" ? { action: "scene", scene: ids[0], with_off: off } : { action: "scene_cycle", scenes: ids, with_off: off, repeat_timeout: f.spec.scene_cycle_extended.repeat_timeout.seconds }).then(again, again);
+                var seconds = ((f.spec.scene_cycle_extended || f.spec.time_based_extended || {}).repeat_timeout || {}).seconds || 3;
+                hmSetPress(
+                  k,
+                  kind === "scene"
+                    ? { action: "scene", scene: ids[0], with_off: off }
+                    : kind === "cycle"
+                      ? { action: "scene_cycle", scenes: ids, with_off: off, repeat_timeout: seconds }
+                      : { action: "time_based", slots: hmTimeSlots(f.spec), with_off: off, repeat_timeout: seconds }
+                ).then(again, again);
               },
             },
           }),
@@ -1574,6 +1583,196 @@ function hmCycleSlot(b, id) {
   }
 }
 
+/* The times of a time-based light as {time: "07:00", scene} items, in the order of the day. */
+function hmTimeSlots(spec) {
+  return (((spec || {}).time_based_extended || {}).slots || []).map(function (s) {
+    var a = ((s.actions || [])[0] || {}).action || {};
+    return {
+      time: String((s.start_time || {}).hour).padStart(2, "0") + ":" + String((s.start_time || {}).minute).padStart(2, "0"),
+      scene: a.recall && a.recall.rid,
+    };
+  });
+}
+
+/* The schedule the Hue app starts with: these scenes of the button's room, by name. */
+var HM_DEFAULT_TIMES = [["07:00", "Energize"], ["10:00", "Concentrate"], ["17:00", "Read"], ["20:00", "Relax"], ["23:00", "Nightlight"]];
+
+function hmDefaultTimes(pool) {
+  var out = [];
+  HM_DEFAULT_TIMES.forEach(function (d) {
+    var s = pool.filter(function (x) {
+      return String(x.name).toLowerCase() === d[1].toLowerCase();
+    })[0];
+    if (s) out.push({ time: d[0], scene: s.id });
+  });
+  return out.length === HM_DEFAULT_TIMES.length ? out : [];
+}
+
+var HM_TIME = null;
+
+function hmTimeSort(d) {
+  d.slots.sort(function (a, b) {
+    return a.time < b.time ? -1 : a.time > b.time ? 1 : 0;
+  });
+}
+
+function hmTimePage(b, id) {
+  hmBox(b);
+  hmLoad(b, ["accessories", "scenes", "rooms", "zones"], function (box, r) {
+    var k = hmBtnKey(id),
+      f = hmBtnFind(r, k);
+    if (!f.acc || !f.btn) {
+      box.appendChild(hmCallout(_T("nothing_found")));
+      return;
+    }
+    var pool = hmBtnScenes(r, hmBtnTargets(r, f.acc, f.btn));
+    if (!HM_TIME || HM_TIME.id !== id) {
+      var cfg = (f.spec && f.spec.time_based_extended) || {},
+        own = hmTimeSlots(f.spec);
+      HM_TIME = {
+        id: id,
+        slots: own.length ? own : hmDefaultTimes(pool),
+        with_off: hmPressWithOff(f.spec),
+        timeout: (cfg.repeat_timeout && cfg.repeat_timeout.seconds) || 3,
+      };
+    }
+    HM_TIME.names = r;
+    HM_TIME.pool = pool;
+    var d = HM_TIME;
+    box.appendChild(hmLabel(_T("hm_behavior")));
+    box.appendChild(
+      hmGroup(
+        d.slots.map(function (s, i) {
+          return hmRow({ icon: "clock", title: s.time, val: hmSceneName(r, s.scene), tap: "hue-tslot:" + id + "|" + i });
+        })
+      )
+    );
+    if (d.slots.length < 10)
+      box.appendChild(hmGroup([hmRow({ icon: "plus", title: _T("hm_add_a_time"), tap: "hue-tslot:" + id + "|" + d.slots.length })]));
+    var def = hmDefaultTimes(pool);
+    if (def.length)
+      box.appendChild(
+        hmGroup([
+          hmRow({
+            icon: "restart",
+            title: _T("hm_use_the_default_schedule"),
+            sub: _T("hm_the_hue_apps_own_times"),
+            tap: function () {
+              d.slots = def.slice();
+              refresh();
+              showPopup("hue-time:" + id, false);
+            },
+          }),
+        ])
+      );
+    box.appendChild(hmLabel(_T("hm_advanced")));
+    box.appendChild(
+      hmGroup([
+        hmRow({
+          title: _T("hm_smart_on_off"),
+          toggle: {
+            get: function () {
+              return d.with_off;
+            },
+            set: function () {
+              d.with_off = !d.with_off;
+              refresh();
+            },
+          },
+        }),
+      ])
+    );
+    box.appendChild(hmChips([2, 3, 5, 10], function () { return d.timeout; }, function (v) { d.timeout = v; }, function (v) { return v + " " + _T("hm_sec"); }));
+    box.appendChild(hmCallout(_T("hm_time_based_note")));
+    box.appendChild(
+      hmActions([
+        hmButton(_T("hm_save"), "primary", function () {
+          if (d.slots.length < 2) {
+            toast(_T("hm_a_time_based_light_needs_two_times"));
+            return;
+          }
+          var seen = {};
+          for (var i = 0; i < d.slots.length; i++) {
+            if (seen[d.slots[i].time]) {
+              toast(_T("hm_two_times_cannot_be_the_same"));
+              return;
+            }
+            seen[d.slots[i].time] = 1;
+          }
+          hmSetPress(k, { action: "time_based", slots: d.slots, with_off: d.with_off, repeat_timeout: d.timeout }).then(function () {
+            HM_TIME = null;
+            popBack();
+            popBack();
+          });
+        }),
+      ])
+    );
+  });
+}
+
+/* One time of a time-based light: the time (a time input) and the scene, and removing it. */
+function hmTimeSlot(b, id) {
+  hmBox(b);
+  var parts = String(id).split("|"),
+    slot = Number(parts.pop()),
+    key = parts.join("|"),
+    d = HM_TIME;
+  if (!d || d.id !== key) {
+    b.appendChild(hmCallout(_T("nothing_found")));
+    return;
+  }
+  var isNew = slot >= d.slots.length,
+    cur = isNew ? { time: "12:00", scene: (d.pool[0] || {}).id } : d.slots[slot];
+  var inp = mk("input", "hm-time");
+  inp.type = "time";
+  inp.value = cur.time;
+  inp.setAttribute("aria-label", _T("hm_time"));
+  b.appendChild(hmLabel(_T("hm_time")));
+  b.appendChild(hmGroup([(function () { var w = mk("div", "hm-row"); w.appendChild(inp); return w; })()]));
+  b.appendChild(hmLabel(_T("hm_scene")));
+  b.appendChild(
+    hmGroup(
+      d.pool.map(function (s) {
+        return hmRow({
+          icon: "scene",
+          title: s.name,
+          check: function () {
+            return cur.scene === s.id;
+          },
+          tap: function () {
+            cur.scene = s.id;
+            refresh();
+          },
+        });
+      })
+    )
+  );
+  var actions = [
+    hmButton(_T("hm_done"), "primary", function () {
+      if (!/^\d\d:\d\d$/.test(inp.value)) {
+        toast(_T("hm_pick_a_time"));
+        return;
+      }
+      if (!cur.scene) {
+        toast(_T("hm_pick_a_scene"));
+        return;
+      }
+      cur.time = inp.value;
+      if (isNew) d.slots.push(cur);
+      hmTimeSort(d);
+      popBack();
+    }),
+  ];
+  if (!isNew)
+    actions.push(
+      hmButton(_T("hm_remove_this_time"), "danger", function () {
+        d.slots.splice(slot, 1);
+        popBack();
+      })
+    );
+  b.appendChild(hmActions(actions));
+}
+
 /* ---- the pages ---- */
 
 HP_PAGES["stg-hue"] = ["hue_plus", HP_ICON, hmRoot];
@@ -1590,6 +1789,8 @@ HP_PAGES["hue-button"] = ["hm_button_label", "cog", hmButtonPage];
 HP_PAGES["hue-press"] = ["hm_press", "cog", hmPress];
 HP_PAGES["hue-scene"] = ["hm_single_scene", "scene", hmScenePick];
 HP_PAGES["hue-cycle"] = ["hm_scene_cycle", "scene", hmCycle];
+HP_PAGES["hue-time"] = ["hm_time_based_light", "clock", hmTimePage];
+HP_PAGES["hue-tslot"] = ["hm_time", "clock", hmTimeSlot];
 HP_PAGES["hue-cslot"] = ["hm_scene", "scene", hmCycleSlot];
 HP_PAGES["hue-bridge"] = ["hm_bridges", "plug", hmBridge];
 HP_PAGES["hue-updates"] = ["hm_software_update", "restart", hmUpdates];

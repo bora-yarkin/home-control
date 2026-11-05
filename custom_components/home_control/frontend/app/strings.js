@@ -1506,7 +1506,7 @@ var EN = {
   "hm_lights_off_sub": "The lights turn off",
   "hm_do_nothing": "Do nothing",
   "hm_do_nothing_sub": "The press does nothing",
-  "hm_time_based_note": "This press is set to Time-based light in the Hue app. It is shown here, but cannot be set from here yet.",
+  "hm_time_based_note": "The lights show the scene of the latest time that has passed. Pressing again within the time before it restarts goes to the next one.",
   "hm_smart_on_off": "Smart on/off",
   "hm_smart_on_off_note": "With smart on/off the button turns the lights on and off. Pressing again within the time before the cycle restarts goes to the next scene; after the last scene the next press turns the lights off.",
   "hm_first": "First",
@@ -1528,7 +1528,22 @@ var EN = {
   "hm_move_earlier": "Move earlier",
   "hm_move_later": "Move later",
   "hm_remove_from_the_cycle": "Remove from the cycle",
-  "hm_order": "Order"
+  "hm_order": "Order",
+  "hm_time_based_light": "Time-based light",
+  "hm_time_based_light_sub": "Your lights will mimic natural light based on the time of day or a custom schedule",
+  "hm_entire_home_off": "Entire home off",
+  "hm_entire_home_off_sub": "All lights in your home turn off",
+  "hm_time": "time",
+  "hm_times": "times",
+  "hm_add_a_time": "Add a time",
+  "hm_use_the_default_schedule": "Use the default schedule",
+  "hm_the_hue_apps_own_times": "The Hue app's own times: Energize, Concentrate, Read, Relax, Nightlight",
+  "hm_a_time_based_light_needs_two_times": "A time-based light needs at least two times",
+  "hm_two_times_cannot_be_the_same": "Two times cannot be the same",
+  "hm_done": "Done",
+  "hm_pick_a_time": "Pick a time",
+  "hm_pick_a_scene": "Pick a scene",
+  "hm_remove_this_time": "Remove this time"
 };
 
 var STR = EN;
