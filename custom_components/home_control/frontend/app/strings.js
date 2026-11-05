@@ -1461,7 +1461,19 @@ var EN = {
   "hm_end_last_state": "Returns to how the lights were before the sync",
   "hm_end_off": "The lights turn off",
   "hm_end_pause": "The last light keeps its colour",
-  "hm_end_scene": "Plays a scene you choose"
+  "hm_end_scene": "Plays a scene you choose",
+  "hm_light_placement": "Light placement",
+  "hm_where_the_lights_are_in_the_room": "Where the lights are in the room",
+  "hm_performance": "Performance",
+  "hm_manual": "Manual",
+  "hm_auto": "Auto",
+  "hm_the_bridge_picks": "The bridge picks which light streams",
+  "hm_this_light_streams": "This light streams for the area",
+  "hm_brightness_balance": "Brightness balance",
+  "hm_this_area_is_on_the_bridge": "The bridge's own area: saving writes it to the bridge",
+  "hm_save_to_the_bridge": "Save to the bridge",
+  "hm_saved_to_the_bridge": "Saved to the bridge",
+  "hm_the_bridge_did_not_accept_this": "The bridge did not accept this"
 };
 
 var STR = EN;

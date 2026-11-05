@@ -56,6 +56,12 @@ function hpDo(again, service, data) {
  The dashboard's areas hold any light, Hue or not, and work without Hue Plus. When it is installed they can exchange their Hue lights and positions with the
  bridge's entertainment areas: nothing below runs, or is shown, without it. */
 
+/* The bridge and the area editor count y the other way round. The bridge's y runs from the left corner of the room (-1) to the back corner (1), as the Hue app draws it; the editor's
+ runs from the back corner (-1) to the left corner (1). x and the height are the same. A light is turned over with this on its way in and on its way out, so it stands where the Hue app shows it. */
+function hpFlip(y) {
+  return y ? -y : 0;
+}
+
 function hpHueId(entity) {
   return A(entity).hue_light_id || null;
 }
@@ -105,7 +111,7 @@ function hpSendArea(draft) {
         return hpHueId(l.id);
       })
       .map(function (l) {
-        return { light: hpHueId(l.id), x: l.x, y: l.y, z: l.z };
+        return { light: hpHueId(l.id), x: l.x, y: hpFlip(l.y), z: l.z };
       });
   if (!name) {
     toast(_T("give_the_area_a_name"));
@@ -136,7 +142,7 @@ function hpAreaLightsOf(area, only) {
   (area.lights || []).forEach(function (l) {
     var id = hpEntityOf(l.light_id);
     if (!id || (only && !only[id])) return;
-    out.push({ id: id, x: eaClamp(l.x || 0), y: eaClamp(l.y || 0), z: eaClamp(l.z || 0) });
+    out.push({ id: id, x: eaClamp(l.x || 0), y: eaClamp(hpFlip(l.y || 0)), z: eaClamp(l.z || 0) });
   });
   return out;
 }
@@ -231,4 +237,68 @@ function hpReadList(b) {
       })
     );
   });
+}
+
+/* ---- editing an entertainment area on the bridge itself ----
+ The placement editor opens on the bridge's area, not on one of the dashboard's: its lights are the Hue lights, what is saved goes to the bridge, and the dashboard's own areas do not change. */
+
+/* The editor's draft of a bridge area. A light of the area that Home Assistant has no entity for cannot be moved here; it is kept as it is (`kept`) and sent back with the others. */
+function hpBridgeDraft(area) {
+  var lights = [],
+    kept = [];
+  (area.lights || []).forEach(function (l) {
+    var id = hpEntityOf(l.light_id);
+    if (id) lights.push({ id: id, x: eaClamp(l.x || 0), y: eaClamp(hpFlip(l.y || 0)), z: eaClamp(l.z || 0), balance: l.balance });
+    else kept.push({ light: l.light_id, x: l.x, y: l.y, z: l.z, balance: l.balance });
+  });
+  return { id: area.id, name: area.name, room: "", lights: lights, dummies: [], kept: kept };
+}
+
+function hpEditOnBridge(area, after) {
+  EAD = { room: "", isNew: false, sel: null, draft: hpBridgeDraft(area), bridge: { id: area.id, after: after || null } };
+  showPopup("area-edit", true);
+}
+
+/* The lights that can be put in a bridge area: the Hue Plus lights (the ones Hue lights, not groups). */
+function hpBridgeLights() {
+  return Integrations.hueplus.lights(H()).map(function (id) {
+    return { id: id, name: hpName(id), icon: "lamp" };
+  });
+}
+
+function hpSaveBridge() {
+  var d = EAD.draft,
+    name = String(d.name || "").trim();
+  if (!name) {
+    toast(_T("give_the_area_a_name"));
+    return;
+  }
+  var lights = d.kept
+    .concat(
+      d.lights.map(function (l) {
+        return { light: hpHueId(l.id), x: l.x, y: hpFlip(l.y), z: l.z, balance: l.balance };
+      })
+    )
+    .map(function (l) {
+      var o = { light: l.light, x: l.x, y: l.y, z: l.z };
+      if (typeof l.balance === "number") o.balance = l.balance;
+      return o;
+    });
+  if (!lights.length) {
+    toast(_T("add_at_least_one_light"));
+    return;
+  }
+  var after = EAD.bridge.after;
+  Promise.resolve(callRaw("hue_plus", "update_entertainment_area", { area: EAD.bridge.id, name: name, lights: lights })).then(
+    function () {
+      toast(_T("hm_saved_to_the_bridge"));
+      eaIdentifyOff();
+      if (after) after();
+      if (STACK.length) popBack();
+      else closeSheet();
+    },
+    function () {
+      toast(_T("hm_the_bridge_did_not_accept_this"));
+    }
+  );
 }

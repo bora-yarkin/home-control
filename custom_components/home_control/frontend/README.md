@@ -143,6 +143,8 @@ asking the bridge, the exchange of areas with the bridge).
 
 ### Areas and the bridge's entertainment areas
 
+The bridge's area page (Hue Plus → Entertainment areas → an area) has *Light placement*: the placement editor opens on the bridge's own area (`hpEditOnBridge`): its lights are the Hue Plus lights, there are no things in the room, each light has a brightness balance, and *Save to the bridge* writes the area through `hue_plus.update_entertainment_area`. A light of the area that Home Assistant has no entity for is kept and sent back unchanged. The bridge's `y` runs the other way round from the editor's (`hpFlip`), so a light is turned over on the way in and on the way out. Nothing in the dashboard's own areas changes.
+
 The dashboard's areas (Settings → Areas) hold any light and work without Hue Plus. When Hue Plus runs next to the Hue integration it says so in `get_library` (`hue_only`) and the area editor then offers Hue Plus's lights only. With it installed (administrators only) a room's list of areas gets
 *Import from the Hue bridge* (a bridge area opens in the editor as a new area, with the lights that are in the room), and the editor gets *Send to the Hue bridge*
 (the area's Hue lights and positions go to the bridge's area of the same name, or a new one; other lights stay on the dashboard) and *Read from the Hue bridge*

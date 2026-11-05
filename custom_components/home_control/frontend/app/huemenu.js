@@ -923,6 +923,21 @@ function hmArea(b, id) {
           val: String((x.lights || []).length),
         }),
         hmRow({
+          title: _T("hm_light_placement"),
+          sub: _T("hm_where_the_lights_are_in_the_room"),
+          tap: function () {
+            hpEditOnBridge(x, again);
+          },
+        }),
+        hmRow({
+          title: _T("hm_performance"),
+          val: x.performance === "manual" ? _T("hm_manual") : _T("hm_auto"),
+          tap: function () {
+            HM_AREA = { area: x, scenes: [], again: again };
+            showPopup("hue-perf:" + x.id, true);
+          },
+        }),
+        hmRow({
           title: _T("hm_when_sync_stops"),
           val: _T("end_" + end),
           tap: function () {
@@ -1006,6 +1021,57 @@ function hmEndScene(b, id) {
       })
     )
   );
+}
+
+/* Who streams for an area: the bridge picks (auto), or one light of the area does (manual). */
+function hmPerf(b, id) {
+  hmBox(b);
+  if (!HM_AREA || HM_AREA.area.id !== id) {
+    b.appendChild(hmCallout(_T("nothing_found")));
+    return;
+  }
+  var x = HM_AREA.area,
+    again = HM_AREA.again,
+    set = function (mode, light) {
+      x.performance = mode;
+      x.performance_light = light || null;
+      hpDo(again, "update_entertainment_area", mode === "manual" ? { area: x.id, performance: mode, performance_light: light } : { area: x.id, performance: mode });
+      popBack();
+    };
+  b.appendChild(
+    hmGroup(
+      [
+        hmRow({
+          title: _T("hm_auto"),
+          sub: _T("hm_the_bridge_picks"),
+          check: function () {
+            return x.performance !== "manual";
+          },
+          tap: function () {
+            set("auto");
+          },
+        }),
+      ].concat(
+        (x.lights || [])
+          .filter(function (l) {
+            return l.light_id;
+          })
+          .map(function (l) {
+            return hmRow({
+              title: l.name || l.light_id,
+              sub: _T("hm_this_light_streams"),
+              check: function () {
+                return x.performance === "manual" && x.performance_light === l.light_id;
+              },
+              tap: function () {
+                set("manual", l.light_id);
+              },
+            });
+          })
+      )
+    )
+  );
+  b.appendChild(hmCallout(_T("experimental_not_yet_tried_on_a_real_bridge")));
 }
 
 /* ---- MotionAware areas ---- */
@@ -1116,7 +1182,7 @@ function hmSwitch(b, id) {
           var n = hmPresses(x, btn);
           return hmRow({
             title: _T("hm_button_label") + " " + btn.number,
-            sub: btn.last_event ? _T("hm_last_press") + " · " + String(btn.last_event).replace(/_/g, " ") : "",
+            sub: btn.last_event ? _T("hm_last_press") + " · " + cap(String(btn.last_event).replace(/_/g, " ")) : "",
             val: n ? cntS(n, _T("hm_press_set"), _T("hm_presses_set")) : _T("hm_nothing_set"),
           });
         })
@@ -1147,6 +1213,7 @@ HP_PAGES["hue-routine"] = ["routine", "clock", hmRoutine];
 HP_PAGES["hue-ent"] = ["entertainment_areas", "target", hmAreas];
 HP_PAGES["hue-area"] = ["entertainment_area", "target", hmArea];
 HP_PAGES["hue-end"] = ["hm_when_sync_stops", "target", hmEnd];
+HP_PAGES["hue-perf"] = ["hm_performance", "target", hmPerf];
 HP_PAGES["hue-escene"] = ["hp_scene", "scene", hmEndScene];
 HP_PAGES["hue-motion"] = ["hm_motionaware_areas", "motion", hmMotion];
 HP_PAGES["hue-marea"] = ["motion_area", "motion", hmMotionArea];

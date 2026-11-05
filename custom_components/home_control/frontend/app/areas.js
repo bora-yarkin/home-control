@@ -619,6 +619,21 @@ function eaLightInfo(info, lm) {
         },
       },
     ];
+  if (EAD.bridge)
+    rows.push({
+      field: "balance",
+      label: "hm_brightness_balance",
+      min: 0.2,
+      max: 2,
+      step: 0.1,
+      def: 1,
+      round: function (v) {
+        return Math.round(v * 10) / 10;
+      },
+      fmt: function (v) {
+        return v.toFixed(1) + "×";
+      },
+    });
   if (eaIsBar(lm.id))
     rows.push(
       { field: "a", label: "direction", min: 0, max: 355, step: 5, def: 0, round: Math.round, fmt: eaDeg },
@@ -708,7 +723,8 @@ function eaInfo() {
 function eaActions() {
   var box = EAD.v.box;
   redrawBox(box, function () {
-    box.appendChild(pill("check", _T("save_area"), { tap: eaSave }));
+    box.appendChild(pill("check", EAD.bridge ? _T("hm_save_to_the_bridge") : _T("save_area"), { tap: eaSave }));
+    if (EAD.bridge) return;
     hpAreaActions(box, EAD.draft);
     if (!EAD.isNew)
       box.appendChild(
@@ -758,7 +774,8 @@ function eaEditor(b) {
   });
   w.appendChild(inp);
   b.appendChild(w);
-  eaRoomLights(EAD.room).forEach(function (l) {
+  if (EAD.bridge) b.appendChild(pill("info", _T("hm_this_area_is_on_the_bridge"), {}));
+  (EAD.bridge ? hpBridgeLights() : eaRoomLights(EAD.room)).forEach(function (l) {
     byId[l.id] = l;
   });
   d.lights.forEach(function (l) {
@@ -784,7 +801,7 @@ function eaEditor(b) {
     if (EAD.sel) eaSelect(null);
   });
   b.appendChild(EAD.v.tray);
-  eaThings(b);
+  if (!EAD.bridge) eaThings(b);
   b.appendChild(EAD.v.info);
   b.appendChild(EAD.v.box);
   eaBuild();
@@ -802,6 +819,10 @@ function eaEditor(b) {
 }
 
 function eaSave() {
+  if (EAD.bridge) {
+    hpSaveBridge();
+    return;
+  }
   var d = EAD.draft,
     name = String(d.name || "").trim();
   if (!name) {
