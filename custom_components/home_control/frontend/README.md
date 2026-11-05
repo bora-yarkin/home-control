@@ -133,7 +133,7 @@ found by their registry `unique_id` (`<box>_syncbox_<key>`, keys: `sync`, `mode`
 `app/huemenu.js` is the Settings category *Hue Plus*, shown only when the integration is installed with its bridge module. It is laid out like the settings of the Hue app:
 a first page of labelled groups (*In this home*: Devices, Bridges, MotionAware areas, Entertainment areas, Routines and automations, Smart home, Software update;
 *Advanced*: Applications), then one page for each: lights as tiles (a tap opens the dashboard's light popup, the gear the light's set-up), the set-up of a light (function, power
-on, orientation, timed effects), switches and their buttons, the bridge (status, id, software, settings), software update (firmware of the bridge and of each device, automatic updates),
+on, orientation, timed effects), switches (each button's press and long press as in the Hue app: scene cycle, single scene, brighten, dim, lights off, do nothing, smart on/off), the bridge (status, id, software, settings), software update (firmware of the bridge and of each device, automatic updates),
 Matter, applications, routines, entertainment areas (what the lights do when a sync stops) and MotionAware areas. A choice is a checklist page (`hue-fn`, `hue-pw`, `hue-or`, `hue-od`,
 `hue-end`). The pieces are `hmRow`, `hmGroup`, `hmLabel`, `hmTitle`, `hmInfo`, `hmButton`, `hmCallout`, `hmChips` and the tiles, all drawn under the `.hm` class in `dashboard.css`, so nothing else on the dashboard
 changes; names and values from a device or the bridge are always set as text. Lists the bridge itself holds come from `hue_plus.get_resources` (`Integrations.hueplus.resources`); everything
