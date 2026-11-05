@@ -4,6 +4,8 @@ Format: [Keep a Changelog](https://keepachangelog.com/). Versions follow [semant
 
 ## [Unreleased]
 
+## [0.4.3]
+
 ### Fixed
 - Importing a Hue bridge's entertainment area into the area editor put every light in the wrong place (mirrored): the bridge and the editor count the room's depth the opposite way round. A light now stands where the Hue app shows it, in both directions.
 
