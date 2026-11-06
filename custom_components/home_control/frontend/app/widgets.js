@@ -380,7 +380,7 @@ function sliderRow(o) {
     });
   else r.classList.add("static");
   r.refresh = function () {
-    if (o.dim) r.classList.toggle("off-dim", !!o.dim());
+    if (o.inert) r.classList.toggle("inert", !!o.inert());
     if (typeof o.trackBg === "function") r.style.background = o.trackBg();
     if (o.fillColor) {
       var fc = o.fillColor();

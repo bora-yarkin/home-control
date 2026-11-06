@@ -229,7 +229,7 @@ function sceneEditor(b) {
   var box = mk("div");
   b.appendChild(box);
   function draw() {
-    guardUnsaved({ dirty: staticDirty, save: staticSave });
+    guardUnsaved({ dirty: staticDirty, save: staticSave, done: closeSheet });
     var prev = CUR;
     SLIVE.length = 0;
     CUR = SLIVE;
@@ -269,7 +269,6 @@ function sceneEditor(b) {
             : _T("devices_not_listed_above_are_not_tou")
       )
     );
-    box.appendChild(pill("check", _T("save_scene"), { tap: function () { staticSave(closeSheet); } }));
     if (!SCD.isNew)
       box.appendChild(
         pill("trash", _T("delete_scene"), {

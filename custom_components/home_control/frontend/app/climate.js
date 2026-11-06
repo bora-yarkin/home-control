@@ -17,7 +17,7 @@ function acSlider(id, name) {
     commit: function (v) {
       call("climate", "set_temperature", { entity_id: id, temperature: v });
     },
-    dim: function () {
+    inert: function () {
       return V_(id) === "off" || V_(id) === "unavailable";
     },
     sub: function () {
@@ -139,6 +139,7 @@ function acDial(id) {
       e.key !== "ArrowLeft"
     )
       return;
+    if (V_(id) === "off" || V_(id) === "unavailable") return;
     e.preventDefault();
     var cur = A(id).temperature;
     if (typeof cur !== "number") cur = min;
@@ -152,7 +153,9 @@ function acDial(id) {
   });
   c.refresh = function () {
     var a = A(id);
-    c.classList.toggle("off-dim", V_(id) === "off" || V_(id) === "unavailable");
+    var off = V_(id) === "off" || V_(id) === "unavailable";
+    c.classList.toggle("inert", off);
+    sv.setAttribute("tabindex", off ? "-1" : "0");
     if (!drag && Date.now() > hold) paint(typeof a.temperature === "number" ? a.temperature : min);
     ds.textContent =
       (a.current_temperature !== undefined ? a.current_temperature + _T("c_room_2") : "") +

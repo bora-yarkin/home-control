@@ -4,6 +4,14 @@ Format: [Keep a Changelog](https://keepachangelog.com/). Versions follow [semant
 
 ## [Unreleased]
 
+## [0.4.5]
+
+### Changed
+- The Hue Plus menu in Settings reads the bridge once, when it opens, instead of on every page: one loading screen, then every page opens at once.
+- The settings of a device in the Hue Plus menu (a light's function, power-on behaviour, mounting direction and segment order; what each press of a switch or dimmer does, including its time-based light and scene cycle; whether a MotionAware area is on; what an entertainment area does when a sync stops and who streams for it) are no longer sent to the bridge as soon as they are chosen. They are a draft of that device, and the checkmark in its header sends only that device. Pages that act at once (updates, routines, Matter, apps, showing a colour on an area) are unchanged.
+- Everything that saves now looks and behaves the same: a checkmark next to the close button, no big Save button, and closing with changes that are not saved (the close button, back, tapping outside) asks *Unsaved changes: Save / Discard changes / Cancel*. This is the classic scene editor, the live scene maker, the area editor and the bridge's light placement, the light editor and the devices of the Hue Plus menu. The area editor and the light editor used to close without asking; the "Save scene", "Save area" and "Save to the bridge" buttons are gone (frontend v231).
+- An air conditioner that is off is no longer greyed out in its popup (the temperature slider and dial keep their colour). It still cannot be changed while it is off: no pointer input, and the dial leaves the keyboard tab order and ignores the arrow keys (frontend v229).
+
 ## [0.4.4]
 
 ### Added
