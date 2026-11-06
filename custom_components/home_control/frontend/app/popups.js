@@ -846,6 +846,10 @@ function sheetDrag(sh) {
 /* A popup that has to ask before it is left (Save, Apply once, Cancel) sets this to a function that takes over the leaving and returns true, or returns false when there is nothing to ask. Showing another popup clears it. */
 var POPGUARD = null;
 
+/* The same for closing the whole popup from any page of it: the Hue Plus menu keeps the edits of a device until they are saved, however many pages deep the user is. Unlike POPGUARD it is
+   not cleared by showing another popup, only by closing this one. It takes over the closing and returns true, or returns false when there is nothing to ask. */
+var SHEETGUARD = null;
+
 /* Popups opened over the one that is showing (the settings of an effect over the lights popup) instead of in its place. The popup underneath is left exactly as it is, and shown again when the one on top closes. Each entry keeps what the popup below needs back: its sheet, its back stack, its live updates, and what to do once it is showing again. */
 var LAYERS = [];
 
@@ -929,6 +933,8 @@ function showPopup(key, push, layer) {
 function closeSheet() {
   if (POPGUARD && POPGUARD(closeSheet)) return;
   POPGUARD = null;
+  if (SHEETGUARD && SHEETGUARD(closeSheet)) return;
+  SHEETGUARD = null;
   LPBACK = null;
   closeMenu();
   stopStreams("sheet");

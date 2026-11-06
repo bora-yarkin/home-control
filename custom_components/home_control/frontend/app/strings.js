@@ -1523,7 +1523,6 @@ var EN = {
   "hm_add_a_scene": "Add a scene",
   "hm_sec": "s",
   "hm_cycle_timeout_note": "If this many seconds pass between presses, the next press starts the cycle again.",
-  "hm_save": "Save",
   "hm_a_cycle_needs_two_scenes": "A cycle needs at least two scenes",
   "hm_move_earlier": "Move earlier",
   "hm_move_later": "Move later",
@@ -1543,7 +1542,8 @@ var EN = {
   "hm_done": "Done",
   "hm_pick_a_time": "Pick a time",
   "hm_pick_a_scene": "Pick a scene",
-  "hm_remove_this_time": "Remove this time"
+  "hm_remove_this_time": "Remove this time",
+  "hm_unsaved_note": "Your changes to this device are kept here until you save them to the bridge."
 };
 
 var STR = EN;

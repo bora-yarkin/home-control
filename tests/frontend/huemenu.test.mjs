@@ -76,3 +76,35 @@ test("the menu puts no name of a device or of the bridge into the page as markup
   for (const html of calls)
     assert.ok(/^("[^"]*"|svg\("[a-z]+"\))(\s*\+\s*(svg\("[a-z]+"\)|svg\(icon\)|"[^"]*"))*$/.test(html), `markup from ${html}`);
 });
+
+test("a page never writes a setting of a device: only saving a device's draft does", () => {
+  // The settings of a light, a switch and a MotionAware area are staged and sent by hmSaveLight, hmSaveSwitch and hmSaveMotion; no other function of the menu may send them.
+  const writes = [...menu.matchAll(/(?:hmCall|call|callRaw)\("(hue_plus|select)",\s*"(configure_light|configure_button|set_motion_area|select_option)"/g)];
+  assert.ok(writes.length >= 4, "the four device writes are all there");
+  for (const match of writes) {
+    const owner = [...menu.slice(0, match.index).matchAll(/^function (\w+)/gm)].pop()[1];
+    assert.match(owner, /^hmSave(Light|Switch|Motion)$/, `${match[2]} is sent from ${owner}`);
+  }
+});
+
+test("the menu is read once when it opens, and every page draws from that", () => {
+  assert.equal([...menu.matchAll(/Integrations\.hueplus\.resources\(HM_KINDS\)/g)].length, 1);
+  assert.doesNotMatch(menu, /hmFetch/);
+  // The pages that act at once read only their own kinds again; none of them reads on opening.
+  assert.match(menu, /if \(HM_READY\) show\(\);/);
+});
+
+test("closing the popup from any page of the menu asks about edits that are not saved", () => {
+  const popups = read("popups.js");
+  assert.match(popups, /var SHEETGUARD = null;/);
+  assert.match(popups, /function closeSheet\(\) \{\s*if \(POPGUARD && POPGUARD\(closeSheet\)\) return;\s*POPGUARD = null;\s*if \(SHEETGUARD && SHEETGUARD\(closeSheet\)\) return;\s*SHEETGUARD = null;/);
+  assert.match(menu, /SHEETGUARD = hmLeave;/);
+  assert.match(menu, /POPGUARD = hmLeave;/, "going back out of the first page asks too");
+});
+
+test("the draft code loads before the menu that uses it", () => {
+  const files = JSON.parse(readFileSync(new URL("../version.json", APP), "utf8")).files;
+  assert.ok(files.includes("app/hmdraft.js"));
+  assert.ok(files.indexOf("app/hmdraft.js") < files.indexOf("app/huemenu.js"));
+  assert.ok(files.indexOf("app/popups.js") < files.indexOf("app/huemenu.js"));
+});

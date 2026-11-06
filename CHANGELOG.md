@@ -5,6 +5,8 @@ Format: [Keep a Changelog](https://keepachangelog.com/). Versions follow [semant
 ## [Unreleased]
 
 ### Changed
+- The Hue Plus menu in Settings reads the bridge once, when it opens, instead of on every page: one loading screen, then every page opens at once.
+- The settings of a device in the Hue Plus menu (a light's function, power-on behaviour, mounting direction and segment order; what each press of a switch or dimmer does, including its time-based light and scene cycle; whether a MotionAware area is on) are no longer sent to the bridge as soon as they are chosen. They are a draft of that device: it shows *Unsaved changes* with *Save* and *Discard changes*, and *Save* sends only that device. Drafts are kept while the menu is open, and closing the menu asks whether to save or discard them. Pages that act at once (updates, routines, Matter, apps, entertainment areas) are unchanged (frontend v230).
 - An air conditioner that is off is no longer greyed out in its popup (the temperature slider and dial keep their colour). It still cannot be changed while it is off: no pointer input, and the dial leaves the keyboard tab order and ignores the arrow keys (frontend v229).
 
 ## [0.4.4]
