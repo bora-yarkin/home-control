@@ -4,6 +4,8 @@ Format: [Keep a Changelog](https://keepachangelog.com/). Versions follow [semant
 
 ## [Unreleased]
 
+## [0.4.5]
+
 ### Changed
 - The Hue Plus menu in Settings reads the bridge once, when it opens, instead of on every page: one loading screen, then every page opens at once.
 - The settings of a device in the Hue Plus menu (a light's function, power-on behaviour, mounting direction and segment order; what each press of a switch or dimmer does, including its time-based light and scene cycle; whether a MotionAware area is on; what an entertainment area does when a sync stops and who streams for it) are no longer sent to the bridge as soon as they are chosen. They are a draft of that device, and the checkmark in its header sends only that device. Pages that act at once (updates, routines, Matter, apps, showing a colour on an area) are unchanged.
