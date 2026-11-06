@@ -4,8 +4,10 @@ Format: [Keep a Changelog](https://keepachangelog.com/). Versions follow [semant
 
 ## [Unreleased]
 
+## [0.4.6]
+
 ### Added
-- The area editor can place any light of Home Assistant, not only the lights on the room's own page: *Add a light* under the tray lists every light that is not in the tray yet, from any room or none, with its area and a search, and each tap puts it in the area (a group adds its lights). Lights of other rooms that are in one of the room's sections were already in the tray.
+- The area editor can place any light of Home Assistant, not only the lights on the room's own page: *Add a light* under the tray lists every light that is not in the tray yet, from any room or none, with its area and a search, and each tap puts it in the area (a group adds its lights). Lights of other rooms that are in one of the room's sections were already in the tray (frontend v232).
 
 ## [0.4.5]
 
