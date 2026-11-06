@@ -4,6 +4,9 @@ Format: [Keep a Changelog](https://keepachangelog.com/). Versions follow [semant
 
 ## [Unreleased]
 
+### Changed
+- An air conditioner that is off is no longer greyed out in its popup (the temperature slider and dial keep their colour). It still cannot be changed while it is off: no pointer input, and the dial leaves the keyboard tab order and ignores the arrow keys (frontend v229).
+
 ## [0.4.4]
 
 ### Added

@@ -354,7 +354,7 @@ body.wallnight::after{content:"";position:fixed;inset:0;background:rgba(0,0,0,.4
 .wall-d{font-size:min(5vw,28px);color:#d6d2cb;margin-top:6px}
 .wall-w{font-size:min(4.4vw,22px);color:#bdb8b0;margin-top:14px}
 .wall.dim{filter:brightness(.4)}
-.off-dim{opacity:.4;filter:grayscale(1);pointer-events:none;transition:opacity .25s,filter .25s}
+.inert{pointer-events:none}
 .dial{border-radius:var(--r-xl);padding:14px 10px 6px;margin:0 0 12px;text-align:center}
 .dial svg{width:100%;max-width:260px;display:block;margin:0 auto;touch-action:none;user-select:none}
 .dial .dtr{fill:none;stroke:rgba(255,255,255,.18);stroke-width:14;stroke-linecap:round}
