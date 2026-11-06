@@ -521,18 +521,7 @@ function eaTray() {
     }
     card.addEventListener("click", function () {
       if (!eaLightOf(id)) {
-        if (d.lights.length >= 32) {
-          toast(_T("up_to_32_lights_in_an_area"));
-          return;
-        }
-        var slot = EA_SLOTS[d.lights.length % EA_SLOTS.length],
-          nl = { id: id, x: slot[0], y: slot[1], z: eaStartHeight(dev.icon) };
-        if (dev.bar) {
-          nl.a = 0;
-          nl.p = 0;
-          nl.len = 0.6;
-        }
-        d.lights.push(nl);
+        if (!eaAddLight(dev)) return;
         eaBuild();
         eaTray();
       }
@@ -540,6 +529,103 @@ function eaTray() {
     });
     v.tray.appendChild(card);
   });
+}
+
+/* Places a light of the tray (`dev`: {id, icon, bar}) in the area's draft, in the next free spot. False, with a message, when the area is full. */
+function eaAddLight(dev) {
+  var d = EAD.draft;
+  if (d.lights.length >= 32) {
+    toast(_T("up_to_32_lights_in_an_area"));
+    return false;
+  }
+  var slot = EA_SLOTS[d.lights.length % EA_SLOTS.length],
+    nl = { id: dev.id, x: slot[0], y: slot[1], z: eaStartHeight(dev.icon) };
+  if (dev.bar) {
+    nl.a = 0;
+    nl.p = 0;
+    nl.len = 0.6;
+  }
+  d.lights.push(nl);
+  return true;
+}
+
+/* The lights that are not in the tray yet: any light of Home Assistant that can be placed, from any room or none, found the way the page's "add a device" finds them. A group is offered while any of its members is not in the tray. The sync switches of Hue (listed there as lights) are not lights and are left out. */
+function eaOtherLights(q) {
+  var byId = EAD.v.byId;
+  return candidates(["light"], EAD.room, q).filter(function (c) {
+    if (c.id.indexOf("light.") !== 0) return false;
+    return eaUnits([c.id]).some(function (id) {
+      return eaAllowed(id) && !byId[id];
+    });
+  });
+}
+
+/* The page behind "Add a light": each tap puts the light (or the members of a group) in the tray and in the area, and the list goes on without it. */
+function eaMorePage(b) {
+  var inp = mk("input", "sq"),
+    w = mk("div", "sqw pane", svg("search")),
+    box = mk("div"),
+    q = "";
+  inp.type = "text";
+  inp.placeholder = _T("search_lights");
+  inp.setAttribute("autocomplete", "off");
+  inp.setAttribute("autocapitalize", "off");
+  w.appendChild(inp);
+  b.appendChild(w);
+  b.appendChild(box);
+  function list() {
+    redrawBox(box, function () {
+      var items = eaOtherLights(q),
+        shown = items.slice(0, 40);
+      if (!items.length)
+        box.appendChild(
+          pill("info", _T("nothing_to_add_here"), {
+            sub: function () {
+              return _T("every_light_that_can_be_placed_is_in");
+            },
+          })
+        );
+      shown.forEach(function (c) {
+        box.appendChild(
+          pill(defIcon("light", c.name, c.id), c.name, {
+            sub: function () {
+              return (c.area ? c.area + " · " : "") + c.id;
+            },
+            tap: function () {
+              var units = eaUnits([c.id]).filter(function (id) {
+                return eaAllowed(id) && !EAD.v.byId[id];
+              });
+              var added = 0;
+              for (var i = 0; i < units.length; i++) {
+                var dev = { id: units[i], name: units.length > 1 ? entName(units[i]) : c.name, icon: "light", bar: eaIsBar(units[i]) };
+                if (!eaAddLight(dev)) break;
+                EAD.v.byId[dev.id] = dev;
+                added++;
+              }
+              if (added) {
+                eaBuild();
+                eaTray();
+                eaInfo();
+                eaActions();
+                toast(_T("added") + c.name + "”");
+              }
+              list();
+            },
+          })
+        );
+      });
+      if (items.length > shown.length) {
+        var m = mk("div", "hint");
+        m.textContent = items.length - shown.length + _T("more_type_to_narrow_the_list");
+        box.appendChild(m);
+      }
+    });
+  }
+  inp.addEventListener("input", function () {
+    q = inp.value;
+    list();
+  });
+  list();
 }
 
 /* Things in the room (a TV, a speaker, ...) are added from their own row of cards; each can be added more than once, dragged anywhere on the floor and resized. */
@@ -806,6 +892,17 @@ function eaEditor(b) {
     if (EAD.sel) eaSelect(null);
   });
   b.appendChild(EAD.v.tray);
+  if (!EAD.bridge)
+    b.appendChild(
+      pill("plus", _T("add_a_light"), {
+        sub: function () {
+          return _T("any_light_of_home_assistant_from_any_");
+        },
+        tap: function () {
+          showPopup("area-lights", true);
+        },
+      })
+    );
   if (!EAD.bridge) eaThings(b);
   b.appendChild(EAD.v.info);
   b.appendChild(EAD.v.box);
