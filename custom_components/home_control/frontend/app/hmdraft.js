@@ -46,10 +46,6 @@ function hmdDirty(key) {
   return !!HMD[key];
 }
 
-function hmdDirtyKeys() {
-  return Object.keys(HMD);
-}
-
 function hmdChanges(key) {
   return Object.assign({}, (HMD[key] || {}).changes);
 }

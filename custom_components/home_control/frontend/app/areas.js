@@ -723,7 +723,6 @@ function eaInfo() {
 function eaActions() {
   var box = EAD.v.box;
   redrawBox(box, function () {
-    box.appendChild(pill("check", EAD.bridge ? _T("hm_save_to_the_bridge") : _T("save_area"), { tap: eaSave }));
     if (EAD.bridge) return;
     hpAreaActions(box, EAD.draft);
     if (!EAD.isNew)
@@ -760,7 +759,13 @@ function eaModeSwitch(b) {
   b.appendChild(hint);
 }
 
+function eaDirty() {
+  return JSON.stringify(EAD.draft) !== EAD.saved;
+}
+
 function eaEditor(b) {
+  if (EAD.saved === undefined) EAD.saved = JSON.stringify(EAD.draft);
+  guardUnsaved({ dirty: eaDirty, save: eaSave, discard: eaIdentifyOff });
   var d = EAD.draft,
     w = mk("div", "sqw pane", svg("target")),
     inp = mk("input", "sq"),
@@ -818,20 +823,18 @@ function eaEditor(b) {
   }, 1000);
 }
 
-function eaSave() {
-  if (EAD.bridge) {
-    hpSaveBridge();
-    return;
-  }
+/* Saves the area and goes on to `leave`. An area that cannot be saved says why and stays open (false); one on the bridge answers later (a promise). */
+function eaSave(leave) {
+  if (EAD.bridge) return hpSaveBridge(leave);
   var d = EAD.draft,
     name = String(d.name || "").trim();
   if (!name) {
     toast(_T("give_the_area_a_name"));
-    return;
+    return false;
   }
   if (!d.lights.length) {
     toast(_T("add_at_least_one_light"));
-    return;
+    return false;
   }
   var a = cleanArea({
     id: d.id || "a" + Date.now().toString(36),
@@ -842,7 +845,7 @@ function eaSave() {
   });
   if (!a) {
     toast(_T("couldn_t_save_this_area"));
-    return;
+    return false;
   }
   eaIdentifyOff();
   STORE.eareas = STORE.eareas.filter(function (x) {
@@ -852,8 +855,10 @@ function eaSave() {
   uiChanged();
   hpPush(liveScenesIn(a.id), [a]);
   toast(_T("area_saved"));
-  if (STACK.length) popBack();
-  else closeSheet();
+  EAD.saved = JSON.stringify(EAD.draft);
+  POPGUARD = null;
+  leave();
+  return true;
 }
 
 function eaDelete() {
@@ -872,6 +877,7 @@ function eaDelete() {
   uiChanged();
   hpForget(null, id);
   toast(_T("area_deleted"));
+  POPGUARD = null;
   if (STACK.length) popBack();
   else closeSheet();
 }

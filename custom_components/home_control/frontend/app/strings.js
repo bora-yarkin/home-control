@@ -194,7 +194,6 @@ var EN = {
   "place_the_lights_of_this_room": "Place the lights of this room",
   "remove_from_this_area": "Remove from this area",
   "saturation": "Saturation",
-  "save_area": "Save area",
   "scene_engine_is_not_installed": "Philips Hue Plus (scenes module) is not set up",
   "nothing_to_set_up": "Nothing to set up for this device",
   "full_remote": "Full remote",
@@ -719,7 +718,6 @@ var EN = {
   "in_this_room": "in this room.",
   "turns_off_every_other_light": "Turns off every other light ",
   "devices_not_listed_above_are_not_tou": "Devices not listed above are not touched.",
-  "save_scene": "Save scene",
   "delete_scene": "Delete scene",
   "delete": "Delete “",
   "give_the_scene_a_name": "Give the scene a name",
@@ -1471,7 +1469,6 @@ var EN = {
   "hm_this_light_streams": "This light streams for the area",
   "hm_brightness_balance": "Brightness balance",
   "hm_this_area_is_on_the_bridge": "The bridge's own area: saving writes it to the bridge",
-  "hm_save_to_the_bridge": "Save to the bridge",
   "hm_saved_to_the_bridge": "Saved to the bridge",
   "hm_the_bridge_did_not_accept_this": "The bridge did not accept this",
   "hm_press": "Press",
@@ -1542,8 +1539,7 @@ var EN = {
   "hm_done": "Done",
   "hm_pick_a_time": "Pick a time",
   "hm_pick_a_scene": "Pick a scene",
-  "hm_remove_this_time": "Remove this time",
-  "hm_unsaved_note": "Your changes to this device are kept here until you save them to the bridge."
+  "hm_remove_this_time": "Remove this time"
 };
 
 var STR = EN;

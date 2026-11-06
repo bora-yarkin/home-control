@@ -846,9 +846,34 @@ function sheetDrag(sh) {
 /* A popup that has to ask before it is left (Save, Apply once, Cancel) sets this to a function that takes over the leaving and returns true, or returns false when there is nothing to ask. Showing another popup clears it. */
 var POPGUARD = null;
 
-/* The same for closing the whole popup from any page of it: the Hue Plus menu keeps the edits of a device until they are saved, however many pages deep the user is. Unlike POPGUARD it is
-   not cleared by showing another popup, only by closing this one. It takes over the closing and returns true, or returns false when there is nothing to ask. */
-var SHEETGUARD = null;
+/* The header of the popup that is being built or shown: guardUnsaved gives it its checkmark (popupCheck). */
+var POPHEAD = null;
+
+/* The checkmark of a popup that has something to save, next to its close button: every such popup has it, and it does what Save does when closing asks "Unsaved changes" (guardUnsaved, scenenew.js).
+   There is one for each popup; a page that is drawn again only hands it its new guard. */
+function popupCheck(guard) {
+  var h = POPHEAD;
+  if (!h) return;
+  var c = h.querySelector(".rnd.save");
+  if (!c) {
+    c = mk("div", "rnd pane save", svg("check"));
+    c.setAttribute("role", "button");
+    c.setAttribute("aria-label", _T("save"));
+    c.tabIndex = 0;
+    var act = function () {
+      c.guard.save(c.guard.done);
+    };
+    c.addEventListener("click", act);
+    c.addEventListener("keydown", function (e) {
+      if (e.key === "Enter" || e.key === " ") {
+        e.preventDefault();
+        act();
+      }
+    });
+    h.insertBefore(c, h.lastChild);
+  }
+  c.guard = guard;
+}
 
 /* Popups opened over the one that is showing (the settings of an effect over the lights popup) instead of in its place. The popup underneath is left exactly as it is, and shown again when the one on top closes. Each entry keeps what the popup below needs back: its sheet, its back stack, its live updates, and what to do once it is showing again. */
 var LAYERS = [];
@@ -866,7 +891,7 @@ function showPopup(key, push, layer) {
     requestAnimationFrame(function () {
       dim.classList.add("in");
     });
-    LAYERS.push({ sh: SHEET.sh, scrim: dim, stack: STACK, current: CURRENT, live: SLIVE, after: typeof layer === "function" ? layer : null });
+    LAYERS.push({ sh: SHEET.sh, scrim: dim, stack: STACK, current: CURRENT, live: SLIVE, head: POPHEAD, after: typeof layer === "function" ? layer : null });
     STACK = [];
     CURRENT = null;
     push = false;
@@ -894,24 +919,21 @@ function showPopup(key, push, layer) {
   SLIVE = [];
   CUR = SLIVE;
   var h = mk("div", "sh-h");
-  if (STACK.length || def.tick) {
+  if (STACK.length) {
     var back = mk("div", "rnd pane", svg("back"));
-    back.addEventListener("click", function () {
-      if (def.tick && LAYERS.length) closeLayer();
-      else popBack();
-    });
+    back.addEventListener("click", popBack);
     h.appendChild(back);
   }
   var t = mk("div", "sh-t pane", ic(def.icon) + "<span></span>");
   t.querySelector("span:last-child").textContent = def.title;
   h.appendChild(t);
-  var x = mk("div", "rnd pane" + (def.tick ? " tick" : ""), svg(def.tick ? "check" : "close"));
-  if (def.tick) x.setAttribute("aria-label", _T("save"));
-  x.addEventListener("click", def.tick || (LAYERS.length ? closeLayer : closeSheet));
+  var x = mk("div", "rnd pane", svg("close"));
+  x.addEventListener("click", LAYERS.length ? closeLayer : closeSheet);
   h.appendChild(x);
   sh.appendChild(h);
   var body = mk("div");
   sh.appendChild(body);
+  POPHEAD = h;
   def.build(body);
   CUR = LIVE;
   SHEET.sh = sh;
@@ -933,8 +955,6 @@ function showPopup(key, push, layer) {
 function closeSheet() {
   if (POPGUARD && POPGUARD(closeSheet)) return;
   POPGUARD = null;
-  if (SHEETGUARD && SHEETGUARD(closeSheet)) return;
-  SHEETGUARD = null;
   LPBACK = null;
   closeMenu();
   stopStreams("sheet");
@@ -979,6 +999,7 @@ function closeLayer() {
     l.scrim.remove();
   }, 380);
   SHEET.sh = l.sh;
+  POPHEAD = l.head;
   STACK = l.stack;
   CURRENT = l.current;
   SLIVE = l.live;

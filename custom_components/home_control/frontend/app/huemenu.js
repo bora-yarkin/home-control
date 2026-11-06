@@ -34,46 +34,16 @@ function hmEnsure() {
   hmReady().then(refresh, function () {});
 }
 
-/* The menu is open from the first page drawn until the popup closes (or the user goes back out of the first page). A new one reads the bridge again and starts with no drafts. */
-function hmSession() {
-  if (SHEETGUARD === hmLeave) return;
-  hmEndSession();
-  SHEETGUARD = hmLeave;
-}
+/* The menu belongs to the popup it was opened in: a popup opened later reads the bridge again and starts with no drafts. */
+var HM_SHEET = null;
 
-function hmEndSession() {
+function hmSession() {
+  if (HM_SHEET === SHEET) return;
+  HM_SHEET = SHEET;
   HM = {};
   HM_READY = false;
   HM_READING = null;
   hmdClear();
-  if (SHEETGUARD === hmLeave) SHEETGUARD = null;
-}
-
-/* Asked before the menu is left, by closing the popup or by going back out of the first page. With edits that were not saved it asks whether to save them (every device that has some) or throw them away. */
-function hmLeave(proceed) {
-  var keys = hmdDirtyKeys();
-  if (!keys.length) {
-    POPGUARD = null;
-    hmEndSession();
-    return false;
-  }
-  var leave = function () {
-    POPGUARD = null;
-    hmEndSession();
-    proceed();
-  };
-  askSheet(_T("unsaved_changes"), [
-    {
-      label: _T("save"),
-      fn: function () {
-        hmSaveAll(keys).then(function (ok) {
-          if (ok) leave();
-        });
-      },
-    },
-    { label: _T("discard_changes"), fn: leave },
-  ]);
-  return true;
 }
 
 function hmList(kind) {
@@ -271,12 +241,6 @@ function hmBridgeId() {
 
 /* ---- the edits of one device: shown from its draft, sent to the bridge when that device is saved ---- */
 
-/* A service call that says whether it went through. callRaw gives nothing back when Home Assistant cannot be reached and rejects when the call fails; it tells the user of both itself. */
-function hmCall(domain, service, data) {
-  var p = callRaw(domain, service, data);
-  return p ? Promise.resolve(p) : Promise.reject(new Error("not sent"));
-}
-
 /* The setting of a light as the bridge holds it: its entity says (the power-on behaviour is a select entity of its own). */
 function hmLightActual(id, field) {
   if (field === "powerup") {
@@ -303,19 +267,37 @@ function hmMotionArea1(id) {
   })[0];
 }
 
+function hmEntArea(id) {
+  return hmList("entertainment_areas").filter(function (x) {
+    return x.id === id;
+  })[0];
+}
+
+/* What an entertainment area does when a sync stops, and who streams for it, as the area has them: {end_state, scene} and {mode, light}. A draft holds the same shapes. */
+function hmAreaEnd(x) {
+  return hmdValue(hmdKey("area", x.id), "end", { end_state: x.end_state || "last_state" });
+}
+
+function hmAreaPerf(x) {
+  return hmdValue(hmdKey("area", x.id), "performance", { mode: x.performance === "manual" ? "manual" : "auto", light: x.performance_light || null });
+}
+
 /* Puts one record read again from the bridge in place of the one held, and leaves every other device as it was. A failed read is no failure of the save: the held record has been updated by hand. */
 function hmReread(kind, id) {
   return Integrations.hueplus.resources([kind]).then(
     function (r) {
-      var fresh = (r || {})[kind];
-      if (kind === "accessories" && Array.isArray(fresh)) {
-        var mine = fresh.filter(function (y) { return y.id === id; })[0];
-        if (mine) HM.accessories = hmList("accessories").map(function (x) { return x.id === id ? mine : x; });
-      }
-      if (kind === "motion_areas" && fresh && Array.isArray(fresh.areas)) {
-        var area = fresh.areas.filter(function (y) { return y.id === id; })[0];
-        if (area && HM.motion_areas) HM.motion_areas.areas = hmMotionAreas().map(function (x) { return x.id === id ? area : x; });
-      }
+      var fresh = (r || {})[kind],
+        list = kind === "motion_areas" ? (fresh || {}).areas : fresh,
+        mine = Array.isArray(list) && list.filter(function (y) { return y.id === id; })[0],
+        swap = function (held) {
+          return held.map(function (x) {
+            return x.id === id ? mine : x;
+          });
+        };
+      if (!mine) return;
+      if (kind === "motion_areas") {
+        if (HM.motion_areas) HM.motion_areas.areas = swap(hmMotionAreas());
+      } else HM[kind] = swap(hmList(kind));
     },
     function () {}
   );
@@ -328,10 +310,10 @@ function hmSaveLight(id, ch) {
   ["function", "gradient_orientation", "gradient_order"].forEach(function (f) {
     if (ch[f] !== undefined) fields[f] = ch[f];
   });
-  if (Object.keys(fields).length) job = hmCall("hue_plus", "configure_light", Object.assign({ light: A(id).hue_light_id }, fields));
+  if (Object.keys(fields).length) job = hpCall("hue_plus", "configure_light", Object.assign({ light: A(id).hue_light_id }, fields));
   if (ch.powerup !== undefined && X.powerup)
     job = job.then(function () {
-      return hmCall("select", "select_option", { entity_id: X.powerup, option: ch.powerup });
+      return hpCall("select", "select_option", { entity_id: X.powerup, option: ch.powerup });
     });
   return job;
 }
@@ -344,7 +326,7 @@ function hmSaveSwitch(id, ch) {
     var st = ch[field];
     job = job
       .then(function () {
-        return hmCall("hue_plus", "configure_button", Object.assign({ accessory: st.k.acc, button: st.k.n, press: st.k.press }, st.what));
+        return hpCall("hue_plus", "configure_button", Object.assign({ accessory: st.k.acc, button: st.k.n, press: st.k.press }, st.what));
       })
       .then(function () {
         var p = field.split("|"),
@@ -361,10 +343,38 @@ function hmSaveSwitch(id, ch) {
 }
 
 function hmSaveMotion(id, ch) {
-  return hmCall("hue_plus", "set_motion_area", { area: id, enabled: ch.enabled }).then(function () {
+  return hpCall("hue_plus", "set_motion_area", { area: id, enabled: ch.enabled }).then(function () {
     var x = hmMotionArea1(id);
     if (x) x.enabled = ch.enabled;
     return hmReread("motion_areas", id);
+  });
+}
+
+/* An entertainment area: what happens when a sync stops, and who streams. */
+function hmSaveArea(id, ch) {
+  var x = hmEntArea(id),
+    job = Promise.resolve();
+  if (ch.end)
+    job = hpCall("hue_plus", "set_streaming_end_state", ch.end.scene ? { area: id, end_state: "scene", scene: ch.end.scene } : { area: id, end_state: ch.end.end_state }).then(function () {
+      if (x) x.end_state = ch.end.end_state;
+    });
+  if (ch.performance)
+    job = job
+      .then(function () {
+        return hpCall(
+          "hue_plus",
+          "update_entertainment_area",
+          ch.performance.mode === "manual" ? { area: id, performance: "manual", performance_light: ch.performance.light } : { area: id, performance: "auto" }
+        );
+      })
+      .then(function () {
+        if (x) {
+          x.performance = ch.performance.mode;
+          x.performance_light = ch.performance.mode === "manual" ? ch.performance.light : null;
+        }
+      });
+  return job.then(function () {
+    return hmReread("entertainment_areas", id);
   });
 }
 
@@ -373,7 +383,8 @@ function hmSaveDraft(key) {
   var kind = key.split(":")[0],
     id = key.slice(kind.length + 1),
     ch = hmdChanges(key),
-    job = kind === "light" ? hmSaveLight(id, ch) : kind === "acc" ? hmSaveSwitch(id, ch) : kind === "marea" ? hmSaveMotion(id, ch) : Promise.resolve();
+    job =
+      kind === "light" ? hmSaveLight(id, ch) : kind === "acc" ? hmSaveSwitch(id, ch) : kind === "marea" ? hmSaveMotion(id, ch) : kind === "area" ? hmSaveArea(id, ch) : Promise.resolve();
   return job.then(
     function () {
       hmdSaved(key);
@@ -386,45 +397,38 @@ function hmSaveDraft(key) {
   );
 }
 
-/* One device after the other, so a failed one stops the rest. */
-function hmSaveAll(keys) {
-  return keys.reduce(function (p, key) {
-    return p.then(function (ok) {
-      return ok ? hmSaveDraft(key) : false;
-    });
-  }, Promise.resolve(true));
+/* What the checkmark and the "Unsaved changes" question do: send the device, and when it went through go on to `leave`. */
+function hmSaveThen(key, leave) {
+  if (!hmdDirty(key)) {
+    POPGUARD = null;
+    leave();
+    return true;
+  }
+  return hmSaveDraft(key).then(function (ok) {
+    if (ok) {
+      toast(_T("hm_saved_to_the_bridge"));
+      POPGUARD = null;
+      leave();
+    }
+    return ok;
+  });
 }
 
-/* "Unsaved changes" with Save and Discard, shown only while the device has edits that are not saved. The edits are the device's own: Save sends this device, nothing else. */
-function hmSaveBar(key) {
-  var bar = mk("div", "hm-save"),
-    busy = false;
-  var save = hmButton(_T("save"), "primary", function () {
-    if (busy) return;
-    busy = true;
-    save.disabled = true;
-    hmSaveDraft(key).then(function (ok) {
-      busy = false;
-      save.disabled = false;
-      if (ok) toast(_T("hm_saved_to_the_bridge"));
-      refresh();
-    });
+/* A device of the menu is saved like everything else that is saved (guardUnsaved): a checkmark next to the close button, and closing with changes that are not saved asks. The pages that only choose
+   one setting of the device are inner: going back from them to the device does not ask. */
+function hmGuard(key, inner) {
+  guardUnsaved({
+    inner: !!inner,
+    dirty: function () {
+      return hmdDirty(key);
+    },
+    save: function (leave) {
+      return hmSaveThen(key, leave);
+    },
+    discard: function () {
+      hmdDiscard(key);
+    },
   });
-  bar.appendChild(hmCallout(_T("hm_unsaved_note")));
-  bar.appendChild(
-    hmActions([
-      save,
-      hmButton(_T("discard_changes"), "ghost", function () {
-        hmdDiscard(key);
-        refresh();
-      }),
-    ])
-  );
-  bar.refresh = function () {
-    bar.style.display = hmdDirty(key) ? "" : "none";
-  };
-  reg(bar.refresh);
-  return bar;
 }
 
 /* ---- the first page ---- */
@@ -437,8 +441,6 @@ function hmUpdatesDue() {
 
 function hmRoot(b) {
   hmBox(b);
-  /* Going back out of the first page leaves the menu. */
-  POPGUARD = hmLeave;
   hmLoad(b, HM_KINDS, function (box) {
     hmRootPage(box);
   });
@@ -581,13 +583,7 @@ function hmLights(b) {
     });
     t.refresh = function () {
       t.classList.toggle("on", isOn(id));
-      t.querySelector("i").textContent = hmdDirty(hmdKey("light", id))
-        ? _T("unsaved_changes")
-        : V_(id) === "unavailable"
-          ? _T("hm_unreachable")
-          : isOn(id)
-            ? _T("on_2")
-            : _T("off");
+      t.querySelector("i").textContent = V_(id) === "unavailable" ? _T("hm_unreachable") : isOn(id) ? _T("on_2") : _T("off");
     };
     reg(t.refresh);
     grid.appendChild(t);
@@ -602,6 +598,7 @@ var HM_POWER = ["safety", "last_on_state", "powerfail"];
 
 function hmLight(b, id) {
   hmBox(b);
+  hmGuard(hmdKey("light", id));
   var X = Integrations.hueplus.forLight(H(), id),
     hue = A(id).hue_light_id,
     a = function () {
@@ -610,9 +607,8 @@ function hmLight(b, id) {
     area = H().entities && H().entities[id] && H().entities[id].area_id,
     minutes = 15;
   b.appendChild(hmTitle("lamp", hpName(id), function () {
-    return V_(id) === "unavailable" ? _T("hm_unreachable") : hmdDirty(hmdKey("light", id)) ? _T("unsaved_changes") : "";
+    return V_(id) === "unavailable" ? _T("hm_unreachable") : "";
   }));
-  b.appendChild(hmSaveBar(hmdKey("light", id)));
   if (area && H().areas && H().areas[area])
     b.appendChild(hmGroup([hmRow({ icon: "home", title: _T("hm_room"), val: H().areas[area].name })]));
   var general = [];
@@ -784,6 +780,7 @@ function hmPick(kind) {
     hmBox(b);
     var cfg = HM_PICKS[kind],
       key = hmdKey("light", id);
+    hmGuard(key, true);
     b.appendChild(
       hmGroup(
         cfg.options(id).map(function (v) {
@@ -1123,15 +1120,13 @@ function hmAreas(b) {
 
 function hmArea(b, id) {
   hmBox(b);
+  hmGuard(hmdKey("area", id));
   hmLoad(b, ["entertainment_areas", "scenes"], function (box, r, again) {
-    var x = (r.entertainment_areas || []).filter(function (y) {
-      return y.id === id;
-    })[0];
+    var x = hmEntArea(id);
     if (!x) {
       box.appendChild(hmCallout(_T("nothing_found")));
       return;
     }
-    var end = x.end_state || "last_state";
     box.appendChild(hmTitle("eq", x.name));
     box.appendChild(
       hmGroup([
@@ -1148,19 +1143,17 @@ function hmArea(b, id) {
         }),
         hmRow({
           title: _T("hm_performance"),
-          val: x.performance === "manual" ? _T("hm_manual") : _T("hm_auto"),
-          tap: function () {
-            HM_AREA = { area: x, scenes: [], again: again };
-            showPopup("hue-perf:" + x.id, true);
+          val: function () {
+            return hmAreaPerf(x).mode === "manual" ? _T("hm_manual") : _T("hm_auto");
           },
+          tap: "hue-perf:" + x.id,
         }),
         hmRow({
           title: _T("hm_when_sync_stops"),
-          val: _T("end_" + end),
-          tap: function () {
-            HM_AREA = { area: x, scenes: (r.scenes || []).filter(function (s) { return s.group_id; }), again: again };
-            showPopup("hue-end:" + x.id, true);
+          val: function () {
+            return _T("end_" + hmAreaEnd(x).end_state);
           },
+          tap: "hue-end:" + x.id,
         }),
       ])
     );
@@ -1178,117 +1171,121 @@ function hmArea(b, id) {
   });
 }
 
-/* What the area page read, for the page that picks what happens when a sync stops (it is opened from there, so the answer is still at hand). */
-var HM_AREA = null;
-
+/* What happens when a sync stops: the area's own setting is staged, and sent when the area is saved. */
 function hmEnd(b, id) {
   hmBox(b);
-  if (!HM_AREA || HM_AREA.area.id !== id) {
-    b.appendChild(hmCallout(_T("nothing_found")));
-    return;
-  }
-  var x = HM_AREA.area,
-    again = HM_AREA.again;
-  b.appendChild(
-    hmGroup(
-      HM_END.map(function (v) {
-        return hmRow({
-          title: _T("end_" + v),
-          sub: _T("hm_end_" + v),
-          check: function () {
-            return (x.end_state || "last_state") === v;
-          },
-          tap: function () {
-            if (v === "scene") {
-              showPopup("hue-escene:" + id, true);
-              return;
-            }
-            x.end_state = v;
-            hpDo(again, "set_streaming_end_state", { area: x.id, end_state: v });
-            popBack();
-          },
-        });
-      })
-    )
-  );
+  hmGuard(hmdKey("area", id), true);
+  hmLoad(b, ["entertainment_areas", "scenes"], function (box) {
+    var x = hmEntArea(id);
+    if (!x) {
+      box.appendChild(hmCallout(_T("nothing_found")));
+      return;
+    }
+    box.appendChild(
+      hmGroup(
+        HM_END.map(function (v) {
+          return hmRow({
+            title: _T("end_" + v),
+            sub: _T("hm_end_" + v),
+            check: function () {
+              return hmAreaEnd(x).end_state === v;
+            },
+            tap: function () {
+              if (v === "scene") {
+                showPopup("hue-escene:" + id, true);
+                return;
+              }
+              hmdStage(hmdKey("area", id), "end", { end_state: v }, { end_state: x.end_state || "last_state" });
+              popBack();
+            },
+          });
+        })
+      )
+    );
+  });
 }
 
 function hmEndScene(b, id) {
   hmBox(b);
-  if (!HM_AREA || HM_AREA.area.id !== id) {
-    b.appendChild(hmCallout(_T("nothing_found")));
-    return;
-  }
-  var x = HM_AREA.area,
-    again = HM_AREA.again;
-  if (!HM_AREA.scenes.length) b.appendChild(hmCallout(_T("nothing_found")));
-  b.appendChild(
-    hmGroup(
-      HM_AREA.scenes.map(function (s) {
-        return hmRow({
-          icon: "scene",
-          title: s.name,
-          tap: function () {
-            x.end_state = "scene";
-            hpDo(again, "set_streaming_end_state", { area: x.id, end_state: "scene", scene: s.id });
-            popBack();
-            popBack();
-          },
-        });
-      })
-    )
-  );
+  hmGuard(hmdKey("area", id), true);
+  hmLoad(b, ["entertainment_areas", "scenes"], function (box, r) {
+    var x = hmEntArea(id),
+      scenes = (r.scenes || []).filter(function (s) {
+        return s.group_id;
+      });
+    if (!x) {
+      box.appendChild(hmCallout(_T("nothing_found")));
+      return;
+    }
+    if (!scenes.length) box.appendChild(hmCallout(_T("nothing_found")));
+    box.appendChild(
+      hmGroup(
+        scenes.map(function (s) {
+          return hmRow({
+            icon: "scene",
+            title: s.name,
+            tap: function () {
+              hmdStage(hmdKey("area", id), "end", { end_state: "scene", scene: s.id }, { end_state: x.end_state || "last_state" });
+              popBack();
+              popBack();
+            },
+          });
+        })
+      )
+    );
+  });
 }
 
-/* Who streams for an area: the bridge picks (auto), or one light of the area does (manual). */
+/* Who streams for an area: the bridge picks (auto), or one light of the area does (manual). Staged like the rest. */
 function hmPerf(b, id) {
   hmBox(b);
-  if (!HM_AREA || HM_AREA.area.id !== id) {
-    b.appendChild(hmCallout(_T("nothing_found")));
-    return;
-  }
-  var x = HM_AREA.area,
-    again = HM_AREA.again,
-    set = function (mode, light) {
-      x.performance = mode;
-      x.performance_light = light || null;
-      hpDo(again, "update_entertainment_area", mode === "manual" ? { area: x.id, performance: mode, performance_light: light } : { area: x.id, performance: mode });
+  hmGuard(hmdKey("area", id), true);
+  hmLoad(b, ["entertainment_areas"], function (box) {
+    var x = hmEntArea(id);
+    if (!x) {
+      box.appendChild(hmCallout(_T("nothing_found")));
+      return;
+    }
+    var set = function (mode, light) {
+      hmdStage(hmdKey("area", id), "performance", { mode: mode, light: light || null }, { mode: x.performance === "manual" ? "manual" : "auto", light: x.performance_light || null });
       popBack();
     };
-  b.appendChild(
-    hmGroup(
-      [
-        hmRow({
-          title: _T("hm_auto"),
-          sub: _T("hm_the_bridge_picks"),
-          check: function () {
-            return x.performance !== "manual";
-          },
-          tap: function () {
-            set("auto");
-          },
-        }),
-      ].concat(
-        (x.lights || [])
-          .filter(function (l) {
-            return l.light_id;
-          })
-          .map(function (l) {
-            return hmRow({
-              title: l.name || l.light_id,
-              sub: _T("hm_this_light_streams"),
-              check: function () {
-                return x.performance === "manual" && x.performance_light === l.light_id;
-              },
-              tap: function () {
-                set("manual", l.light_id);
-              },
-            });
-          })
+    box.appendChild(
+      hmGroup(
+        [
+          hmRow({
+            title: _T("hm_auto"),
+            sub: _T("hm_the_bridge_picks"),
+            check: function () {
+              return hmAreaPerf(x).mode !== "manual";
+            },
+            tap: function () {
+              set("auto");
+            },
+          }),
+        ].concat(
+          (x.lights || [])
+            .filter(function (l) {
+              return l.light_id;
+            })
+            .map(function (l) {
+              return hmRow({
+                title: l.name || l.light_id,
+                sub: _T("hm_this_light_streams"),
+                check: function () {
+                  var p = hmAreaPerf(x);
+                  return p.mode === "manual" && p.light === l.light_id;
+                },
+                tap: function () {
+                  set("manual", l.light_id);
+                },
+              });
+            })
+        )
       )
-    )
-  );
-  b.appendChild(hmCallout(_T("experimental_not_yet_tried_on_a_real_bridge")));
+    );
+    box.appendChild(hmCallout(_T("experimental_not_yet_tried_on_a_real_bridge")));
+  });
 }
 
 /* ---- MotionAware areas ---- */
@@ -1305,12 +1302,7 @@ function hmMotion(b) {
             return hmRow({
               icon: "motion",
               title: (x.metadata || {}).name || x.id,
-              sub: function () {
-                return hmdDirty(hmdKey("marea", x.id)) ? _T("unsaved_changes") : "";
-              },
-              val: function () {
-                return hmdValue(hmdKey("marea", x.id), "enabled", !!x.enabled) ? _T("on_2") : _T("off");
-              },
+              val: x.enabled ? _T("on_2") : _T("off"),
               tap: "hue-marea:" + x.id,
             });
           })
@@ -1321,6 +1313,7 @@ function hmMotion(b) {
 
 function hmMotionArea(b, id) {
   hmBox(b);
+  hmGuard(hmdKey("marea", id));
   hmLoad(b, ["motion_areas"], function (box, r) {
     var x = ((r.motion_areas || {}).areas || []).filter(function (y) {
       return y.id === id;
@@ -1333,12 +1326,7 @@ function hmMotionArea(b, id) {
       enabled = function () {
         return hmdValue(key, "enabled", !!x.enabled);
       };
-    box.appendChild(
-      hmTitle("motion", (x.metadata || {}).name || x.id, function () {
-        return hmdDirty(key) ? _T("unsaved_changes") : "";
-      })
-    );
-    box.appendChild(hmSaveBar(key));
+    box.appendChild(hmTitle("motion", (x.metadata || {}).name || x.id));
     box.appendChild(
       hmGroup([
         hmRow({
@@ -1381,13 +1369,7 @@ function hmSwitches(b) {
             return hmRow({
               icon: "cog",
               title: x.name,
-              sub: function () {
-                return (
-                  cntS((x.buttons || []).length, _T("hm_button"), _T("hm_buttons")) +
-                  (x.dials ? " · " + cntS(x.dials, _T("hm_dial"), _T("hm_dials")) : "") +
-                  (hmdDirty(hmdKey("acc", x.id)) ? " · " + _T("unsaved_changes") : "")
-                );
-              },
+              sub: cntS((x.buttons || []).length, _T("hm_button"), _T("hm_buttons")) + (x.dials ? " · " + cntS(x.dials, _T("hm_dial"), _T("hm_dials")) : ""),
               tap: "hue-switch:" + x.id,
             });
           })
@@ -1495,6 +1477,7 @@ function hmPressSummary(r, spec) {
 
 function hmSwitch(b, id) {
   hmBox(b);
+  hmGuard(hmdKey("acc", id));
   hmLoad(b, ["accessories", "scenes", "rooms", "zones"], function (box, r) {
     var x = (r.accessories || []).filter(function (y) {
       return y.id === id;
@@ -1503,12 +1486,7 @@ function hmSwitch(b, id) {
       box.appendChild(hmCallout(_T("nothing_found")));
       return;
     }
-    box.appendChild(
-      hmTitle("cog", x.name, function () {
-        return hmdDirty(hmdKey("acc", x.id)) ? _T("unsaved_changes") : "";
-      })
-    );
-    box.appendChild(hmSaveBar(hmdKey("acc", x.id)));
+    box.appendChild(hmTitle("cog", x.name));
     box.appendChild(hmLabel(_T("hm_buttons")));
     box.appendChild(
       hmGroup(
@@ -1528,6 +1506,7 @@ function hmSwitch(b, id) {
 
 function hmButtonPage(b, id) {
   hmBox(b);
+  hmGuard(hmdKey("acc", hmBtnKey(id).acc), true);
   hmLoad(b, ["accessories", "scenes", "rooms", "zones"], function (box, r) {
     var k = hmBtnKey(id),
       f = hmBtnFind(r, Object.assign({}, k, { press: "short" }));
@@ -1537,7 +1516,6 @@ function hmButtonPage(b, id) {
     }
     var t = hmBtnTargets(r, f.acc, f.btn);
     box.appendChild(hmTitle("cog", _T("hm_button_label") + " " + k.n, f.acc.name));
-    box.appendChild(hmSaveBar(hmdKey("acc", f.acc.id)));
     box.appendChild(
       hmGroup(
         HM_PRESSES.map(function (p) {
@@ -1571,6 +1549,7 @@ var HM_CHOICES = [
 
 function hmPress(b, id) {
   hmBox(b);
+  hmGuard(hmdKey("acc", hmBtnKey(id).acc), true);
   hmLoad(b, ["accessories", "scenes", "rooms", "zones"], function (box, r) {
     var k = hmBtnKey(id),
       f = hmBtnFind(r, k);
@@ -1648,6 +1627,7 @@ function hmPress(b, id) {
 /* One scene for a press. */
 function hmScenePick(b, id) {
   hmBox(b);
+  hmGuard(hmdKey("acc", hmBtnKey(id).acc), true);
   hmLoad(b, ["accessories", "scenes", "rooms", "zones"], function (box, r) {
     var k = hmBtnKey(id),
       f = hmBtnFind(r, k);
@@ -1684,6 +1664,7 @@ var HM_CYCLE = null;
 
 function hmCycle(b, id) {
   hmBox(b);
+  hmGuard(hmdKey("acc", hmBtnKey(id).acc), true);
   hmLoad(b, ["accessories", "scenes", "rooms", "zones"], function (box, r) {
     var k = hmBtnKey(id),
       f = hmBtnFind(r, k);
@@ -1771,6 +1752,7 @@ function hmCycle(b, id) {
 /* One place of a cycle: which scene it is, and moving or removing it. A new place (one past the end) only asks for the scene. */
 function hmCycleSlot(b, id) {
   hmBox(b);
+  hmGuard(hmdKey("acc", String(id).split("|")[0]), true);
   var parts = String(id).split("|"),
     slot = Number(parts.pop()),
     key = parts.join("|"),
@@ -1875,6 +1857,7 @@ function hmTimeSort(d) {
 
 function hmTimePage(b, id) {
   hmBox(b);
+  hmGuard(hmdKey("acc", hmBtnKey(id).acc), true);
   hmLoad(b, ["accessories", "scenes", "rooms", "zones"], function (box, r) {
     var k = hmBtnKey(id),
       f = hmBtnFind(r, k);
@@ -1976,6 +1959,7 @@ function hmTimePage(b, id) {
 /* One time of a time-based light: the time (a time input) and the scene, and removing it. */
 function hmTimeSlot(b, id) {
   hmBox(b);
+  hmGuard(hmdKey("acc", String(id).split("|")[0]), true);
   var parts = String(id).split("|"),
     slot = Number(parts.pop()),
     key = parts.join("|"),

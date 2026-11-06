@@ -21,6 +21,8 @@ function page(extra = {}) {
     eaIsBar: () => false,
     eaZonePoints: () => [],
     callRaw() {},
+    popBack() {},
+    popupCheck() {},
     setTimeout: (fn) => fn(),
     clearTimeout() {},
     window: { HA: {} },
@@ -136,7 +138,6 @@ test("a save that did not happen keeps the editor guarded", () => {
     askSheet: (text, choices) => asked.push(choices),
   });
   let saved = false;
-  vm.runInContext("guardUnsaved", p);
   p.guardUnsaved({ dirty: () => true, save: () => saved });
   const guard = p.POPGUARD;
   assert.equal(guard(() => {}), true);
@@ -144,6 +145,73 @@ test("a save that did not happen keeps the editor guarded", () => {
   assert.equal(p.POPGUARD, guard);
   p.guardUnsaved({ dirty: () => false, save: () => true });
   assert.equal(p.POPGUARD(() => {}), false);
+});
+
+test("every editor that saves gets the checkmark, and it saves the way the question's Save does", () => {
+  const checks = [];
+  const p = page({ POPGUARD: null, popupCheck: (guard) => checks.push(guard), askSheet() {} });
+  const calls = [];
+  p.guardUnsaved({
+    dirty: () => true,
+    save: (leave) => {
+      calls.push(["save", p.POPGUARD, leave === p.popBack]);
+      return true;
+    },
+  });
+  assert.equal(checks.length, 1, "the checkmark is asked for");
+  assert.equal(checks[0], p.POPGUARD, "it is given the guard of the page");
+  checks[0].save(checks[0].done);
+  assert.deepEqual(calls, [["save", null, true]], "the guard is lifted while it saves, and the checkmark goes back one page by default");
+});
+
+test("an editor can say that its checkmark closes the popup", () => {
+  const checks = [];
+  const closeSheet = () => {};
+  const p = page({ POPGUARD: null, popupCheck: (guard) => checks.push(guard), closeSheet });
+  p.guardUnsaved({ dirty: () => true, save: () => true, done: closeSheet });
+  assert.equal(checks[0].done, closeSheet);
+});
+
+test("a save that is still on its way keeps the editor guarded only if it fails", async () => {
+  const p = page({ POPGUARD: null, askSheet() {} });
+  let answer;
+  p.guardUnsaved({ dirty: () => true, save: () => new Promise((resolve) => (answer = resolve)) });
+  const guard = p.POPGUARD;
+  guard.save(() => {});
+  assert.equal(p.POPGUARD, null, "while the bridge answers there is no guard to ask twice");
+  answer(false);
+  await Promise.resolve();
+  await Promise.resolve();
+  assert.equal(p.POPGUARD, guard, "refused: still guarded");
+  guard.save(() => {});
+  answer(true);
+  await Promise.resolve();
+  await Promise.resolve();
+  assert.equal(p.POPGUARD, null, "saved: the guard stays lifted");
+});
+
+test("a page that is one step of a larger edit asks on closing, not on the way back, and has no checkmark of its own", () => {
+  const checks = [];
+  const asked = [];
+  const closeSheet = () => {};
+  const p = page({ POPGUARD: null, popupCheck: (guard) => checks.push(guard), askSheet: (text) => asked.push(text), closeSheet });
+  p.guardUnsaved({ dirty: () => true, save: () => true, inner: true });
+  assert.equal(checks.length, 0);
+  assert.equal(p.POPGUARD(p.popBack), false, "going back to the rest of the edit is free");
+  assert.equal(asked.length, 0);
+  assert.equal(p.POPGUARD(closeSheet), true, "closing the popup asks");
+  assert.deepEqual(asked, ["unsaved_changes"]);
+});
+
+test("discarding undoes what was previewed and then leaves", () => {
+  const asked = [];
+  const p = page({ POPGUARD: null, askSheet: (text, choices) => asked.push(choices) });
+  const log = [];
+  p.guardUnsaved({ dirty: () => true, save: () => true, discard: () => log.push("discard") });
+  p.POPGUARD(() => log.push("leave"));
+  asked[0][1].fn();
+  assert.deepEqual(log, ["discard", "leave"]);
+  assert.equal(p.POPGUARD, null);
 });
 
 test("opening a scene in the maker puts its lights as the scene has them, so saving keeps their brightness and effect", () => {

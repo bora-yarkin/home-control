@@ -46,6 +46,12 @@ function hpLoad(b, kinds, draw) {
   return box;
 }
 
+/* A service call that says whether it went through: a promise that rejects when it was not sent (callRaw gives nothing back when Home Assistant cannot be reached) or failed. callRaw tells the user of both itself. */
+function hpCall(domain, service, data) {
+  var p = callRaw(domain, service, data);
+  return p ? Promise.resolve(p) : Promise.reject(new Error("not sent"));
+}
+
 /* A change to the bridge, then the list is read again. The service finishes when the bridge has answered, so the list is read after the change succeeded or failed, never before. */
 function hpDo(again, service, data) {
   var done = callRaw("hue_plus", service, data);
@@ -266,12 +272,13 @@ function hpBridgeLights() {
   });
 }
 
-function hpSaveBridge() {
+/* Saves the area to the bridge and goes on to `leave`. Gives back false when it cannot be saved (no name, no light), else a promise of whether the bridge took it. */
+function hpSaveBridge(leave) {
   var d = EAD.draft,
     name = String(d.name || "").trim();
   if (!name) {
     toast(_T("give_the_area_a_name"));
-    return;
+    return false;
   }
   var lights = d.kept
     .concat(
@@ -286,19 +293,22 @@ function hpSaveBridge() {
     });
   if (!lights.length) {
     toast(_T("add_at_least_one_light"));
-    return;
+    return false;
   }
   var after = EAD.bridge.after;
-  Promise.resolve(callRaw("hue_plus", "update_entertainment_area", { area: EAD.bridge.id, name: name, lights: lights })).then(
+  return hpCall("hue_plus", "update_entertainment_area", { area: EAD.bridge.id, name: name, lights: lights }).then(
     function () {
       toast(_T("hm_saved_to_the_bridge"));
       eaIdentifyOff();
+      EAD.saved = JSON.stringify(EAD.draft);
       if (after) after();
-      if (STACK.length) popBack();
-      else closeSheet();
+      POPGUARD = null;
+      leave();
+      return true;
     },
     function () {
       toast(_T("hm_the_bridge_did_not_accept_this"));
+      return false;
     }
   );
 }

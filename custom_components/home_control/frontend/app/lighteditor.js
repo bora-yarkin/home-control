@@ -1,4 +1,4 @@
-/* The light popup as part of an editor: the same popup a light has on the dashboard, opened over a scene editor with a tick in place of the close button. The lights follow every change at once (a preview); the tick keeps what they show in the scene, and leaving any other way puts the lights back as they were. */
+/* The light popup as part of an editor: the same popup a light has on the dashboard, opened over a scene editor. The lights follow every change at once (a preview); the checkmark keeps what they show in the scene, and leaving after a change asks whether to keep it or put the lights back as they were. */
 
 var LIT = null;
 
@@ -64,7 +64,7 @@ function lightActsOf(S, id) {
 
 /* Opens the light popup for editing. o: { id, name, icon, onTick(acts) }. */
 function openLightEditor(o) {
-  LIT = { id: o.id, name: o.name, icon: o.icon, onTick: o.onTick, S: null, ticked: false };
+  LIT = { id: o.id, name: o.name, icon: o.icon, onTick: o.onTick, S: null };
   showPopup("light-edit", true, o.after || true);
 }
 
@@ -80,15 +80,21 @@ function lightEditDef() {
           lt.S = S;
         },
       });
-      POPGUARD = function () {
-        if (!lt.ticked) lightRestore(snap);
-        return false;
-      };
-    },
-    tick: function () {
-      lt.ticked = true;
-      lt.onTick(lightActsOf(lt.S, lt.id));
-      closeLayer();
+      /* The light shows what it is changed to while this is open. Closing after a change asks; the checkmark puts the light's settings into the scene. */
+      guardUnsaved({
+        dirty: function () {
+          return JSON.stringify(lightSnapshot([lt.id])) !== JSON.stringify(snap);
+        },
+        save: function (leave) {
+          lt.onTick(lightActsOf(lt.S, lt.id));
+          POPGUARD = null;
+          leave();
+          return true;
+        },
+        discard: function () {
+          lightRestore(snap);
+        },
+      });
     },
   };
 }

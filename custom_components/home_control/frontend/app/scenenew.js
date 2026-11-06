@@ -1,16 +1,18 @@
 /* Making a scene: the + button of a scenes section, the question what kind (a classic scene of fixed settings, or a live scene), the areas a live scene plays in, and the guard that asks before an editor throws changes away. */
 
-/* An editor with changes that are not saved asks before it is left, by any way: back, the scrim, the close button. dirty() says whether there is anything to lose; save(leave) saves and goes on to `leave`; discard() undoes what was previewed. */
+/* An editor with something to save asks before it is left, by any way: back, the scrim, the close button, and has a checkmark next to the close button that saves it (popupCheck). The same for every
+   place that saves: the scene editors, the area editor, the light editor, a device in the Hue Plus menu.
+   o.dirty() says whether there is anything to lose; o.save(leave) saves and goes on to `leave`, and gives back false when it did not save (no name yet) or a promise of true or false when the save takes a while
+   (the bridge); o.discard() undoes what was previewed. o.done is what the checkmark goes on to after saving (the page before, unless the editor closes the popup). o.inner marks a page that is only one step of a larger edit (the choices of a device): going back from it to the rest of the edit does not ask, closing does. */
 function guardUnsaved(o) {
   function guard(leave) {
     if (!o.dirty()) return false;
+    if (o.inner && leave === popBack) return false;
     askSheet(_T("unsaved_changes"), [
       {
         label: _T("save"),
         fn: function () {
-          POPGUARD = null;
-          /* A save that did not happen (no name yet) keeps the editor open, and the guard with it. */
-          if (o.save(leave) === false) POPGUARD = guard;
+          guard.save(leave);
         },
       },
       {
@@ -24,7 +26,19 @@ function guardUnsaved(o) {
     ]);
     return true;
   }
+  /* The Save of the question and the checkmark. A save that did not happen keeps the editor open, and the guard with it. */
+  guard.save = function (leave) {
+    POPGUARD = null;
+    var done = o.save(leave);
+    if (done === false) POPGUARD = guard;
+    else if (done && done.then)
+      done.then(function (ok) {
+        if (ok === false) POPGUARD = guard;
+      });
+  };
+  guard.done = o.done || popBack;
   POPGUARD = guard;
+  if (!o.inner) popupCheck(guard);
 }
 
 /* The + on a scenes section, for administrators: it makes a scene and puts it in this section. */

@@ -24,16 +24,16 @@ test("a staged value shows instead of the one the device has, and equal to it is
   assert.ok(d.hmdDirty(key));
   d.hmdStage(key, "function", "mixed", "mixed");
   assert.ok(!d.hmdDirty(key), "putting the old value back leaves nothing to save");
-  assert.deepEqual(plain(d.hmdDirtyKeys()), []);
+  assert.deepEqual(plain(Object.keys(d.HMD)), []);
 });
 
 test("every device has a draft of its own", () => {
   const d = load("hmdraft.js");
   d.hmdStage(d.hmdKey("light", "light.a"), "function", "functional", "mixed");
   d.hmdStage(d.hmdKey("acc", "acc-1"), "b1|short", { what: { action: "dim_up" } });
-  assert.deepEqual(plain(d.hmdDirtyKeys()).sort(), ["acc:acc-1", "light:light.a"]);
+  assert.deepEqual(plain(Object.keys(d.HMD)).sort(), ["acc:acc-1", "light:light.a"]);
   d.hmdDiscard(d.hmdKey("light", "light.a"));
-  assert.deepEqual(plain(d.hmdDirtyKeys()), ["acc:acc-1"]);
+  assert.deepEqual(plain(Object.keys(d.HMD)), ["acc:acc-1"]);
   assert.equal(d.hmdValue(d.hmdKey("light", "light.a"), "function", "mixed"), "mixed", "a discarded draft shows what the device has");
   assert.deepEqual(plain(d.hmdChanges("acc:acc-1")), { "b1|short": { what: { action: "dim_up" } } });
 });
@@ -59,7 +59,7 @@ test("clearing drops every draft and every saved value", () => {
   d.hmdStage("light:b", "function", "x", "y");
   d.hmdSaved("light:b");
   d.hmdClear();
-  assert.deepEqual(plain(d.hmdDirtyKeys()), []);
+  assert.deepEqual(plain(Object.keys(d.HMD)), []);
   assert.equal(d.hmdValue("light:b", "function", "y"), "y");
 });
 
@@ -113,4 +113,17 @@ test("the menu reads a staged press the same way as a press from the bridge", ()
     assert.equal(m.hmPressWithOff(spec), withOff, kind);
   }
   assert.deepEqual(plain(m.hmTimeSlots(m.hmSpecFrom(cases[7][0]))), [{ time: "07:00", scene: "s1" }, { time: "10:30", scene: "s2" }]);
+});
+
+test("what an entertainment area does when a sync stops, and who streams, are staged as whole values", () => {
+  const d = load("hmdraft.js");
+  const key = d.hmdKey("area", "area-1");
+  d.hmdStage(key, "end", { end_state: "off" }, { end_state: "last_state" });
+  d.hmdStage(key, "performance", { mode: "manual", light: "light-1" }, { mode: "auto", light: null });
+  assert.deepEqual(plain(d.hmdChanges(key)), { end: { end_state: "off" }, performance: { mode: "manual", light: "light-1" } });
+  assert.deepEqual(plain(d.hmdValue(key, "end", { end_state: "last_state" })), { end_state: "off" });
+  // Picking what the area already has is no change; a scene is a change even though the area says "scene" for any scene.
+  d.hmdStage(key, "performance", { mode: "auto", light: null }, { mode: "auto", light: null });
+  d.hmdStage(key, "end", { end_state: "scene", scene: "scene-2" }, { end_state: "scene" });
+  assert.deepEqual(plain(d.hmdChanges(key)), { end: { end_state: "scene", scene: "scene-2" } });
 });

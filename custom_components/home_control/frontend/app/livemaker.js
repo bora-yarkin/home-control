@@ -382,6 +382,7 @@ function liveMakerBuild(b) {
     dirty: liveMakerDirty,
     save: liveMakerSave,
     discard: liveMakerEnd,
+    done: closeSheet,
   });
   var tools = mk("div");
   b.appendChild(tools);
@@ -545,13 +546,6 @@ function liveMakerTools(box) {
         LMK.owner = liveOwner(cs);
         liveCall(LMK.owner, "start", p.data);
         LMK.preview = true;
-      },
-    })
-  );
-  box.appendChild(
-    pill("check", _T("save_scene"), {
-      tap: function () {
-        liveMakerSave(closeSheet);
       },
     })
   );
