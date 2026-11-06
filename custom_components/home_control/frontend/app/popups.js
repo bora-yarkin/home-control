@@ -200,6 +200,12 @@ function popupDefBase(key) {
         eaManager(b, id);
       },
     };
+  if (k === "area-lights")
+    return {
+      title: _T("add_a_light"),
+      icon: "light",
+      build: eaMorePage,
+    };
   if (k === "area-edit")
     return {
       title: EAD && !EAD.isNew ? _T("edit_area") : _T("new_area"),
