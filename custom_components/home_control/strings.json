@@ -80,7 +80,7 @@
         },
         "looks": {
           "name": "Looks",
-          "description": "What single lights do differently, by light: an item for each light's entity id, with \"palette\", \"brightness\" (1 to 255), \"effects\" and \"native\" (for example underwater). A light with no look follows the scene. native is one of the light's own effects (a light whose integration plays them, for example a Hue light with Hue Plus); it plays with the look's palette colours."
+          "description": "What single lights do differently, by light: an item for each light's entity id, with \"palette\", \"brightness\" (1 to 255), \"effects\" and \"native\" (for example underwater). A light with no look follows the scene. native is one of the light's own effects, played when a plus integration for the light's brand can (a Hue light's candle, for example); it plays with the look's palette colours."
         },
         "actions": {
           "name": "Actions",
@@ -194,7 +194,7 @@
         },
         "looks": {
           "name": "Looks",
-          "description": "What single lights do differently, by light: an item for each light's entity id, with \"palette\", \"brightness\" (1 to 255), \"effects\" and \"native\" (for example underwater). A light with no look follows the scene. native is one of the light's own effects (a light whose integration plays them, for example a Hue light with Hue Plus); it plays with the look's palette colours."
+          "description": "What single lights do differently, by light: an item for each light's entity id, with \"palette\", \"brightness\" (1 to 255), \"effects\" and \"native\" (for example underwater). A light with no look follows the scene. native is one of the light's own effects, played when a plus integration for the light's brand can (a Hue light's candle, for example); it plays with the look's palette colours."
         },
         "actions": {
           "name": "Actions",
