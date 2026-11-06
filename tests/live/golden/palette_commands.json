@@ -1,0 +1,1396 @@
+[
+{
+"scenario": {
+"spread": "x",
+"range": 0,
+"speed": 1,
+"palette": "one",
+"brightness": 255,
+"kind": "colour_fade"
+},
+"count": 240,
+"sha256": "bfe822279a6e27ddd9c7c5e50c5f9c6d8ec3fb7580e6a841535566b160f60f7f"
+},
+{
+"scenario": {
+"spread": "x",
+"range": 0,
+"speed": 1,
+"palette": "two",
+"brightness": 255,
+"kind": "colour_fade"
+},
+"count": 240,
+"sha256": "523ec348a217498db3779af65b051bcb096ef5763a65b60c663046fb63536611"
+},
+{
+"scenario": {
+"spread": "x",
+"range": 0,
+"speed": 1,
+"palette": "five",
+"brightness": 255,
+"kind": "colour_fade"
+},
+"count": 240,
+"sha256": "7b53067414789c4057b1f9f36c063364c8a653e1ed045b4144ccd6e809c64e45"
+},
+{
+"scenario": {
+"spread": "x",
+"range": 0,
+"speed": 6,
+"palette": "one",
+"brightness": 255,
+"kind": "colour_fade"
+},
+"count": 240,
+"sha256": "bfe822279a6e27ddd9c7c5e50c5f9c6d8ec3fb7580e6a841535566b160f60f7f"
+},
+{
+"scenario": {
+"spread": "x",
+"range": 0,
+"speed": 6,
+"palette": "two",
+"brightness": 255,
+"kind": "colour_fade"
+},
+"count": 240,
+"sha256": "408d98c1030d61909e7e1f002e95471c951beab2cb3f46855d133f97961ebe2c"
+},
+{
+"scenario": {
+"spread": "x",
+"range": 0,
+"speed": 6,
+"palette": "five",
+"brightness": 255,
+"kind": "colour_fade"
+},
+"count": 600,
+"sha256": "b7ce5f90cddedaf99c8cd70f6f5d4e320d1d01f23842da52f2eca8c6193b63e7"
+},
+{
+"scenario": {
+"spread": "x",
+"range": 0,
+"speed": 12,
+"palette": "one",
+"brightness": 255,
+"kind": "colour_fade"
+},
+"count": 400,
+"sha256": "adef410429801748a4180bae7b79c06de75867d755db449b0778cc751a6d2117"
+},
+{
+"scenario": {
+"spread": "x",
+"range": 0,
+"speed": 12,
+"palette": "two",
+"brightness": 255,
+"kind": "colour_fade"
+},
+"count": 600,
+"sha256": "f9880b100a9526823c3cb2f39dc7ad614f16a0093a3bbbb71c06f0e48b9b0805"
+},
+{
+"scenario": {
+"spread": "x",
+"range": 0,
+"speed": 12,
+"palette": "five",
+"brightness": 255,
+"kind": "colour_fade"
+},
+"count": 600,
+"sha256": "074f9d70ca4f913d11b5bea0410dcd3181238c3ece84950dc7b8a30fdf4706f7"
+},
+{
+"scenario": {
+"spread": "x",
+"range": 50,
+"speed": 1,
+"palette": "one",
+"brightness": 255,
+"kind": "colour_fade"
+},
+"count": 240,
+"sha256": "bfe822279a6e27ddd9c7c5e50c5f9c6d8ec3fb7580e6a841535566b160f60f7f"
+},
+{
+"scenario": {
+"spread": "x",
+"range": 50,
+"speed": 1,
+"palette": "two",
+"brightness": 255,
+"kind": "colour_fade"
+},
+"count": 240,
+"sha256": "e45c7dd93c29b7b06731a44eb904c5c1c0ba0deeaaa842d84ee7d2722f486fc8"
+},
+{
+"scenario": {
+"spread": "x",
+"range": 50,
+"speed": 1,
+"palette": "five",
+"brightness": 255,
+"kind": "colour_fade"
+},
+"count": 240,
+"sha256": "e6eda7cb733913293da73754199170b7b6ee1d6b76678a0d0460a2b2f11b6ce8"
+},
+{
+"scenario": {
+"spread": "x",
+"range": 50,
+"speed": 6,
+"palette": "one",
+"brightness": 255,
+"kind": "colour_fade"
+},
+"count": 240,
+"sha256": "bfe822279a6e27ddd9c7c5e50c5f9c6d8ec3fb7580e6a841535566b160f60f7f"
+},
+{
+"scenario": {
+"spread": "x",
+"range": 50,
+"speed": 6,
+"palette": "two",
+"brightness": 255,
+"kind": "colour_fade"
+},
+"count": 240,
+"sha256": "ab3f0b60891d175c0b0a26ae9d3432cdb814b0a5a1754790d58fc3f8ccf8aa73"
+},
+{
+"scenario": {
+"spread": "x",
+"range": 50,
+"speed": 6,
+"palette": "five",
+"brightness": 255,
+"kind": "colour_fade"
+},
+"count": 600,
+"sha256": "0a8715ff4c3760a8f777d9afc6abe676ff03fbc0dced86686c957b7bb6bf8903"
+},
+{
+"scenario": {
+"spread": "x",
+"range": 50,
+"speed": 12,
+"palette": "one",
+"brightness": 255,
+"kind": "colour_fade"
+},
+"count": 400,
+"sha256": "adef410429801748a4180bae7b79c06de75867d755db449b0778cc751a6d2117"
+},
+{
+"scenario": {
+"spread": "x",
+"range": 50,
+"speed": 12,
+"palette": "two",
+"brightness": 255,
+"kind": "colour_fade"
+},
+"count": 600,
+"sha256": "3a51be6e6f626e795a18f6adea378aed3743ed9b71079e9db1967012c33226f9"
+},
+{
+"scenario": {
+"spread": "x",
+"range": 50,
+"speed": 12,
+"palette": "five",
+"brightness": 255,
+"kind": "colour_fade"
+},
+"count": 600,
+"sha256": "1561e35ca196e66a19d50424fb4020291bc2e358abc4c94bd3dd95c8dd777211"
+},
+{
+"scenario": {
+"spread": "x",
+"range": 100,
+"speed": 1,
+"palette": "one",
+"brightness": 255,
+"kind": "colour_fade"
+},
+"count": 240,
+"sha256": "bfe822279a6e27ddd9c7c5e50c5f9c6d8ec3fb7580e6a841535566b160f60f7f"
+},
+{
+"scenario": {
+"spread": "x",
+"range": 100,
+"speed": 1,
+"palette": "two",
+"brightness": 255,
+"kind": "colour_fade"
+},
+"count": 240,
+"sha256": "491d937b46ab00620665a953e8ae3e8d66ad52503561d3e8a4255aa6368f8b4e"
+},
+{
+"scenario": {
+"spread": "x",
+"range": 100,
+"speed": 1,
+"palette": "five",
+"brightness": 255,
+"kind": "colour_fade"
+},
+"count": 240,
+"sha256": "ebb6a4701fc64b99041ecde611b1df2792dbb023fbbd9d371934c969fadc35ea"
+},
+{
+"scenario": {
+"spread": "x",
+"range": 100,
+"speed": 6,
+"palette": "one",
+"brightness": 255,
+"kind": "colour_fade"
+},
+"count": 240,
+"sha256": "bfe822279a6e27ddd9c7c5e50c5f9c6d8ec3fb7580e6a841535566b160f60f7f"
+},
+{
+"scenario": {
+"spread": "x",
+"range": 100,
+"speed": 6,
+"palette": "two",
+"brightness": 255,
+"kind": "colour_fade"
+},
+"count": 240,
+"sha256": "ce23fe321216df66a0f7d8dd5e9ad8fd774cbb2c1153a6ef6df1885dd0f0070a"
+},
+{
+"scenario": {
+"spread": "x",
+"range": 100,
+"speed": 6,
+"palette": "five",
+"brightness": 255,
+"kind": "colour_fade"
+},
+"count": 600,
+"sha256": "0b6fcb724542fa86bd709893a84d04b02acc21876a3bb8e8c5ebb78565f3fedc"
+},
+{
+"scenario": {
+"spread": "x",
+"range": 100,
+"speed": 12,
+"palette": "one",
+"brightness": 255,
+"kind": "colour_fade"
+},
+"count": 400,
+"sha256": "adef410429801748a4180bae7b79c06de75867d755db449b0778cc751a6d2117"
+},
+{
+"scenario": {
+"spread": "x",
+"range": 100,
+"speed": 12,
+"palette": "two",
+"brightness": 255,
+"kind": "colour_fade"
+},
+"count": 600,
+"sha256": "e293be750373c30a29c25a6de5080a0c77ee451d90984216f878a2c9aba78d27"
+},
+{
+"scenario": {
+"spread": "x",
+"range": 100,
+"speed": 12,
+"palette": "five",
+"brightness": 255,
+"kind": "colour_fade"
+},
+"count": 600,
+"sha256": "ac897523cba33c83078f1b0c348273a4bad64626574c3c4aa04b43b8e0b7387c"
+},
+{
+"scenario": {
+"spread": "y",
+"range": 0,
+"speed": 1,
+"palette": "one",
+"brightness": 255,
+"kind": "colour_fade"
+},
+"count": 240,
+"sha256": "bfe822279a6e27ddd9c7c5e50c5f9c6d8ec3fb7580e6a841535566b160f60f7f"
+},
+{
+"scenario": {
+"spread": "y",
+"range": 0,
+"speed": 1,
+"palette": "two",
+"brightness": 255,
+"kind": "colour_fade"
+},
+"count": 240,
+"sha256": "523ec348a217498db3779af65b051bcb096ef5763a65b60c663046fb63536611"
+},
+{
+"scenario": {
+"spread": "y",
+"range": 0,
+"speed": 1,
+"palette": "five",
+"brightness": 255,
+"kind": "colour_fade"
+},
+"count": 240,
+"sha256": "7b53067414789c4057b1f9f36c063364c8a653e1ed045b4144ccd6e809c64e45"
+},
+{
+"scenario": {
+"spread": "y",
+"range": 0,
+"speed": 6,
+"palette": "one",
+"brightness": 255,
+"kind": "colour_fade"
+},
+"count": 240,
+"sha256": "bfe822279a6e27ddd9c7c5e50c5f9c6d8ec3fb7580e6a841535566b160f60f7f"
+},
+{
+"scenario": {
+"spread": "y",
+"range": 0,
+"speed": 6,
+"palette": "two",
+"brightness": 255,
+"kind": "colour_fade"
+},
+"count": 240,
+"sha256": "408d98c1030d61909e7e1f002e95471c951beab2cb3f46855d133f97961ebe2c"
+},
+{
+"scenario": {
+"spread": "y",
+"range": 0,
+"speed": 6,
+"palette": "five",
+"brightness": 255,
+"kind": "colour_fade"
+},
+"count": 600,
+"sha256": "b7ce5f90cddedaf99c8cd70f6f5d4e320d1d01f23842da52f2eca8c6193b63e7"
+},
+{
+"scenario": {
+"spread": "y",
+"range": 0,
+"speed": 12,
+"palette": "one",
+"brightness": 255,
+"kind": "colour_fade"
+},
+"count": 400,
+"sha256": "adef410429801748a4180bae7b79c06de75867d755db449b0778cc751a6d2117"
+},
+{
+"scenario": {
+"spread": "y",
+"range": 0,
+"speed": 12,
+"palette": "two",
+"brightness": 255,
+"kind": "colour_fade"
+},
+"count": 600,
+"sha256": "f9880b100a9526823c3cb2f39dc7ad614f16a0093a3bbbb71c06f0e48b9b0805"
+},
+{
+"scenario": {
+"spread": "y",
+"range": 0,
+"speed": 12,
+"palette": "five",
+"brightness": 255,
+"kind": "colour_fade"
+},
+"count": 600,
+"sha256": "074f9d70ca4f913d11b5bea0410dcd3181238c3ece84950dc7b8a30fdf4706f7"
+},
+{
+"scenario": {
+"spread": "y",
+"range": 50,
+"speed": 1,
+"palette": "one",
+"brightness": 255,
+"kind": "colour_fade"
+},
+"count": 240,
+"sha256": "bfe822279a6e27ddd9c7c5e50c5f9c6d8ec3fb7580e6a841535566b160f60f7f"
+},
+{
+"scenario": {
+"spread": "y",
+"range": 50,
+"speed": 1,
+"palette": "two",
+"brightness": 255,
+"kind": "colour_fade"
+},
+"count": 240,
+"sha256": "b45b0fd7515afa33822d17be4e7e41a3eedf5333d040ae9de17a01cedb6973e3"
+},
+{
+"scenario": {
+"spread": "y",
+"range": 50,
+"speed": 1,
+"palette": "five",
+"brightness": 255,
+"kind": "colour_fade"
+},
+"count": 240,
+"sha256": "fb17162ded26270e602281a81a208127b81f361f07afa1596609a99e06b31d30"
+},
+{
+"scenario": {
+"spread": "y",
+"range": 50,
+"speed": 6,
+"palette": "one",
+"brightness": 255,
+"kind": "colour_fade"
+},
+"count": 240,
+"sha256": "bfe822279a6e27ddd9c7c5e50c5f9c6d8ec3fb7580e6a841535566b160f60f7f"
+},
+{
+"scenario": {
+"spread": "y",
+"range": 50,
+"speed": 6,
+"palette": "two",
+"brightness": 255,
+"kind": "colour_fade"
+},
+"count": 240,
+"sha256": "bbe06a76ea741aa70222de73f84c595bc412518cdfd4e82860b6e715a7b336a2"
+},
+{
+"scenario": {
+"spread": "y",
+"range": 50,
+"speed": 6,
+"palette": "five",
+"brightness": 255,
+"kind": "colour_fade"
+},
+"count": 600,
+"sha256": "a7e17aaa23347ce46feb34d850c1cb85fa70bb6c9b85a05fda505b39c9a7cdf9"
+},
+{
+"scenario": {
+"spread": "y",
+"range": 50,
+"speed": 12,
+"palette": "one",
+"brightness": 255,
+"kind": "colour_fade"
+},
+"count": 400,
+"sha256": "adef410429801748a4180bae7b79c06de75867d755db449b0778cc751a6d2117"
+},
+{
+"scenario": {
+"spread": "y",
+"range": 50,
+"speed": 12,
+"palette": "two",
+"brightness": 255,
+"kind": "colour_fade"
+},
+"count": 600,
+"sha256": "4329768b1a2cd9ab0fc080ee49a83f30ae5cabeab277de971fc334941636eebc"
+},
+{
+"scenario": {
+"spread": "y",
+"range": 50,
+"speed": 12,
+"palette": "five",
+"brightness": 255,
+"kind": "colour_fade"
+},
+"count": 600,
+"sha256": "783c51f44fb72406e4937286f91919af8678f687723fc12e641781993b0754dc"
+},
+{
+"scenario": {
+"spread": "y",
+"range": 100,
+"speed": 1,
+"palette": "one",
+"brightness": 255,
+"kind": "colour_fade"
+},
+"count": 240,
+"sha256": "bfe822279a6e27ddd9c7c5e50c5f9c6d8ec3fb7580e6a841535566b160f60f7f"
+},
+{
+"scenario": {
+"spread": "y",
+"range": 100,
+"speed": 1,
+"palette": "two",
+"brightness": 255,
+"kind": "colour_fade"
+},
+"count": 240,
+"sha256": "4d33ad95f19519135e62df4b29cded803116c22baf4c64732e192d83e4d14037"
+},
+{
+"scenario": {
+"spread": "y",
+"range": 100,
+"speed": 1,
+"palette": "five",
+"brightness": 255,
+"kind": "colour_fade"
+},
+"count": 240,
+"sha256": "3b85b1e197109a80acb5ec4fcf652460e3c3cb5faff8eff023ed6f2f745e2bf6"
+},
+{
+"scenario": {
+"spread": "y",
+"range": 100,
+"speed": 6,
+"palette": "one",
+"brightness": 255,
+"kind": "colour_fade"
+},
+"count": 240,
+"sha256": "bfe822279a6e27ddd9c7c5e50c5f9c6d8ec3fb7580e6a841535566b160f60f7f"
+},
+{
+"scenario": {
+"spread": "y",
+"range": 100,
+"speed": 6,
+"palette": "two",
+"brightness": 255,
+"kind": "colour_fade"
+},
+"count": 240,
+"sha256": "bfad6910967a9ffa17e61f3cd7a467790d7a298cb576885dc7133d8110115b65"
+},
+{
+"scenario": {
+"spread": "y",
+"range": 100,
+"speed": 6,
+"palette": "five",
+"brightness": 255,
+"kind": "colour_fade"
+},
+"count": 600,
+"sha256": "458b10ebfc680552dcb9de0f88c6730500c97c81c52cefa1139440fe8dc4c1de"
+},
+{
+"scenario": {
+"spread": "y",
+"range": 100,
+"speed": 12,
+"palette": "one",
+"brightness": 255,
+"kind": "colour_fade"
+},
+"count": 400,
+"sha256": "adef410429801748a4180bae7b79c06de75867d755db449b0778cc751a6d2117"
+},
+{
+"scenario": {
+"spread": "y",
+"range": 100,
+"speed": 12,
+"palette": "two",
+"brightness": 255,
+"kind": "colour_fade"
+},
+"count": 600,
+"sha256": "831f37c63717385e81106cb7df9d970f8743bf3acb53954b1c1885bb90c49225"
+},
+{
+"scenario": {
+"spread": "y",
+"range": 100,
+"speed": 12,
+"palette": "five",
+"brightness": 255,
+"kind": "colour_fade"
+},
+"count": 600,
+"sha256": "4ae206014b304f91e3ab378ff2cbf48eceef885bfc6553d773cb23dfe543e2d2"
+},
+{
+"scenario": {
+"spread": "z",
+"range": 0,
+"speed": 1,
+"palette": "one",
+"brightness": 255,
+"kind": "colour_fade"
+},
+"count": 240,
+"sha256": "bfe822279a6e27ddd9c7c5e50c5f9c6d8ec3fb7580e6a841535566b160f60f7f"
+},
+{
+"scenario": {
+"spread": "z",
+"range": 0,
+"speed": 1,
+"palette": "two",
+"brightness": 255,
+"kind": "colour_fade"
+},
+"count": 240,
+"sha256": "523ec348a217498db3779af65b051bcb096ef5763a65b60c663046fb63536611"
+},
+{
+"scenario": {
+"spread": "z",
+"range": 0,
+"speed": 1,
+"palette": "five",
+"brightness": 255,
+"kind": "colour_fade"
+},
+"count": 240,
+"sha256": "7b53067414789c4057b1f9f36c063364c8a653e1ed045b4144ccd6e809c64e45"
+},
+{
+"scenario": {
+"spread": "z",
+"range": 0,
+"speed": 6,
+"palette": "one",
+"brightness": 255,
+"kind": "colour_fade"
+},
+"count": 240,
+"sha256": "bfe822279a6e27ddd9c7c5e50c5f9c6d8ec3fb7580e6a841535566b160f60f7f"
+},
+{
+"scenario": {
+"spread": "z",
+"range": 0,
+"speed": 6,
+"palette": "two",
+"brightness": 255,
+"kind": "colour_fade"
+},
+"count": 240,
+"sha256": "408d98c1030d61909e7e1f002e95471c951beab2cb3f46855d133f97961ebe2c"
+},
+{
+"scenario": {
+"spread": "z",
+"range": 0,
+"speed": 6,
+"palette": "five",
+"brightness": 255,
+"kind": "colour_fade"
+},
+"count": 600,
+"sha256": "b7ce5f90cddedaf99c8cd70f6f5d4e320d1d01f23842da52f2eca8c6193b63e7"
+},
+{
+"scenario": {
+"spread": "z",
+"range": 0,
+"speed": 12,
+"palette": "one",
+"brightness": 255,
+"kind": "colour_fade"
+},
+"count": 400,
+"sha256": "adef410429801748a4180bae7b79c06de75867d755db449b0778cc751a6d2117"
+},
+{
+"scenario": {
+"spread": "z",
+"range": 0,
+"speed": 12,
+"palette": "two",
+"brightness": 255,
+"kind": "colour_fade"
+},
+"count": 600,
+"sha256": "f9880b100a9526823c3cb2f39dc7ad614f16a0093a3bbbb71c06f0e48b9b0805"
+},
+{
+"scenario": {
+"spread": "z",
+"range": 0,
+"speed": 12,
+"palette": "five",
+"brightness": 255,
+"kind": "colour_fade"
+},
+"count": 600,
+"sha256": "074f9d70ca4f913d11b5bea0410dcd3181238c3ece84950dc7b8a30fdf4706f7"
+},
+{
+"scenario": {
+"spread": "z",
+"range": 50,
+"speed": 1,
+"palette": "one",
+"brightness": 255,
+"kind": "colour_fade"
+},
+"count": 240,
+"sha256": "bfe822279a6e27ddd9c7c5e50c5f9c6d8ec3fb7580e6a841535566b160f60f7f"
+},
+{
+"scenario": {
+"spread": "z",
+"range": 50,
+"speed": 1,
+"palette": "two",
+"brightness": 255,
+"kind": "colour_fade"
+},
+"count": 240,
+"sha256": "a4109ee00fc79742f74b8e97407b7eccb1b8e5a25bc77d038953d9337009754e"
+},
+{
+"scenario": {
+"spread": "z",
+"range": 50,
+"speed": 1,
+"palette": "five",
+"brightness": 255,
+"kind": "colour_fade"
+},
+"count": 240,
+"sha256": "fbe0f79e053392829097e3769367c92cfc0b54a948778909e64585bcd5eb1cd6"
+},
+{
+"scenario": {
+"spread": "z",
+"range": 50,
+"speed": 6,
+"palette": "one",
+"brightness": 255,
+"kind": "colour_fade"
+},
+"count": 240,
+"sha256": "bfe822279a6e27ddd9c7c5e50c5f9c6d8ec3fb7580e6a841535566b160f60f7f"
+},
+{
+"scenario": {
+"spread": "z",
+"range": 50,
+"speed": 6,
+"palette": "two",
+"brightness": 255,
+"kind": "colour_fade"
+},
+"count": 240,
+"sha256": "8c8d698c420ccf4491d2c4a1500d77ff406a55f6cd4e09f072373b46abe169eb"
+},
+{
+"scenario": {
+"spread": "z",
+"range": 50,
+"speed": 6,
+"palette": "five",
+"brightness": 255,
+"kind": "colour_fade"
+},
+"count": 600,
+"sha256": "bf5ff4b3a673cce7b6c7d24155a5980a641c9e030ae2e54a0f97336b640d9aba"
+},
+{
+"scenario": {
+"spread": "z",
+"range": 50,
+"speed": 12,
+"palette": "one",
+"brightness": 255,
+"kind": "colour_fade"
+},
+"count": 400,
+"sha256": "adef410429801748a4180bae7b79c06de75867d755db449b0778cc751a6d2117"
+},
+{
+"scenario": {
+"spread": "z",
+"range": 50,
+"speed": 12,
+"palette": "two",
+"brightness": 255,
+"kind": "colour_fade"
+},
+"count": 600,
+"sha256": "21e350c9bcee3feb1e41655a5580323261322d203fb5316329125759c5e1215d"
+},
+{
+"scenario": {
+"spread": "z",
+"range": 50,
+"speed": 12,
+"palette": "five",
+"brightness": 255,
+"kind": "colour_fade"
+},
+"count": 600,
+"sha256": "798dcb6ca598c3f7999ba6ddeca4a0457e72d9eaebdd13af97cbf000b35ffb7d"
+},
+{
+"scenario": {
+"spread": "z",
+"range": 100,
+"speed": 1,
+"palette": "one",
+"brightness": 255,
+"kind": "colour_fade"
+},
+"count": 240,
+"sha256": "bfe822279a6e27ddd9c7c5e50c5f9c6d8ec3fb7580e6a841535566b160f60f7f"
+},
+{
+"scenario": {
+"spread": "z",
+"range": 100,
+"speed": 1,
+"palette": "two",
+"brightness": 255,
+"kind": "colour_fade"
+},
+"count": 240,
+"sha256": "5fd7bf68981c515b28c577a42f7e460f51ecabd847e30b54a714e56e86ec4be2"
+},
+{
+"scenario": {
+"spread": "z",
+"range": 100,
+"speed": 1,
+"palette": "five",
+"brightness": 255,
+"kind": "colour_fade"
+},
+"count": 240,
+"sha256": "3ba116d5596c9e2bb6271f62495aa41df6a92c1b3ba7180b59bd04f606b8b74f"
+},
+{
+"scenario": {
+"spread": "z",
+"range": 100,
+"speed": 6,
+"palette": "one",
+"brightness": 255,
+"kind": "colour_fade"
+},
+"count": 240,
+"sha256": "bfe822279a6e27ddd9c7c5e50c5f9c6d8ec3fb7580e6a841535566b160f60f7f"
+},
+{
+"scenario": {
+"spread": "z",
+"range": 100,
+"speed": 6,
+"palette": "two",
+"brightness": 255,
+"kind": "colour_fade"
+},
+"count": 240,
+"sha256": "47bf89d24c71e8a023bc02e2754253fe71438108dbefc6b6b3dce96c64f77e93"
+},
+{
+"scenario": {
+"spread": "z",
+"range": 100,
+"speed": 6,
+"palette": "five",
+"brightness": 255,
+"kind": "colour_fade"
+},
+"count": 600,
+"sha256": "fff38bd271bb52ed724b886f4f453de5d2ac6ab71f698d323984330a2d256ed8"
+},
+{
+"scenario": {
+"spread": "z",
+"range": 100,
+"speed": 12,
+"palette": "one",
+"brightness": 255,
+"kind": "colour_fade"
+},
+"count": 400,
+"sha256": "adef410429801748a4180bae7b79c06de75867d755db449b0778cc751a6d2117"
+},
+{
+"scenario": {
+"spread": "z",
+"range": 100,
+"speed": 12,
+"palette": "two",
+"brightness": 255,
+"kind": "colour_fade"
+},
+"count": 600,
+"sha256": "521383dab06cfe82ab7cbc655640bdab5932cdcdb4eb90191607a00b68f74f2f"
+},
+{
+"scenario": {
+"spread": "z",
+"range": 100,
+"speed": 12,
+"palette": "five",
+"brightness": 255,
+"kind": "colour_fade"
+},
+"count": 600,
+"sha256": "26f00334c340dc1b6009daa3d0a16a923aaf9599de7a4024bf748f337bc10ffd"
+},
+{
+"scenario": {
+"spread": "radial",
+"range": 0,
+"speed": 1,
+"palette": "one",
+"brightness": 255,
+"kind": "colour_fade"
+},
+"count": 240,
+"sha256": "bfe822279a6e27ddd9c7c5e50c5f9c6d8ec3fb7580e6a841535566b160f60f7f"
+},
+{
+"scenario": {
+"spread": "radial",
+"range": 0,
+"speed": 1,
+"palette": "two",
+"brightness": 255,
+"kind": "colour_fade"
+},
+"count": 240,
+"sha256": "523ec348a217498db3779af65b051bcb096ef5763a65b60c663046fb63536611"
+},
+{
+"scenario": {
+"spread": "radial",
+"range": 0,
+"speed": 1,
+"palette": "five",
+"brightness": 255,
+"kind": "colour_fade"
+},
+"count": 240,
+"sha256": "7b53067414789c4057b1f9f36c063364c8a653e1ed045b4144ccd6e809c64e45"
+},
+{
+"scenario": {
+"spread": "radial",
+"range": 0,
+"speed": 6,
+"palette": "one",
+"brightness": 255,
+"kind": "colour_fade"
+},
+"count": 240,
+"sha256": "bfe822279a6e27ddd9c7c5e50c5f9c6d8ec3fb7580e6a841535566b160f60f7f"
+},
+{
+"scenario": {
+"spread": "radial",
+"range": 0,
+"speed": 6,
+"palette": "two",
+"brightness": 255,
+"kind": "colour_fade"
+},
+"count": 240,
+"sha256": "408d98c1030d61909e7e1f002e95471c951beab2cb3f46855d133f97961ebe2c"
+},
+{
+"scenario": {
+"spread": "radial",
+"range": 0,
+"speed": 6,
+"palette": "five",
+"brightness": 255,
+"kind": "colour_fade"
+},
+"count": 600,
+"sha256": "b7ce5f90cddedaf99c8cd70f6f5d4e320d1d01f23842da52f2eca8c6193b63e7"
+},
+{
+"scenario": {
+"spread": "radial",
+"range": 0,
+"speed": 12,
+"palette": "one",
+"brightness": 255,
+"kind": "colour_fade"
+},
+"count": 400,
+"sha256": "adef410429801748a4180bae7b79c06de75867d755db449b0778cc751a6d2117"
+},
+{
+"scenario": {
+"spread": "radial",
+"range": 0,
+"speed": 12,
+"palette": "two",
+"brightness": 255,
+"kind": "colour_fade"
+},
+"count": 600,
+"sha256": "f9880b100a9526823c3cb2f39dc7ad614f16a0093a3bbbb71c06f0e48b9b0805"
+},
+{
+"scenario": {
+"spread": "radial",
+"range": 0,
+"speed": 12,
+"palette": "five",
+"brightness": 255,
+"kind": "colour_fade"
+},
+"count": 600,
+"sha256": "074f9d70ca4f913d11b5bea0410dcd3181238c3ece84950dc7b8a30fdf4706f7"
+},
+{
+"scenario": {
+"spread": "radial",
+"range": 50,
+"speed": 1,
+"palette": "one",
+"brightness": 255,
+"kind": "colour_fade"
+},
+"count": 240,
+"sha256": "bfe822279a6e27ddd9c7c5e50c5f9c6d8ec3fb7580e6a841535566b160f60f7f"
+},
+{
+"scenario": {
+"spread": "radial",
+"range": 50,
+"speed": 1,
+"palette": "two",
+"brightness": 255,
+"kind": "colour_fade"
+},
+"count": 240,
+"sha256": "6b483426bbbc853992e071a60d996c8e3ee42f02682b5c3a5d86b1df2da95951"
+},
+{
+"scenario": {
+"spread": "radial",
+"range": 50,
+"speed": 1,
+"palette": "five",
+"brightness": 255,
+"kind": "colour_fade"
+},
+"count": 240,
+"sha256": "69ebe4c6eb92b84bf12d01544879ddd6acd9af86acf6c9709d34766ea6f072e4"
+},
+{
+"scenario": {
+"spread": "radial",
+"range": 50,
+"speed": 6,
+"palette": "one",
+"brightness": 255,
+"kind": "colour_fade"
+},
+"count": 240,
+"sha256": "bfe822279a6e27ddd9c7c5e50c5f9c6d8ec3fb7580e6a841535566b160f60f7f"
+},
+{
+"scenario": {
+"spread": "radial",
+"range": 50,
+"speed": 6,
+"palette": "two",
+"brightness": 255,
+"kind": "colour_fade"
+},
+"count": 240,
+"sha256": "5b1d1b01b30b582a2382ef162cd87d5d530c69aa89a6186bb195850584e1bb34"
+},
+{
+"scenario": {
+"spread": "radial",
+"range": 50,
+"speed": 6,
+"palette": "five",
+"brightness": 255,
+"kind": "colour_fade"
+},
+"count": 600,
+"sha256": "9225e6ac2254eaff705a288836d377383ca076b7760ebe83be61e4184f164153"
+},
+{
+"scenario": {
+"spread": "radial",
+"range": 50,
+"speed": 12,
+"palette": "one",
+"brightness": 255,
+"kind": "colour_fade"
+},
+"count": 400,
+"sha256": "adef410429801748a4180bae7b79c06de75867d755db449b0778cc751a6d2117"
+},
+{
+"scenario": {
+"spread": "radial",
+"range": 50,
+"speed": 12,
+"palette": "two",
+"brightness": 255,
+"kind": "colour_fade"
+},
+"count": 600,
+"sha256": "fd9be41db131b8238d1c074b9aab7318ade7bc224cf93eab13339a0dd6e1986a"
+},
+{
+"scenario": {
+"spread": "radial",
+"range": 50,
+"speed": 12,
+"palette": "five",
+"brightness": 255,
+"kind": "colour_fade"
+},
+"count": 600,
+"sha256": "aa2f3333e7dd6856a0d3331f7641d5334e11aa17c860cdb6878d1c9dbcd2bcc8"
+},
+{
+"scenario": {
+"spread": "radial",
+"range": 100,
+"speed": 1,
+"palette": "one",
+"brightness": 255,
+"kind": "colour_fade"
+},
+"count": 240,
+"sha256": "bfe822279a6e27ddd9c7c5e50c5f9c6d8ec3fb7580e6a841535566b160f60f7f"
+},
+{
+"scenario": {
+"spread": "radial",
+"range": 100,
+"speed": 1,
+"palette": "two",
+"brightness": 255,
+"kind": "colour_fade"
+},
+"count": 240,
+"sha256": "395735870857f25a915d61e59d92fb191f65141502f0cd3b66edf2dbeadd14ff"
+},
+{
+"scenario": {
+"spread": "radial",
+"range": 100,
+"speed": 1,
+"palette": "five",
+"brightness": 255,
+"kind": "colour_fade"
+},
+"count": 240,
+"sha256": "a6b591e129c65848d84375eb81a41387405ba0e12a2bba2b084f6ffd4b76e34b"
+},
+{
+"scenario": {
+"spread": "radial",
+"range": 100,
+"speed": 6,
+"palette": "one",
+"brightness": 255,
+"kind": "colour_fade"
+},
+"count": 240,
+"sha256": "bfe822279a6e27ddd9c7c5e50c5f9c6d8ec3fb7580e6a841535566b160f60f7f"
+},
+{
+"scenario": {
+"spread": "radial",
+"range": 100,
+"speed": 6,
+"palette": "two",
+"brightness": 255,
+"kind": "colour_fade"
+},
+"count": 240,
+"sha256": "51e096b4e9b01271588220636c9a7f3d79bf108d0399d147349d2d129bbc9efe"
+},
+{
+"scenario": {
+"spread": "radial",
+"range": 100,
+"speed": 6,
+"palette": "five",
+"brightness": 255,
+"kind": "colour_fade"
+},
+"count": 600,
+"sha256": "de56462d881658445aa7cd525bd46ce6abf505e2c15e4c4083cc688ad5b97a9c"
+},
+{
+"scenario": {
+"spread": "radial",
+"range": 100,
+"speed": 12,
+"palette": "one",
+"brightness": 255,
+"kind": "colour_fade"
+},
+"count": 400,
+"sha256": "adef410429801748a4180bae7b79c06de75867d755db449b0778cc751a6d2117"
+},
+{
+"scenario": {
+"spread": "radial",
+"range": 100,
+"speed": 12,
+"palette": "two",
+"brightness": 255,
+"kind": "colour_fade"
+},
+"count": 600,
+"sha256": "eba9ebfd6907d4255e56a6680ad58e88d41d2e619d38e861bbfde302f8ce0cf3"
+},
+{
+"scenario": {
+"spread": "radial",
+"range": 100,
+"speed": 12,
+"palette": "five",
+"brightness": 255,
+"kind": "colour_fade"
+},
+"count": 600,
+"sha256": "301b104275263e7d4ce5a8dc035a7d7ad7ba9d1e627159edcc1c5226787fc828"
+},
+{
+"scenario": {
+"spread": "x",
+"range": 100,
+"speed": 8,
+"palette": "one",
+"brightness": 120,
+"kind": "white_fade"
+},
+"count": 240,
+"sha256": "30ba6b25b87857d27812e3179ccbf723d496035a2fb3bdcdfe41fff2cf58d512"
+},
+{
+"scenario": {
+"spread": "x",
+"range": 100,
+"speed": 8,
+"palette": "two",
+"brightness": 120,
+"kind": "white_fade"
+},
+"count": 400,
+"sha256": "356428cd3a34a45ec70b92d2dbb39775cb7603bb17b141473482ea078628cdc4"
+},
+{
+"scenario": {
+"spread": "x",
+"range": 100,
+"speed": 8,
+"palette": "five",
+"brightness": 120,
+"kind": "white_fade"
+},
+"count": 600,
+"sha256": "c9983b24447512863b29df00f239314400c817ff1a5c60ae69915ca0edc84534"
+},
+{
+"scenario": {
+"spread": "x",
+"range": 100,
+"speed": 8,
+"palette": "one",
+"brightness": 120,
+"kind": "no_fade"
+},
+"count": 1200,
+"sha256": "2d1197951d5d9e5697efd520715063c27ff614c5457a33c5e7495e2fff749acf"
+},
+{
+"scenario": {
+"spread": "x",
+"range": 100,
+"speed": 8,
+"palette": "two",
+"brightness": 120,
+"kind": "no_fade"
+},
+"count": 1200,
+"sha256": "13e02c762d58a9ac94aeb369a755e405c7afed2c3175318cb6a8fca9e05839f6"
+},
+{
+"scenario": {
+"spread": "x",
+"range": 100,
+"speed": 8,
+"palette": "five",
+"brightness": 120,
+"kind": "no_fade"
+},
+"count": 1200,
+"sha256": "4d8d3032c0ccbd30298fc932e274c501c48db9d46bc6cec506e2ae5a4bca434a"
+},
+{
+"scenario": {
+"spread": "x",
+"range": 80,
+"speed": 4,
+"palette": "five",
+"brightness": 255,
+"kind": "colour_fade",
+"retune": true
+},
+"count": 500,
+"sha256": "0d8a4c3a8ab18233846c69eb2fec5138180033aeca4b2e3c8161c4697eaa2f58"
+},
+{
+"scenario": {
+"spread": "radial",
+"range": 100,
+"speed": 5,
+"palette": "five",
+"brightness": 255,
+"kind": "colour_fade",
+"freeze": true
+},
+"count": 300,
+"sha256": "975ec44bedbf2dedfb05374c7aea566dd3258505415129861852a316562514dc"
+}
+]
