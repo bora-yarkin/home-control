@@ -1,5 +1,5 @@
 # SPDX-License-Identifier: GPL-3.0-or-later
-"""The services of the scenes module. No Home Assistant imports."""
+"""The services of live scenes and areas. No Home Assistant imports."""
 
 from __future__ import annotations
 
@@ -34,7 +34,7 @@ EFFECTS = f(
 LOOKS = f(
     "object",
     'What single lights do differently, by light: an item for each light\'s entity id, with "palette", "brightness" (1 to 255), "effects" and "native" (for example underwater). '
-    "A light with no look follows the scene. native is one of the light's own effects (Hue lights only, experimental); it plays with the look's palette colours.",
+    "A light with no look follows the scene. native is one of the light's own effects (a light whose integration plays them, for example a Hue light with Hue Plus); it plays with the look's palette colours.",
 )
 ACTIONS = f(
     "object",
@@ -114,10 +114,6 @@ SPEC: dict[str, dict[str, Any]] = {
             "entity_id": f("text", "The light entity.", True, example="light.floor_light_l"),
             "active": f("bool", "Start or stop.", True),
         },
-    },
-    "import_hue_scene": {
-        "description": "Reads the palette, speed and lights of a Hue scene so it can be saved as a live scene. Reads only; nothing is written to the bridge.",
-        "fields": {"entity_id": f("text", "The Hue scene entity.", True, example="scene.bedroom_arctic_aurora")},
     },
     "get_library": {"description": "Returns the saved scenes and areas and the shipped presets.", "fields": {}},
 }

@@ -211,7 +211,13 @@ class DefinitionTests(unittest.TestCase):
             definition(looks={"light.zzz": {"brightness": 5}})
 
     def test_bad_looks_are_refused(self):
-        for bad in ({"light.a": {"native": "Not An Effect!"}}, {"light.a": {"palette": []}}, {"light.a": {"brightness": 0}}, {"light.a": "x"}, [1]):
+        for bad in (
+            {"light.a": {"native": "Not An Effect!"}},
+            {"light.a": {"palette": []}},
+            {"light.a": {"brightness": 0}},
+            {"light.a": "x"},
+            [1],
+        ):
             with self.assertRaises(d.DefinitionError, msg=bad):
                 definition(looks=bad)
 
@@ -399,7 +405,9 @@ class NativeEffectTests(unittest.TestCase):
             self.assertEqual(fx.build(definition(looks={"light.a": {"native": name}})).native("light.a"), name)
 
     def test_an_area_light_keeps_its_unique_id_and_an_old_one_has_none(self):
-        area = lib.clean_area({"id": "r", "name": "R", "lights": [{"entity_id": "light.a", "x": 0.5, "uid": "abc-1"}, {"entity_id": "light.b"}]})
+        area = lib.clean_area(
+            {"id": "r", "name": "R", "lights": [{"entity_id": "light.a", "x": 0.5, "uid": "abc-1"}, {"entity_id": "light.b"}]}
+        )
         self.assertEqual(area["lights"][0]["uid"], "abc-1")
         self.assertNotIn("uid", area["lights"][1])
         with self.assertRaises(d.DefinitionError):

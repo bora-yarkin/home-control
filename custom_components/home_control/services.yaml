@@ -1,0 +1,238 @@
+scene_start:
+  fields:
+    "scene_id":
+      required: true
+      example: "evening"
+      selector:
+        text: {}
+    "preset":
+      selector:
+        select:
+          options: ["aurora", "candle", "fireplace", "sunset_glow", "twilight", "prism", "galaxy", "lava", "sunrise", "ocean", "forest", "blossom", "ember", "relax"]
+    "area":
+      selector:
+        text: {}
+    "lights":
+      selector:
+        object: {}
+    "palette":
+      example: "[{\"hs\": [20, 90]}, {\"k\": 2200, \"b\": 60}]"
+      selector:
+        object: {}
+    "speed":
+      selector:
+        number:
+          mode: "box"
+          min: 1
+          max: 12
+          step: 1
+    "range":
+      selector:
+        number:
+          mode: "box"
+          min: 0
+          max: 100
+          step: 1
+    "brightness":
+      selector:
+        number:
+          mode: "box"
+          min: 1
+          max: 255
+          step: 1
+    "spread":
+      selector:
+        select:
+          options: ["x", "y", "z", "radial"]
+    "colour_source":
+      selector:
+        select:
+          options: ["palette", "rainbow"]
+    "effects":
+      example: "[{\"type\": \"pulse\", \"speed\": 4, \"strength\": 60}]"
+      selector:
+        object: {}
+    "looks":
+      selector:
+        object: {}
+    "actions":
+      example: "[{\"entity_id\": \"media_player.tv\", \"do\": \"off\"}]"
+      selector:
+        object: {}
+    "fps":
+      selector:
+        number:
+          mode: "box"
+          min: 1
+          max: 4
+          step: 1
+    "wake":
+      selector:
+        boolean: {}
+
+scene_update:
+  fields:
+    "scene_id":
+      required: true
+      example: "evening"
+      selector:
+        text: {}
+    "speed":
+      selector:
+        number:
+          mode: "box"
+          min: 1
+          max: 12
+          step: 1
+    "range":
+      selector:
+        number:
+          mode: "box"
+          min: 0
+          max: 100
+          step: 1
+    "brightness":
+      selector:
+        number:
+          mode: "box"
+          min: 1
+          max: 255
+          step: 1
+
+scene_freeze:
+  fields:
+    "scene_id":
+      required: true
+      example: "evening"
+      selector:
+        text: {}
+
+scene_play:
+  fields:
+    "scene_id":
+      required: true
+      example: "evening"
+      selector:
+        text: {}
+
+scene_stop:
+  fields:
+    "scene_id":
+      required: true
+      example: "evening"
+      selector:
+        text: {}
+
+scene_save:
+  fields:
+    "id":
+      required: true
+      selector:
+        text: {}
+    "name":
+      required: true
+      selector:
+        text: {}
+    "preset":
+      selector:
+        select:
+          options: ["aurora", "candle", "fireplace", "sunset_glow", "twilight", "prism", "galaxy", "lava", "sunrise", "ocean", "forest", "blossom", "ember", "relax"]
+    "palette":
+      example: "[{\"hs\": [20, 90]}, {\"k\": 2200, \"b\": 60}]"
+      selector:
+        object: {}
+    "speed":
+      selector:
+        number:
+          mode: "box"
+          min: 1
+          max: 12
+          step: 1
+    "range":
+      selector:
+        number:
+          mode: "box"
+          min: 0
+          max: 100
+          step: 1
+    "brightness":
+      selector:
+        number:
+          mode: "box"
+          min: 1
+          max: 255
+          step: 1
+    "spread":
+      selector:
+        select:
+          options: ["x", "y", "z", "radial"]
+    "colour_source":
+      selector:
+        select:
+          options: ["palette", "rainbow"]
+    "effects":
+      example: "[{\"type\": \"pulse\", \"speed\": 4, \"strength\": 60}]"
+      selector:
+        object: {}
+    "looks":
+      selector:
+        object: {}
+    "actions":
+      example: "[{\"entity_id\": \"media_player.tv\", \"do\": \"off\"}]"
+      selector:
+        object: {}
+    "area":
+      selector:
+        text: {}
+    "lights":
+      selector:
+        object: {}
+    "ui":
+      selector:
+        object: {}
+
+scene_delete:
+  fields:
+    "id":
+      required: true
+      selector:
+        text: {}
+
+area_save:
+  fields:
+    "id":
+      required: true
+      selector:
+        text: {}
+    "name":
+      required: true
+      selector:
+        text: {}
+    "lights":
+      required: true
+      selector:
+        object: {}
+    "ui":
+      selector:
+        object: {}
+
+area_delete:
+  fields:
+    "id":
+      required: true
+      selector:
+        text: {}
+
+locate_light:
+  fields:
+    "entity_id":
+      required: true
+      example: "light.floor_light_l"
+      selector:
+        text: {}
+    "active":
+      required: true
+      selector:
+        boolean: {}
+
+get_library:
