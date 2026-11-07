@@ -77,13 +77,7 @@ async def async_setup(hass: HomeAssistant, entry: ConfigEntry) -> LiveRuntime:
         if event.context.user_id and engine.owns(entity_id):
             engine.changed_by_someone(entity_id)
 
-    @callback
-    def component_loaded(event: Event) -> None:
-        """A plus integration that loads after Home Control is found when its declaration is read again."""
-        hass.async_create_task(providers.async_scan())
-
     entry.async_on_unload(hass.bus.async_listen("state_changed", state_changed))
-    entry.async_on_unload(hass.bus.async_listen("component_loaded", component_loaded))
 
     async def stop() -> None:
         """Stops every scene and puts back any light being located."""
