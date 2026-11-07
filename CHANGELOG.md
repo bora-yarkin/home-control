@@ -4,6 +4,8 @@ Format: [Keep a Changelog](https://keepachangelog.com/). Versions follow [semant
 
 ## [Unreleased]
 
+## [0.8.2] - 2026-11-07
+
 ### Fixed
 - A light fading up from off is no longer let go of at the start of a scene. A Hue light reports a brightness part way to the scene's (60 or 153 of 255) while it fades up, and the engine took that for someone else's change, so lights such as the ceiling light and a Hue Play bar dropped out in the first seconds and came back only when the colour check let them rejoin. A light that was off when its command was sent is now judged only after 10 seconds, whether it shows as off or as on.
 - A change of brightness, range or speed made while a scene is frozen is shown (once; the scene still holds its colours), as the controls promise. It was ignored until the scene played again.
