@@ -1,5 +1,5 @@
 {
-  "version":234,
+  "version":235,
   "files": [
     "integrations.js",
     "app/strings.js",
@@ -8,6 +8,7 @@
     "app/widgets.js",
     "app/lights.js",
     "app/lightpanel.js",
+    "app/effects.js",
     "app/hsync.js",
     "app/hsbox.js",
     "app/media.js",

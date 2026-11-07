@@ -52,6 +52,7 @@ function boot() {
   buildDock();
   initSearchBtn();
   roomOffInit();
+  fxLoad();
   offlineInit();
   setInterval(function () {
     if (

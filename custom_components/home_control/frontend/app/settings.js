@@ -182,6 +182,7 @@ var CATS = [
   ["appearance", _T("appearance"), "appearance", "palette"],
   ["dev", _T("devices_2"), "stg-dev", "plug"],
   ["areas", _T("areas"), "stg-areas", "target"],
+  ["effects", _T("effects"), "stg-effects", "sparkle"],
   ["access", _T("users_and_access"), "stg-access", "lock"],
   ["hist", _T("history"), "stg-hist", "clock"],
   ["notify", _T("notifications"), "stg-notify", "bell"],
@@ -198,6 +199,7 @@ function stgNavSub(id) {
     return PREFS.wall ? _T("on_2") + " · " + Math.round(PREFS.wallIdle / 60) + " min" : _T("off");
   if (id === "dev") return _T("new_devices_and_devices_that_are_not");
   if (id === "areas") return _T("where_the_lights_are_for_live_scenes");
+  if (id === "effects") return _T("the_effects_of_your_lights_and_files_to_ad");
   if (id === "access") return _T("who_can_do_what");
   if (id === "hue") return _T("firmware_zigbee_matter_and_apps");
   if (id === "hist") return _T("recent_activity");
@@ -215,6 +217,7 @@ var STG_INDEX = [
   [_T("wall_mode"), _T("wall_mode_screensaver_clock_photos_d"), "wall", null],
   [_T("devices_2"), _T("devices_new_add_lights"), "dev", null],
   [_T("areas"), "areas rooms lights placement live scenes entertainment", "areas", null],
+  [_T("effects"), "effects catalogue import file json groups calibration brands", "effects", null],
   [_T("users_and_access"), "access users permissions confirm hide read only", "access", null],
   [_T("history"), "history log changes undo", "hist", null],
   [_T("notifications"), "notifications alerts battery offline", "notify", null],

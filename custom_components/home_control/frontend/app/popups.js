@@ -384,6 +384,8 @@ function popupDefBase(key) {
     };
   if (k === "scene-pick") return { title: _T("add_device"), icon: "plus", build: scenePick };
   if (k === "stg-areas") return { title: _T("areas"), icon: "target", build: stgAreas };
+  if (k === "stg-effects") return { title: _T("effects"), icon: "sparkle", build: fxSettings };
+  if (k === "fx-problems") return { title: _T("problems_in_the_file"), icon: "info", build: fxProblemsPage };
   if (k === "stg-dev") return { title: _T("devices_2"), icon: "plug", build: stgDevices };
   if (k === "manage-new") return { title: _T("new_devices"), icon: "plus", build: newDevPage };
   if (k === "manage-new1")

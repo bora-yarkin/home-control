@@ -1054,137 +1054,6 @@ function lpFxOf(root) {
   return { effects: effects, scenes: scenes };
 }
 
-/* The pictures of the effects: small drawings in place of the photos the Hue app uses. */
-var lpFxN = 0;
-
-function lpFxArt(name) {
-  var n = ++lpFxN,
-    id = function (s) {
-      return s + n;
-    },
-    star = function (cx, cy, r, fill) {
-      return (
-        "<path d='M" + cx + " " + (cy - r) + "Q" + cx + " " + cy + " " + (cx + r) + " " + cy + "Q" + cx + " " + cy + " " + cx + " " + (cy + r) +
-        "Q" + cx + " " + cy + " " + (cx - r) + " " + cy + "Q" + cx + " " + cy + " " + cx + " " + (cy - r) + "Z' fill='" + fill + "'/>"
-      );
-    },
-    rg = function (gid, stops) {
-      return (
-        "<radialGradient id='" + gid + "' cx='50%' cy='50%' r='50%'>" +
-        stops.map(function (s) {
-          return "<stop offset='" + s[0] + "' stop-color='" + s[1] + "' stop-opacity='" + (s[2] === undefined ? 1 : s[2]) + "'/>";
-        }).join("") + "</radialGradient>"
-      );
-    },
-    lg = function (gid, stops) {
-      return (
-        "<linearGradient id='" + gid + "' x1='0' y1='0' x2='0' y2='1'>" +
-        stops.map(function (s) {
-          return "<stop offset='" + s[0] + "' stop-color='" + s[1] + "'/>";
-        }).join("") + "</linearGradient>"
-      );
-    },
-    wrap = function (defs, body) {
-      return "<svg viewBox='0 0 100 100' preserveAspectRatio='xMidYMid slice'><defs>" + defs + "</defs>" + body + "</svg>";
-    },
-    sky = function (stops, sun) {
-      return wrap(
-        lg(id("s"), stops),
-        "<rect width='100' height='100' fill='url(#" + id("s") + ")'/>" + sun
-      );
-    },
-    s = "";
-  switch (name) {
-    case "off":
-      return "<svg viewBox='0 0 100 100'><circle cx='50' cy='50' r='22' fill='none' stroke='currentColor' stroke-width='5' opacity='.6'/><path d='M34 66L66 34' stroke='currentColor' stroke-width='5' stroke-linecap='round' opacity='.6'/></svg>";
-    case "candle":
-      return wrap(
-        rg(id("g"), [[0, "#ffb347", 0.8], [0.55, "#7a3a10", 0.4], [1, "#120802", 0]]) + lg(id("f"), [[0, "#fff6c8"], [0.45, "#ffd24a"], [1, "#ff8a1e"]]),
-        "<rect width='100' height='100' fill='#150a04'/><rect width='100' height='100' fill='url(#" + id("g") + ")'/>" +
-          "<rect x='40' y='60' width='20' height='36' rx='3' fill='#f1dcb6'/><rect x='40' y='60' width='20' height='6' rx='3' fill='#fff1d8'/>" +
-          "<rect x='49' y='55' width='2' height='7' fill='#2f2012'/>" +
-          "<path d='M50 22C60 34 62 45 57 54C55 58 45 58 43 54C38 45 42 34 50 22Z' fill='url(#" + id("f") + ")'/>"
-      );
-    case "fire":
-      return wrap(
-        rg(id("g"), [[0, "#ff7a1f", 0.7], [1, "#1a0603", 0]]),
-        "<rect width='100' height='100' fill='#1a0603'/><circle cx='50' cy='84' r='58' fill='url(#" + id("g") + ")'/>" +
-          "<path d='M50 12C64 32 80 46 72 70C67 86 33 86 28 70C20 48 38 40 50 12Z' fill='#ff4a12'/>" +
-          "<path d='M50 36C60 50 68 58 63 73C60 82 40 82 37 73C32 60 42 52 50 36Z' fill='#ff9a1f'/>" +
-          "<path d='M50 56C56 63 59 68 57 75C55 80 45 80 43 75C41 68 45 63 50 56Z' fill='#ffe27a'/>"
-      );
-    case "prism":
-      s = "";
-      ["#ff3b3b", "#ff9a2b", "#ffe234", "#3fe05a", "#2bb8ff", "#8a5cff"].forEach(function (c, i) {
-        s += "<path d='M62 52L98 " + (28 + i * 9) + "' stroke='" + c + "' stroke-width='4' stroke-linecap='round' opacity='.92'/>";
-      });
-      return wrap(
-        "",
-        "<rect width='100' height='100' fill='#0e1022'/><path d='M4 50L40 50' stroke='#fff' stroke-width='4' stroke-linecap='round'/>" +
-          "<path d='M50 24L74 68L26 68Z' fill='rgba(255,255,255,.14)' stroke='#fff' stroke-width='2' stroke-linejoin='round'/>" + s
-      );
-    case "sparkle":
-      return wrap(
-        lg(id("g"), [[0, "#2c3f9a"], [1, "#0a0f2e"]]),
-        "<rect width='100' height='100' fill='url(#" + id("g") + ")'/>" +
-          star(34, 32, 13, "#fff") + star(68, 26, 7, "#bfe4ff") + star(70, 62, 15, "#fff") + star(28, 72, 7, "#9fd0ff") + star(50, 50, 5, "#fff") + star(84, 84, 5, "#bfe4ff")
-      );
-    case "opal":
-      return wrap(
-        rg(id("a"), [[0, "#ffc2e6", 0.95], [1, "#ffc2e6", 0]]) + rg(id("b"), [[0, "#b4f0e0", 0.95], [1, "#b4f0e0", 0]]) + rg(id("c"), [[0, "#b9c4ff", 0.95], [1, "#b9c4ff", 0]]),
-        "<rect width='100' height='100' fill='#efe8ff'/><circle cx='30' cy='34' r='46' fill='url(#" + id("a") + ")'/><circle cx='72' cy='40' r='44' fill='url(#" + id("b") + ")'/><circle cx='50' cy='76' r='46' fill='url(#" + id("c") + ")'/>"
-      );
-    case "glisten":
-      return wrap(
-        lg(id("g"), [[0, "#f6dca2"], [0.5, "#b87a32"], [1, "#2a1a0c"]]),
-        "<rect width='100' height='100' fill='url(#" + id("g") + ")'/>" +
-          "<path d='M6 38Q28 30 50 38T94 38' fill='none' stroke='#fff' stroke-opacity='.4' stroke-width='2'/><path d='M0 56Q25 46 50 56T100 56' fill='none' stroke='#fff' stroke-opacity='.3' stroke-width='2'/><path d='M0 74Q25 66 50 74T100 74' fill='none' stroke='#fff' stroke-opacity='.2' stroke-width='2'/>" +
-          star(32, 30, 8, "#fff") + star(66, 46, 11, "#fff") + star(80, 66, 6, "#ffeec0") + star(40, 62, 5, "#ffeec0")
-      );
-    case "underwater":
-      return wrap(
-        lg(id("g"), [[0, "#86ecff"], [0.45, "#1f78bf"], [1, "#07203f"]]),
-        "<rect width='100' height='100' fill='url(#" + id("g") + ")'/>" +
-          "<path d='M20 0L40 100L10 100Z' fill='#fff' opacity='.1'/><path d='M60 0L90 100L52 100Z' fill='#fff' opacity='.1'/>" +
-          "<path d='M0 40Q25 30 50 40T100 40' fill='none' stroke='#fff' stroke-opacity='.35' stroke-width='2'/><path d='M0 62Q25 52 50 62T100 62' fill='none' stroke='#fff' stroke-opacity='.25' stroke-width='2'/><path d='M0 82Q25 74 50 82T100 82' fill='none' stroke='#fff' stroke-opacity='.18' stroke-width='2'/>"
-      );
-    case "cosmos":
-      return wrap(
-        rg(id("a"), [[0, "#d46bff", 0.85], [1, "#d46bff", 0]]) + rg(id("b"), [[0, "#5b8cff", 0.8], [1, "#5b8cff", 0]]),
-        "<rect width='100' height='100' fill='#0a0820'/><circle cx='36' cy='40' r='44' fill='url(#" + id("a") + ")'/><circle cx='68' cy='64' r='42' fill='url(#" + id("b") + ")'/>" +
-          "<circle cx='20' cy='20' r='1.6' fill='#fff'/><circle cx='80' cy='24' r='1.2' fill='#fff'/><circle cx='56' cy='14' r='1' fill='#fff'/><circle cx='88' cy='54' r='1.6' fill='#fff'/><circle cx='14' cy='70' r='1.2' fill='#fff'/><circle cx='48' cy='88' r='1.4' fill='#fff'/><circle cx='64' cy='40' r='1' fill='#fff'/>"
-      );
-    case "sunbeam":
-      s = "";
-      for (var i = 0; i < 12; i++) {
-        var a = (i * Math.PI) / 6;
-        s += "<path d='M" + (50 + Math.cos(a) * 20).toFixed(1) + " " + (42 + Math.sin(a) * 20).toFixed(1) + "L" + (50 + Math.cos(a) * 60).toFixed(1) + " " + (42 + Math.sin(a) * 60).toFixed(1) + "' stroke='#fff' stroke-opacity='.4' stroke-width='3' stroke-linecap='round'/>";
-      }
-      return wrap(
-        lg(id("g"), [[0, "#ffe08a"], [1, "#ff9a3d"]]) + rg(id("h"), [[0, "#fffbe0", 1], [1, "#fff1a8", 0]]),
-        "<rect width='100' height='100' fill='url(#" + id("g") + ")'/>" + s + "<circle cx='50' cy='42' r='30' fill='url(#" + id("h") + ")'/><circle cx='50' cy='42' r='12' fill='#fffbe8'/>"
-      );
-    case "enchant":
-      return wrap(
-        lg(id("g"), [[0, "#8a6bff"], [1, "#24104f"]]) + rg(id("b"), [[0, "#ff9ad8", 0.8], [1, "#ff9ad8", 0]]),
-        "<rect width='100' height='100' fill='url(#" + id("g") + ")'/><circle cx='64' cy='36' r='34' fill='url(#" + id("b") + ")'/>" +
-          star(36, 62, 12, "#fff") + star(66, 30, 9, "#ffd6f3") + star(24, 28, 6, "#e3d6ff") + star(78, 70, 6, "#fff") + star(52, 82, 4, "#ffd6f3")
-      );
-    case "sunrise":
-      return sky([[0, "#3b2a6b"], [0.55, "#ff7a5c"], [1, "#ffd38a"]], "<circle cx='50' cy='70' r='17' fill='#fff2b0'/><rect y='70' width='100' height='30' fill='#1a1230'/>");
-    case "sunset":
-      return sky([[0, "#2a1b4f"], [0.55, "#c2406b"], [1, "#ff9a4d"]], "<circle cx='50' cy='74' r='17' fill='#ffd08a'/><rect y='72' width='100' height='28' fill='#160f2a'/>");
-  }
-  return wrap(rg(id("g"), [[0, "#ffffff", 0.9], [0.5, "#8a8fff", 0.9], [1, "#1c1f4a"]]), "<rect width='100' height='100' fill='url(#" + id("g") + ")'/>");
-}
-
-function lpFxLabel(name) {
-  if (name === "off") return _T("no_effect");
-  if (name === "fire") return _T("fx_fireplace");
-  var s = String(name).replace(/_/g, " ");
-  return s.charAt(0).toUpperCase() + s.slice(1);
-}
-
 /* The colours of a Hue scene, read once from the bridge (needs the Scene engine). */
 var LP_SCENEPAL = {};
 
@@ -1220,40 +1089,6 @@ function lpGo(S, key) {
   showPopup(key, true);
 }
 
-/* The bridge ids of the Hue lights behind some light entities (a light group stands for its members). */
-function lpHueIds(list) {
-  var out = [];
-  list.forEach(function (e) {
-    var hid = A(e).hue_light_id,
-      r = H().entities[e];
-    if (hid) out.push(hid);
-    else if (r && r.platform === "hue" && r.unique_id) out.push(r.unique_id);
-    else lpHueIds(lightMembers(e)).forEach(function (x) {
-      out.push(x);
-    });
-  });
-  return out.filter(function (x, i, all) {
-    return all.indexOf(x) === i;
-  });
-}
-
-/* The effects as the Hue app groups them, with the colours each is offered in. A colour is a variant of the effect: the effect run with that colour (the bridge takes one for an effect). The first tile of an effect is the effect as it is by default; the Hue app's Bright and Pastel versions of Prism and Opal are different palettes the bridge does not take, so they are not offered. h is the hue of the effect's picture, pal the colours of its moving tile. What the Hue app starts an effect with: bri the brightness (Underwater's is read from the app's screen, not told), spd the speed step shown (1 to 12). The bridge's speed is 0 to 1, and the app's 12 steps are spread evenly over a range of it that is different for each effect: rng is the bridge speed of step 1 and of step 12, read from the bridge while the app moved the slider. Every effect starts at the bridge's 0.5, which is where its default step is. */
-var LPFX_CATS = ["flames", "sparkly", "wavy", "drops", "loops", "daylight", "more"];
-var LPFX = {
-  candle: { cat: "flames", h: 35, pal: ["#ffd27a","#ff8a1e","#8a3d10"], bri: 26, spd: 6, rng: [0, 1], def: "", v: [["orange", "fxv_orange", { hs: [30, 100] }], ["warm", "fxv_warm", { k: 2200 }]] },
-  fire: { cat: "flames", h: 25, pal: ["#ffb13a","#ff4a12","#5a1608"], bri: 84, spd: 6, rng: [0, 1], def: "", v: [["purple", "fxv_purple", { hs: [275, 85] }], ["green", "fxv_green", { hs: [150, 90] }]] },
-  glisten: { cat: "sparkly", h: 40, pal: ["#f6dca2","#b87a32","#4a2d10"], bri: 100, spd: 6, rng: [0.3016, 0.6984], def: "fxv_gold", v: [["purple", "fxv_purple", { hs: [275, 70] }], ["pink", "fxv_pink", { hs: [330, 60] }]] },
-  sparkle: { cat: "sparkly", h: 45, pal: ["#7a8cff","#2c3f9a","#0a0f2e"], bri: 100, spd: 6, rng: [0.3016, 0.6984], def: "fxv_yellow", v: [["orange", "fxv_orange", { hs: [25, 100] }], ["red", "fxv_red", { hs: [0, 100] }], ["white", "fxv_white", { k: 6500 }]] },
-  underwater: { cat: "wavy", h: 205, pal: ["#86ecff","#1f78bf","#07203f"], bri: 100, spd: 12, rng: [0.1984, 0.5], def: "fxv_blue", v: [["green", "fxv_green", { hs: [150, 80] }], ["turquoise", "fxv_turquoise", { hs: [175, 90] }], ["lightblue", "fxv_lightblue", { hs: [195, 45] }]] },
-  cosmos: { cat: "wavy", h: 285, pal: ["#d46bff","#5b8cff","#140c3a"], bri: 100, spd: 8, rng: [0.25, 0.6151], def: "fxv_purple", v: [["gold", "fxv_gold", { hs: [40, 90] }], ["blue", "fxv_blue", { hs: [235, 80] }], ["pink", "fxv_pink", { hs: [310, 85] }]] },
-  sunbeam: { cat: "drops", h: 40, pal: ["#fffbe0","#ffd08a","#ff9a3d"], bri: 100, spd: 6, rng: [0.3889, 0.619], def: "", v: [["orange", "fxv_orange", { hs: [20, 80] }], ["purple", "fxv_purple", { hs: [265, 60] }]] },
-  enchant: { cat: "drops", h: 320, pal: ["#ff9ad8","#8a6bff","#24104f"], bri: 50, spd: 6, rng: [0.3889, 0.619], def: "", v: [] },
-  prism: { cat: "loops", h: 200, pal: ["#ff3b3b","#ffe234","#3fe05a","#2bb8ff","#8a5cff"], bri: 100, spd: 6, rng: [0.3889, 0.619], def: "fxv_bright", v: [] },
-  opal: { cat: "loops", h: 200, pal: ["#ffc2e6","#b4f0e0","#b9c4ff"], bri: 100, spd: 7, rng: [0.3889, 0.5794], def: "fxv_pastel", v: [] },
-  sunrise: { cat: "daylight", h: 25, pal: ["#3b2a6b","#ff7a5c","#ffd38a"], def: "", v: [] },
-  sunset: { cat: "daylight", h: 15, pal: ["#2a1b4f","#c2406b","#ff9a4d"], def: "", v: [] },
-};
-
 /* Effects made with Create (kept in this browser): { effect: [{ n: id, label }] }. Their colour and speed are in LPFXS under the variant's id, "effect:n". */
 var LPFXC = deviceGet("lp.fxc", {});
 
@@ -1274,10 +1109,10 @@ function lpFxEffectOf(id) {
 }
 
 function lpFxVars(effect) {
-  var c = LPFX[effect] || { def: "", v: [] },
-    out = [{ id: effect, label: c.def ? _T(c.def) : _T("default"), base: null }];
+  var c = lpFxCat(effect) || { def: "", v: [] },
+    out = [{ id: effect, label: c.def || _T("default"), base: null }];
   c.v.forEach(function (v) {
-    out.push({ id: effect + ":" + v[0], label: _T(v[1]), base: v[2] });
+    out.push({ id: effect + ":" + v[0], label: v[1], base: v[2] });
   });
   (LPFXC[effect] || []).forEach(function (x) {
     out.push({ id: effect + ":" + x.n, label: x.label, base: null, custom: true });
@@ -1312,23 +1147,23 @@ function lpFxLook(id) {
 
 /* The brightness a look runs at: the one chosen, otherwise the Hue app's own for the effect (undefined: left as it is). */
 function lpFxBri(effect, look) {
-  return look.bri || (LPFX[effect] || {}).bri;
+  return look.bri || (lpFxCat(effect) || {}).bri;
 }
 
 /* The speed step a look shows: the one chosen, otherwise the Hue app's own for the effect. */
 function lpFxSpeed(effect, look) {
-  return look.speed || (LPFX[effect] || {}).spd;
+  return look.speed || (lpFxCat(effect) || {}).spd;
 }
 
 /* The bridge's speed (0 to 1) of a step, as the Hue app maps it for that effect. */
 function lpFxBridgeSpeed(effect, step) {
-  var r = (LPFX[effect] || {}).rng || [0, 1];
+  var r = (lpFxCat(effect) || {}).rng || [0, 1];
   return Math.round((r[0] + ((step - 1) / 11) * (r[1] - r[0])) * 10000) / 10000;
 }
 
 /* The picture of a coloured variant: the effect's picture turned to its colour. */
 function lpFxTint(effect, look) {
-  var base = (LPFX[effect] || {}).h;
+  var base = (lpFxCat(effect) || {}).h;
   if (look.hs && base !== undefined) return "hue-rotate(" + Math.round(look.hs[0] - base) + "deg)";
   if (look.k) return "saturate(.2) brightness(1.1)";
   return "";
@@ -1349,6 +1184,7 @@ function lpFxRun(S, id, draft) {
         return all.indexOf(e) === i && Array.isArray(A(e).effect_list) && A(e).effect_list.indexOf(name) >= 0;
       });
   if (!lights.length) return toast(_T("nothing_selected_has_effects"));
+  FX.lights = lights;
   liveStopOn(lights);
   if (name !== "off") {
     LPFXRUN[name] = id;
@@ -1358,13 +1194,20 @@ function lpFxRun(S, id, draft) {
   var st = name === "off" ? {} : draft || lpFxLook(id),
     step = name === "off" ? 0 : st.speed,
     bri = name === "off" ? 0 : lpFxBri(name, st),
-    ids = st.hs || st.k || step ? lpHueIds(lights) : [];
-  if (ids.length && Integrations.hueplus.has(H(), "set_effect")) {
-    var d = { lights: ids, effect: name };
+    /* A colour or a speed with an effect is the plus integration's to play (Home Assistant's light entity takes neither): the lights it owns, one by one. */
+    src = (lpFxCat(name) || {}).src,
+    ours =
+      src && src.set_effect && (st.hs || st.k || step)
+        ? lightIndividuals(lights).filter(function (e) {
+            return fxMatches(src, e);
+          })
+        : [];
+  if (ours.length) {
+    var d = { lights: ours, effect: name };
     if (st.hs) d.hs_color = st.hs;
     else if (st.k) d.kelvin = st.k;
     if (step) d.speed = lpFxBridgeSpeed(name, step);
-    call("hue_plus", "set_effect", d);
+    call(src.id, src.set_effect, d);
     if (bri) call("light", "turn_on", { entity_id: lights, brightness_pct: bri });
   } else {
     var t = { entity_id: lights, effect: name };
@@ -1375,6 +1218,7 @@ function lpFxRun(S, id, draft) {
 
 /* The Effects page, as in the Hue app: the effects of the lights in groups (Flames, Sparkly, ...), each effect a row that scrolls sideways with its colours and a Create tile at the end, then the Hue scenes of the room. Tapping a tile starts it on what is selected (the whole when nothing is); tapping the one that runs stops it. The tile that runs turns to its colour, and the pencil that opens its settings slides in on its right, pushing the tiles after it along. */
 function lpFxPane(S, pane, fx) {
+  FX.lights = S.target().cmd.map(lpFxLight);
   var box = mk("div", "lp-fx"),
     tiles = [];
   pane.appendChild(box);
@@ -1467,24 +1311,12 @@ function lpFxPane(S, pane, fx) {
     return row;
   }
   var names = fx.effects.filter(function (x) {
-      return x !== "off";
-    }),
-    byCat = {};
-  Object.keys(LPFX)
-    .concat(
-      names.filter(function (x) {
-        return !LPFX[x];
-      })
-    )
-    .forEach(function (x) {
-      if (names.indexOf(x) < 0) return;
-      var c = (LPFX[x] || {}).cat || "more";
-      (byCat[c] = byCat[c] || []).push(x);
-    });
-  LPFX_CATS.forEach(function (c) {
-    if (!byCat[c]) return;
-    box.appendChild(mk("div", "lp-fx-h")).textContent = _T("fx_" + c);
-    byCat[c].forEach(function (x) {
+    return x !== "off";
+  });
+  /* The groups of the catalogues that know these effects, in their order; the effects no catalogue groups come last under More. */
+  fxGroups(names).forEach(function (g) {
+    box.appendChild(mk("div", "lp-fx-h")).textContent = g.label;
+    g.names.forEach(function (x) {
       box.appendChild(effectRow(x));
     });
   });
@@ -1524,7 +1356,7 @@ function lpFxPane(S, pane, fx) {
       if (t.look) {
         var l = t.look();
         t.sw.firstChild.style.filter = lpFxTint(t.effect, l);
-        t.el.style.setProperty("--fh", l.hs ? l.hs[0] : l.k ? 40 : (LPFX[t.effect] || {}).h || 210);
+        t.el.style.setProperty("--fh", l.hs ? l.hs[0] : l.k ? 40 : (lpFxCat(t.effect) || {}).h || 210);
         t.el.style.setProperty("--fs", l.k && !l.hs ? "12%" : "80%");
       }
     });
@@ -1838,7 +1670,7 @@ function lpTileEffect(n) {
 
 /* The colours an effect moves through, from the corner at the top left to the one at the bottom right and back, in the colour it was started in. */
 function lpFxGradient(effect) {
-  var pal = (LPFX[effect] || {}).pal || ["#8a8fff", "#ffffff", "#1c1f4a"];
+  var pal = (lpFxCat(effect) || {}).pal || ["#8a8fff", "#ffffff", "#1c1f4a"];
   return "linear-gradient(135deg," + pal.concat(pal[0]).join(",") + ")";
 }
 
