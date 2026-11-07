@@ -23,7 +23,7 @@ LIGHTS = f("object", 'The lights: a list of items, each with "entity_id" and x, 
 PRESET = f("select", "A shipped palette to start from.", options=list(presets()))
 COLOUR_MODE = f(
     "select",
-    "How the colours follow each other: linear blends each into the next, segmented shows each as it is, one after the other, with no colour in between.",
+    "How the colours are shown: linear blends them into one another (a gradient across the lights), segmented keeps each colour as it is, with no blended colour between two of them. In both, a change fades smoothly.",
     options=list(COLOUR_MODES),
 )
 COLOUR_SOURCE = f(

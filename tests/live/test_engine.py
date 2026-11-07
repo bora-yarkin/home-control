@@ -37,8 +37,8 @@ class StepTests(unittest.TestCase):
         self.assertEqual([c[0] for c in r.commands], ["light.a", "light.b"])
         data = r.commands[0][1]
         self.assertEqual(set(data), {"brightness", "xy_color", "transition"})
-        self.assertGreaterEqual(data["transition"], e.MIN_INTERVAL)
-        self.assertLessEqual(data["transition"], e.MAX_INTERVAL)
+        self.assertGreaterEqual(data["transition"], e.MIN_INTERVAL + e.FADE_OVERLAP)  # a fade outlasts the time to the next command
+        self.assertLessEqual(data["transition"], e.MAX_INTERVAL + e.FADE_OVERLAP)
         self.assertEqual(data["brightness"], 200)
 
     def test_a_light_that_is_off_is_never_turned_on_by_a_scene(self):
@@ -61,7 +61,7 @@ class StepTests(unittest.TestCase):
         s, clock = session(drv, wake=True)
         drv.follow(s.step(clock.now, drv, set()).commands)
         drv.lights["light.a"] = info("off")
-        clock.now += 6
+        clock.now += e.MAX_INTERVAL + e.FADE_OVERLAP + 0.5  # past the end of the longest fade
         self.assertEqual(s.step(clock.now, drv, set()).dropped, ["light.a"])
 
     def test_a_light_that_is_switched_on_later_joins(self):
@@ -228,7 +228,7 @@ class StepTests(unittest.TestCase):
         s, clock = session(drv)
         drv.follow(s.step(clock.now, drv, set()).commands)
         drv.lights["light.a"] = info(xy=(0.15, 0.7))  # far from what was sent
-        clock.now += 6
+        clock.now += e.MAX_INTERVAL + e.FADE_OVERLAP + 0.5  # past the end of the longest fade
         r = s.step(clock.now, drv, set())
         self.assertEqual(r.dropped, ["light.a"])
         self.assertEqual([c[0] for c in r.commands], ["light.b"])
@@ -238,7 +238,7 @@ class StepTests(unittest.TestCase):
         s, clock = session(drv)
         drv.follow(s.step(clock.now, drv, set()).commands)
         drv.lights["light.a"] = info("off")
-        clock.now += 6
+        clock.now += e.MAX_INTERVAL + e.FADE_OVERLAP + 0.5  # past the end of the longest fade
         self.assertEqual(s.step(clock.now, drv, set()).dropped, ["light.a"])
 
     def test_a_light_a_little_behind_in_a_fade_is_not_taken_for_changed(self):
@@ -248,7 +248,7 @@ class StepTests(unittest.TestCase):
         drv.follow(first)
         target = dict(first)["light.a"]["xy_color"]
         drv.lights["light.a"] = info(xy=(target[0] + 0.03, target[1] - 0.03), brightness=190)
-        clock.now += 6
+        clock.now += e.MAX_INTERVAL + e.FADE_OVERLAP + 0.5  # past the end of the longest fade
         self.assertEqual(s.step(clock.now, drv, set()).dropped, [])
 
     def test_a_frozen_session_sends_nothing_and_resumes_without_a_jump(self):
@@ -1011,11 +1011,32 @@ class SegmentedEngineTests(unittest.TestCase):
 
         return asyncio.run(go())
 
-    def test_each_command_is_a_colour_of_the_palette_with_no_fade(self):
+    def test_each_command_is_a_colour_of_the_palette_and_a_fade_that_lasts_to_the_next_colour(self):
         drv, _ = self._run(30)
         colours = {tuple(data["xy_color"]) for _kind, _light, data in drv.calls}
-        self.assertEqual(colours, {(0.6, 0.35), (0.2, 0.2), (0.3, 0.55), (0.15, 0.08)})
-        self.assertTrue(all(data["transition"] == 0 for _kind, _light, data in drv.calls))
+        self.assertEqual(colours, {(0.6, 0.35), (0.2, 0.2), (0.3, 0.55), (0.15, 0.08)})  # no colour of its own between two of them
+        for _kind, _light, data in drv.calls:  # but a change is never a jump, and the light is never still: each fade outlasts the segment
+            self.assertGreaterEqual(
+                data["transition"], 2.0 + e.FADE_OVERLAP - 0.1
+            )  # a colour lasts 2 seconds at speed 12 with four colours
+
+    def test_a_light_that_cannot_fade_is_not_given_a_transition_and_still_gets_exact_colours(self):
+        async def go():
+            drv = FakeDriver({"light.a": info(transition=False)})
+            clock = VirtualClock()
+            engine = e.Engine(drv, clock=clock, sleep=clock.sleep)
+            engine.start(definition(("light.a",), palette=self.PALETTE, mode="segmented", speed=12, range=0))
+            await clock.run(10)
+            engine.stop_all()
+            return drv
+
+        drv = asyncio.run(go())
+        self.assertTrue(drv.calls and all("transition" not in data for _k, _l, data in drv.calls))
+
+    def test_the_colour_sent_is_the_one_of_the_segment_that_has_begun(self):
+        """Linear aims at the colour the light will have when the fade ends; a segment's colour is the one it has now."""
+        drv, _ = self._run(3)
+        self.assertEqual(drv.calls[0][2]["xy_color"], [0.6, 0.35])  # the first colour of the palette, at the start
 
     def test_a_light_is_sent_one_command_per_segment_not_one_per_update_interval(self):
         drv, _ = self._run(32)  # four loops of 8 seconds at speed 12, four colours: sixteen segments
@@ -1048,3 +1069,80 @@ class SegmentedEngineTests(unittest.TestCase):
         mine = [data for _kind, light, data in drv.calls if light == "light.a"]
         self.assertGreater(len(mine), 30)
         self.assertGreater(len({data["brightness"] for data in mine}), 5)
+
+
+class TimedDriver(FakeDriver):
+    """Lights that remember when they were told, to see how often each is sent a command and how long it was given to fade."""
+
+    def __init__(self, lights, clock):
+        super().__init__(lights)
+        self._clock = clock
+        self.times = []
+
+    async def turn_on(self, entity_id, data):
+        self.times.append((self._clock(), entity_id, data))
+        await super().turn_on(entity_id, data)
+
+
+class ContinuousMotionTests(unittest.TestCase):
+    """As in the bridge's own scenes, a light never stops between two colours: each fade is still running when the next command arrives,
+    also when many lights share a hub that takes only a few commands a second, which holds each light's commands back."""
+
+    NAMES = tuple(f"light.l{i}" for i in range(17))  # a bridge takes 8 commands a second: a light is sent one every two seconds at best
+
+    def _run(self, **kw):
+        async def go():
+            clock = VirtualClock()
+            drv = TimedDriver({n: info() for n in self.NAMES}, clock)
+            engine = e.Engine(drv, clock=clock, sleep=clock.sleep)
+            engine.start(
+                d.parse_definition(
+                    {
+                        "scene_id": "s1",
+                        "lights": [{"entity_id": n, "x": i / 17} for i, n in enumerate(self.NAMES)],
+                        "palette": [{"xy": [0.6, 0.35]}, {"xy": [0.2, 0.2]}, {"xy": [0.3, 0.55]}, {"xy": [0.15, 0.08]}],
+                        "range": 100,
+                        **kw,
+                    }
+                )
+            )
+            await clock.run(120)
+            engine.stop_all()
+            return drv.times
+
+        return asyncio.run(go())
+
+    def _gaps_and_fades(self, times, light):
+        mine = [(at, data["transition"]) for at, entity, data in times if entity == light]
+        return [(later[0] - earlier[0], earlier[1]) for earlier, later in pairwise(mine)]
+
+    def test_a_blended_scene_never_lets_a_light_rest(self):
+        times = self._run(speed=8)
+        for light in self.NAMES[:5]:
+            pairs = self._gaps_and_fades(times, light)
+            self.assertGreater(len(pairs), 10, light)
+            for gap, fade in pairs[3:]:  # the first commands are before the cadence is known
+                self.assertGreater(fade, gap, f"{light}: a fade of {fade} seconds ends before the next command, {gap} seconds later")
+
+    def test_a_segmented_scene_never_lets_a_light_rest_either(self):
+        times = self._run(speed=12, mode="segmented")
+        for light in self.NAMES[:5]:
+            pairs = self._gaps_and_fades(times, light)
+            self.assertGreater(len(pairs), 10, light)
+            for gap, fade in pairs[3:]:
+                self.assertGreater(fade, gap, f"{light}: a fade of {fade} seconds ends before the next command, {gap} seconds later")
+
+    def test_a_light_changed_by_someone_is_still_noticed_while_the_fades_overlap(self):
+        async def go():
+            clock = VirtualClock()
+            drv = TimedDriver({n: info() for n in self.NAMES[:3]}, clock)
+            engine = e.Engine(drv, clock=clock, sleep=clock.sleep)
+            engine.start(definition(self.NAMES[:3], palette=[{"hs": [0, 100]}, {"hs": [240, 100]}], speed=8))
+            await clock.run(40)
+            drv.lights["light.l0"] = info(xy=(0.30, 0.55), brightness=200)  # green: nowhere near red, blue or the way between them
+            await clock.run(30)
+            left = "light.l0" not in engine.sessions["s1"].lights
+            engine.stop_all()
+            return left
+
+        self.assertTrue(asyncio.run(go()))

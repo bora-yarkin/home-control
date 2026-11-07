@@ -14,6 +14,7 @@ import math
 import time
 from collections.abc import Awaitable, Callable, Coroutine
 from dataclasses import dataclass, field, replace
+from itertools import pairwise
 from typing import Any
 
 from .chroma import nearest_kelvin
@@ -41,10 +42,16 @@ WATCH_SECONDS = 120.0
 # Updates of a light that fades by itself: as often as the palette needs, within these seconds.
 MIN_INTERVAL = 1.5
 MAX_INTERVAL = 6.0
-# A segmented scene changes a light's colour as its segment ends (no fade), never sooner than this after the last change, and a little
-# after the boundary so the change is not made just before it.
+# A segmented scene changes a light's colour as its segment ends, never sooner than this after the last change, and a little after the
+# boundary so the change is not made just before it.
 SEGMENT_MIN_INTERVAL = 0.1
 SEGMENT_PAST_BOUNDARY = 0.03
+# The motion of a light never stops (as in the bridge's own scenes): each command fades the light to its colour over the time until the
+# next command can reach it, and a little longer, so the next one arrives while the light is still moving. That time is how often
+# the light really is sent a command, which is more than its interval when the hub's rate holds it back (a bridge takes about 8 a
+# second for all its lights, so 17 lights are 2 seconds apart).
+FADE_OVERLAP = 0.6
+MAX_FADE = 120.0
 # A light playing its own effect is recoloured no more often than this (every change is a write to the bridge), and only when its colour
 # or brightness has really moved (a new colour may start the effect's animation again), or this long after the last time.
 NATIVE_MIN_INTERVAL = 3.0
@@ -60,12 +67,14 @@ WAKE_GRACE_SECONDS = 10.0
 class _Light:
     next_due: float = 0.0
     target: tuple[float, float, int] | None = None  # the (x, y, brightness) last sent
-    # What the light showed before the first command and the last few commands sent, the latest included.
-    recent: list[tuple[float, float, int]] = field(default_factory=list)
-    reach_at: float = 0.0
+    # What the light showed before the first command (reached at 0) and the last few commands sent, the latest included, each with the
+    # time its fade is to end: (x, y, brightness, reached at).
+    recent: list[tuple[float, float, int, float]] = field(default_factory=list)
     driven: bool = False
     native: bool = False  # playing one of the light's own effects, which the engine only recolours
     ahead: float = 0.0  # how far ahead of now the last command's colour is meant to be reached
+    last_sent: float = 0.0  # when the last command went out (0: none yet, or the scene was frozen since)
+    period: float = 0.0  # how often the light really is sent a command (smoothed): the hub's rate can hold it back past its interval
     waking: bool = False  # it was off when the last command was built: that command is to switch it on
     grace_until: float = 0.0  # until then a waking light that shows as off, or as on but part way to its colour, has only not finished
     refresh: bool = False  # a change of the scene's settings is to be shown even though the scene is frozen
@@ -132,6 +141,33 @@ class Session:
             return True
         return not brightness_moves and info.brightness is not None and abs(info.brightness - target[2]) > CHANGED_BRIGHTNESS
 
+    @staticmethod
+    def _on_the_way(
+        info: LightInfo, a: tuple[float, float, int, float], b: tuple[float, float, int, float], *, brightness_moves: bool
+    ) -> bool:
+        """Whether a light shows what a fade from one command's colour to the next has it at: near the straight line between the two in
+        colour, and between their brightnesses."""
+        if info.can_colour and info.xy is not None:
+            ax, ay, bx, by = a[0], a[1], b[0], b[1]
+            dx, dy = bx - ax, by - ay
+            length = dx * dx + dy * dy
+            t = 0.0 if length == 0 else max(0.0, min(1.0, ((info.xy[0] - ax) * dx + (info.xy[1] - ay) * dy) / length))
+            if math.hypot(info.xy[0] - (ax + t * dx), info.xy[1] - (ay + t * dy)) > CHANGED_XY:
+                return False
+        if brightness_moves or info.brightness is None:
+            return True
+        return min(a[2], b[2]) - CHANGED_BRIGHTNESS <= info.brightness <= max(a[2], b[2]) + CHANGED_BRIGHTNESS
+
+    def _far_from_what_was_sent(self, info: LightInfo, recent: list[tuple[float, float, int, float]], *, brightness_moves: bool) -> bool:
+        """Whether a light shows nothing the scene gave it: it is off, or far from every one of the last colours sent (and the colour it
+        had before) and from every fade between two of them. The fades overlap, so a light is at one of the colours or on its way
+        between two."""
+        if info.state == "off":
+            return True
+        if any(not self._changed(info, r[:3], brightness_moves=brightness_moves) for r in recent):
+            return False
+        return not any(self._on_the_way(info, a, b, brightness_moves=brightness_moves) for a, b in pairwise(recent))
+
     def _advance(self, now: float) -> None:
         """Moves the scene's clock on to ``now``; a frozen scene keeps its place."""
         elapsed = max(0.0, now - self.last)
@@ -149,10 +185,13 @@ class Session:
             return False  # a light sent its command to switch it on has not finished: off, or on and still fading up, is not someone else
         if light.native and info.state == "off":
             return True  # someone switched it off while it played its own effect
-        if light.target is None or now < light.reach_at - 0.25:
+        if light.target is None:
             return False
-        moves = self._look.moves_brightness(entity_id)
-        return all(self._changed(info, sent, brightness_moves=moves) for sent in light.recent)
+        # The fades overlap, so a light is judged once one of the scene's fades has ended, against everything it may show: the colours sent
+        # and the paths between them.
+        if not any(0 < r[3] <= now + 0.25 for r in light.recent):
+            return False
+        return self._far_from_what_was_sent(info, light.recent, brightness_moves=self._look.moves_brightness(entity_id))
 
     def _command(self, entity_id: str, light: _Light, info: LightInfo, now: float) -> dict[str, Any] | None:
         """What to send a light that is due: its own effect with the scene's colour, or the colour and brightness for this moment.
@@ -164,25 +203,26 @@ class Session:
             return self._native_command(entity_id, native, light, now)
         segmented = self.definition.mode == "segmented"
         interval = self._segment_interval(entity_id) if segmented else self._interval(entity_id, info)
-        ahead = (
-            0.0 if segmented or not info.can_transition else interval
-        )  # a segment is shown at once, a blend is fading towards the next colour
-        ahead_loops = ahead / cycle_seconds(self.definition.speed)
-        x, y, bri = self._target(entity_id, self.phase + ahead_loops, self.progress + ahead_loops, self.seconds + ahead)
+        # The fade outlasts the time to the next command, so the light never rests. A blend aims at the colour the palette will have when the
+        # fade ends; a segment's colour is the one that has begun (the next boundary is where the next colour begins).
+        fade = min(max(interval, light.period) + FADE_OVERLAP, MAX_FADE)
+        ahead = fade if info.can_transition else 0.0
+        looks_ahead = 0.0 if segmented else ahead
+        ahead_loops = looks_ahead / cycle_seconds(self.definition.speed)
+        x, y, bri = self._target(entity_id, self.phase + ahead_loops, self.progress + ahead_loops, self.seconds + looks_ahead)
         data: dict[str, Any] = {"brightness": bri}
         if info.can_colour:
             data["xy_color"] = [round(x, 4), round(y, 4)]
         elif info.can_white:
             data["color_temp_kelvin"] = nearest_kelvin((x, y))
         if info.can_transition:
-            data["transition"] = 0 if segmented else round(interval, 1)
+            data["transition"] = round(fade, 1)
         light.target = (x, y, bri)
         if not light.recent and info.xy is not None:
             # Until the first fade ends the light still shows what it showed before the scene: that is not someone else either.
-            light.recent.append((info.xy[0], info.xy[1], info.brightness if info.brightness is not None else bri))
-        light.recent = [*light.recent, light.target][-(RECENT_TARGETS + 1) :]
+            light.recent.append((info.xy[0], info.xy[1], info.brightness if info.brightness is not None else bri, 0.0))
+        light.recent = [*light.recent, (x, y, bri, now + ahead)][-(RECENT_TARGETS + 1) :]
         light.ahead = ahead
-        light.reach_at = now + ahead
         light.next_due = now + interval
         light.driven = True
         return data
@@ -193,7 +233,12 @@ class Session:
         light = self.lights.get(entity_id)
         if light is None:
             return
-        light.reach_at = max(light.reach_at, at + light.ahead)
+        if light.recent and light.recent[-1][3] > 0 and not light.native:
+            light.recent[-1] = (*light.recent[-1][:3], max(light.recent[-1][3], at + light.ahead))
+        if light.last_sent:
+            gap = min(at - light.last_sent, MAX_FADE)
+            light.period = gap if not light.period else 0.5 * (light.period + gap)
+        light.last_sent = at
         if light.waking:
             light.grace_until = at + WAKE_GRACE_SECONDS
         if light.native_pending is not None:
@@ -233,7 +278,7 @@ class Session:
             if entity_id in held or info is None or info.state != "on" or not light.recent:
                 continue
             moves = self._look.moves_brightness(entity_id)
-            if not all(self._changed(info, sent, brightness_moves=moves) for sent in light.recent):
+            if not self._far_from_what_was_sent(info, light.recent, brightness_moves=moves):
                 result.rejoined.append(entity_id)
 
     def _native_command(self, entity_id: str, native: str, light: _Light, now: float) -> dict[str, Any] | None:
@@ -260,7 +305,6 @@ class Session:
         ):
             return None
         light.ahead = 0.0
-        light.reach_at = now
         light.native_pending = wanted
         return {"brightness": bri, "native_effect": {"effect": native, "xy": [wanted[0], wanted[1]], "speed": speed}}
 
@@ -380,6 +424,7 @@ class Engine:
         session.last = self._clock()
         for light in session.lights.values():
             light.next_due = 0.0
+            light.last_sent = 0.0  # the pause is not how often the light is sent a command
         session.wake.set()
         self._notify()
 
