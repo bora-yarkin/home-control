@@ -135,6 +135,7 @@ async def test_a_plus_integrations_catalogue_is_offered_only_while_it_is_loaded(
     entry = hass.config_entries.async_loaded_entries("home_control")[0]
     raw = {
         **HUE_DECLARATION,
+        "set_effect": "set_effect",
         "catalogue": {
             "groups": [{"id": "wavy", "label": "Wavy"}],
             "effects": [{"id": "underwater", "label": "Underwater", "group": "wavy"}],
@@ -146,5 +147,6 @@ async def test_a_plus_integrations_catalogue_is_offered_only_while_it_is_loaded(
     sources = (await ask(client, "effects"))["result"]["sources"]
     assert [(s["id"], s["kind"], s["lights"]) for s in sources] == [("hue_plus", "provider", {"platforms": ["hue_plus"]})]
     assert sources[0]["effects"][0]["id"] == "underwater"
+    assert sources[0]["set_effect"] == "set_effect", "the service the effects page calls for a colour or a speed"
     hass.config.components.remove("hue_plus")
     assert (await ask(client, "effects"))["result"]["sources"] == []

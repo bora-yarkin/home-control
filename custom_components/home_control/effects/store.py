@@ -38,7 +38,13 @@ def _effect_json(effect: Effect) -> dict[str, Any]:
 
 
 def _source(
-    identity: str, name: str, kind: str, lights: dict[str, list[str]], groups: tuple[Group, ...], effects: tuple[Effect, ...]
+    identity: str,
+    name: str,
+    kind: str,
+    lights: dict[str, list[str]],
+    groups: tuple[Group, ...],
+    effects: tuple[Effect, ...],
+    set_effect: str | None = None,
 ) -> dict[str, Any]:
     return {
         "id": identity,
@@ -47,6 +53,8 @@ def _source(
         "lights": lights,
         "groups": [{"id": g.id, "label": g.label} for g in groups],
         "effects": [_effect_json(e) for e in effects],
+        # The plus integration's service that starts an effect with a colour and a speed (the effects page calls it); a file has none.
+        **({"set_effect": set_effect} if set_effect else {}),
     }
 
 
@@ -81,7 +89,17 @@ class EffectsStore:
             if provider.domain not in self._hass.config.components or not provider.catalogue:
                 continue
             platforms = [name for name, kind in provider.lights.items() if kind.effects]
-            out.append(_source(provider.domain, provider.name, "provider", {"platforms": platforms}, provider.groups, provider.catalogue))
+            out.append(
+                _source(
+                    provider.domain,
+                    provider.name,
+                    "provider",
+                    {"platforms": platforms},
+                    provider.groups,
+                    provider.catalogue,
+                    provider.set_effect,
+                )
+            )
         for identity, raw in self.files.items():
             catalogue = parse(raw)
             if catalogue.problems:

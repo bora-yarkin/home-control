@@ -12,6 +12,7 @@ commands per second their bridge takes and a service that plays one of the light
      "lights": {"hue_plus": {"group": "hue:plus", "rate": 8.0, "effects": true}, "hue": {"rate": 8.0}},
      "effects": ["candle", "underwater"],
      "play_effect": "play_effect",
+     "set_effect": "set_effect",
      "catalogue": {"groups": [...], "effects": [...]}}
 
 ``lights`` maps an entity registry platform to what is known of its lights: ``rate`` (commands per second to share), ``group`` (lights of
@@ -19,7 +20,8 @@ one group share a rate; the default is the platform and its config entry), ``eff
 light's own effect on the lights of this platform) and ``parent`` (a regular expression: what to cut from the unique id of a light that is
 a part of another, like a gradient light's zone, to get the unique id of the light it belongs to; saved with an area so that the part
 can be played as the whole light when the plus integration is gone). ``effects`` at the top lists the ids of the effects that can be played with a colour;
-``play_effect`` names the service of the plus integration that plays one (entity_id, effect, xy, brightness, speed). ``catalogue`` is what the
+``play_effect`` names the service of the plus integration that plays one (entity_id, effect, xy, brightness, speed). ``set_effect`` names its service that starts an
+effect with a colour (hs_color or kelvin) and a speed on some lights (lights, effect, hs_color, kelvin, speed), which the effects page calls. ``catalogue`` is what the
 dashboard shows of the effects (their groups, labels, pictures, defaults and colour variants) in the syntax of ``docs/effects-file.md``; a
 catalogue with a problem is ignored and logged, and the provider's lights and rates still count.
 """
@@ -75,6 +77,7 @@ _DECLARATION = vol.Schema(
         vol.Required("lights"): _LIGHTS,
         vol.Optional("effects", default=list): [_ID],
         vol.Optional("play_effect"): vol.All(cv.string, vol.Match(r"^[a-z][a-z0-9_]{0,63}$")),
+        vol.Optional("set_effect"): vol.All(cv.string, vol.Match(r"^[a-z][a-z0-9_]{0,63}$")),
         vol.Optional("catalogue"): dict,
     }
 )
@@ -97,6 +100,7 @@ class Provider:
     lights: dict[str, LightClass]
     effects: frozenset[str]
     play_effect: str | None
+    set_effect: str | None = None
     groups: tuple[Group, ...] = ()
     catalogue: tuple[Effect, ...] = ()
     catalogue_problems: tuple[str, ...] = ()
@@ -124,6 +128,7 @@ def parse(domain: str, raw: Any) -> Provider:
         },
         effects=frozenset(data["effects"]),
         play_effect=data.get("play_effect"),
+        set_effect=data.get("set_effect"),
         groups=groups,
         catalogue=shown,
         catalogue_problems=problems,
