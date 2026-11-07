@@ -117,9 +117,9 @@ class EffectsStore:
         return out
 
     def plugins(self) -> list[dict[str, str]]:
-        """The loaded plus integrations that bring a menu script: [{id, name, menu}]."""
+        """The loaded plus integrations that bring a menu script: [{id, name, menu, version}]."""
         return [
-            {"id": p.domain, "name": p.name, "menu": p.menu_url}
+            {"id": p.domain, "name": p.name, "menu": p.menu_url, "version": self._providers.versions.get(p.domain, "")}
             for p in self._providers.declared.values()
             if p.menu_url and p.domain in self._hass.config.components
         ]

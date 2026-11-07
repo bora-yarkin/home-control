@@ -189,6 +189,7 @@ export function makeHass(query) {
         case "history/history_during_period": return Promise.resolve({});
         case "logbook/get_events": return Promise.resolve([]);
         case "home_control/effects": return effectSources().then((sources) => ({ sources }));
+        case "home_control/plugins": return Promise.resolve({ plugins: withSync ? [{ id: "hue_plus", name: "Hue Plus", menu: "/hue_plus_static/menu.js", version: "harness" }] : [] });
         case "home_control/effects_import": return importEffects(msg.content);
         case "home_control/effects_delete": imported = null; return Promise.resolve({ ok: true });
         case "call_service": {

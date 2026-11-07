@@ -234,6 +234,8 @@ window.HA={
   importFile:function(content){return ws({type:"home_control/effects_import",content:content})},
   removeFile:function(id){return ws({type:"home_control/effects_delete",file_id:id})}
  },
+ /* The plus integrations that bring a script of their own: [{ id, name, menu, version }]. */
+ plugins:function(){return ws({type:"home_control/plugins"}).then(function(r){return r&&r.plugins})},
  camera:camera,
  route:route,
  signPath:signPath,

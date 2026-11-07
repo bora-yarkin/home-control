@@ -196,7 +196,7 @@ async def test_the_plugins_listed_are_the_loaded_integrations_with_a_menu(hass, 
     assert (await ask(client, "plugins"))["result"]["plugins"] == []
     hass.config.components.add("hue_plus")
     assert (await ask(client, "plugins"))["result"]["plugins"] == [
-        {"id": "hue_plus", "name": "Hue Plus", "menu": "/hue_plus_static/menu.js"}
+        {"id": "hue_plus", "name": "Hue Plus", "menu": "/hue_plus_static/menu.js", "version": ""}
     ]
     hass.config.components.remove("hue_plus")
     assert (await ask(client, "plugins"))["result"]["plugins"] == []

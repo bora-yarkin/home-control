@@ -39,12 +39,12 @@ function popupDefBase(key) {
   var p = key.split(":"),
     k = p[0],
     id = p.slice(1).join(":");
-  if (HP_PAGES[k])
+  if (PLUGIN_PAGES[k])
     return {
-      title: _T(HP_PAGES[k][0]),
-      icon: HP_PAGES[k][1],
+      title: _T(PLUGIN_PAGES[k][0]),
+      icon: PLUGIN_PAGES[k][1],
       build: function (b) {
-        HP_PAGES[k][2](b, id);
+        PLUGIN_PAGES[k][2](b, id);
       },
     };
   if (k === "adv")

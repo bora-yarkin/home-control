@@ -122,7 +122,7 @@ function eaManager(b, room) {
       );
     });
     if (!mine.length) box.appendChild(pill("info", _T("no_areas_yet"), {}));
-    hpAreaImport(box, room);
+    pluginAreaEach("importRow", box, room);
     box.appendChild(
       pill("plus", _T("new_area"), {
         sub: function () {
@@ -698,21 +698,13 @@ function eaLightInfo(info, lm) {
         },
       },
     ];
-  if (EAD.bridge)
-    rows.push({
-      field: "balance",
-      label: "hm_brightness_balance",
-      min: 0.2,
-      max: 2,
-      step: 0.1,
-      def: 1,
-      round: function (v) {
-        return Math.round(v * 10) / 10;
-      },
-      fmt: function (v) {
-        return v.toFixed(1) + "×";
-      },
-    });
+  /* An area a plugin owns can have settings of each light that this editor does not know (Hue's brightness balance): the plugin's rows. */
+  if (EAD.external && pluginAreaOwner().lightRows)
+    pluginAreaOwner()
+      .lightRows()
+      .forEach(function (r) {
+        rows.push(r);
+      });
   if (eaIsBar(lm.id))
     rows.push(
       { field: "a", label: "direction", min: 0, max: 355, step: 5, def: 0, round: Math.round, fmt: eaDeg },
@@ -802,8 +794,8 @@ function eaInfo() {
 function eaActions() {
   var box = EAD.v.box;
   redrawBox(box, function () {
-    if (EAD.bridge) return;
-    hpAreaActions(box, EAD.draft);
+    if (EAD.external) return;
+    pluginAreaEach("actions", box, EAD.draft);
     if (!EAD.isNew)
       box.appendChild(
         pill("trash", _T("delete_area"), {
@@ -858,8 +850,8 @@ function eaEditor(b) {
   });
   w.appendChild(inp);
   b.appendChild(w);
-  if (EAD.bridge) b.appendChild(pill("info", _T("hm_this_area_is_on_the_bridge"), {}));
-  (EAD.bridge ? hpBridgeLights() : eaRoomLights(EAD.room)).forEach(function (l) {
+  if (EAD.external && EAD.external.note) b.appendChild(pill("info", EAD.external.note, {}));
+  (EAD.external ? pluginAreaOwner().lights() : eaRoomLights(EAD.room)).forEach(function (l) {
     byId[l.id] = l;
   });
   d.lights.forEach(function (l) {
@@ -885,7 +877,7 @@ function eaEditor(b) {
     if (EAD.sel) eaSelect(null);
   });
   b.appendChild(EAD.v.tray);
-  if (!EAD.bridge)
+  if (!EAD.external)
     b.appendChild(
       pill("plus", _T("add_a_light"), {
         sub: function () {
@@ -896,7 +888,7 @@ function eaEditor(b) {
         },
       })
     );
-  if (!EAD.bridge) eaThings(b);
+  if (!EAD.external) eaThings(b);
   b.appendChild(EAD.v.info);
   b.appendChild(EAD.v.box);
   eaBuild();
@@ -913,9 +905,9 @@ function eaEditor(b) {
   }, 1000);
 }
 
-/* Saves the area and goes on to `leave`. An area that cannot be saved says why and stays open (false); one on the bridge answers later (a promise). */
+/* Saves the area and goes on to `leave`. An area that cannot be saved says why and stays open (false); one a plugin owns answers later (a promise). */
 function eaSave(leave) {
-  if (EAD.bridge) return hpSaveBridge(leave);
+  if (EAD.external) return pluginAreaOwner().save(leave);
   var d = EAD.draft,
     name = String(d.name || "").trim();
   if (!name) {

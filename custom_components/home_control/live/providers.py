@@ -157,6 +157,9 @@ class Providers:
 
     hass: HomeAssistant
     declared: dict[str, Provider] = field(default_factory=dict)
+    versions: dict[str, str] = field(
+        default_factory=dict
+    )  # the integration's own version, to name its script's file for the browser's cache
 
     async def async_scan(self) -> None:
         """Reads every custom integration's declaration. A bad one is logged and left out: it can never stop Home Control."""
@@ -170,6 +173,7 @@ class Providers:
                 for problem in provider.catalogue_problems:
                     _LOGGER.warning("The effects catalogue in %s of %s is ignored: %s", DECLARATION, domain, problem)
                 found[domain] = provider
+                self.versions[domain] = str(integration.version or "")
             except (OSError, ValueError, vol.Invalid) as err:
                 _LOGGER.warning("%s of %s is not valid and is ignored: %s", DECLARATION, domain, err)
         self.declared = found

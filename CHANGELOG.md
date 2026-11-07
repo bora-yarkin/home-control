@@ -9,6 +9,7 @@ Format: [Keep a Changelog](https://keepachangelog.com/). Versions follow [semant
 - The effects page calls the plus integration's own service for an effect with a colour or a speed, instead of Hue Plus's by name.
 
 ### Changed
+- The Hue Plus menu in Settings, the bridge's entertainment areas in the area editor and Hue's texts are no longer in the dashboard: Hue Plus brings them in one script that Home Control loads for administrators, through a documented plugin API (`window.HomeControl`, version 1, `docs/plugin-api.md`) that any plus integration can use. The area editor calls a plugin's hooks for areas it owns; Settings and its search list the categories plugins register. With an older Hue Plus the Hue Plus category is not there (update Home Control and Hue Plus together).
 - The dashboard no longer has Hue's effects, their groups, labels or pictures in its own code: they come from Hue Plus's catalogue (Home Control 0.5.0 and later with Hue Plus 0.9.0 and later; with an older Hue Plus the effects are listed as the lights report them).
 
 ### Fixed

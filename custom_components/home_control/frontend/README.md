@@ -16,8 +16,6 @@ Home Assistant. Anything that Home Assistant does well (automations, helpers, gr
 | `app/scenenew.js` | Making a scene: the + of a scenes section (administrators), the question classic or live, the areas of a live scene, and `guardUnsaved`, the one rule for everything that saves (see *Saving*). |
 | `app/staticmaker.js` | Classic scenes: the editor (a light opens the light popup, other devices slide open in place, live scenes can be added), saving, deleting. |
 | `app/vlights.js` | Lights that exist only in the dashboard: the Colors light of the live scene maker and its colours (up to 10), which answer to the light popup like a light made of zones. `core.js` reads them before Home Assistant's states and `callRaw` gives them the commands meant for them. |
-| `app/huemenu.js` | The Hue Plus menu in Settings, laid out like the settings of the Hue app (see *Hue Plus in Settings*). `hueplus.js` keeps what it shares with the area editor. |
-| `app/hmdraft.js` | The drafts of the Hue Plus menu: the edits of a light, a switch or a MotionAware area, kept for that device until it is saved (see *Hue Plus in Settings*). Pure logic, no page. |
 | `app/livemaker.js` | The live scene maker: the light popup with the Colors light, the lights of the chosen areas, the effects and settings of the whole scene, preview and saving. `livescenes.js` keeps playing, sharing with Hue Plus and the scene's popup. |
 | `app/kinds.js` | Guided setup of a device that has other entities (a TV's remote, a camera's second stream, pan/tilt, privacy and detection entities): finds them by itself, offers a searchable list for the rest, keeps the links with the device, and says whether a TV gets the full or the basic remote. Add a kind of device in `DEVSETUP`. |
 | `integrations.js` | Everything that is specific to one integration (xiaomi_miot, robot_vacuum_map, samsungtv_smart, apple_tv, androidtv_remote, hue, hue_plus sync module, hue_plus sync box). It draws nothing and reads nothing from the page. |
@@ -135,29 +133,13 @@ found by their registry `unique_id` (`<box>_syncbox_<key>`, keys: `sync`, `mode`
 
 Everything that has something to save looks and behaves the same: the classic scene editor, the live scene maker, the area editor (and the bridge's light placement), the light editor and a device of the Hue Plus menu. Its popup has a **checkmark next to the close button**; the checkmark saves and goes on (the popup closes for the scene editors, one page back for the rest). Closing it in any way (the close button, the back arrow, tapping outside) after a change asks *Unsaved changes: Save / Discard changes / Cancel*, and *Save* is the checkmark. There is no other Save button. An editor registers with `guardUnsaved({dirty, save(leave), discard, done, inner})` (`scenenew.js`), which also puts the checkmark in the header (`popupCheck` in `popups.js`): `save` returns `false` when it cannot save (it says why and the editor stays open), or a promise of whether it did (the bridge). `inner` marks a page that is one step of a larger edit; it asks on closing but not on the way back.
 
-## Hue Plus in Settings (`hue_plus`, optional)
+## Plugins (`app/pluginapi.js`, `docs/plugin-api.md`)
 
-`app/huemenu.js` is the Settings category *Hue Plus*, shown only when the integration is installed with its bridge module. It is laid out like the settings of the Hue app:
-a first page of labelled groups (*In this home*: Devices, Bridges, MotionAware areas, Entertainment areas, Routines and automations, Smart home, Software update;
-*Advanced*: Applications), then one page for each: lights as tiles (a tap opens the dashboard's light popup, the gear the light's set-up), the set-up of a light (function, power
-on, orientation, timed effects), switches (each button's press and long press as in the Hue app: scene cycle, single scene, brighten, dim, lights off, do nothing, smart on/off), the bridge (status, id, software, settings), software update (firmware of the bridge and of each device, automatic updates),
-Matter, applications, routines, entertainment areas (what the lights do when a sync stops) and MotionAware areas. A choice is a checklist page (`hue-fn`, `hue-pw`, `hue-or`, `hue-od`,
-`hue-end`). The pieces are `hmRow`, `hmGroup`, `hmLabel`, `hmTitle`, `hmInfo`, `hmButton`, `hmCallout`, `hmChips` and the tiles, all drawn under the `.hm` class in `dashboard.css`, so nothing else on the dashboard
-changes; names and values from a device or the bridge are always set as text. Lists the bridge itself holds come from `hue_plus.get_resources` (`Integrations.hueplus.resources`); everything
-else from the integration's entities, found by their registry `unique_id` (`Integrations.hueplus.bridge/lights/forLight/updates`). Pages are keyed `stg-hue` and `hue-*` in `HP_PAGES`. What is
-experimental in the integration (light set-up, streaming, the end state of an area) says so on its page. `app/hueplus.js` keeps what the menu and the area editor share (is Hue Plus there,
-asking the bridge, the exchange of areas with the bridge).
-
-**Reading and saving.** The menu reads everything it shows once, when it opens (`hmReady`, one loading screen); every page then draws at once from `HM`. The settings of a *device* (a light's function, power-on behaviour, mounting direction and segment order; what each press of a switch does; whether a MotionAware area is on; what an entertainment area does when a sync stops and who streams for it) are not sent when they are chosen: they go into that device's draft (`hmdraft.js`, one per device) and the pages show the draft. The device page saves like everything else (see *Saving*): its checkmark sends that device's changes to the bridge (`hmSaveLight`, `hmSaveSwitch`, `hmSaveMotion`, `hmSaveArea`; a switch is one `configure_button` call for each press that changed), reads that kind from the bridge again and replaces only that device's record, then goes back to the list. The pages that choose one setting of the device (`hmGuard(key, true)`) ask on closing but not on the way back to the device. Things that are single actions (software updates, a routine's switch, Matter, authorized apps, deleting, showing a colour on an area) still act at once and read their own page again; the area's light placement is its own editor with its own checkmark. The bridge is read again when the popup is opened again, and Save overwrites what the bridge holds.
-
-### Areas and the bridge's entertainment areas
-
-The bridge's area page (Hue Plus → Entertainment areas → an area) has *Light placement*: the placement editor opens on the bridge's own area (`hpEditOnBridge`): its lights are the Hue Plus lights, there are no things in the room, each light has a brightness balance, and *Save to the bridge* writes the area through `hue_plus.update_entertainment_area`. A light of the area that Home Assistant has no entity for is kept and sent back unchanged. The bridge's `y` runs the other way round from the editor's (`hpFlip`), so a light is turned over on the way in and on the way out. Nothing in the dashboard's own areas changes.
-
-The dashboard's areas (Settings → Areas) hold any light and work without Hue Plus. With Hue Plus installed (administrators only) a room's list of areas gets
-*Import from the Hue bridge* (a bridge area opens in the editor as a new area, with the lights that are in the room), and the editor gets *Send to the Hue bridge*
-(the area's Hue lights and positions go to the bridge's area of the same name, or a new one; other lights stay on the dashboard) and *Read from the Hue bridge*
-(positions for the lights already there). The code is in `app/hueplus.js`; `areas.js` only calls `hpAreaImport` and `hpAreaActions`.
+A plus integration adds pages to the dashboard through the plugin API (`window.HomeControl`, version 1), documented in `docs/plugin-api.md`. Home Control loads the script a loaded
+integration names under `menu` in its `home_control.json`, for administrators only, from that integration's own static folder. The script registers its pages (`PLUGIN_PAGES`), a category in
+Settings (`PLUGIN_SETTINGS`), its texts and, for areas it owns, the hooks the area editor calls (`PLUGIN_AREA`: an import row, actions, the lights, saving, per-light rows). Hue Plus is the first:
+its menu (the Settings category *Hue Plus*), the entertainment areas of the bridge and their placement, and their texts are in the Hue Plus repository (`frontend/src`, built into `menu.js`),
+not here. Everything that saves still looks and behaves the same: a checkmark next to the close button, and closing with changes that are not saved asks (`guardUnsaved`).
 
 ## Trying a change
 

@@ -53,6 +53,7 @@ function boot() {
   initSearchBtn();
   roomOffInit();
   fxLoad();
+  pluginsLoad();
   offlineInit();
   setInterval(function () {
     if (
