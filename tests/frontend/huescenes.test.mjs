@@ -16,6 +16,8 @@ function page(extra = {}) {
     _T: (k) => k,
     log,
     ISADMIN: true,
+    SHEET: null,
+    CURRENT: null,
     STORE: { scenes: [], eareas: [] },
     H: () => ({ entities: {}, states: { "light.a": {}, "light.b": {}, "light.c": {} } }),
     A: () => ({ name: "Reading" }),
@@ -170,6 +172,19 @@ test("the trash of a scene deletes it from every page and the saved scenes, once
   assert.deepEqual(plain(p.log.stops), [["stop", { scene_id: "s1" }]]);
   assert.deepEqual(plain(p.log.forgot), [["s1", "lx-s1"]]);
   assert.deepEqual(plain(p.log.toasts), ["scene_deleted"]);
+});
+
+test("the list of existing scenes is drawn again without a scene deleted from it, and nothing is reopened elsewhere", () => {
+  const open = (SHEET, CURRENT) => {
+    const p = page({ SHEET, CURRENT });
+    p.STORE.scenes = [{ id: "s2", name: "Classic" }];
+    p.sceneDeleteEverywhere(p.STORE.scenes[0]);
+    p.log.confirms[0].fn();
+    return p.log.popups;
+  };
+  assert.deepEqual(plain(open({}, "pick-scene:room:sec")), ["pick-scene:room:sec"]);
+  assert.deepEqual(plain(open({}, "stg-wall")), []);
+  assert.deepEqual(plain(open(null, null)), []);
 });
 
 test("a classic scene is deleted without the integration being asked about it", () => {

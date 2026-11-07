@@ -217,6 +217,7 @@ export function makeHass(query) {
               response: {
                 name: "Arctic aurora", live: true, speed: 0.55, brightness: 200, lights: ["light.desk_lamp", "light.shelf_strip"],
                 palette: [{ xy: [0.2072, 0.4525], b: 100 }, { xy: [0.1868, 0.3328], b: 100 }, { xy: [0.1541, 0.0844], b: 100 }],
+                states: [{ entity_id: "light.desk_lamp", on: true, brightness: 143, k: 2237 }, { entity_id: "light.shelf_strip", on: false }],
               },
             });
           if (msg.domain === "home_control" && msg.service === "get_library") return Promise.resolve({ response: { scenes: [], areas: [], presets: [] } });
