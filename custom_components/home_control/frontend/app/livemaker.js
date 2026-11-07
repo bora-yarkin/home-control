@@ -236,7 +236,7 @@ function liveMakerScene() {
 }
 
 function liveMakerStopPreview() {
-  if (LMK && LMK.preview) liveCall(LMK.owner, "stop", { scene_id: "lm-preview" });
+  if (LMK && LMK.preview) liveCall("stop", { scene_id: "lm-preview" });
   if (LMK) LMK.preview = false;
 }
 
@@ -282,7 +282,7 @@ function liveMakerSave(leave) {
   /* A scene that is playing takes the new colours and settings at once. */
   if (liveRun(sc)) liveStart(sc);
   uiChanged();
-  hpPush([sc], [liveSceneArea(sc)].filter(Boolean));
+  livePush([sc], [liveSceneArea(sc)].filter(Boolean));
   toast(_T("scene_saved"));
   LMK.saved = liveMakerSig();
   POPGUARD = null;
@@ -299,13 +299,13 @@ function liveMakerLightsOn() {
 function liveMakerDelete() {
   var id = LMK.id,
     sc = sceneById(id);
-  if (liveRun({ id: id })) liveCall(sc ? liveOwner(sc) : null, "stop", { scene_id: id });
+  if (liveRun({ id: id })) liveCall("stop", { scene_id: id });
   STORE.scenes = STORE.scenes.filter(function (x) {
     return x.id !== id;
   });
   pruneSceneRefs();
   uiChanged();
-  hpForget(id, sc && sc.live && sc.live.areas ? sc.live.area : null);
+  liveForget(id, sc && sc.live && sc.live.areas ? sc.live.area : null);
   liveMakerEnd();
   toast(_T("scene_deleted"));
   POPGUARD = null;
@@ -543,8 +543,7 @@ function liveMakerTools(box) {
           return;
         }
         p.data.scene_id = "lm-preview";
-        LMK.owner = liveOwner(cs);
-        liveCall(LMK.owner, "start", p.data);
+        liveCall("start", p.data);
         LMK.preview = true;
       },
     })

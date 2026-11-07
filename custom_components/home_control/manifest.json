@@ -8,12 +8,13 @@
   "dependencies": [
     "frontend",
     "http",
-    "panel_custom"
+    "panel_custom",
+    "websocket_api"
   ],
   "documentation": "https://github.com/bora-yarkin/home-control",
   "integration_type": "service",
   "iot_class": "calculated",
   "issue_tracker": "https://github.com/bora-yarkin/home-control/issues",
   "requirements": [],
-  "version": "0.4.6"
+  "version": "0.5.0"
 }

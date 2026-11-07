@@ -1,9 +1,9 @@
 # SPDX-License-Identifier: GPL-3.0-or-later
 """Home Control: a dashboard panel for Home Assistant that shows and controls the home.
 
-The integration only serves the dashboard's files and registers its panel; the dashboard itself runs in the browser and
-talks to Home Assistant through the connection Home Assistant gives every panel. Its settings and layouts are kept by
-Home Assistant for each user, not by this integration.
+The integration serves the dashboard's files, registers its panel, and plays live scenes and areas for any light (``live/``, services
+``home_control.scene_*``). The dashboard itself runs in the browser and talks to Home Assistant through the connection Home Assistant
+gives every panel; its settings and layouts are kept by Home Assistant for each user.
 """
 
 from __future__ import annotations
@@ -14,6 +14,7 @@ from pathlib import Path
 from homeassistant.components import frontend, panel_custom
 from homeassistant.components.http import StaticPathConfig
 from homeassistant.config_entries import ConfigEntry
+from homeassistant.const import Platform
 from homeassistant.core import HomeAssistant
 
 from .const import (
@@ -29,9 +30,13 @@ from .const import (
     URL_BASE,
 )
 from .images import URL_IMAGES, RemoteImageDeleteView, RemoteImageUploadView
+from .live import services as live_services
+from .live import setup as live_setup
+from .live import websocket as live_websocket
 
 FRONTEND = Path(__file__).parent / "frontend"
 STATIC_REGISTERED = f"{DOMAIN}_static_registered"
+PLATFORMS = [Platform.SENSOR]
 
 
 def _dashboard_version() -> int:
@@ -66,6 +71,11 @@ async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
         handle_safe_area=True,
         config={},
     )
+    entry.runtime_data = await live_setup.async_setup(hass, entry)
+    if not hass.services.has_service(DOMAIN, "scene_start"):
+        live_services.async_register(hass)
+        live_websocket.async_register(hass)
+    await hass.config_entries.async_forward_entry_setups(entry, PLATFORMS)
     entry.async_on_unload(entry.add_update_listener(_reload))
     return True
 
@@ -76,4 +86,7 @@ async def _reload(hass: HomeAssistant, entry: ConfigEntry) -> None:
 
 async def async_unload_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
     frontend.async_remove_panel(hass, entry.options.get(CONF_URL_PATH, DEFAULT_URL_PATH))
-    return True
+    unloaded = await hass.config_entries.async_unload_platforms(entry, PLATFORMS)
+    if unloaded:
+        live_services.async_remove(hass)
+    return unloaded

@@ -83,11 +83,11 @@ function sceneNewPage(b, key) {
   b.appendChild(
     pill(SCENE_ICON_LIVE, _T("live_scene"), {
       sub: function () {
-        return engineSensor() ? _T("live_scene_sub") : _T("live_scene_needs_hue_plus");
+        return _T("live_scene_sub");
       },
       tap: function () {
         if (!engineSensor()) {
-          toast(_T("scene_engine_is_not_installed"));
+          toast(_T("live_scenes_are_not_available"));
           return;
         }
         LMK_AREAS = [];

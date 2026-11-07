@@ -76,7 +76,7 @@ function scnPick(b, key) {
       },
     })
   );
-  if (engineSensor() && hueLiveScenes().length)
+  if (hueImportable() && hueLiveScenes().length)
     box.appendChild(
       pill("palette", _T("import_a_live_scene_from_hue"), {
         sub: function () {
@@ -560,7 +560,7 @@ function hueScenePopup(b, id, room) {
     })
   );
   b.appendChild(g2);
-  if (ISADMIN && engineSensor())
+  if (ISADMIN && hueImportable())
     b.appendChild(
       pill("palette", _T("import_as_a_live_scene"), {
         sub: function () {

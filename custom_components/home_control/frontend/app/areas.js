@@ -26,19 +26,12 @@ var EA_SLOTS = [
   [0.7, 0],
 ];
 
-/* Hue Plus next to the Hue integration plays scenes on Hue lights only (it says so when the library is read), so without Scene engine only those can be placed in an area. */
-function eaAllowed(id) {
-  /* With Scene engine installed, lights of other brands can be placed too: it plays them and hands the Hue lights to Hue Plus. */
-  if (typeof seSensor === "function" && seSensor()) return true;
-  return !HPLIB.hueOnly || ((H().entities[id] || {}).platform === "hue_plus");
-}
-
 /* What can be placed in a room: a light made of zones (a gradient tube or strip) is ONE item, a bar with a direction, and its zones follow it; any other group (a Hue room light) is replaced by its members so each bulb can be placed on its own. */
 function eaRoomLights(room) {
   var out = [],
     seen = {};
   roomDevs(room).forEach(function (d) {
-    if (d.type !== "light" || !eaAllowed(d.id)) return;
+    if (d.type !== "light") return;
     if (zoneMembers(d.id).length > 1) {
       if (!seen[d.id]) {
         seen[d.id] = 1;
@@ -48,7 +41,7 @@ function eaRoomLights(room) {
     }
     var all = lightIndividuals([d.id]);
     all.forEach(function (id) {
-      if (seen[id] || !eaAllowed(id)) return;
+      if (seen[id]) return;
       seen[id] = 1;
       out.push({ id: id, name: all.length > 1 ? entName(id) : d.name, icon: d.icon });
     });
@@ -158,15 +151,15 @@ function eaIdentify(id) {
   eaIdentifyOff();
   if (!id || !engineSensor()) return;
   EA_KEEP.id = id;
-  callRaw("hue_plus", "locate_light", { entity_id: id, active: true });
+  callRaw("home_control", "locate_light", { entity_id: id, active: true });
   EA_KEEP.timer = setInterval(function () {
-    callRaw("hue_plus", "locate_light", { entity_id: id, active: true });
+    callRaw("home_control", "locate_light", { entity_id: id, active: true });
   }, 20000);
 }
 
 function eaIdentifyOff() {
   clearInterval(EA_KEEP.timer);
-  if (EA_KEEP.id) callRaw("hue_plus", "locate_light", { entity_id: EA_KEEP.id, active: false });
+  if (EA_KEEP.id) callRaw("home_control", "locate_light", { entity_id: EA_KEEP.id, active: false });
   EA_KEEP.id = null;
 }
 
@@ -555,7 +548,7 @@ function eaOtherLights(q) {
   return candidates(["light"], EAD.room, q).filter(function (c) {
     if (c.id.indexOf("light.") !== 0) return false;
     return eaUnits([c.id]).some(function (id) {
-      return eaAllowed(id) && !byId[id];
+      return !byId[id];
     });
   });
 }
@@ -593,7 +586,7 @@ function eaMorePage(b) {
             },
             tap: function () {
               var units = eaUnits([c.id]).filter(function (id) {
-                return eaAllowed(id) && !EAD.v.byId[id];
+                return !EAD.v.byId[id];
               });
               var added = 0;
               for (var i = 0; i < units.length; i++) {
@@ -950,7 +943,7 @@ function eaSave(leave) {
   });
   STORE.eareas.push(a);
   uiChanged();
-  hpPush(liveScenesIn(a.id), [a]);
+  livePush(liveScenesIn(a.id), [a]);
   toast(_T("area_saved"));
   EAD.saved = JSON.stringify(EAD.draft);
   POPGUARD = null;
@@ -972,7 +965,7 @@ function eaDelete() {
     return x.id !== id;
   });
   uiChanged();
-  hpForget(null, id);
+  liveForget(null, id);
   toast(_T("area_deleted"));
   POPGUARD = null;
   if (STACK.length) popBack();

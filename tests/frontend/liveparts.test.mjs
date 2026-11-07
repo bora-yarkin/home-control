@@ -29,7 +29,7 @@ function page() {
   vm.runInContext(read("store.js"), sandbox);
   vm.runInContext(read("livescenes.js"), sandbox);
   vm.runInContext(read("livemaker.js"), sandbox);
-  vm.runInContext("engineSensor = function () { return 'sensor.live_scenes'; }; hpSensor = engineSensor; seSensor = function () { return null; }; ISADMIN = true;", sandbox);
+  vm.runInContext("engineSensor = function () { return 'sensor.live_scenes'; }; ISADMIN = true;", sandbox);
   const plain = (value) => JSON.parse(JSON.stringify(value));
   return { sandbox, calls, plain, clean: (live) => plain(sandbox.cleanLive(live)) };
 }
@@ -118,7 +118,7 @@ test("saving a scene writes the parts to Hue Plus as well", () => {
   const { sandbox, calls, plain } = page();
   sandbox.STORE.eareas = [{ id: "room", name: "Room", room: "living", lights: [{ id: "light.a", x: 0, y: 0, z: 0 }], dummies: [] }];
   const sc = { id: "s", name: "S", room: "living", live: { ...BASE, src: "rainbow", fx: [{ type: "flicker", speed: 5, strength: 30 }], also: [{ id: "fan.f", on: false }] } };
-  sandbox.hpPush([sc], []);
+  sandbox.livePush([sc], []);
   const saved = plain(calls.find(([, service]) => service === "scene_save")[2]);
   assert.equal(saved.colour_source, "rainbow");
   assert.deepEqual(saved.effects, [{ type: "flicker", speed: 5, strength: 30 }]);

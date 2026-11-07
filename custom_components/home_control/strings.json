@@ -28,5 +28,252 @@
       "address_in_use": "Another sidebar entry already uses this address.",
       "empty_title": "Give the entry a title."
     }
+  },
+  "services": {
+    "scene_start": {
+      "name": "Scene start",
+      "description": "Starts a live scene: a palette that moves across the lights of an area. What is not given comes from the saved scene with this id, then from its preset.",
+      "fields": {
+        "scene_id": {
+          "name": "Scene id",
+          "description": "The scene's id: 1 to 48 of a-z, 0-9, _ or -. The id of a saved scene starts that scene."
+        },
+        "preset": {
+          "name": "Preset",
+          "description": "A shipped palette to start from."
+        },
+        "area": {
+          "name": "Area",
+          "description": "The id of a saved area; its lights play the scene."
+        },
+        "lights": {
+          "name": "Lights",
+          "description": "The lights: a list of items, each with \"entity_id\" and x, y, z from -1 to 1 saying where it stands."
+        },
+        "palette": {
+          "name": "Palette",
+          "description": "The colours, 1 to 16, each an item with \"hs\" ([hue, saturation]), \"xy\" ([x, y]) or \"k\" (kelvin), and an optional \"b\" (brightness, 1 to 100)."
+        },
+        "speed": {
+          "name": "Speed",
+          "description": "How fast the palette moves, from 1 (slow, two minutes a loop) to 12 (fast, eight seconds a loop)."
+        },
+        "range": {
+          "name": "Range",
+          "description": "How much of the palette is on show across the lights at once, in percent."
+        },
+        "brightness": {
+          "name": "Brightness",
+          "description": "The brightness the palette's brightest colour reaches, from 1 to 255."
+        },
+        "spread": {
+          "name": "Spread",
+          "description": "Which way the palette is spread over the lights: along x, y or z, or outward from the middle (radial)."
+        },
+        "colour_source": {
+          "name": "Colour source",
+          "description": "Where the colours come from: the moving palette, or a rainbow (the hue goes once round the colour wheel per loop)."
+        },
+        "effects": {
+          "name": "Effects",
+          "description": "Brightness effects, up to 4: a list of items, each with \"type\" (pulse, flicker, sparkle or lightning), \"speed\" (1 to 12) and \"strength\" (1 to 100). They work on any colour source."
+        },
+        "looks": {
+          "name": "Looks",
+          "description": "What single lights do differently, by light: an item for each light's entity id, with \"palette\", \"brightness\" (1 to 255), \"effects\" and \"native\" (for example underwater). A light with no look follows the scene. native is one of the light's own effects, played when a plus integration for the light's brand can (a Hue light's candle, for example); it plays with the look's palette colours."
+        },
+        "actions": {
+          "name": "Actions",
+          "description": "Devices to switch when the scene starts: a list of items, each with \"entity_id\" and \"do\" (on or off). On or off only, for lights, switches, fans, media players, climate, humidifiers, input_booleans and covers."
+        },
+        "fps": {
+          "name": "Fps",
+          "description": "For lights that cannot fade by themselves: updates per second, from 1 to 4."
+        },
+        "wake": {
+          "name": "Wake",
+          "description": "Turn on the lights that are off when the scene starts."
+        }
+      }
+    },
+    "scene_update": {
+      "name": "Scene update",
+      "description": "Changes the speed, range or brightness of a running scene at once.",
+      "fields": {
+        "scene_id": {
+          "name": "Scene id",
+          "description": "The scene's id: 1 to 48 of a-z, 0-9, _ or -. The id of a saved scene starts that scene."
+        },
+        "speed": {
+          "name": "Speed",
+          "description": "How fast the palette moves, from 1 (slow, two minutes a loop) to 12 (fast, eight seconds a loop)."
+        },
+        "range": {
+          "name": "Range",
+          "description": "How much of the palette is on show across the lights at once, in percent."
+        },
+        "brightness": {
+          "name": "Brightness",
+          "description": "The brightness the palette's brightest colour reaches, from 1 to 255."
+        }
+      }
+    },
+    "scene_freeze": {
+      "name": "Scene freeze",
+      "description": "Holds a running scene where it is.",
+      "fields": {
+        "scene_id": {
+          "name": "Scene id",
+          "description": "The scene's id: 1 to 48 of a-z, 0-9, _ or -. The id of a saved scene starts that scene."
+        }
+      }
+    },
+    "scene_play": {
+      "name": "Scene play",
+      "description": "Lets a frozen scene move again.",
+      "fields": {
+        "scene_id": {
+          "name": "Scene id",
+          "description": "The scene's id: 1 to 48 of a-z, 0-9, _ or -. The id of a saved scene starts that scene."
+        }
+      }
+    },
+    "scene_stop": {
+      "name": "Scene stop",
+      "description": "Ends a scene. The lights stay as they are.",
+      "fields": {
+        "scene_id": {
+          "name": "Scene id",
+          "description": "The scene's id: 1 to 48 of a-z, 0-9, _ or -. The id of a saved scene starts that scene."
+        }
+      }
+    },
+    "scene_save": {
+      "name": "Scene save",
+      "description": "Saves a scene so it can be started by its id. Give a preset to start from a shipped palette.",
+      "fields": {
+        "id": {
+          "name": "Id",
+          "description": "The scene's id: 1 to 48 of a-z, 0-9, _ or -."
+        },
+        "name": {
+          "name": "Name",
+          "description": "The scene's name."
+        },
+        "preset": {
+          "name": "Preset",
+          "description": "A shipped palette to start from."
+        },
+        "palette": {
+          "name": "Palette",
+          "description": "The colours, 1 to 16, each an item with \"hs\" ([hue, saturation]), \"xy\" ([x, y]) or \"k\" (kelvin), and an optional \"b\" (brightness, 1 to 100)."
+        },
+        "speed": {
+          "name": "Speed",
+          "description": "How fast the palette moves, from 1 (slow, two minutes a loop) to 12 (fast, eight seconds a loop)."
+        },
+        "range": {
+          "name": "Range",
+          "description": "How much of the palette is on show across the lights at once, in percent."
+        },
+        "brightness": {
+          "name": "Brightness",
+          "description": "The brightness the palette's brightest colour reaches, from 1 to 255."
+        },
+        "spread": {
+          "name": "Spread",
+          "description": "Which way the palette is spread over the lights: along x, y or z, or outward from the middle (radial)."
+        },
+        "colour_source": {
+          "name": "Colour source",
+          "description": "Where the colours come from: the moving palette, or a rainbow (the hue goes once round the colour wheel per loop)."
+        },
+        "effects": {
+          "name": "Effects",
+          "description": "Brightness effects, up to 4: a list of items, each with \"type\" (pulse, flicker, sparkle or lightning), \"speed\" (1 to 12) and \"strength\" (1 to 100). They work on any colour source."
+        },
+        "looks": {
+          "name": "Looks",
+          "description": "What single lights do differently, by light: an item for each light's entity id, with \"palette\", \"brightness\" (1 to 255), \"effects\" and \"native\" (for example underwater). A light with no look follows the scene. native is one of the light's own effects, played when a plus integration for the light's brand can (a Hue light's candle, for example); it plays with the look's palette colours."
+        },
+        "actions": {
+          "name": "Actions",
+          "description": "Devices to switch when the scene starts: a list of items, each with \"entity_id\" and \"do\" (on or off). On or off only, for lights, switches, fans, media players, climate, humidifiers, input_booleans and covers."
+        },
+        "area": {
+          "name": "Area",
+          "description": "The id of a saved area it plays on."
+        },
+        "lights": {
+          "name": "Lights",
+          "description": "The lights: a list of items, each with \"entity_id\" and x, y, z from -1 to 1 saying where it stands."
+        },
+        "ui": {
+          "name": "Ui",
+          "description": "Data a screen keeps next to this (icons, drawings). Stored as it is, up to 16 KB."
+        }
+      }
+    },
+    "scene_delete": {
+      "name": "Scene delete",
+      "description": "Deletes a saved scene (a running one keeps playing until it is stopped).",
+      "fields": {
+        "id": {
+          "name": "Id",
+          "description": "The scene's id."
+        }
+      }
+    },
+    "area_save": {
+      "name": "Area save",
+      "description": "Saves an area: the lights of a room or part of it and where each stands, which decides how a palette spreads across them.",
+      "fields": {
+        "id": {
+          "name": "Id",
+          "description": "The area's id: 1 to 48 of a-z, 0-9, _ or -."
+        },
+        "name": {
+          "name": "Name",
+          "description": "The area's name."
+        },
+        "lights": {
+          "name": "Lights",
+          "description": "The lights: a list of items, each with \"entity_id\" and x, y, z from -1 to 1 saying where it stands."
+        },
+        "ui": {
+          "name": "Ui",
+          "description": "Data a screen keeps next to this (icons, drawings). Stored as it is, up to 16 KB."
+        }
+      }
+    },
+    "area_delete": {
+      "name": "Area delete",
+      "description": "Deletes a saved area. Scenes that played on it stay saved but need another area before they can start.",
+      "fields": {
+        "id": {
+          "name": "Id",
+          "description": "The area's id."
+        }
+      }
+    },
+    "locate_light": {
+      "name": "Locate light",
+      "description": "Shows which light is which: it turns red (or dims, when it has no colour) until you turn this off, or for 30 seconds, and is then put back.",
+      "fields": {
+        "entity_id": {
+          "name": "Entity id",
+          "description": "The light entity."
+        },
+        "active": {
+          "name": "Active",
+          "description": "Start or stop."
+        }
+      }
+    },
+    "get_library": {
+      "name": "Get library",
+      "description": "Returns the saved scenes and areas and the shipped presets.",
+      "fields": {}
+    }
   }
 }
