@@ -577,15 +577,65 @@ function liveImportSource(key) {
   })[0];
 }
 
+/* Whether two light settings of a scene are the same to the eye: both off, or on with about the same brightness and colour. */
+function classicSameSetting(x, y) {
+  if (!x.on || !y.on) return !x.on && !y.on;
+  if (Math.abs((x.brightness || 0) - (y.brightness || 0)) > 8) return false;
+  if (x.k || y.k) return !!x.k && !!y.k && Math.abs(x.k - y.k) <= 50;
+  return !!x.xy && !!y.xy && Math.abs(x.xy[0] - y.xy[0]) <= 0.01 && Math.abs(x.xy[1] - y.xy[1]) <= 0.01;
+}
+
+/* The lights a scene sets, with each light group of the room whose lights it sets all the same given as the group, as the room shows it (the floor lamps, not each lamp), and the other lights one by one. */
+function classicSettingsByUnit(lights, room) {
+  var by = {};
+  lights.forEach(function (l) {
+    by[l.entity_id] = l;
+  });
+  var taken = {},
+    out = [];
+  lightUnits(ROOMLIGHTS[room] || []).forEach(function (u) {
+    var members = A(u).entity_id;
+    if (!Array.isArray(members) || members.length < 2 || A(u).is_hue_group || by[u]) return;
+    var first = by[members[0]];
+    if (
+      first &&
+      members.every(function (m) {
+        return by[m] && classicSameSetting(first, by[m]);
+      })
+    ) {
+      members.forEach(function (m) {
+        taken[m] = u;
+      });
+      by[u] = Object.assign({}, first, { entity_id: u });
+    }
+  });
+  lights.forEach(function (l) {
+    var g = taken[l.entity_id];
+    if (!g) out.push(l);
+    else if (!taken["done:" + g]) {
+      taken["done:" + g] = 1;
+      out.push(by[g]);
+    }
+  });
+  return out;
+}
+
 /* A classic scene from what a source's scene sets, as "save the lights as they are" does for the lights now: the editor opens on it, not saved yet. The source gives { name, lights: [{ entity_id, on, brightness (1 to 255), xy: [x, y] or k (kelvin) }] }. */
 function classicImportFrom(src, sceneId, room, target) {
   src
     .read(sceneId)
     .then(function (r) {
-      var acts = ((r && r.lights) || [])
-        .filter(function (l) {
+      var rm = room || liveRoomFor(
+          ((r && r.lights) || []).map(function (l) {
+            return l.entity_id;
+          })
+        );
+      var acts = classicSettingsByUnit(
+        ((r && r.lights) || []).filter(function (l) {
           return H().states[l.entity_id];
-        })
+        }),
+        rm
+      )
         .slice(0, 20)
         .map(function (l) {
           if (!l.on) return { id: l.entity_id, on: false };
@@ -599,12 +649,7 @@ function classicImportFrom(src, sceneId, room, target) {
           return act;
         });
       if (!acts.length) throw new Error("empty");
-      var rm = room || liveRoomFor(
-          acts.map(function (a) {
-            return a.id;
-          })
-        ),
-        name = (r && r.name) || A(sceneId).name || "";
+      var name = (r && r.name) || A(sceneId).name || "";
       if (!target) {
         var secs = secOrder(scopeKey(rm)).filter(function (s) {
           return s.k === "scenes";

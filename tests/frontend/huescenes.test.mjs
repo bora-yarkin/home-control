@@ -20,7 +20,10 @@ function page(extra = {}) {
     CURRENT: null,
     STORE: { scenes: [], eareas: [] },
     H: () => ({ entities: {}, states: { "light.a": {}, "light.b": {}, "light.c": {} } }),
-    A: () => ({ name: "Reading" }),
+    A: (id) => (sandbox.GROUPS[id] ? { entity_id: sandbox.GROUPS[id] } : { name: "Reading" }),
+    GROUPS: {},
+    ROOMLIGHTS: {},
+    lightUnits: (ids) => ids,
     pill: (icon, name, o) => ({ icon, name, ...o }),
     showPopup: (key) => log.popups.push(key),
     call: (domain, service, data) => log.calls.push([domain, service, data]),
@@ -55,11 +58,12 @@ function page(extra = {}) {
     closeSheet() {},
     ...extra,
   };
+  sandbox.GROUPS = extra.GROUPS || {};
   const stubs = { ...sandbox };
   vm.createContext(sandbox);
   for (const file of ["scenes.js", "livescenes.js", "areas.js"]) vm.runInContext(read(file), sandbox);
   /* What the test stands in for wins over the file's own function of that name; the rest is the code under test. */
-  for (const name of Object.keys(stubs)) if (!["sceneEntRow", "liveImportFrom", "classicImportFrom", "eaDelete", "eaRemove", "sceneShown", "liveImportSource", "sceneDeleteEverywhere", "scnPick"].includes(name) || name in extra) sandbox[name] = stubs[name];
+  for (const name of Object.keys(stubs)) if (!["sceneEntRow", "liveImportFrom", "classicImportFrom", "eaDelete", "eaRemove", "sceneShown", "liveImportSource", "sceneDeleteEverywhere", "scnPick", "classicSettingsByUnit", "classicSameSetting"].includes(name) || name in extra) sandbox[name] = stubs[name];
   sandbox.PLUGIN_SCENE_IMPORTS = extra.SOURCES || [];
   return sandbox;
 }
@@ -117,6 +121,41 @@ test("a classic scene is made from what a static scene sets each light to, not f
     { id: "light.b", on: false },
     { id: "light.c", on: true, bri: 100, col: { k: 2500 } },
   ]);
+});
+
+test("lights of a group the room shows that the scene sets the same are one light of the scene; lights it sets differently stay separate", async () => {
+  const warm = { on: true, brightness: 255, k: 2404 };
+  const lights = [
+    { entity_id: "light.ceiling_l", on: false },
+    { entity_id: "light.ceiling_r", on: false },
+    { entity_id: "light.floor_l", ...warm },
+    { entity_id: "light.floor_r", ...warm },
+    { entity_id: "light.play_l", ...warm },
+    { entity_id: "light.play_r", ...warm, brightness: 100 },
+    { entity_id: "light.desk", on: true, brightness: 255, k: 2710 },
+  ];
+  const states = Object.fromEntries([...lights.map((l) => l.entity_id), "light.ceilings", "light.floors", "light.play"].map((id) => [id, {}]));
+  const source = { id: "hue-classic", classic: true, available: () => true, read: async () => ({ name: "Desk", lights }) };
+  const p = page({
+    SOURCES: [source],
+    H: () => ({ entities: {}, states }),
+    ROOMLIGHTS: { bora: ["light.ceilings", "light.floors", "light.play", "light.desk"] },
+    GROUPS: {
+      "light.ceilings": ["light.ceiling_l", "light.ceiling_r"],
+      "light.floors": ["light.floor_l", "light.floor_r"],
+      "light.play": ["light.play_l", "light.play_r"],
+    },
+  });
+  p.liveImportFrom("hue-classic", "scene.desk", "bora", null);
+  await new Promise((r) => setImmediate(r));
+  const acts = plain(p.log.opened[0][3].acts);
+  assert.deepEqual(
+    acts.map((a) => a.id),
+    ["light.ceilings", "light.floors", "light.play_l", "light.play_r", "light.desk"],
+    "the ceiling lights and the floor lamps are one each; the Play lights differ, so each is its own"
+  );
+  assert.equal(acts[0].on, false);
+  assert.deepEqual(acts[1].col, { k: 2404 });
 });
 
 test("a static scene that cannot be read says so and opens nothing", async () => {
