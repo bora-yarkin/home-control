@@ -4,6 +4,10 @@ Format: [Keep a Changelog](https://keepachangelog.com/). Versions follow [semant
 
 ## [Unreleased]
 
+### Changed
+- The live scene maker works only with the scene, not with the lights (decision D-19). The colour wheel shows only the Colors light's markers and the transitions between them, never the lights' own colours; a light can be included or left out, given its own brightness and given an effect (No effect first), and nothing else. The brightness button sets the scene's brightness when Colors or nothing is selected and one light's own when a light is selected, and nothing is sent to the lights while you edit (the preview plays the scene). The effects page of the maker lists only the light's effects. Colours can no longer be joined to lights, and a scene saved from the maker no longer carries colours of its own for a light (a scene made before keeps them until it is saved again); brightness effects given to a light elsewhere are kept.
+- A **Mode** button next to the brightness button (like a gradient light's Style) chooses how the colours follow each other: **Linear** (each blends into the next, as before) or **Segmented** (each colour is shown as it is, one after the other, with no colour in between, and changes as its segment begins, without a fade). `mode` is a field of `scene_start` and `scene_save`, and in segmented mode the wheel shows no transitions.
+
 ## [0.8.3] - 2026-11-07
 
 ### Fixed

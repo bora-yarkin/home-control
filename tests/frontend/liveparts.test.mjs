@@ -94,7 +94,7 @@ test("devices a scene also switches: on or off, a fixed list of domains, no dupl
   assert.equal(clean({ ...BASE, also: lots }).also.length, 12);
 });
 
-test("what is sent to Hue Plus carries the source, effects, looks (brightness in 1 to 255) and actions (on or off)", () => {
+test("what is sent to the engine carries the source, mode, effects, looks (brightness in 1 to 255) and actions (on or off)", () => {
   const { sandbox, plain } = page();
   const sc = {
     id: "s",
@@ -108,6 +108,7 @@ test("what is sent to Hue Plus carries the source, effects, looks (brightness in
   };
   assert.deepEqual(plain(sandbox.liveParts(sc)), {
     colour_source: "rainbow",
+    mode: "linear",
     effects: [{ type: "pulse", speed: 3, strength: 40 }],
     looks: { "light.a": { palette: [{ hs: [1, 2] }], brightness: 127, effects: [], native: "underwater" } },
     actions: [{ entity_id: "media_player.tv", do: "off" }, { entity_id: "switch.plug", do: "on" }],
@@ -155,4 +156,21 @@ test("what the dashboard sends to save a scene and an area is exactly what the s
   sandbox.STORE.eareas.push(area);
   assert.deepEqual(Object.keys(plain(sandbox.liveScenePayload(scene))).sort(), sent.scene_save);
   assert.deepEqual(Object.keys(plain(sandbox.liveAreaPayload(area))).sort(), sent.area_save);
+});
+
+test("the mode of a scene is linear unless it is segmented, and is sent when a scene starts and when it is saved", () => {
+  const { sandbox, plain } = page();
+  sandbox.deviceGet = (_key, fallback) => fallback;
+  const scene = (live) => ({ id: "s1", name: "S1", room: "living", live: { ...BASE, ...live } });
+  sandbox.STORE.eareas.push({ id: "room", name: "Room", room: "living", lights: [{ id: "light.a", x: 0, y: 0, z: 0 }] });
+  const clean = (live) => plain(sandbox.cleanLive({ ...BASE, ...live })).mode;
+  assert.equal(clean({}), "linear");
+  assert.equal(clean({ mode: "segmented" }), "segmented");
+  assert.equal(clean({ mode: "mirrored" }), "linear");
+  for (const [live, want] of [[{}, "linear"], [{ mode: "segmented" }, "segmented"]]) {
+    const sc = scene(live);
+    sandbox.STORE.scenes = [sc];
+    assert.equal(plain(sandbox.livePayload(sc)).data.mode, want);
+    assert.equal(plain(sandbox.liveScenePayload(sc)).mode, want);
+  }
 });
