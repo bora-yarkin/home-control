@@ -48,6 +48,10 @@ scene_start:
       selector:
         select:
           options: ["palette", "rainbow"]
+    "mode":
+      selector:
+        select:
+          options: ["linear", "segmented"]
     "effects":
       example: "[{\"type\": \"pulse\", \"speed\": 4, \"strength\": 60}]"
       selector:
@@ -170,6 +174,10 @@ scene_save:
       selector:
         select:
           options: ["palette", "rainbow"]
+    "mode":
+      selector:
+        select:
+          options: ["linear", "segmented"]
     "effects":
       example: "[{\"type\": \"pulse\", \"speed\": 4, \"strength\": 60}]"
       selector:

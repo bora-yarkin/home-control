@@ -6,7 +6,7 @@ from __future__ import annotations
 from typing import Any
 
 from ..fieldspec import f
-from .const import COLOUR_SOURCES, SPEC_SPREADS_HINT, SPREADS
+from .const import COLOUR_MODES, COLOUR_SOURCES, SPEC_SPREADS_HINT, SPREADS
 from .defaults import presets
 
 SCENE_ID = f("text", "The scene's id: 1 to 48 of a-z, 0-9, _ or -. The id of a saved scene starts that scene.", True, example="evening")
@@ -21,6 +21,11 @@ PALETTE = f(
 SPREAD = f("select", SPEC_SPREADS_HINT, options=list(SPREADS))
 LIGHTS = f("object", 'The lights: a list of items, each with "entity_id" and x, y, z from -1 to 1 saying where it stands.')
 PRESET = f("select", "A shipped palette to start from.", options=list(presets()))
+COLOUR_MODE = f(
+    "select",
+    "How the colours follow each other: linear blends each into the next, segmented shows each as it is, one after the other, with no colour in between.",
+    options=list(COLOUR_MODES),
+)
 COLOUR_SOURCE = f(
     "select",
     "Where the colours come from: the moving palette, or a rainbow (the hue goes once round the colour wheel per loop).",
@@ -63,6 +68,7 @@ SPEC: dict[str, dict[str, Any]] = {
             "brightness": BRIGHTNESS,
             "spread": SPREAD,
             "colour_source": COLOUR_SOURCE,
+            "mode": COLOUR_MODE,
             "effects": EFFECTS,
             "looks": LOOKS,
             "actions": ACTIONS,
@@ -89,6 +95,7 @@ SPEC: dict[str, dict[str, Any]] = {
             "brightness": BRIGHTNESS,
             "spread": SPREAD,
             "colour_source": COLOUR_SOURCE,
+            "mode": COLOUR_MODE,
             "effects": EFFECTS,
             "looks": LOOKS,
             "actions": ACTIONS,

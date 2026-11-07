@@ -93,6 +93,13 @@ class DefinitionTests(unittest.TestCase):
         for fps in (1, 30, 60):
             self.assertEqual(d.parse_definition(base(fps=fps)).fps, fps)
 
+    def test_the_mode_is_linear_by_default_and_one_of_linear_or_segmented(self):
+        self.assertEqual(d.parse_definition(base()).mode, "linear")
+        self.assertEqual(d.parse_definition(base(mode="segmented")).mode, "segmented")
+        for bad in ("mirrored", "scattered", "", None, 1):
+            with self.assertRaises(d.DefinitionError, msg=repr(bad)):
+                d.parse_definition(base(mode=bad))
+
     def test_wake_is_a_flag_and_off_by_default(self):
         self.assertFalse(d.parse_definition(base()).wake)
         self.assertTrue(d.parse_definition(base(wake=True)).wake)

@@ -28,6 +28,9 @@ class ColourSource(Protocol):
     steps_per_loop: int
     """How many different colours are worth sending in one loop; with the speed it sets how often a fading light is updated."""
 
+    def until_next(self, entity_id: str, phase: float) -> float | None:
+        """Loops until the colour of a light changes, for a source that shows one colour at a time (segmented); None when it blends."""
+
     def colour(self, entity_id: str, phase: float, progress: float) -> tuple[float, float, float]:
         """The (x, y, brightness percent) of a light.
 
@@ -37,39 +40,69 @@ class ColourSource(Protocol):
         """
 
 
+def _segment(palette: Sequence[Colour], phase: float) -> tuple[float, float, float]:
+    """The colour of the segment a phase falls in: each colour of the palette as it is, no colour between two of them."""
+    c = palette[int((phase % 1.0) * len(palette)) % len(palette)]
+    return (c.x, c.y, c.b)
+
+
+def _loops_to_boundary(phase: float, segments: int) -> float | None:
+    """Loops until a phase reaches the next of `segments` equal parts of the loop; None when there is one part (nothing changes)."""
+    if segments < 2:
+        return None
+    position = (phase % 1.0) * segments
+    return (1.0 - (position - int(position))) / segments
+
+
 class PaletteSource:
     """A palette that moves across the lights, each light ahead of the others by where it stands (the original scene)."""
 
     def __init__(self, definition: Definition) -> None:
         self._palette = definition.palette
+        self._segmented = definition.mode == "segmented"
         self._offsets = offsets(definition.lights, definition.spread, definition.range_pct, len(definition.palette))
         self.steps_per_loop = max(1, len(definition.palette)) * STEPS_PER_COLOUR
 
     def colour(self, entity_id: str, phase: float, progress: float) -> tuple[float, float, float]:
-        return sample(self._palette, phase + self._offsets[entity_id])
+        at = phase + self._offsets[entity_id]
+        return _segment(self._palette, at) if self._segmented else sample(self._palette, at)
+
+    def until_next(self, entity_id: str, phase: float) -> float | None:
+        return _loops_to_boundary(phase + self._offsets[entity_id], len(self._palette)) if self._segmented else None
 
 
 class RainbowSource:
     """The hue goes once round the colour wheel per loop; at range 0 every light has the same hue, at 100 the lights span the wheel."""
 
     def __init__(self, definition: Definition) -> None:
+        self._segmented = definition.mode == "segmented"
         self._offsets = offsets(definition.lights, definition.spread, definition.range_pct, RAINBOW_STEPS)
         self.steps_per_loop = RAINBOW_STEPS
 
     def colour(self, entity_id: str, phase: float, progress: float) -> tuple[float, float, float]:
-        x, y = hs_to_xy(((phase + self._offsets[entity_id]) % 1.0) * 360.0, 100.0)
+        at = (phase + self._offsets[entity_id]) % 1.0
+        if self._segmented:  # the wheel cut into RAINBOW_STEPS hues, each shown as it is
+            at = int(at * RAINBOW_STEPS) / RAINBOW_STEPS
+        x, y = hs_to_xy(at * 360.0, 100.0)
         return (x, y, 100.0)
+
+    def until_next(self, entity_id: str, phase: float) -> float | None:
+        return _loops_to_boundary(phase + self._offsets[entity_id], RAINBOW_STEPS) if self._segmented else None
 
 
 class _OwnPalette:
     """A light's own colours, rotating at the scene's speed, for a light that has a look of its own."""
 
-    def __init__(self, palette: Sequence[Colour]) -> None:
+    def __init__(self, palette: Sequence[Colour], segmented: bool = False) -> None:
         self._palette = tuple(palette)
+        self._segmented = segmented
         self.steps_per_loop = len(self._palette) * STEPS_PER_COLOUR
 
     def colour(self, entity_id: str, phase: float, progress: float) -> tuple[float, float, float]:
-        return sample(self._palette, phase)
+        return _segment(self._palette, phase) if self._segmented else sample(self._palette, phase)
+
+    def until_next(self, entity_id: str, phase: float) -> float | None:
+        return _loops_to_boundary(phase, len(self._palette)) if self._segmented else None
 
 
 BUILDERS = {"palette": PaletteSource, "rainbow": RainbowSource}
@@ -210,7 +243,7 @@ class Appearance:
             effects = definition.effects
             if look is not None:
                 if look.palette:
-                    self._own[light.entity_id] = _OwnPalette(look.palette)
+                    self._own[light.entity_id] = _OwnPalette(look.palette, definition.mode == "segmented")
                 if look.brightness is not None:
                     self._brightness[light.entity_id] = look.brightness
                 if look.native:
@@ -238,6 +271,17 @@ class Appearance:
     def steps(self, entity_id: str) -> int:
         """How many different colours a loop of this light's colour source is worth."""
         return self._own.get(entity_id, self._default).steps_per_loop
+
+    def until_next(self, entity_id: str, phase: float) -> float | None:
+        """Loops until a segmented light's colour changes; None when its colours blend."""
+        return self._own.get(entity_id, self._default).until_next(entity_id, phase)
+
+    def effect_interval(self, entity_id: str) -> tuple[float | None, float | None]:
+        """How often the brightness effects of a light need an update, and the shortest interval they need (None: no effects)."""
+        mods = self._mods[entity_id]
+        if not mods:
+            return None, None
+        return min(m.interval for m in mods), min(m.floor for m in mods)
 
     def interval(self, entity_id: str, loop_seconds: float) -> tuple[float, float | None]:
         """How often to update a light that fades by itself, and the shortest interval its effects need (None: no effects)."""
