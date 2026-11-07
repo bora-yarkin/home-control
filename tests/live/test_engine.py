@@ -122,6 +122,66 @@ class StepTests(unittest.TestCase):
         self.assertEqual(s.step(clock.now, drv, set()).commands, [])
         self.assertIn("transition", first.commands[0][1])
 
+    def _play_with_a_lagging_light(self, *, behind: int, steps: int = 24, then=None):
+        """A light that reports what a fade it was given `behind` commands ago ended on, as a hub does that only reports when a fade ends.
+        The palette moves fast, so one command's colour is far from the next. `then(drv, step)` may change the light afterwards."""
+        drv = FakeDriver({"light.a": info()})
+        s, clock = session(drv, palette=[{"hs": [0, 100]}, {"hs": [240, 100]}], speed=12)
+        sent, dropped = [], []
+        for step in range(steps):
+            result = s.step(clock.now, drv, set())
+            dropped += result.dropped
+            if result.dropped:
+                break  # the engine takes a light that left out of the scene
+            sent += [data for light, data in result.commands if light == "light.a"]
+            if len(sent) > behind:
+                late = sent[-1 - behind]
+                drv.lights["light.a"] = info(xy=tuple(late["xy_color"]), brightness=late["brightness"])
+            if then is not None:
+                then(drv, step)
+            clock.now += 1.6
+        return sent, dropped
+
+    def test_a_light_that_reports_a_command_or_two_behind_stays_in_the_scene(self):
+        for behind in (1, 2):
+            sent, dropped = self._play_with_a_lagging_light(behind=behind)
+            self.assertEqual(dropped, [], f"reporting {behind} behind is a lag, not someone else")
+            steps = [abs(a["xy_color"][0] - b["xy_color"][0]) + abs(a["xy_color"][1] - b["xy_color"][1]) for a, b in pairwise(sent)]
+            self.assertGreater(max(steps), 0.12, "the test needs steps larger than the limit, or it proves nothing")
+
+    def test_a_light_set_to_a_colour_unlike_anything_sent_leaves_even_when_it_also_lags(self):
+        def someone_sets_it(drv, step):
+            if step == 12:
+                drv.lights["light.a"] = info(xy=(0.30, 0.55), brightness=200)  # green: not a colour of this palette
+
+        _sent, dropped = self._play_with_a_lagging_light(behind=1, then=someone_sets_it)
+        self.assertEqual(dropped, ["light.a"])
+
+    def test_a_light_switched_off_or_dimmed_while_it_lags_leaves(self):
+        """Whatever the lag, off and a very different brightness are never what the scene sent."""
+
+        def switched_off(drv, step):
+            if step == 12:
+                drv.lights["light.a"] = info("off")
+
+        def dimmed(drv, step):
+            if step == 12:
+                drv.lights["light.a"] = info(xy=drv.lights["light.a"].xy, brightness=20)
+
+        for change in (switched_off, dimmed):
+            _sent, dropped = self._play_with_a_lagging_light(behind=1, then=change)
+            self.assertEqual(dropped, ["light.a"], change.__name__)
+
+    def test_a_light_that_shows_its_colour_from_before_the_scene_while_the_first_fade_runs_stays(self):
+        """The first reading after the scene starts is still the colour the light had: that is not someone else."""
+        drv = FakeDriver({"light.a": info(xy=(0.52, 0.41), brightness=255)})  # a warm white, as a lamp in the evening
+        s, clock = session(drv, palette=[{"hs": [240, 100]}, {"hs": [200, 100]}], speed=12)
+        dropped = []
+        for _ in range(4):
+            dropped += s.step(clock.now, drv, set()).dropped
+            clock.now += 1.6  # the light has not changed what it shows: its first fade has not been reported yet
+        self.assertEqual(dropped, [])
+
     def test_a_white_only_light_gets_a_temperature_and_a_colour_light_gets_xy(self):
         drv = FakeDriver({"light.a": info(colour=False, xy=None), "light.b": info()})
         s, clock = session(drv)

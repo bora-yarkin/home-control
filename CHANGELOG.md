@@ -4,6 +4,9 @@ Format: [Keep a Changelog](https://keepachangelog.com/). Versions follow [semant
 
 ## [Unreleased]
 
+### Fixed
+- A live scene no longer drops a light that is merely behind. The engine ended a light's part in a scene when it showed a colour far from what was sent last, once that was due. Hue reports a fade only when it ends, so on a fast palette a light still showed the colour of the command before, or, right after the scene started, the colour it had before; Hue Play bars and the desk light dropped out of Arctic aurora within seconds, in some runs. A light now has to be far from the colours of the last three commands and from its colour before the scene. Switching a light off, dimming it, or setting a colour that is nothing like the scene's still ends its part.
+
 ## [0.6.0]
 
 ### Added

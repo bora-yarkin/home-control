@@ -26,11 +26,14 @@ from .limiter import Limiter
 
 _LOGGER = logging.getLogger(__name__)
 
-# A light is taken to have been changed by someone else when it is this far from the
-# colour the engine last sent it, once that colour should have been reached. The limits
-# are generous: a light that is a little behind in a fade must not be mistaken for that.
+# A light is taken to have been changed by someone else when it is this far from every one of
+# the last few colours the engine sent it, once the latest should have been reached. The limits
+# are generous, and several colours count, because a light that is behind in a fade must not be
+# mistaken for that: a hub reports a fade when it ends, so on a fast palette the light can still
+# show the colour of the command before (or the one before that), which is far from the latest.
 CHANGED_XY = 0.12
 CHANGED_BRIGHTNESS = 80
+RECENT_TARGETS = 3
 
 # Updates of a light that fades by itself: as often as the palette needs, within these seconds.
 MIN_INTERVAL = 1.5
@@ -43,6 +46,8 @@ NATIVE_MIN_INTERVAL = 3.0
 class _Light:
     next_due: float = 0.0
     target: tuple[float, float, int] | None = None  # the (x, y, brightness) last sent
+    # What the light showed before the first command and the last few commands sent, the latest included.
+    recent: list[tuple[float, float, int]] = field(default_factory=list)
     reach_at: float = 0.0
     driven: bool = False
     native: bool = False  # playing one of the light's own effects, which the engine only recolours
@@ -111,11 +116,10 @@ class Session:
         """Whether something else has taken the light from the scene (a frozen scene is still watched for this)."""
         if light.native and info.state == "off":
             return True  # someone switched it off while it played its own effect
-        return (
-            light.target is not None
-            and now >= light.reach_at - 0.25
-            and self._changed(info, light.target, brightness_moves=self._look.moves_brightness(entity_id))
-        )
+        if light.target is None or now < light.reach_at - 0.25:
+            return False
+        moves = self._look.moves_brightness(entity_id)
+        return all(self._changed(info, sent, brightness_moves=moves) for sent in light.recent)
 
     def _command(self, entity_id: str, light: _Light, info: LightInfo, now: float) -> dict[str, Any]:
         """What to send a light that is due: its own effect with the scene's colour, or the colour and brightness for this moment."""
@@ -134,6 +138,10 @@ class Session:
         if info.can_transition:
             data["transition"] = round(interval, 1)
         light.target = (x, y, bri)
+        if not light.recent and info.xy is not None:
+            # Until the first fade ends the light still shows what it showed before the scene: that is not someone else either.
+            light.recent.append((info.xy[0], info.xy[1], info.brightness if info.brightness is not None else bri))
+        light.recent = [*light.recent, light.target][-(RECENT_TARGETS + 1) :]
         light.reach_at = now + ahead
         light.next_due = now + interval
         light.driven = True
@@ -162,6 +170,7 @@ class Session:
         interval = max(NATIVE_MIN_INTERVAL, min(MAX_INTERVAL, cycle_seconds(self.definition.speed) / self._look.steps(entity_id)))
         x, y, bri = self._target(entity_id, self.phase, self.progress, self.seconds)
         light.target = None  # the light's colour is not the one sent while its effect plays, so it cannot be compared
+        light.recent = []
         light.native = True
         light.driven = True
         light.next_due = now + interval
