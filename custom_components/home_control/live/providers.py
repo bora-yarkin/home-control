@@ -11,14 +11,17 @@ commands per second their bridge takes and a service that plays one of the light
     {"schema": 1, "name": "Hue Plus",
      "lights": {"hue_plus": {"group": "hue:plus", "rate": 8.0, "effects": true}, "hue": {"rate": 8.0}},
      "effects": ["candle", "underwater"],
-     "play_effect": "play_effect"}
+     "play_effect": "play_effect",
+     "catalogue": {"groups": [...], "effects": [...]}}
 
 ``lights`` maps an entity registry platform to what is known of its lights: ``rate`` (commands per second to share), ``group`` (lights of
 one group share a rate; the default is the platform and its config entry), ``effects`` (true when the plus integration can play a
 light's own effect on the lights of this platform) and ``parent`` (a regular expression: what to cut from the unique id of a light that is
 a part of another, like a gradient light's zone, to get the unique id of the light it belongs to; saved with an area so that the part
 can be played as the whole light when the plus integration is gone). ``effects`` at the top lists the ids of the effects that can be played with a colour;
-``play_effect`` names the service of the plus integration that plays one (entity_id, effect, xy, brightness, speed).
+``play_effect`` names the service of the plus integration that plays one (entity_id, effect, xy, brightness, speed). ``catalogue`` is what the
+dashboard shows of the effects (their groups, labels, pictures, defaults and colour variants) in the syntax of ``docs/effects-file.md``; a
+catalogue with a problem is ignored and logged, and the provider's lights and rates still count.
 """
 
 from __future__ import annotations
@@ -35,6 +38,8 @@ from homeassistant.core import HomeAssistant
 from homeassistant.exceptions import HomeAssistantError
 from homeassistant.helpers import config_validation as cv
 from homeassistant.loader import async_get_custom_components
+
+from ..effects.catalogue import Effect, Group, parse_effects
 
 _LOGGER = logging.getLogger(__name__)
 
@@ -70,6 +75,7 @@ _DECLARATION = vol.Schema(
         vol.Required("lights"): _LIGHTS,
         vol.Optional("effects", default=list): [_ID],
         vol.Optional("play_effect"): vol.All(cv.string, vol.Match(r"^[a-z][a-z0-9_]{0,63}$")),
+        vol.Optional("catalogue"): dict,
     }
 )
 
@@ -91,6 +97,9 @@ class Provider:
     lights: dict[str, LightClass]
     effects: frozenset[str]
     play_effect: str | None
+    groups: tuple[Group, ...] = ()
+    catalogue: tuple[Effect, ...] = ()
+    catalogue_problems: tuple[str, ...] = ()
 
     def plays_effects(self) -> bool:
         return bool(self.effects) and self.play_effect is not None
@@ -99,6 +108,13 @@ class Provider:
 def parse(domain: str, raw: Any) -> Provider:
     """A provider from the content of its declaration; raises ``vol.Invalid`` when the declaration is wrong."""
     data = _DECLARATION(raw)
+    groups: tuple[Group, ...] = ()
+    shown: tuple[Effect, ...] = ()
+    problems: tuple[str, ...] = ()
+    if "catalogue" in data:
+        groups, shown, problems = parse_effects(data["catalogue"], allow_art=True)
+        if problems:
+            groups, shown = (), ()
     return Provider(
         domain=domain,
         name=data["name"],
@@ -108,6 +124,9 @@ def parse(domain: str, raw: Any) -> Provider:
         },
         effects=frozenset(data["effects"]),
         play_effect=data.get("play_effect"),
+        groups=groups,
+        catalogue=shown,
+        catalogue_problems=problems,
     )
 
 
@@ -130,7 +149,10 @@ class Providers:
             if not await self.hass.async_add_executor_job(path.is_file):
                 continue
             try:
-                found[domain] = parse(domain, await self.hass.async_add_executor_job(_read, path))
+                provider = parse(domain, await self.hass.async_add_executor_job(_read, path))
+                for problem in provider.catalogue_problems:
+                    _LOGGER.warning("The effects catalogue in %s of %s is ignored: %s", DECLARATION, domain, problem)
+                found[domain] = provider
             except (OSError, ValueError, vol.Invalid) as err:
                 _LOGGER.warning("%s of %s is not valid and is ignored: %s", DECLARATION, domain, err)
         self.declared = found

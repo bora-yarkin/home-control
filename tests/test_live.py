@@ -207,6 +207,34 @@ def test_a_wrong_declaration_is_refused(bad):
         providers_module.parse("hue_plus", {**HUE_DECLARATION, **bad})
 
 
+def test_a_declaration_may_carry_a_catalogue_with_pictures():
+    raw = {
+        **HUE_DECLARATION,
+        "catalogue": {
+            "groups": [{"id": "wavy", "label": "Wavy"}],
+            "effects": [
+                {
+                    "id": "underwater",
+                    "label": "Underwater",
+                    "group": "wavy",
+                    "art": "<svg viewBox='0 0 100 100'></svg>",
+                    "speed_range": [0.2, 0.5],
+                }
+            ],
+        },
+    }
+    provider = providers_module.parse("hue_plus", raw)
+    assert [g.id for g in provider.groups] == ["wavy"] and provider.catalogue[0].speed_range == (0.2, 0.5)
+    assert provider.catalogue[0].art.startswith("<svg") and provider.catalogue_problems == ()
+
+
+def test_a_wrong_catalogue_is_ignored_and_the_providers_lights_still_count():
+    raw = {**HUE_DECLARATION, "catalogue": {"groups": [], "effects": [{"id": "underwater", "speed": 99}]}}
+    provider = providers_module.parse("hue_plus", raw)
+    assert provider.catalogue == () and provider.groups == () and provider.catalogue_problems
+    assert provider.lights["hue_plus"].rate == 8.0 and provider.plays_effects()
+
+
 async def test_nothing_is_read_from_an_integration_that_declares_nothing(hass):
     entry = await setup_home_control(hass)
     assert entry.runtime_data.providers.declared == {}
