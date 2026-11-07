@@ -16,7 +16,7 @@ var PLUGIN_AREA = {};
  with the room's scenes, runs them and shows their popup; what a scene does is the plugin's. */
 var PLUGIN_SCENE_KINDS = [];
 
-/* Places a live scene can be imported from: { id, title, sub (string keys), available(), list(): [{id, name, group}], read(id): a promise of { name, palette, speed, brightness, lights } }. */
+/* Places a scene can be imported from: { id, title, sub (string keys), available(), list(): [{id, name, group}], read(id): a promise of { name, palette, speed, brightness, lights } }. With classic: true the scene becomes a classic scene and read(id) gives { name, lights: [{ entity_id, on, brightness (1 to 255), xy or k }] }. */
 var PLUGIN_SCENE_IMPORTS = [];
 
 /* Devices of a kind the dashboard does not know, shown as rows of the Lights section: { match(id), pop (a page key), row(device), search (a domain) }. */

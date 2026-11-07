@@ -4,6 +4,16 @@ Format: [Keep a Changelog](https://keepachangelog.com/). Versions follow [semant
 
 ## [Unreleased]
 
+## [0.9.3] - 2026-11-08
+
+### Fixed
+- The trash on a scene in the page editor only took the scene off that page (the scene stayed saved, invisible), so nothing was deleted and its area could not be deleted. The trash now deletes the scene, after a question, from every page and from the saved scenes (a live scene is stopped and forgotten by the integration too); picking a scene again in the list is what takes it off one section. In that list a scene that is on no page has a trash too, to delete the scenes the old trash left behind.
+- Deleting an area names every scene on a page that uses it; scenes on no page are named in a question and deleted with the area when you confirm.
+- A static scene of a plugin (a Hue scene the bridge says does not play by itself, such as Desk light) was a live scene on the dashboard: a popup with speed controls. It is now used like a classic scene: a tap anywhere on its row switches it on or off, with no popup.
+
+### Added
+- A plugin can register a source of classic scenes (`registerSceneImport` with `classic: true`, whose `read` gives what each light is set to); the scene is made as *Save the lights as they are* does, from the scene's settings, not from the lights now. Hue Plus 0.12.0 offers it as *Import a classic scene from Hue*.
+
 ## [0.9.2] - 2026-11-08
 
 ### Fixed

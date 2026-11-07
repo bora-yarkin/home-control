@@ -59,6 +59,32 @@ function pruneSceneRefs() {
   });
 }
 
+/* Whether a section of some page lists the scene. A scene taken off every page is still saved (it is under "Existing scenes" when adding one). */
+function sceneShown(id) {
+  return allSectionLists().some(function (l) {
+    return l.some(function (s) {
+      return (s.scn || []).indexOf(id) >= 0;
+    });
+  });
+}
+
+/* The trash of a scene deletes it, from every page it is on and from the saved scenes (taking it off one section is what picking it again in the list does). A live scene is stopped and forgotten by the integration with the area made for it. */
+function sceneDeleteEverywhere(sc) {
+  confirmDlg(_T("delete") + sc.name + _T("from_every_page_it_cannot_be_undone"), function () {
+    if (sc.live) {
+      if (liveRun({ id: sc.id })) liveCall("stop", { scene_id: sc.id });
+      liveForget(sc.id, sc.live.areas ? sc.live.area : null);
+    }
+    STORE.scenes = STORE.scenes.filter(function (x) {
+      return x.id !== sc.id;
+    });
+    pruneSceneRefs();
+    uiChanged();
+    refresh();
+    toast(_T("scene_deleted"));
+  });
+}
+
 function scnPick(b, key) {
   var q = key.split(":"),
     scope = q[0],
@@ -92,21 +118,27 @@ function scnPick(b, key) {
   var all = STORE.scenes.filter(sceneAllowed);
   if (all.length) box.appendChild(sep(_T("existing_scenes"), "scene"));
   all.forEach(function (sc) {
+    var row = pill(sc.icon || "scene", sc.name, {
+      on: function () {
+        return (e.scn || []).indexOf(sc.id) >= 0;
+      },
+      sub: function () {
+        return TITLES[sc.room] || "";
+      },
+      tap: function () {
+        if (scnToggle(e, sc.id)) {
+          uiChanged();
+          refresh();
+        }
+      },
+    });
+    /* A scene that is on no page can be deleted from here: nothing else shows it. */
     box.appendChild(
-      pill(sc.icon || "scene", sc.name, {
-        on: function () {
-          return (e.scn || []).indexOf(sc.id) >= 0;
-        },
-        sub: function () {
-          return TITLES[sc.room] || "";
-        },
-        tap: function () {
-          if (scnToggle(e, sc.id)) {
-            uiChanged();
-            refresh();
-          }
-        },
-      })
+      sceneShown(sc.id)
+        ? row
+        : edDel(row, function () {
+            sceneDeleteEverywhere(sc);
+          }, _T("delete_scene"))
     );
   });
 }
@@ -408,22 +440,24 @@ function sceneKindPopupKey(kind, id, room) {
   return kind.popup + ":" + id + (room ? "~" + room.id : "");
 }
 
-/* The Home Assistant scene entities: one row for all places that list them. A scene a plugin owns (Hue's) is live: the icon switches it on or off and the rest of the row opens its popup. Other scenes just run. */
+/* The Home Assistant scene entities: one row for all places that list them. A scene a plugin owns (Hue's) that plays by itself is live: the icon switches it on or off and the rest of the row opens its popup. One that does not (a static Hue scene), like the scenes made here, switches on or off from anywhere on the row. Other scenes just run. */
 function sceneEntRow(id, name, icon, sub, room) {
-  var kind = pluginSceneKind(id);
+  var kind = pluginSceneKind(id),
+    live = !!kind && kind.dynamic(id) !== false;
   return pill(icon || kind && kind.icon || "scene", name, {
     on: function () {
       return kind ? !!kind.active(id) : false;
     },
     sub: sub || null,
     tap: function () {
-      if (kind) showPopup(sceneKindPopupKey(kind, id, room), true);
+      if (live) showPopup(sceneKindPopupKey(kind, id, room), true);
+      else if (kind) kind.toggle(id);
       else {
         call("scene", "turn_on", { entity_id: id });
         toast(name);
       }
     },
-    iconTap: kind
+    iconTap: live
       ? function () {
           kind.toggle(id);
         }
@@ -512,10 +546,9 @@ function scenesSection(room, extra) {
         return edDel(
           sceneRow(sc),
           function () {
-            scnToggle(e, sc.id);
-            uiChanged();
+            sceneDeleteEverywhere(sc);
           },
-          _T("remove_from_this_section")
+          _T("delete_scene")
         );
       });
     }
