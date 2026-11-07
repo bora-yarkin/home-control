@@ -41,6 +41,12 @@ ACTIONS = f(
     'Devices to switch when the scene starts: a list of items, each with "entity_id" and "do" (on or off). On or off only, for lights, switches, fans, media players, climate, humidifiers, input_booleans and covers.',
     example='[{"entity_id": "media_player.tv", "do": "off"}]',
 )
+FPS = f(
+    "int",
+    "For lights that cannot fade by themselves: updates per second, from 1 to 60 (experimental: each update is a single command, so a high rate loads the light's hub and is held to the rate it takes).",
+    min=1,
+    max=60,
+)
 UI = f("object", "Data a screen keeps next to this (icons, drawings). Stored as it is, up to 16 KB.")
 
 SPEC: dict[str, dict[str, Any]] = {
@@ -60,12 +66,7 @@ SPEC: dict[str, dict[str, Any]] = {
             "effects": EFFECTS,
             "looks": LOOKS,
             "actions": ACTIONS,
-            "fps": f(
-                "int",
-                "For lights that cannot fade by themselves: updates per second, from 1 to 60 (experimental: each update is a single command, so a high rate loads the light's hub and is held to the rate it takes).",
-                min=1,
-                max=60,
-            ),
+            "fps": FPS,
             "wake": f("bool", "Turn on the lights that are off when the scene starts."),
         },
     },
@@ -91,6 +92,7 @@ SPEC: dict[str, dict[str, Any]] = {
             "effects": EFFECTS,
             "looks": LOOKS,
             "actions": ACTIONS,
+            "fps": FPS,
             "area": f("text", "The id of a saved area it plays on."),
             "lights": LIGHTS,
             "ui": UI,

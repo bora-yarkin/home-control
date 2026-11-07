@@ -4,6 +4,11 @@ Format: [Keep a Changelog](https://keepachangelog.com/). Versions follow [semant
 
 ## [Unreleased]
 
+## [0.7.1] - 2026-11-07
+
+### Fixed
+- Saving a live scene from the dashboard failed ("not a valid option at 'fps'"): the dashboard sends the update rate with every save and the `scene_save` service did not take it (0.6.0 and 0.7.0). `scene_save` takes `fps` now, and a test checks that every key the dashboard sends is one the services take.
+
 ## [0.7.0] - 2026-11-07
 
 ### Added
