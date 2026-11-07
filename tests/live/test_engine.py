@@ -830,9 +830,21 @@ class WakingLightTests(unittest.TestCase):
         drv.lights["light.a"] = info(xy=(0.2, 0.2), brightness=200)
         clock.now += 1.0
         s.step(clock.now, drv, set())
-        self.assertEqual(s.lights["light.a"].grace_until, 0.0)
-        drv.lights["light.a"] = info("off")  # now someone switches it off
-        clock.now += 8.0
+        drv.lights["light.a"] = info("off")  # someone switches it off once the window has passed
+        clock.now += e.WAKE_GRACE_SECONDS + 1
+        self.assertEqual(s.step(clock.now, drv, set()).dropped, ["light.a"])
+
+    def test_a_light_fading_up_from_off_is_not_taken_for_one_that_someone_changed(self):
+        """A Hue light fading up reports a brightness part way (60 of 255, 153 of 255) before it reaches the scene's."""
+        drv = FakeDriver({"light.a": info("off"), "light.b": info()})
+        clock = Clock()
+        s = e.Session(definition(wake=True), clock.now)
+        s.step(clock.now, drv, set())
+        s.sent("light.a", clock.now)
+        drv.lights["light.a"] = info(xy=(0.17, 0.25), brightness=60)
+        clock.now += 8.0  # past the scene's own update interval, within the window
+        self.assertEqual(s.step(clock.now, drv, set()).dropped, [])
+        clock.now += e.WAKE_GRACE_SECONDS  # and one that is still far from every colour sent after that is
         self.assertEqual(s.step(clock.now, drv, set()).dropped, ["light.a"])
 
     def test_fourteen_lights_that_are_off_all_come_on_and_stay_in_the_scene_behind_the_hubs_rate_and_a_slow_answer(self):
@@ -947,3 +959,36 @@ class NativeEffectTests(unittest.TestCase):
             return left
 
         self.assertTrue(asyncio.run(go()))
+
+
+class FrozenSceneTests(unittest.TestCase):
+    """A frozen scene holds its colours, and still shows a change of its settings."""
+
+    @staticmethod
+    def _sent(drv, light):
+        return [data for kind, entity, data in drv.calls if kind == "on" and entity == light]
+
+    def test_a_change_of_brightness_or_range_is_shown_by_a_frozen_scene_and_then_it_holds_again(self):
+        async def go():
+            drv = FakeDriver({"light.a": info(), "light.b": info()})
+            clock = VirtualClock()
+            engine = e.Engine(drv, clock=clock, sleep=clock.sleep)
+            engine.start(definition(("light.a", "light.b"), palette=[{"hs": [0, 100]}, {"hs": [240, 100]}], speed=12))
+            await clock.run(10)
+            engine.freeze("s1")
+            await clock.run(3)
+            held = len(self._sent(drv, "light.a"))
+            await clock.run(20)
+            still = len(self._sent(drv, "light.a"))  # nothing is sent while it is frozen
+            engine.update("s1", brightness=90)
+            await clock.run(3)
+            shown = self._sent(drv, "light.a")[-1]["brightness"], len(self._sent(drv, "light.a"))
+            await clock.run(20)
+            after = len(self._sent(drv, "light.a"))  # and it holds again
+            engine.stop_all()
+            return held, still, shown, after
+
+        held, still, shown, after = asyncio.run(go())
+        self.assertEqual(still, held)
+        self.assertEqual(shown, (90, held + 1))
+        self.assertEqual(after, held + 1)
