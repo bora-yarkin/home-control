@@ -44,7 +44,7 @@ class HassDriver:
                 provider, kind = owned
                 group = kind.group or group
                 rate = kind.rate
-                if provider.plays_effects():
+                if kind.effects and provider.plays_effects():
                     effects = tuple(e for e in (attrs.get("effect_list") or ()) if e in provider.effects)
         return LightInfo(
             state=status,

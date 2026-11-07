@@ -174,7 +174,7 @@ from custom_components.home_control.live import providers as providers_module  #
 HUE_DECLARATION = {
     "schema": 1,
     "name": "Hue Plus",
-    "lights": {"hue_plus": {"group": "hue:plus", "rate": 8.0}, "hue": {"rate": 8.0}},
+    "lights": {"hue_plus": {"group": "hue:plus", "rate": 8.0, "effects": True}, "hue": {"rate": 8.0}},
     "effects": ["candle", "underwater"],
     "play_effect": "play_effect",
 }
@@ -185,6 +185,7 @@ def test_a_declaration_is_read():
     provider = providers_module.parse("hue_plus", HUE_DECLARATION)
     assert provider.name == "Hue Plus" and provider.effects == {"candle", "underwater"} and provider.play_effect == "play_effect"
     assert provider.lights["hue_plus"].rate == 8.0 and provider.lights["hue"].group is None and provider.plays_effects()
+    assert provider.lights["hue_plus"].effects is True and provider.lights["hue"].effects is False
 
 
 @pytest.mark.parametrize(
@@ -230,6 +231,15 @@ async def test_a_provider_gives_its_lights_a_rate_and_their_own_effects(hass, hu
 
     info = HassDriver(hass, hue_lights[0]).info("light.left")
     assert info.rate == 8.0 and info.group == "hue:plus" and info.effects == ("candle", "underwater")
+
+
+async def test_a_light_of_a_platform_that_cannot_play_effects_gets_the_rate_and_no_effects(hass, hue_lights):
+    from custom_components.home_control.live.hass_driver import HassDriver
+
+    er.async_get(hass).async_get_or_create("light", "hue", "core-1", suggested_object_id="core")
+    hass.states.async_set("light.core", "on", NATIVE)
+    info = HassDriver(hass, hue_lights[0]).info("light.core")
+    assert info.rate == 8.0 and info.effects == ()
 
 
 async def test_a_lights_own_effect_is_played_through_its_providers_service(hass, hue_lights):

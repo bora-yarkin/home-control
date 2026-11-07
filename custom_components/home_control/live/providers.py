@@ -9,14 +9,14 @@ commands per second their bridge takes and a service that plays one of the light
 ``home_control.json`` (schema 1)::
 
     {"schema": 1, "name": "Hue Plus",
-     "lights": {"hue_plus": {"group": "hue:plus", "rate": 8.0}, "hue": {"rate": 8.0}},
+     "lights": {"hue_plus": {"group": "hue:plus", "rate": 8.0, "effects": true}, "hue": {"rate": 8.0}},
      "effects": ["candle", "underwater"],
      "play_effect": "play_effect"}
 
-``lights`` maps an entity registry platform to what is known of its lights: ``rate`` (commands per second to share) and ``group``
-(lights of one group share a rate; the default is the platform and its config entry). ``effects`` lists the ids of the light's own
-effects that can be played with a colour; ``play_effect`` names the service of the plus integration that plays one (entity_id, effect,
-xy, brightness, speed).
+``lights`` maps an entity registry platform to what is known of its lights: ``rate`` (commands per second to share), ``group`` (lights of
+one group share a rate; the default is the platform and its config entry) and ``effects`` (true when the plus integration can play a
+light's own effect on the lights of this platform). ``effects`` at the top lists the ids of the effects that can be played with a colour;
+``play_effect`` names the service of the plus integration that plays one (entity_id, effect, xy, brightness, speed).
 """
 
 from __future__ import annotations
@@ -45,6 +45,7 @@ _LIGHTS = vol.Schema(
             {
                 vol.Optional("group"): vol.All(cv.string, vol.Length(min=1, max=48)),
                 vol.Optional("rate"): vol.All(vol.Coerce(float), vol.Range(min=0.1, max=100)),
+                vol.Optional("effects", default=False): cv.boolean,
             }
         )
     }
@@ -66,6 +67,7 @@ class LightClass:
 
     group: str | None
     rate: float | None
+    effects: bool  # its lights can play their own effects through the provider
 
 
 @dataclass(frozen=True)
@@ -86,7 +88,7 @@ def parse(domain: str, raw: Any) -> Provider:
     return Provider(
         domain=domain,
         name=data["name"],
-        lights={platform: LightClass(item.get("group"), item.get("rate")) for platform, item in data["lights"].items()},
+        lights={platform: LightClass(item.get("group"), item.get("rate"), item["effects"]) for platform, item in data["lights"].items()},
         effects=frozenset(data["effects"]),
         play_effect=data.get("play_effect"),
     )
@@ -126,7 +128,7 @@ class Providers:
     async def async_play_effect(self, entity_id: str, platform: str, data: dict[str, Any]) -> bool:
         """Plays a light's own effect through its provider. False when no provider can (the caller plays the colour without it)."""
         found = self.for_platform(platform)
-        if found is None or not found[0].plays_effects():
+        if found is None or not found[0].plays_effects() or not found[1].effects:
             return False
         provider = found[0]
         try:
