@@ -4,6 +4,9 @@
 A saved area light keeps the unique id of its entity next to the entity id. When the entity id no longer works (a plus integration was
 removed, so its entities are unavailable or gone, and the integration they copied has its own entity of the same light with the same
 unique id) the light is found by that unique id, so scenes and areas keep working on what Home Assistant has left.
+
+A light made of zones (a gradient strip) is saved in an area as its zones, and a look for it (its own effect, its brightness, its colours)
+is given for the light itself. ``fold_strips`` brings the two together when a scene starts.
 """
 
 from __future__ import annotations
@@ -58,8 +61,67 @@ def current_entity(hass: HomeAssistant, entity_id: str, uid: str, alt: str = "")
     return entity_id
 
 
-def resolve_request(hass: HomeAssistant, request: dict[str, Any]) -> dict[str, Any]:
-    """A start request whose lights (and the looks, which are by entity id) name entities that can be commanded now."""
+def _plays_effect(hass: HomeAssistant, providers: Providers, entry: er.RegistryEntry, effect: str) -> bool:
+    """Whether the light behind a registry entry can play one of its own effects through its plus integration."""
+    owned = providers.for_platform(entry.platform)
+    if owned is None:
+        return False
+    provider, kind = owned
+    state = hass.states.get(entry.entity_id)
+    listed = (state.attributes.get("effect_list") or ()) if state is not None else ()
+    return kind.effects and provider.plays_effects() and effect in provider.effects and effect in listed
+
+
+def fold_strips(
+    hass: HomeAssistant, providers: Providers, lights: list[dict[str, Any]], looks: Mapping[str, Any]
+) -> tuple[list[dict[str, Any]], dict[str, Any]]:
+    """The lights and looks a scene plays, with each look given for a strip brought to the lights that are played.
+
+    The zones of a strip are lights of their own (``alt`` is the unique id of the strip), but a person gives a look to the strip.
+    A look that names one of the strip's own effects, which its plus integration can play, is for the strip as one light: the zones
+    are left out and the strip takes their place (the middle of them), so the effect runs on the strip, in the scene's colour,
+    and no zone is commanded to a colour of its own over it. Any other look (brightness, colours, brightness effects) is given to
+    each zone. A look for a light the scene does not have is left out.
+    """
+    present = {light["entity_id"] for light in lights}
+    kept = {entity_id: look for entity_id, look in looks.items() if entity_id in present}
+    zones_of: dict[str, list[dict[str, Any]]] = {}
+    for light in lights:
+        if light.get("alt"):
+            zones_of.setdefault(light["alt"], []).append(light)
+    if not zones_of:
+        return lights, kept
+    registry = er.async_get(hass)
+    out = list(lights)
+    for entity_id, look in looks.items():
+        entry = registry.async_get(entity_id) if entity_id not in present else None
+        zones = zones_of.get(entry.unique_id) if entry is not None else None
+        if not zones:
+            continue
+        native = look.get("native") if isinstance(look, Mapping) else None
+        if native and _plays_effect(hass, providers, entry, native):
+            at = out.index(zones[0])
+            out = [light for light in out if light not in zones]
+            whole = {
+                "entity_id": entity_id,
+                "x": sum(zone.get("x", 0) for zone in zones) / len(zones),
+                "y": sum(zone.get("y", 0) for zone in zones) / len(zones),
+                "z": sum(zone.get("z", 0) for zone in zones) / len(zones),
+                "uid": entry.unique_id,
+            }
+            out.insert(min(at, len(out)), whole)
+            kept[entity_id] = look
+        else:
+            for zone in zones:
+                kept.setdefault(zone["entity_id"], look)
+    return out, kept
+
+
+def resolve_request(hass: HomeAssistant, providers: Providers, request: dict[str, Any]) -> dict[str, Any]:
+    """A start request whose lights (and the looks, which are by entity id) name entities that can be commanded now, with the looks
+    of strips brought to the lights that are played (``fold_strips``)."""
+    lights_with_ids = attach_unique_ids(hass, providers, list(request["lights"]))
+    request = {**request, "lights": lights_with_ids}
     renamed: dict[str, str] = {}
     lights = []
     seen: set[str] = set()
@@ -71,10 +133,10 @@ def resolve_request(hass: HomeAssistant, request: dict[str, Any]) -> dict[str, A
             continue
         seen.add(now)
         lights.append({**light, "entity_id": now})
-    if not renamed:
-        return request
-    out = {**request, "lights": lights}
     looks = request.get("looks")
+    if isinstance(looks, Mapping) and renamed:
+        looks = {renamed.get(key, key): value for key, value in looks.items()}
     if isinstance(looks, Mapping):
-        out["looks"] = {renamed.get(key, key): value for key, value in looks.items()}
-    return out
+        lights, looks = fold_strips(hass, providers, lights, looks)
+        return {**request, "lights": lights, "looks": looks}
+    return {**request, "lights": lights}

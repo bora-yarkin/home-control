@@ -31,7 +31,7 @@ async def scene_start(hass: HomeAssistant, call: ServiceCall) -> None:
     live = _live(hass)
     try:
         request = live.library.request(dict(call.data))
-        definition = parse_definition(resolve_request(hass, request))
+        definition = parse_definition(resolve_request(hass, live.providers, request))
         live.engine.start(definition)
     except (DefinitionError, ValueError) as err:
         raise ServiceValidationError(str(err)) from err

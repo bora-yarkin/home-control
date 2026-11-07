@@ -25,12 +25,21 @@ def cycle_seconds(step: int) -> float:
     return SLOWEST_CYCLE * (FASTEST_CYCLE / SLOWEST_CYCLE) ** ((step - 1) / (SPEED_STEPS - 1))
 
 
+# How much of the palette's span the zones of one strip (a light made of zones) cover between them, as a share of what the whole area
+# covers at the same range. A strip is a few centimetres long next to a room, so by position alone its zones would differ only slightly.
+ZONE_SPAN_SHARE = 1.0
+
+
 def offsets(lights: Sequence[AreaLight], spread: str, range_pct: int, colours: int) -> dict[str, float]:
     """How far ahead of the phase each light is, in loops.
 
     The lights are put in order along the chosen direction (x, y, z, or outward from the
     middle of the area). At range 0 every light has offset 0; at 100 the first and last
     differ by the whole loop except one colour step, so the whole palette is on show.
+
+    The zones of one strip (lights with the same ``alt``, the unique id of the light they are parts of) stay together around the
+    place of the strip, and between them cover ``ZONE_SPAN_SHARE`` of that span in the order they lie in, so a strip shows several
+    colours at once whatever its length. Zones the direction does not tell apart keep the order of their entity ids.
     """
     if spread == "x":
         proj = {light.entity_id: light.x for light in lights}
@@ -45,9 +54,20 @@ def offsets(lights: Sequence[AreaLight], spread: str, range_pct: int, colours: i
     low, high = min(proj.values()), max(proj.values())
     span = (1 - 1 / colours) if colours > 1 else 0.0
     scale = span * range_pct / 100
-    if high - low < 1e-9:
-        return dict.fromkeys(proj, 0.0)
-    return {k: (v - low) / (high - low) * scale for k, v in proj.items()}
+    flat = high - low < 1e-9
+    result = {k: 0.0 if flat else (v - low) / (high - low) * scale for k, v in proj.items()}
+    strips: dict[str, list[AreaLight]] = {}
+    for light in lights:
+        if light.alt:
+            strips.setdefault(light.alt, []).append(light)
+    for zones in strips.values():
+        if len(zones) < 2:
+            continue
+        zones.sort(key=lambda zone: (proj[zone.entity_id], zone.entity_id))
+        centre = sum(result[zone.entity_id] for zone in zones) / len(zones)
+        for k, zone in enumerate(zones):
+            result[zone.entity_id] = centre + (k / (len(zones) - 1) - 0.5) * scale * ZONE_SPAN_SHARE
+    return result
 
 
 def sample(palette: Sequence[Colour], phase: float) -> tuple[float, float, float]:
