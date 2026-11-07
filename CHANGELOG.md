@@ -4,6 +4,11 @@ Format: [Keep a Changelog](https://keepachangelog.com/). Versions follow [semant
 
 ## [Unreleased]
 
+## [0.8.3] - 2026-11-07
+
+### Fixed
+- Previewing or saving a live scene in the maker failed with an error whenever a light reported an effect (every Hue light does, as "off"): the maker still called a list function on the effect-name check that became a pattern in 0.7.0. The effect a light shows is kept in the scene when it is one of the light's own effects, and "off" is not an effect.
+
 ## [0.8.2] - 2026-11-07
 
 ### Fixed

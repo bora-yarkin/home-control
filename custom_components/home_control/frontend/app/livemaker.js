@@ -204,7 +204,7 @@ function liveMakerScene() {
     var a = A(id),
       k = {};
     if (typeof a.brightness === "number") k.bri = Math.max(1, Math.min(100, Math.round(a.brightness / 2.55)));
-    if (a.effect && LIVE_NATIVE.indexOf(a.effect) >= 0) k.native = a.effect;
+    if (a.effect && a.effect !== "off" && LIVE_NATIVE.test(a.effect)) k.native = a.effect;
     joins.forEach(function (j) {
       if (j[1] === id && ids.indexOf(j[0]) >= 0) k.palette = [pal[ids.indexOf(j[0])]];
     });
