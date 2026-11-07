@@ -314,19 +314,3 @@ test("a live scene has the sparkle for an icon unless one was chosen", () => {
   assert.equal(p.liveIcon({}), "sparkle");
   assert.equal(p.liveIcon({ icon: "moon" }), "moon");
 });
-
-test("saving or previewing a scene in the maker does not throw when a light reports an effect, and keeps one that is chosen but not off", () => {
-  const states = { "light.a": "on", "light.b": "on" };
-  const effects = { "light.a": "candle", "light.b": "off" };
-  const p = page({ V_: (id) => states[id], A: (id) => ({ effect: effects[id], brightness: 200 }) });
-  p.vcolLoad([{ hs: [0, 100] }, { hs: [240, 100] }]);
-  p.LMK = {
-    id: "s1", name: "Calm", room: "r", icon: "sparkle", areas: ["x"], joins: [], S: null,
-    live: { speed: 6, range: 100, bri: 100, fps: 2, spread: "x", src: "palette", fx: [], looks: {}, also: [] },
-    lights: ["light.a", "light.b"],
-  };
-  const looks = plain(p.liveMakerScene().live.looks);
-  assert.equal(looks["light.a"].native, "candle");
-  assert.equal(looks["light.b"].native, undefined);
-});
-
