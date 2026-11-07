@@ -63,7 +63,8 @@ class _Light:
     native: bool = False  # playing one of the light's own effects, which the engine only recolours
     ahead: float = 0.0  # how far ahead of now the last command's colour is meant to be reached
     waking: bool = False  # it was off when the last command was built: that command is to switch it on
-    grace_until: float = 0.0  # until then a waking light that still shows as off has only not answered yet
+    grace_until: float = 0.0  # until then a waking light that shows as off, or as on but part way to its colour, has only not finished
+    refresh: bool = False  # a change of the scene's settings is to be shown even though the scene is frozen
     native_pending: tuple[float, float, int, float] | None = None  # (x, y, brightness, speed) of the effect command built last
     native_sent: tuple[float, float, int, float] | None = None  # the same, once it was sent
     native_sent_at: float = 0.0
@@ -133,8 +134,8 @@ class Session:
 
     def _left_the_scene(self, entity_id: str, light: _Light, info: LightInfo, now: float) -> bool:
         """Whether something else has taken the light from the scene (a frozen scene is still watched for this)."""
-        if info.state == "off" and now < light.grace_until:
-            return False  # a light sent its command to switch it on has not answered yet
+        if now < light.grace_until:
+            return False  # a light sent its command to switch it on has not finished: off, or on and still fading up, is not someone else
         if light.native and info.state == "off":
             return True  # someone switched it off while it played its own effect
         if light.target is None or now < light.reach_at - 0.25:
@@ -146,6 +147,7 @@ class Session:
         """What to send a light that is due: its own effect with the scene's colour, or the colour and brightness for this moment.
         None when it plays its own effect and nothing about it has changed enough to send."""
         light.waking = info.state == "off"
+        light.refresh = False
         native = self._look.native(entity_id)
         if native is not None and native in info.effects and info.can_colour:
             return self._native_command(entity_id, native, light, now)
@@ -196,10 +198,10 @@ class Session:
             if info.state == "off" and not light.driven:
                 continue  # never turned on by a scene
             if info.state == "on":
-                light.waking, light.grace_until = False, 0.0
+                light.waking = False
             if self._left_the_scene(entity_id, light, info, now):
                 result.dropped.append(entity_id)
-            elif not self.frozen and now >= light.next_due:
+            elif (not self.frozen or light.refresh) and now >= light.next_due:
                 command = self._command(entity_id, light, info, now)
                 if command is not None:
                     result.commands.append((entity_id, command))
@@ -348,7 +350,8 @@ class Engine:
         changes = {k: v for k, v in (("speed", speed), ("range_pct", range_pct), ("brightness", brightness)) if v is not None}
         session.retune(replace(session.definition, **changes))
         for light in session.lights.values():
-            light.next_due = 0.0  # a change is shown at once
+            light.next_due = 0.0  # a change is shown at once, also by a frozen scene
+            light.refresh = True
         session.wake.set()
         self._notify()
 
