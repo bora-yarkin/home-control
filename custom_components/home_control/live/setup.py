@@ -12,6 +12,7 @@ from homeassistant.core import Event, HomeAssistant, callback
 from homeassistant.helpers.storage import Store
 
 from ..const import DOMAIN
+from ..effects.store import EffectsStore
 from .engine import Engine
 from .hass_driver import HassDriver
 from .identify import Identifier
@@ -34,6 +35,7 @@ class LiveRuntime:
     library: Library
     store: Store[dict[str, Any]]
     providers: Providers
+    effects: EffectsStore
 
     def save_later(self) -> None:
         """Writes the saved scenes and areas soon (several changes in a row are one write)."""
@@ -85,7 +87,9 @@ async def async_setup(hass: HomeAssistant, entry: ConfigEntry) -> LiveRuntime:
     library = await _load_library(hass, store)
     if _attach_identities(hass, providers, library):
         await store.async_save(library.as_json())
-    live = LiveRuntime(engine, identifier, library, store, providers)
+    effects = EffectsStore(hass, providers)
+    await effects.async_load()
+    live = LiveRuntime(engine, identifier, library, store, providers, effects)
 
     @callback
     def state_changed(event: Event) -> None:
