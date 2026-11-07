@@ -14,8 +14,10 @@ commands per second their bridge takes and a service that plays one of the light
      "play_effect": "play_effect"}
 
 ``lights`` maps an entity registry platform to what is known of its lights: ``rate`` (commands per second to share), ``group`` (lights of
-one group share a rate; the default is the platform and its config entry) and ``effects`` (true when the plus integration can play a
-light's own effect on the lights of this platform). ``effects`` at the top lists the ids of the effects that can be played with a colour;
+one group share a rate; the default is the platform and its config entry), ``effects`` (true when the plus integration can play a
+light's own effect on the lights of this platform) and ``parent`` (a regular expression: what to cut from the unique id of a light that is
+a part of another, like a gradient light's zone, to get the unique id of the light it belongs to; saved with an area so that the part
+can be played as the whole light when the plus integration is gone). ``effects`` at the top lists the ids of the effects that can be played with a colour;
 ``play_effect`` names the service of the plus integration that plays one (entity_id, effect, xy, brightness, speed).
 """
 
@@ -23,6 +25,7 @@ from __future__ import annotations
 
 import json
 import logging
+import re
 from dataclasses import dataclass, field
 from pathlib import Path
 from typing import Any
@@ -38,6 +41,15 @@ _LOGGER = logging.getLogger(__name__)
 DECLARATION = "home_control.json"
 SCHEMA_VERSION = 1
 
+
+def _regex(value: str) -> str:
+    try:
+        re.compile(value)
+    except re.error as err:
+        raise vol.Invalid(f"not a regular expression: {err}") from err
+    return value
+
+
 _ID = vol.All(cv.string, vol.Match(r"^[a-z][a-z0-9_]{0,31}$"))
 _LIGHTS = vol.Schema(
     {
@@ -46,6 +58,7 @@ _LIGHTS = vol.Schema(
                 vol.Optional("group"): vol.All(cv.string, vol.Length(min=1, max=48)),
                 vol.Optional("rate"): vol.All(vol.Coerce(float), vol.Range(min=0.1, max=100)),
                 vol.Optional("effects", default=False): cv.boolean,
+                vol.Optional("parent"): vol.All(cv.string, vol.Length(max=64), _regex),
             }
         )
     }
@@ -68,6 +81,7 @@ class LightClass:
     group: str | None
     rate: float | None
     effects: bool  # its lights can play their own effects through the provider
+    parent: str | None = None  # cut from a part's unique id to get its light's
 
 
 @dataclass(frozen=True)
@@ -88,7 +102,10 @@ def parse(domain: str, raw: Any) -> Provider:
     return Provider(
         domain=domain,
         name=data["name"],
-        lights={platform: LightClass(item.get("group"), item.get("rate"), item["effects"]) for platform, item in data["lights"].items()},
+        lights={
+            platform: LightClass(item.get("group"), item.get("rate"), item["effects"], item.get("parent"))
+            for platform, item in data["lights"].items()
+        },
         effects=frozenset(data["effects"]),
         play_effect=data.get("play_effect"),
     )

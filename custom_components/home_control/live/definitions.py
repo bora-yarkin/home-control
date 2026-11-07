@@ -42,9 +42,10 @@ class AreaLight:
     x: float
     y: float
     z: float
-    uid: str = (
-        ""  # the light's entity registry unique id: finds the light again when its entity id is gone (a plus integration was removed)
-    )
+    # The light's entity registry unique id: finds the light again when its entity id is gone (a plus integration was removed).
+    uid: str = ""
+    # The unique id of the light this one is a part of (a gradient light's zone), when the plus integration said how to tell.
+    alt: str = ""
 
 
 @dataclass(frozen=True)
@@ -183,6 +184,7 @@ def parse_lights(raw: Any) -> tuple[AreaLight, ...]:
                 _number(item.get("y", 0), "y", -1, 1),
                 _number(item.get("z", 0), "z", -1, 1),
                 _uid(item.get("uid")),
+                _uid(item.get("alt")),
             )
         )
     return tuple(out)

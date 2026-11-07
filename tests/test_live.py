@@ -174,7 +174,7 @@ from custom_components.home_control.live import providers as providers_module  #
 HUE_DECLARATION = {
     "schema": 1,
     "name": "Hue Plus",
-    "lights": {"hue_plus": {"group": "hue:plus", "rate": 8.0, "effects": True}, "hue": {"rate": 8.0}},
+    "lights": {"hue_plus": {"group": "hue:plus", "rate": 8.0, "effects": True, "parent": "_zone_[0-9]+$"}, "hue": {"rate": 8.0}},
     "effects": ["candle", "underwater"],
     "play_effect": "play_effect",
 }
@@ -261,3 +261,40 @@ async def test_without_its_provider_the_same_scene_plays_the_colours_and_refuses
     await wait_for(lambda: {c.data["entity_id"] for c in turn_on} == {"light.left", "light.right"})
     assert list(play_effect) == [] and all("effect" not in c.data for c in turn_on)
     assert providers.for_platform("hue_plus") is None
+
+
+# --- a gradient light's zones, and what is left when its plus integration is gone (D-14) ------------------------------------------
+
+
+async def test_the_zones_of_a_gradient_light_are_played_as_the_one_light_when_their_plus_integration_is_gone(hass, hue_lights):
+    providers, turn_on, _play = hue_lights
+    registry = er.async_get(hass)
+    zones = [{"entity_id": f"light.strip_zone_{i}", "x": i / 10, "y": 0, "z": 0} for i in (1, 2, 3)]
+    for light in zones:
+        registry.async_get_or_create(
+            "light",
+            "hue_plus",
+            f"L1_{light['entity_id'].removeprefix('light.strip_')}",
+            suggested_object_id=light["entity_id"].removeprefix("light."),
+        )
+        hass.states.async_set(light["entity_id"], "on", ATTRIBUTES)
+    await call(hass, "area_save", {"id": "room", "name": "Room", "lights": zones})
+    saved = (await call(hass, "get_library", response=True))["areas"][0]["lights"]
+    assert [(x["uid"], x["alt"]) for x in saved] == [("L1_zone_1", "L1"), ("L1_zone_2", "L1"), ("L1_zone_3", "L1")]
+
+    # Hue Plus is uninstalled: its zones are gone, and the Hue integration's own light of the strip is what is left.
+    hass.config.components.remove("hue_plus")
+    providers.declared.clear()
+    registry.async_get_or_create("light", "hue", "L1", suggested_object_id="strip_core")
+    hass.states.async_set("light.strip_core", "on", ATTRIBUTES)
+    for light in zones:
+        hass.states.async_set(light["entity_id"], "unavailable")
+    await call(hass, "scene_start", {"scene_id": "now", "preset": "candle", "area": "room"})
+    await wait_for(lambda: {c.data["entity_id"] for c in turn_on} == {"light.strip_core"})
+    assert hass.states.get("sensor.home_control_live_scenes").attributes["sessions"]["now"]["lights"] == ["light.strip_core"]
+
+
+async def test_a_light_that_is_not_a_part_gets_no_parent(hass, hue_lights):
+    await call(hass, "area_save", {"id": "room", "name": "Room", "lights": LIGHTS})
+    saved = (await call(hass, "get_library", response=True))["areas"][0]["lights"]
+    assert all("alt" not in light for light in saved) and [light["uid"] for light in saved] == ["hue-left", "hue-right"]

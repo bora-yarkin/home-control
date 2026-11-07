@@ -116,7 +116,14 @@ def _clean_actions(raw: Any) -> list[dict[str, Any]]:
 
 def _clean_lights(raw: Any) -> list[dict[str, Any]]:
     return [
-        {"entity_id": light.entity_id, "x": light.x, "y": light.y, "z": light.z, **({"uid": light.uid} if light.uid else {})}
+        {
+            "entity_id": light.entity_id,
+            "x": light.x,
+            "y": light.y,
+            "z": light.z,
+            **({"uid": light.uid} if light.uid else {}),
+            **({"alt": light.alt} if light.alt else {}),
+        }
         for light in parse_lights(raw)
     ]
 

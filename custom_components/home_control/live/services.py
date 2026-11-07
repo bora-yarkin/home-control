@@ -70,7 +70,7 @@ async def scene_save(hass: HomeAssistant, call: ServiceCall) -> None:
     live = _live(hass)
     raw = dict(call.data)
     if isinstance(raw.get("lights"), list):
-        raw["lights"] = attach_unique_ids(hass, raw["lights"])
+        raw["lights"] = attach_unique_ids(hass, live.providers, raw["lights"])
     try:
         live.library.save_scene(raw)
     except DefinitionError as err:
@@ -88,7 +88,7 @@ async def area_save(hass: HomeAssistant, call: ServiceCall) -> None:
     live = _live(hass)
     raw = dict(call.data)
     if isinstance(raw.get("lights"), list):
-        raw["lights"] = attach_unique_ids(hass, raw["lights"])
+        raw["lights"] = attach_unique_ids(hass, live.providers, raw["lights"])
     try:
         live.library.save_area(clean_area(raw))
     except DefinitionError as err:
