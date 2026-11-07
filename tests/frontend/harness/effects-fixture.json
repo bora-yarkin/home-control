@@ -1,0 +1,455 @@
+{
+ "hue": {
+  "id": "hue_plus",
+  "name": "Hue Plus",
+  "kind": "provider",
+  "lights": {
+   "platforms": [
+    "hue_plus"
+   ]
+  },
+  "groups": [
+   {
+    "id": "flames",
+    "label": "Flames"
+   },
+   {
+    "id": "sparkly",
+    "label": "Sparkly"
+   },
+   {
+    "id": "wavy",
+    "label": "Wavy"
+   },
+   {
+    "id": "drops",
+    "label": "Drops"
+   },
+   {
+    "id": "loops",
+    "label": "Loops"
+   },
+   {
+    "id": "daylight",
+    "label": "Daylight"
+   },
+   {
+    "id": "more",
+    "label": "More"
+   }
+  ],
+  "effects": [
+   {
+    "id": "candle",
+    "label": "Candle",
+    "group": "flames",
+    "palette": [
+     "#ffd27a",
+     "#ff8a1e",
+     "#8a3d10"
+    ],
+    "hue": 35,
+    "brightness": 26,
+    "speed": 6,
+    "variants": [
+     {
+      "id": "orange",
+      "label": "Orange",
+      "colour": {
+       "hs": [
+        30,
+        100
+       ]
+      }
+     },
+     {
+      "id": "warm",
+      "label": "Warm white",
+      "colour": {
+       "k": 2200
+      }
+     }
+    ],
+    "art": "<svg viewBox='0 0 100 100' preserveAspectRatio='xMidYMid slice'><defs><radialGradient id='g' cx='50%' cy='50%' r='50%'><stop offset='0' stop-color='#ffb347' stop-opacity='0.8'/><stop offset='0.55' stop-color='#7a3a10' stop-opacity='0.4'/><stop offset='1' stop-color='#120802' stop-opacity='0'/></radialGradient><linearGradient id='f' x1='0' y1='0' x2='0' y2='1'><stop offset='0' stop-color='#fff6c8'/><stop offset='0.45' stop-color='#ffd24a'/><stop offset='1' stop-color='#ff8a1e'/></linearGradient></defs><rect width='100' height='100' fill='#150a04'/><rect width='100' height='100' fill='url(#g)'/><rect x='40' y='60' width='20' height='36' rx='3' fill='#f1dcb6'/><rect x='40' y='60' width='20' height='6' rx='3' fill='#fff1d8'/><rect x='49' y='55' width='2' height='7' fill='#2f2012'/><path d='M50 22C60 34 62 45 57 54C55 58 45 58 43 54C38 45 42 34 50 22Z' fill='url(#f)'/></svg>"
+   },
+   {
+    "id": "fire",
+    "label": "Fireplace",
+    "group": "flames",
+    "palette": [
+     "#ffb13a",
+     "#ff4a12",
+     "#5a1608"
+    ],
+    "hue": 25,
+    "brightness": 84,
+    "speed": 6,
+    "variants": [
+     {
+      "id": "purple",
+      "label": "Purple",
+      "colour": {
+       "hs": [
+        275,
+        85
+       ]
+      }
+     },
+     {
+      "id": "green",
+      "label": "Green",
+      "colour": {
+       "hs": [
+        150,
+        90
+       ]
+      }
+     }
+    ],
+    "art": "<svg viewBox='0 0 100 100' preserveAspectRatio='xMidYMid slice'><defs><radialGradient id='g' cx='50%' cy='50%' r='50%'><stop offset='0' stop-color='#ff7a1f' stop-opacity='0.7'/><stop offset='1' stop-color='#1a0603' stop-opacity='0'/></radialGradient></defs><rect width='100' height='100' fill='#1a0603'/><circle cx='50' cy='84' r='58' fill='url(#g)'/><path d='M50 12C64 32 80 46 72 70C67 86 33 86 28 70C20 48 38 40 50 12Z' fill='#ff4a12'/><path d='M50 36C60 50 68 58 63 73C60 82 40 82 37 73C32 60 42 52 50 36Z' fill='#ff9a1f'/><path d='M50 56C56 63 59 68 57 75C55 80 45 80 43 75C41 68 45 63 50 56Z' fill='#ffe27a'/></svg>"
+   },
+   {
+    "id": "glisten",
+    "label": "Glisten",
+    "group": "sparkly",
+    "palette": [
+     "#f6dca2",
+     "#b87a32",
+     "#4a2d10"
+    ],
+    "hue": 40,
+    "brightness": 100,
+    "speed": 6,
+    "speed_range": [
+     0.3016,
+     0.6984
+    ],
+    "variants": [
+     {
+      "id": "purple",
+      "label": "Purple",
+      "colour": {
+       "hs": [
+        275,
+        70
+       ]
+      }
+     },
+     {
+      "id": "pink",
+      "label": "Pink",
+      "colour": {
+       "hs": [
+        330,
+        60
+       ]
+      }
+     }
+    ],
+    "default_label": "Gold",
+    "art": "<svg viewBox='0 0 100 100' preserveAspectRatio='xMidYMid slice'><defs><linearGradient id='g' x1='0' y1='0' x2='0' y2='1'><stop offset='0' stop-color='#f6dca2'/><stop offset='0.5' stop-color='#b87a32'/><stop offset='1' stop-color='#2a1a0c'/></linearGradient></defs><rect width='100' height='100' fill='url(#g)'/><path d='M6 38Q28 30 50 38T94 38' fill='none' stroke='#fff' stroke-opacity='.4' stroke-width='2'/><path d='M0 56Q25 46 50 56T100 56' fill='none' stroke='#fff' stroke-opacity='.3' stroke-width='2'/><path d='M0 74Q25 66 50 74T100 74' fill='none' stroke='#fff' stroke-opacity='.2' stroke-width='2'/><path d='M32 22Q32 30 40 30Q32 30 32 38Q32 30 24 30Q32 30 32 22Z' fill='#fff'/><path d='M66 35Q66 46 77 46Q66 46 66 57Q66 46 55 46Q66 46 66 35Z' fill='#fff'/><path d='M80 60Q80 66 86 66Q80 66 80 72Q80 66 74 66Q80 66 80 60Z' fill='#ffeec0'/><path d='M40 57Q40 62 45 62Q40 62 40 67Q40 62 35 62Q40 62 40 57Z' fill='#ffeec0'/></svg>"
+   },
+   {
+    "id": "sparkle",
+    "label": "Sparkle",
+    "group": "sparkly",
+    "palette": [
+     "#7a8cff",
+     "#2c3f9a",
+     "#0a0f2e"
+    ],
+    "hue": 45,
+    "brightness": 100,
+    "speed": 6,
+    "speed_range": [
+     0.3016,
+     0.6984
+    ],
+    "variants": [
+     {
+      "id": "orange",
+      "label": "Orange",
+      "colour": {
+       "hs": [
+        25,
+        100
+       ]
+      }
+     },
+     {
+      "id": "red",
+      "label": "Red",
+      "colour": {
+       "hs": [
+        0,
+        100
+       ]
+      }
+     },
+     {
+      "id": "white",
+      "label": "White",
+      "colour": {
+       "k": 6500
+      }
+     }
+    ],
+    "default_label": "Yellow",
+    "art": "<svg viewBox='0 0 100 100' preserveAspectRatio='xMidYMid slice'><defs><linearGradient id='g' x1='0' y1='0' x2='0' y2='1'><stop offset='0' stop-color='#2c3f9a'/><stop offset='1' stop-color='#0a0f2e'/></linearGradient></defs><rect width='100' height='100' fill='url(#g)'/><path d='M34 19Q34 32 47 32Q34 32 34 45Q34 32 21 32Q34 32 34 19Z' fill='#fff'/><path d='M68 19Q68 26 75 26Q68 26 68 33Q68 26 61 26Q68 26 68 19Z' fill='#bfe4ff'/><path d='M70 47Q70 62 85 62Q70 62 70 77Q70 62 55 62Q70 62 70 47Z' fill='#fff'/><path d='M28 65Q28 72 35 72Q28 72 28 79Q28 72 21 72Q28 72 28 65Z' fill='#9fd0ff'/><path d='M50 45Q50 50 55 50Q50 50 50 55Q50 50 45 50Q50 50 50 45Z' fill='#fff'/><path d='M84 79Q84 84 89 84Q84 84 84 89Q84 84 79 84Q84 84 84 79Z' fill='#bfe4ff'/></svg>"
+   },
+   {
+    "id": "underwater",
+    "label": "Underwater",
+    "group": "wavy",
+    "palette": [
+     "#86ecff",
+     "#1f78bf",
+     "#07203f"
+    ],
+    "hue": 205,
+    "brightness": 100,
+    "speed": 12,
+    "speed_range": [
+     0.1984,
+     0.5
+    ],
+    "variants": [
+     {
+      "id": "green",
+      "label": "Green",
+      "colour": {
+       "hs": [
+        150,
+        80
+       ]
+      }
+     },
+     {
+      "id": "turquoise",
+      "label": "Turquoise",
+      "colour": {
+       "hs": [
+        175,
+        90
+       ]
+      }
+     },
+     {
+      "id": "lightblue",
+      "label": "Light blue",
+      "colour": {
+       "hs": [
+        195,
+        45
+       ]
+      }
+     }
+    ],
+    "default_label": "Blue",
+    "art": "<svg viewBox='0 0 100 100' preserveAspectRatio='xMidYMid slice'><defs><linearGradient id='g' x1='0' y1='0' x2='0' y2='1'><stop offset='0' stop-color='#86ecff'/><stop offset='0.45' stop-color='#1f78bf'/><stop offset='1' stop-color='#07203f'/></linearGradient></defs><rect width='100' height='100' fill='url(#g)'/><path d='M20 0L40 100L10 100Z' fill='#fff' opacity='.1'/><path d='M60 0L90 100L52 100Z' fill='#fff' opacity='.1'/><path d='M0 40Q25 30 50 40T100 40' fill='none' stroke='#fff' stroke-opacity='.35' stroke-width='2'/><path d='M0 62Q25 52 50 62T100 62' fill='none' stroke='#fff' stroke-opacity='.25' stroke-width='2'/><path d='M0 82Q25 74 50 82T100 82' fill='none' stroke='#fff' stroke-opacity='.18' stroke-width='2'/></svg>"
+   },
+   {
+    "id": "cosmos",
+    "label": "Cosmos",
+    "group": "wavy",
+    "palette": [
+     "#d46bff",
+     "#5b8cff",
+     "#140c3a"
+    ],
+    "hue": 285,
+    "brightness": 100,
+    "speed": 8,
+    "speed_range": [
+     0.25,
+     0.6151
+    ],
+    "variants": [
+     {
+      "id": "gold",
+      "label": "Gold",
+      "colour": {
+       "hs": [
+        40,
+        90
+       ]
+      }
+     },
+     {
+      "id": "blue",
+      "label": "Blue",
+      "colour": {
+       "hs": [
+        235,
+        80
+       ]
+      }
+     },
+     {
+      "id": "pink",
+      "label": "Pink",
+      "colour": {
+       "hs": [
+        310,
+        85
+       ]
+      }
+     }
+    ],
+    "default_label": "Purple",
+    "art": "<svg viewBox='0 0 100 100' preserveAspectRatio='xMidYMid slice'><defs><radialGradient id='a' cx='50%' cy='50%' r='50%'><stop offset='0' stop-color='#d46bff' stop-opacity='0.85'/><stop offset='1' stop-color='#d46bff' stop-opacity='0'/></radialGradient><radialGradient id='b' cx='50%' cy='50%' r='50%'><stop offset='0' stop-color='#5b8cff' stop-opacity='0.8'/><stop offset='1' stop-color='#5b8cff' stop-opacity='0'/></radialGradient></defs><rect width='100' height='100' fill='#0a0820'/><circle cx='36' cy='40' r='44' fill='url(#a)'/><circle cx='68' cy='64' r='42' fill='url(#b)'/><circle cx='20' cy='20' r='1.6' fill='#fff'/><circle cx='80' cy='24' r='1.2' fill='#fff'/><circle cx='56' cy='14' r='1' fill='#fff'/><circle cx='88' cy='54' r='1.6' fill='#fff'/><circle cx='14' cy='70' r='1.2' fill='#fff'/><circle cx='48' cy='88' r='1.4' fill='#fff'/><circle cx='64' cy='40' r='1' fill='#fff'/></svg>"
+   },
+   {
+    "id": "sunbeam",
+    "label": "Sunbeam",
+    "group": "drops",
+    "palette": [
+     "#fffbe0",
+     "#ffd08a",
+     "#ff9a3d"
+    ],
+    "hue": 40,
+    "brightness": 100,
+    "speed": 6,
+    "speed_range": [
+     0.3889,
+     0.619
+    ],
+    "variants": [
+     {
+      "id": "orange",
+      "label": "Orange",
+      "colour": {
+       "hs": [
+        20,
+        80
+       ]
+      }
+     },
+     {
+      "id": "purple",
+      "label": "Purple",
+      "colour": {
+       "hs": [
+        265,
+        60
+       ]
+      }
+     }
+    ],
+    "art": "<svg viewBox='0 0 100 100' preserveAspectRatio='xMidYMid slice'><defs><linearGradient id='g' x1='0' y1='0' x2='0' y2='1'><stop offset='0' stop-color='#ffe08a'/><stop offset='1' stop-color='#ff9a3d'/></linearGradient><radialGradient id='h' cx='50%' cy='50%' r='50%'><stop offset='0' stop-color='#fffbe0' stop-opacity='1'/><stop offset='1' stop-color='#fff1a8' stop-opacity='0'/></radialGradient></defs><rect width='100' height='100' fill='url(#g)'/><path d='M70.0 42.0L110.0 42.0' stroke='#fff' stroke-opacity='.4' stroke-width='3' stroke-linecap='round'/><path d='M67.3 52.0L102.0 72.0' stroke='#fff' stroke-opacity='.4' stroke-width='3' stroke-linecap='round'/><path d='M60.0 59.3L80.0 94.0' stroke='#fff' stroke-opacity='.4' stroke-width='3' stroke-linecap='round'/><path d='M50.0 62.0L50.0 102.0' stroke='#fff' stroke-opacity='.4' stroke-width='3' stroke-linecap='round'/><path d='M40.0 59.3L20.0 94.0' stroke='#fff' stroke-opacity='.4' stroke-width='3' stroke-linecap='round'/><path d='M32.7 52.0L-2.0 72.0' stroke='#fff' stroke-opacity='.4' stroke-width='3' stroke-linecap='round'/><path d='M30.0 42.0L-10.0 42.0' stroke='#fff' stroke-opacity='.4' stroke-width='3' stroke-linecap='round'/><path d='M32.7 32.0L-2.0 12.0' stroke='#fff' stroke-opacity='.4' stroke-width='3' stroke-linecap='round'/><path d='M40.0 24.7L20.0 -10.0' stroke='#fff' stroke-opacity='.4' stroke-width='3' stroke-linecap='round'/><path d='M50.0 22.0L50.0 -18.0' stroke='#fff' stroke-opacity='.4' stroke-width='3' stroke-linecap='round'/><path d='M60.0 24.7L80.0 -10.0' stroke='#fff' stroke-opacity='.4' stroke-width='3' stroke-linecap='round'/><path d='M67.3 32.0L102.0 12.0' stroke='#fff' stroke-opacity='.4' stroke-width='3' stroke-linecap='round'/><circle cx='50' cy='42' r='30' fill='url(#h)'/><circle cx='50' cy='42' r='12' fill='#fffbe8'/></svg>"
+   },
+   {
+    "id": "enchant",
+    "label": "Enchant",
+    "group": "drops",
+    "palette": [
+     "#ff9ad8",
+     "#8a6bff",
+     "#24104f"
+    ],
+    "hue": 320,
+    "brightness": 50,
+    "speed": 6,
+    "speed_range": [
+     0.3889,
+     0.619
+    ],
+    "art": "<svg viewBox='0 0 100 100' preserveAspectRatio='xMidYMid slice'><defs><linearGradient id='g' x1='0' y1='0' x2='0' y2='1'><stop offset='0' stop-color='#8a6bff'/><stop offset='1' stop-color='#24104f'/></linearGradient><radialGradient id='b' cx='50%' cy='50%' r='50%'><stop offset='0' stop-color='#ff9ad8' stop-opacity='0.8'/><stop offset='1' stop-color='#ff9ad8' stop-opacity='0'/></radialGradient></defs><rect width='100' height='100' fill='url(#g)'/><circle cx='64' cy='36' r='34' fill='url(#b)'/><path d='M36 50Q36 62 48 62Q36 62 36 74Q36 62 24 62Q36 62 36 50Z' fill='#fff'/><path d='M66 21Q66 30 75 30Q66 30 66 39Q66 30 57 30Q66 30 66 21Z' fill='#ffd6f3'/><path d='M24 22Q24 28 30 28Q24 28 24 34Q24 28 18 28Q24 28 24 22Z' fill='#e3d6ff'/><path d='M78 64Q78 70 84 70Q78 70 78 76Q78 70 72 70Q78 70 78 64Z' fill='#fff'/><path d='M52 78Q52 82 56 82Q52 82 52 86Q52 82 48 82Q52 82 52 78Z' fill='#ffd6f3'/></svg>"
+   },
+   {
+    "id": "prism",
+    "label": "Prism",
+    "group": "loops",
+    "palette": [
+     "#ff3b3b",
+     "#ffe234",
+     "#3fe05a",
+     "#2bb8ff",
+     "#8a5cff"
+    ],
+    "hue": 200,
+    "brightness": 100,
+    "speed": 6,
+    "speed_range": [
+     0.3889,
+     0.619
+    ],
+    "default_label": "Bright",
+    "art": "<svg viewBox='0 0 100 100' preserveAspectRatio='xMidYMid slice'><defs></defs><rect width='100' height='100' fill='#0e1022'/><path d='M4 50L40 50' stroke='#fff' stroke-width='4' stroke-linecap='round'/><path d='M50 24L74 68L26 68Z' fill='rgba(255,255,255,.14)' stroke='#fff' stroke-width='2' stroke-linejoin='round'/><path d='M62 52L98 28' stroke='#ff3b3b' stroke-width='4' stroke-linecap='round' opacity='.92'/><path d='M62 52L98 37' stroke='#ff9a2b' stroke-width='4' stroke-linecap='round' opacity='.92'/><path d='M62 52L98 46' stroke='#ffe234' stroke-width='4' stroke-linecap='round' opacity='.92'/><path d='M62 52L98 55' stroke='#3fe05a' stroke-width='4' stroke-linecap='round' opacity='.92'/><path d='M62 52L98 64' stroke='#2bb8ff' stroke-width='4' stroke-linecap='round' opacity='.92'/><path d='M62 52L98 73' stroke='#8a5cff' stroke-width='4' stroke-linecap='round' opacity='.92'/></svg>"
+   },
+   {
+    "id": "opal",
+    "label": "Opal",
+    "group": "loops",
+    "palette": [
+     "#ffc2e6",
+     "#b4f0e0",
+     "#b9c4ff"
+    ],
+    "hue": 200,
+    "brightness": 100,
+    "speed": 7,
+    "speed_range": [
+     0.3889,
+     0.5794
+    ],
+    "default_label": "Pastel",
+    "art": "<svg viewBox='0 0 100 100' preserveAspectRatio='xMidYMid slice'><defs><radialGradient id='a' cx='50%' cy='50%' r='50%'><stop offset='0' stop-color='#ffc2e6' stop-opacity='0.95'/><stop offset='1' stop-color='#ffc2e6' stop-opacity='0'/></radialGradient><radialGradient id='b' cx='50%' cy='50%' r='50%'><stop offset='0' stop-color='#b4f0e0' stop-opacity='0.95'/><stop offset='1' stop-color='#b4f0e0' stop-opacity='0'/></radialGradient><radialGradient id='c' cx='50%' cy='50%' r='50%'><stop offset='0' stop-color='#b9c4ff' stop-opacity='0.95'/><stop offset='1' stop-color='#b9c4ff' stop-opacity='0'/></radialGradient></defs><rect width='100' height='100' fill='#efe8ff'/><circle cx='30' cy='34' r='46' fill='url(#a)'/><circle cx='72' cy='40' r='44' fill='url(#b)'/><circle cx='50' cy='76' r='46' fill='url(#c)'/></svg>"
+   },
+   {
+    "id": "sunrise",
+    "label": "Sunrise",
+    "group": "daylight",
+    "palette": [
+     "#3b2a6b",
+     "#ff7a5c",
+     "#ffd38a"
+    ],
+    "hue": 25,
+    "art": "<svg viewBox='0 0 100 100' preserveAspectRatio='xMidYMid slice'><defs><linearGradient id='s' x1='0' y1='0' x2='0' y2='1'><stop offset='0' stop-color='#3b2a6b'/><stop offset='0.55' stop-color='#ff7a5c'/><stop offset='1' stop-color='#ffd38a'/></linearGradient></defs><rect width='100' height='100' fill='url(#s)'/><circle cx='50' cy='70' r='17' fill='#fff2b0'/><rect y='70' width='100' height='30' fill='#1a1230'/></svg>"
+   },
+   {
+    "id": "sunset",
+    "label": "Sunset",
+    "group": "daylight",
+    "palette": [
+     "#2a1b4f",
+     "#c2406b",
+     "#ff9a4d"
+    ],
+    "hue": 15,
+    "art": "<svg viewBox='0 0 100 100' preserveAspectRatio='xMidYMid slice'><defs><linearGradient id='s' x1='0' y1='0' x2='0' y2='1'><stop offset='0' stop-color='#2a1b4f'/><stop offset='0.55' stop-color='#c2406b'/><stop offset='1' stop-color='#ff9a4d'/></linearGradient></defs><rect width='100' height='100' fill='url(#s)'/><circle cx='50' cy='74' r='17' fill='#ffd08a'/><rect y='72' width='100' height='28' fill='#160f2a'/></svg>"
+   }
+  ],
+  "set_effect": "set_effect"
+ },
+ "file": {
+  "id": "my_govee_strips_a1b2c3",
+  "name": "My Govee strips",
+  "kind": "file",
+  "lights": {
+   "platforms": [
+    "govee"
+   ]
+  },
+  "groups": [
+   {
+    "id": "calm",
+    "label": "Calm"
+   }
+  ],
+  "effects": [
+   {
+    "id": "Aurora",
+    "label": "Aurora",
+    "group": "calm",
+    "palette": [
+     "#86ecff",
+     "#1f78bf",
+     "#07203f"
+    ]
+   }
+  ]
+ }
+}

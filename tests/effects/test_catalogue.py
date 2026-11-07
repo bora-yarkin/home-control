@@ -217,3 +217,21 @@ class PictureTests(unittest.TestCase):
 
 if __name__ == "__main__":
     unittest.main()
+
+
+class DocumentationTests(unittest.TestCase):
+    def test_the_example_in_the_documentation_is_a_good_file(self):
+        import json
+        import re
+        from pathlib import Path
+
+        text = (Path(__file__).resolve().parents[2] / "docs" / "effects-file.md").read_text()
+        block = re.search(r"```json\n(.*?)\n```", text, re.DOTALL).group(1)
+        self.assertEqual(c.parse(json.loads(block)).problems, ())
+
+    def test_every_field_of_the_syntax_is_documented(self):
+        from pathlib import Path
+
+        text = (Path(__file__).resolve().parents[2] / "docs" / "effects-file.md").read_text()
+        for key in sorted(c.FILE_KEYS | c.LIGHTS_KEYS | c.GROUP_KEYS | (c.EFFECT_KEYS - {"art"}) | c.VARIANT_KEYS):
+            self.assertIn(f"`{key}`", text, key)

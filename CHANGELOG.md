@@ -4,6 +4,13 @@ Format: [Keep a Changelog](https://keepachangelog.com/). Versions follow [semant
 
 ## [Unreleased]
 
+### Added
+- Effects catalogues (decision D-15): a light's effects can be described as data: their groups, labels, pictures or colours, how bright and how fast they start, how the speed maps to the light's own scale, and colour variants. One syntax (`docs/effects-file.md`, JSON) serves a plus integration, which ships its catalogue in `home_control.json` (Hue Plus: everything that was the dashboard's Hue table), and **Settings → Effects → Import an effects file**, where an administrator imports a file for lights of any brand, written by hand or with an AI's help. The file is checked before it is kept and every mistake is listed with where it is; a typo in a field name is an error, not ignored. A file never carries code (its only picture is a palette or an icon); a plus integration's own pictures are checked against a short list of drawing elements on both sides. Effects no catalogue knows are listed as the light reports them.
+- The effects page calls the plus integration's own service for an effect with a colour or a speed, instead of Hue Plus's by name.
+
+### Changed
+- The dashboard no longer has Hue's effects, their groups, labels or pictures in its own code: they come from Hue Plus's catalogue (Home Control 0.5.0 and later with Hue Plus 0.9.0 and later; with an older Hue Plus the effects are listed as the lights report them).
+
 ### Fixed
 - A light the colour check let go of is put back: it is watched for two minutes while its scene still has other lights, and rejoins as soon as it shows one of the scene's colours again. A light a person changed, or another scene took, is gone for good, and a scene whose every light was taken still ends at once.
 - A gradient light's zones in a saved area get the unique id of their light at start even when Hue Plus has not loaded yet (Home Control can start first), so they keep working as the one light if Hue Plus is removed.

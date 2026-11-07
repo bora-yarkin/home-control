@@ -13,6 +13,26 @@ function reg(entity_id, platform, unique_id, device_id, extra = {}) {
   return { entity_id, platform, unique_id, device_id, area_id: null, disabled_by: null, entity_category: null, ...extra };
 }
 
+/* The effects catalogues Home Control would offer: Hue Plus's (from its real declaration) and, once "imported", a file. `?effects=0` has none. */
+let imported = null;
+function effectSources() {
+  if (new URLSearchParams(location.search).get("effects") === "0") return Promise.resolve([]);
+  return fetch(new URL("effects-fixture.json", import.meta.url)).then((r) => r.json()).then((f) => (imported ? [f.hue, imported] : [f.hue]));
+}
+function importEffects(content) {
+  let data;
+  try {
+    data = typeof content === "string" ? JSON.parse(content) : content;
+  } catch (err) {
+    return Promise.resolve({ ok: false, problems: ["the file is not valid JSON: " + err.message] });
+  }
+  if (!data || data.schema !== 1) return Promise.resolve({ ok: false, problems: ["schema: must be 1", "effects[0].speeed: is not a field of this syntax (check the spelling)"] });
+  return fetch(new URL("effects-fixture.json", import.meta.url)).then((r) => r.json()).then((f) => {
+    imported = f.file;
+    return { ok: true, id: f.file.id, name: f.file.name, effects: f.file.effects.length };
+  });
+}
+
 export function makeHass(query) {
   const withSync = query.get("sync") !== "0";
   const withBox = query.get("box") !== "0";
@@ -168,6 +188,9 @@ export function makeHass(query) {
         case "config/auth/list": return Promise.resolve([]);
         case "history/history_during_period": return Promise.resolve({});
         case "logbook/get_events": return Promise.resolve([]);
+        case "home_control/effects": return effectSources().then((sources) => ({ sources }));
+        case "home_control/effects_import": return importEffects(msg.content);
+        case "home_control/effects_delete": imported = null; return Promise.resolve({ ok: true });
         case "call_service": {
           calls.push({ domain: msg.domain, service: msg.service, data: msg.service_data, response: true });
           if (msg.domain === "hue_plus" && msg.service === "get_resources") return Promise.resolve({ response: resources });
