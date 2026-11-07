@@ -300,6 +300,104 @@ class StepTests(unittest.TestCase):
         self.assertEqual(s.step(0.0, drv, set()).commands[0][1]["brightness"], 100)
 
 
+class RejoinTests(unittest.TestCase):
+    """A light the colour check let go of comes back when it shows the scene's colours again; a person's change is final."""
+
+    GREEN = info(xy=(0.30, 0.55), brightness=200)  # nothing like a colour of the red to blue palette
+
+    def _engine(self, lights=("light.a", "light.b")):
+        drv = FakeDriver({light: info() for light in lights})
+        clock = VirtualClock()
+        engine = e.Engine(drv, clock=clock, sleep=clock.sleep)
+        engine.start(definition(lights, palette=[{"hs": [0, 100]}, {"hs": [240, 100]}], speed=12))
+        return drv, clock, engine
+
+    @staticmethod
+    def _last_sent(drv, light):
+        return next(data for kind, entity, data in reversed(drv.calls) if entity == light and kind == "on")
+
+    def test_a_dropped_light_rejoins_when_it_shows_a_colour_the_scene_sent(self):
+        async def go():
+            drv, clock, engine = self._engine()
+            await clock.run(12)
+            drv.lights["light.a"] = self.GREEN
+            await clock.run(8)
+            dropped = "light.a" not in engine.sessions["s1"].lights
+            sent = self._last_sent(drv, "light.b")
+            drv.lights["light.a"] = info(xy=tuple(self._last_sent(drv, "light.b")["xy_color"]), brightness=sent["brightness"])
+            await clock.run(8)
+            result = (dropped, "light.a" in engine.sessions["s1"].lights, engine._owner.get("light.a"))
+            engine.stop_all()
+            return result
+
+        self.assertEqual(asyncio.run(go()), (True, True, "s1"))
+
+    def test_a_rejoined_light_is_sent_colours_again(self):
+        async def go():
+            drv, clock, engine = self._engine()
+            await clock.run(12)
+            drv.lights["light.a"] = self.GREEN
+            await clock.run(8)
+            drv.lights["light.a"] = info(xy=tuple(self._last_sent(drv, "light.b")["xy_color"]), brightness=200)
+            before = sum(1 for kind, entity, _ in drv.calls if entity == "light.a")
+            await clock.run(15)
+            after = sum(1 for kind, entity, _ in drv.calls if entity == "light.a")
+            engine.stop_all()
+            return after - before
+
+        self.assertGreater(asyncio.run(go()), 2)
+
+    def test_a_light_that_keeps_showing_something_else_does_not_rejoin(self):
+        async def go():
+            drv, clock, engine = self._engine()
+            await clock.run(12)
+            drv.lights["light.a"] = self.GREEN
+            await clock.run(200)  # longer than it is watched for
+            result = ("light.a" in engine.sessions["s1"].lights, "light.a" in engine._owner)
+            engine.stop_all()
+            return result
+
+        self.assertEqual(asyncio.run(go()), (False, False))
+
+    def test_a_light_a_person_changed_does_not_rejoin(self):
+        async def go():
+            drv, clock, engine = self._engine()
+            await clock.run(12)
+            engine.changed_by_someone("light.a")
+            drv.lights["light.a"] = info(xy=tuple(self._last_sent(drv, "light.b")["xy_color"]), brightness=200)
+            await clock.run(20)
+            result = "light.a" in engine.sessions["s1"].lights
+            engine.stop_all()
+            return result
+
+        self.assertFalse(asyncio.run(go()))
+
+    def test_a_light_another_scene_took_meanwhile_does_not_rejoin(self):
+        async def go():
+            drv, clock, engine = self._engine()
+            await clock.run(12)
+            drv.lights["light.a"] = self.GREEN
+            await clock.run(8)
+            engine.start(definition(("light.a",), scene_id="s2"))
+            drv.lights["light.a"] = info(xy=tuple(self._last_sent(drv, "light.b")["xy_color"]), brightness=200)
+            await clock.run(10)
+            result = ("light.a" in engine.sessions["s1"].lights, engine._owner["light.a"])
+            engine.stop_all()
+            return result
+
+        self.assertEqual(asyncio.run(go()), (False, "s2"))
+
+    def test_a_scene_whose_every_light_was_taken_ends_at_once_and_nothing_rejoins_it(self):
+        async def go():
+            drv, clock, engine = self._engine(("light.a",))
+            await clock.run(12)
+            drv.lights["light.a"] = self.GREEN
+            await clock.run(10)
+            return "s1" in engine.sessions, engine._owner, dict(engine._tasks)
+
+        self.assertEqual(asyncio.run(go()), (False, {}, {}))
+
+
 class EngineTests(unittest.TestCase):
     def test_the_loop_keeps_sending_and_respects_the_hue_rate(self):
         lights = tuple(f"light.l{i}" for i in range(8))

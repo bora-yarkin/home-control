@@ -34,6 +34,9 @@ _LOGGER = logging.getLogger(__name__)
 CHANGED_XY = 0.12
 CHANGED_BRIGHTNESS = 80
 RECENT_TARGETS = 3
+# A light the colour check let go of is watched this long while the scene still has other lights; it rejoins when it shows one of
+# the scene's colours again.
+WATCH_SECONDS = 120.0
 
 # Updates of a light that fades by itself: as often as the palette needs, within these seconds.
 MIN_INTERVAL = 1.5
@@ -57,6 +60,7 @@ class _Light:
 class StepResult:
     commands: list[tuple[str, dict[str, Any]]] = field(default_factory=list)
     dropped: list[str] = field(default_factory=list)
+    rejoined: list[str] = field(default_factory=list)
 
 
 class Session:
@@ -71,6 +75,8 @@ class Session:
         self.frozen = False
         self.wake = asyncio.Event()  # set to make the loop look at the session now
         self.lights: dict[str, _Light] = {light.entity_id: _Light(driven=definition.wake) for light in definition.lights}
+        # Lights the colour check let go of, with the time they stop being watched.
+        self.watching: dict[str, tuple[_Light, float]] = {}
         self._look = build(definition)
 
     def retune(self, definition: Definition) -> None:
@@ -163,7 +169,22 @@ class Session:
                 result.dropped.append(entity_id)
             elif not self.frozen and now >= light.next_due:
                 result.commands.append((entity_id, self._command(entity_id, light, info, now)))
+        self._look_for_lights_that_came_back(now, driver, held, result)
         return result
+
+    def _look_for_lights_that_came_back(self, now: float, driver: Driver, held: set[str], result: StepResult) -> None:
+        """A light let go of by the colour check (it may only have been behind) rejoins when it shows a colour the scene sent it, and
+        is forgotten when it has not within WATCH_SECONDS."""
+        for entity_id, (light, until) in list(self.watching.items()):
+            if now >= until:
+                del self.watching[entity_id]
+                continue
+            info = driver.info(entity_id)
+            if entity_id in held or info is None or info.state != "on" or not light.recent:
+                continue
+            moves = self._look.moves_brightness(entity_id)
+            if not all(self._changed(info, sent, brightness_moves=moves) for sent in light.recent):
+                result.rejoined.append(entity_id)
 
     def _native_command(self, entity_id: str, native: str, light: _Light, now: float) -> dict[str, Any]:
         """The light plays its own effect; the scene only changes its colour (the palette's, moving) and brightness, and not often."""
@@ -303,15 +324,31 @@ class Engine:
 
     # --- lights leaving a scene ------------------------------------------
 
-    def _release(self, scene_id: str, entity_id: str) -> None:
+    def _release(self, scene_id: str, entity_id: str, *, watch: bool = False) -> None:
+        """A light leaves a scene. With `watch` (the colour check let it go, which may be a mistake) it is looked at for a while and
+        can rejoin; without it (a person changed it, or another scene took it) it is gone."""
         session = self.sessions.get(scene_id)
         if session is None:
             return
-        session.lights.pop(entity_id, None)
+        light = session.lights.pop(entity_id, None)
+        if watch and light is not None:
+            session.watching[entity_id] = (light, self._clock() + WATCH_SECONDS)
         if self._owner.get(entity_id) == scene_id:
             del self._owner[entity_id]
         if not session.lights:
-            self.stop(scene_id)
+            self.stop(scene_id)  # nothing left to play (everything was taken by something else): no light is left to rejoin it
+
+    def _rejoin(self, scene_id: str, entity_id: str) -> None:
+        """A watched light shows the scene's colours again: it plays again, unless another scene has it by now."""
+        session = self.sessions.get(scene_id)
+        watched = session.watching.pop(entity_id, None) if session is not None else None
+        if session is None or watched is None or self._owner.get(entity_id) not in (None, scene_id):
+            return
+        light = watched[0]
+        light.next_due = 0.0
+        session.lights[entity_id] = light
+        self._owner[entity_id] = scene_id
+        session.wake.set()
 
     def owns(self, entity_id: str) -> bool:
         """Whether a running scene has this light."""
@@ -349,9 +386,14 @@ class Engine:
                 return
             result = session.step(self._clock(), self._driver, self.held)
             for entity_id in result.dropped:
-                self._release(scene_id, entity_id)
-            if result.dropped:
+                self._release(scene_id, entity_id, watch=True)
+            for entity_id in result.rejoined:
+                self._rejoin(scene_id, entity_id)
+            if result.dropped or result.rejoined:
                 self._notify()
+            if not session.lights:
+                self.stop(scene_id)
+                return
             for entity_id, data in result.commands:
                 await self._send(entity_id, data)
             session = self.sessions.get(scene_id)
