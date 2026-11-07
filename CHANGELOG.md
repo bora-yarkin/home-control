@@ -4,6 +4,16 @@ Format: [Keep a Changelog](https://keepachangelog.com/). Versions follow [semant
 
 ## [Unreleased]
 
+### Changed
+- Live scenes and areas are played by Home Control itself, for any light (decisions D-12 to D-14): the engine, the saved scenes and areas, the services (`home_control.scene_start`, `scene_save`, `area_save` and so on), the running-scenes sensor and the library read moved from Hue Plus into this integration. The dashboard talks only to these. Nothing on the dashboard looks or works differently with Hue Plus installed: Hue lights still play through the bridge, with their own effects.
+- The first start takes over the scenes and areas Hue Plus saved (read only: Hue Plus's file is not changed) and keeps its own copy.
+- A saved area light keeps the unique id of its light, and a gradient light's zone also that of its light, so scenes and areas keep working on the lights Home Assistant has left when a plus integration is removed.
+- A plus integration declares itself in `home_control.json` and plays its lights' own effects through a service (decision D-13). Hue Plus is the first.
+- Any light can be placed in an area, and the *Add a light* list offers every light; before, only Hue Plus's lights could be next to the Hue integration. Importing a Hue scene still needs Hue Plus.
+
+### Removed
+- The Scene engine integration as a partner: Home Control no longer looks for it.
+
 ## [0.4.6]
 
 ### Added

@@ -1190,7 +1190,7 @@ var LP_SCENEPAL = {};
 
 function lpScenePalette(id, done) {
   if (LP_SCENEPAL[id]) return done(LP_SCENEPAL[id]);
-  if (!engineSensor()) return;
+  if (!hueImportable()) return;
   HA.serviceResponse("hue_plus", "import_hue_scene", { entity_id: id })
     .then(function (r) {
       if (!r || !r.palette || !r.palette.length) return;

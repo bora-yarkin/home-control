@@ -1,5 +1,5 @@
 // SPDX-License-Identifier: GPL-3.0-or-later
-// Which lights can be placed in an area: with Hue Plus next to the Hue integration, only Hue lights. Run: node --test tests/frontend
+// Which lights can be placed in an area: Home Control plays live scenes for any light, so any light. Run: node --test tests/frontend
 import assert from "node:assert/strict";
 import { readFileSync } from "node:fs";
 import test from "node:test";
@@ -8,11 +8,9 @@ import vm from "node:vm";
 const plain = (value) => JSON.parse(JSON.stringify(value));
 const APP = new URL("../../custom_components/home_control/frontend/app/", import.meta.url);
 
-function page(hueOnly) {
-  const platforms = { "light.hue_a": "hue_plus", "light.hue_b": "hue_plus", "light.matter": "matter" };
+function page() {
+  const platforms = { "light.hue_a": "hue_plus", "light.hue_b": "hue_plus", "light.hue_core": "hue", "light.matter": "matter" };
   const sandbox = {
-    HPLIB: { hueOnly },
-    H: () => ({ entities: Object.fromEntries(Object.entries(platforms).map(([id, platform]) => [id, { platform }])) }),
     roomDevs: () => Object.keys(platforms).map((id) => ({ id, name: id, icon: "light", type: "light" })),
     zoneMembers: () => [],
     lightIndividuals: (ids) => ids,
@@ -23,12 +21,8 @@ function page(hueOnly) {
   return sandbox;
 }
 
-test("next to the Hue integration only Hue lights can be placed in an area", () => {
-  assert.deepEqual(plain(page(true).eaRoomLights("room")).map((l) => l.id), ["light.hue_a", "light.hue_b"]);
-});
-
-test("without that, every light of the room can be placed, as before", () => {
-  assert.deepEqual(plain(page(false).eaRoomLights("room")).map((l) => l.id), ["light.hue_a", "light.hue_b", "light.matter"]);
+test("every light of the room can be placed in an area, whatever its make", () => {
+  assert.deepEqual(plain(page().eaRoomLights("room")).map((l) => l.id), ["light.hue_a", "light.hue_b", "light.hue_core", "light.matter"]);
 });
 
 function other(extra = {}) {
@@ -36,7 +30,6 @@ function other(extra = {}) {
   const members = { "light.group": ["light.tray", "light.in_group"] };
   const toasts = [];
   const sandbox = {
-    HPLIB: { hueOnly: true },
     H: () => ({ entities: Object.fromEntries(Object.entries(platforms).map(([id, platform]) => [id, { platform }])) }),
     candidates: (doms, room, q) => {
       assert.deepEqual(plain(doms), ["light"]);
@@ -59,25 +52,25 @@ function other(extra = {}) {
 }
 
 test("any light of Home Assistant that is not in the tray yet can be added, from any room", () => {
-  assert.deepEqual(plain(other().eaOtherLights("")).map((c) => c.id), ["light.elsewhere", "light.group", "light.in_group"]);
+  assert.deepEqual(plain(other().eaOtherLights("")).map((c) => c.id), ["light.elsewhere", "light.matter_elsewhere", "light.group", "light.in_group"]);
 });
 
 test("a group is offered while one of its members is missing from the tray, and not once all are in", () => {
   const page = other();
   page.EAD.v.byId["light.in_group"] = { id: "light.in_group" };
-  assert.deepEqual(plain(page.eaOtherLights("")).map((c) => c.id), ["light.elsewhere"]);
+  assert.deepEqual(plain(page.eaOtherLights("")).map((c) => c.id), ["light.elsewhere", "light.matter_elsewhere"]);
 });
 
 test("the search narrows the lights that can be added", () => {
-  assert.deepEqual(plain(other().eaOtherLights("where")).map((c) => c.id), ["light.elsewhere"]);
+  assert.deepEqual(plain(other().eaOtherLights("where")).map((c) => c.id), ["light.elsewhere", "light.matter_elsewhere"]);
 });
 
 test("the sync switches that the device picker lists as lights are not offered", () => {
   assert.ok(!plain(other().eaOtherLights("")).some((c) => c.id.startsWith("switch.")));
 });
 
-test("next to the Hue integration a light of another brand is not offered", () => {
-  assert.ok(!plain(other().eaOtherLights("")).some((c) => c.id === "light.matter_elsewhere"));
+test("a light of another make is offered too", () => {
+  assert.ok(plain(other().eaOtherLights("")).some((c) => c.id === "light.matter_elsewhere"));
 });
 
 test("a light added to the area takes the next spot, a bar also gets a direction", () => {

@@ -101,16 +101,17 @@ The switch is shown as a light-style row (`hsyncRow`, also offered under the Lig
 of its area (matched by the Hue id: a Hue light's registry `unique_id`, or the `hue_light_id` of a Hue gradient zones light) show as on and
 playing in their rows. The "turn all lights off" button of a Lights section only sends the entities that are lights.
 
-## Scene engine (`scene_engine`, optional)
+## Live scenes (Home Control's own integration)
 
-Live scenes and Hue scene import need the Philips Hue Plus integration (scenes module). Nothing else in the panel does.
+Live scenes and areas are played by Home Control's integration for every light (`live/`, decision D-12); the panel keeps no engine of its own.
 
-- **Needs it:** starting, stopping, pausing and freezing a live scene, the live-scene editor's changes while it runs, "identify"
-  on the area editor, and importing a Hue scene (`scene_engine.start`, `stop`, `play`, `freeze`, `update`, `identify`, and
-  `read_hue_scene` with a response). Live scenes are also shown as running from its `sensor.*` entities.
-- **Setup:** install and add the integration in Home Assistant; the panel finds it by its sensors and needs no setting of its own.
-- **Without it:** the panel works as usual; live scenes and Hue import show "Scene engine is not installed" when used, and
-  ordinary scenes, lights and everything else are unaffected.
+- **Services:** `home_control.scene_start`, `scene_update`, `scene_freeze`, `scene_play`, `scene_stop`, `scene_save`, `scene_delete`, `area_save`,
+  `area_delete`, `locate_light` ("identify" on the area editor) and `get_library`. Running scenes are shown from `sensor.home_control_live_scenes`,
+  which the panel finds through its integration.
+- **Plus integrations (decision D-13):** a brand's plus integration (Hue Plus) declares itself in `home_control.json` and plays its own lights' own
+  effects through a service of its own. Without one, every light is played through `light.turn_on`.
+- **Hue scene import** (*Import as a live scene*) reads the bridge, so it needs Hue Plus (`hue_plus.import_hue_scene`); without Hue Plus it says so.
+  Nothing else about live scenes needs Hue Plus.
 
 ## The address bar
 
@@ -152,7 +153,7 @@ asking the bridge, the exchange of areas with the bridge).
 
 The bridge's area page (Hue Plus → Entertainment areas → an area) has *Light placement*: the placement editor opens on the bridge's own area (`hpEditOnBridge`): its lights are the Hue Plus lights, there are no things in the room, each light has a brightness balance, and *Save to the bridge* writes the area through `hue_plus.update_entertainment_area`. A light of the area that Home Assistant has no entity for is kept and sent back unchanged. The bridge's `y` runs the other way round from the editor's (`hpFlip`), so a light is turned over on the way in and on the way out. Nothing in the dashboard's own areas changes.
 
-The dashboard's areas (Settings → Areas) hold any light and work without Hue Plus. When Hue Plus runs next to the Hue integration it says so in `get_library` (`hue_only`) and the area editor then offers Hue Plus's lights only. With it installed (administrators only) a room's list of areas gets
+The dashboard's areas (Settings → Areas) hold any light and work without Hue Plus. With Hue Plus installed (administrators only) a room's list of areas gets
 *Import from the Hue bridge* (a bridge area opens in the editor as a new area, with the lights that are in the room), and the editor gets *Send to the Hue bridge*
 (the area's Hue lights and positions go to the bridge's area of the same name, or a new one; other lights stay on the dashboard) and *Read from the Hue bridge*
 (positions for the lights already there). The code is in `app/hueplus.js`; `areas.js` only calls `hpAreaImport` and `hpAreaActions`.

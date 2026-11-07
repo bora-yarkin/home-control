@@ -20,6 +20,8 @@ export function makeHass(query) {
     state("light.desk_lamp", "on", { friendly_name: "Desk lamp", brightness: 180, supported_color_modes: ["xy", "color_temp"], color_mode: "xy", xy_color: [0.4, 0.4], effect_list: ["off", "candle", "prism"], hue_light_id: "light-1", hue_function: "mixed", hue_min_brightness: 0.2, hue_gamut: "C" }),
     state("light.shelf_strip", "off", { friendly_name: "Shelf strip", supported_color_modes: ["xy"], hue_light_id: "light-2", hue_function: "decorative", hue_gradient_orientation: "horizontal", hue_gradient_orientation_configurable: true, hue_gradient_order: "forward", hue_gradient_order_configurable: true }),
     state("light.ceiling_plain", "on", { friendly_name: "Ceiling (not Hue)", brightness: 255, supported_color_modes: ["brightness"] }),
+    // Home Control's own integration plays live scenes for every light; its sensor lists what is running.
+    state("sensor.home_control_live_scenes", "0", { friendly_name: "Live scenes", sessions: {}, saved_scenes: 0, saved_areas: 0 }),
     ...(withSync
       ? [
           state("switch.hue_spotify_sync", "off", { friendly_name: "Hue Spotify sync" }),
@@ -36,7 +38,6 @@ export function makeHass(query) {
           state("update.bridge_firmware", "off", { friendly_name: "Bridge firmware", installed_version: "1976154040", latest_version: "1976154040" }),
           state("update.desk_lamp_firmware", "on", { friendly_name: "Desk lamp firmware", installed_version: "1.1", latest_version: "1.2" }),
           state("sensor.bridge_tv_area", "inactive", { friendly_name: "TV area", type: "screen", end_state: "last_state", area_id: "area-1", lights: [] }),
-          state("sensor.bridge_live_scenes", "idle", { friendly_name: "Live scenes" }),
         ]
       : []),
     ...(withBox
@@ -55,6 +56,7 @@ export function makeHass(query) {
     reg("light.desk_lamp", "hue_plus", "light-1", "dev-lamp"),
     reg("light.shelf_strip", "hue_plus", "light-2", "dev-strip"),
     reg("light.ceiling_plain", "other", "plain-1", "dev-plain"),
+    reg("sensor.home_control_live_scenes", "home_control", "entry1_live_scenes", "dev-home-control"),
     ...(withSync
       ? [
           reg("switch.hue_spotify_sync", "hue_plus", `${BRIDGE}_sync_sync`, "dev-spotify"),
@@ -71,7 +73,6 @@ export function makeHass(query) {
           reg("update.bridge_firmware", "hue_plus", `${BRIDGE}_bridge_update`, "dev-bridge"),
           reg("update.desk_lamp_firmware", "hue_plus", "lamp_update", "dev-lamp"),
           reg("sensor.bridge_tv_area", "hue_plus", `${BRIDGE}_area_area-1`, "dev-bridge"),
-          reg("sensor.bridge_live_scenes", "hue_plus", `${BRIDGE}_live_scenes`, "dev-bridge"),
         ]
       : []),
     ...(withBox
@@ -170,7 +171,7 @@ export function makeHass(query) {
         case "call_service": {
           calls.push({ domain: msg.domain, service: msg.service, data: msg.service_data, response: true });
           if (msg.domain === "hue_plus" && msg.service === "get_resources") return Promise.resolve({ response: resources });
-          if (msg.domain === "hue_plus" && msg.service === "get_library") return Promise.resolve({ response: { scenes: [], areas: [] } });
+          if (msg.domain === "home_control" && msg.service === "get_library") return Promise.resolve({ response: { scenes: [], areas: [], presets: [] } });
           return Promise.resolve({ response: {} });
         }
         default: return Promise.resolve(null);
@@ -183,7 +184,8 @@ export function makeHass(query) {
     services: {
       light: { turn_on: {}, turn_off: {} }, switch: { turn_on: {}, turn_off: {} }, select: { select_option: {} },
       number: { set_value: {} }, button: { press: {} }, scene: { turn_on: {} }, update: { install: {} },
-      ...(withSync ? { hue_plus: Object.fromEntries(["get_resources", "get_library", "set_effect", "set_style", "configure_light", "timed_effect", "signal", "create_routine", "configure_button", "set_streaming_end_state", "stream_colors", "stop_streaming", "set_motion_area", "set_auto_update", "check_for_update", "install_bridge_update", "set_zigbee_channel", "search_for_devices", "remove_matter_fabric", "revoke_app", "update_entertainment_area", "scene_start", "scene_stop"].map((s) => [s, {}])) } : {}),
+      ...(withSync ? { hue_plus: Object.fromEntries(["get_resources", "set_effect", "set_style", "configure_light", "timed_effect", "signal", "create_routine", "configure_button", "set_streaming_end_state", "stream_colors", "stop_streaming", "set_motion_area", "set_auto_update", "check_for_update", "install_bridge_update", "set_zigbee_channel", "search_for_devices", "remove_matter_fabric", "revoke_app", "update_entertainment_area", "import_hue_scene"].map((s) => [s, {}])) } : {}),
+      home_control: Object.fromEntries(["scene_start", "scene_update", "scene_freeze", "scene_play", "scene_stop", "scene_save", "scene_delete", "area_save", "area_delete", "locate_light", "get_library"].map((s) => [s, {}])),
     },
     config: { unit_system: { temperature: "°C" }, time_zone: "UTC", language: "en", components: [] },
     user: { id: "u1", name: "Test user", is_admin: query.get("user") !== "guest", is_owner: true },
