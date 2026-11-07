@@ -4,6 +4,11 @@ Format: [Keep a Changelog](https://keepachangelog.com/). Versions follow [semant
 
 ## [Unreleased]
 
+## [0.9.5] - 2026-11-08
+
+### Fixed
+- A classic scene imported from Hue listed every bulb on its own (each Play light, each lamp). A light group the room shows (Floor lamps, Hue Play, Ceiling lights) is now one light of the scene when the scene sets all its lights the same; lights set differently stay separate.
+
 ## [0.9.4] - 2026-11-08
 
 ### Fixed
