@@ -181,6 +181,13 @@ scene_save:
       example: "[{\"entity_id\": \"media_player.tv\", \"do\": \"off\"}]"
       selector:
         object: {}
+    "fps":
+      selector:
+        number:
+          mode: "box"
+          min: 1
+          max: 60
+          step: 1
     "area":
       selector:
         text: {}

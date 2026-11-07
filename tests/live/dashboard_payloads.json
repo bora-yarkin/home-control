@@ -1,0 +1,24 @@
+{
+  "scene_save": [
+    "actions",
+    "area",
+    "brightness",
+    "colour_source",
+    "effects",
+    "fps",
+    "id",
+    "looks",
+    "name",
+    "palette",
+    "range",
+    "speed",
+    "spread",
+    "ui"
+  ],
+  "area_save": [
+    "id",
+    "lights",
+    "name",
+    "ui"
+  ]
+}

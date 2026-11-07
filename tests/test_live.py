@@ -73,6 +73,34 @@ async def test_the_library_is_read_with_the_presets(hass, lights):
     assert [s["id"] for s in library["scenes"]] == ["s"] and len(library["presets"]) >= 12
 
 
+async def test_the_services_take_everything_the_dashboard_sends_when_it_saves(hass, lights):
+    """The dashboard sends the same keys for every save (tests/frontend/liveparts.test.mjs checks that it does): a key a service did not list
+    made every save of a scene fail."""
+    sent = json.loads((Path(__file__).parent / "live" / "dashboard_payloads.json").read_text())
+    area = {"id": "room", "name": "Room", "lights": LIGHTS, "ui": {"room": "living"}}
+    scene = {
+        "id": "evening",
+        "name": "Evening",
+        "colour_source": "palette",
+        "effects": [],
+        "looks": {},
+        "actions": [],
+        "palette": [{"xy": [0.2, 0.4]}],
+        "speed": 5,
+        "range": 100,
+        "brightness": 200,
+        "spread": "radial",
+        "fps": 24,
+        "area": "room",
+        "ui": {"room": "living"},
+    }
+    assert sorted(area) == sent["area_save"] and sorted(scene) == sent["scene_save"]
+    await call(hass, "area_save", area)
+    await call(hass, "scene_save", scene)
+    library = await call(hass, "get_library", response=True)
+    assert library["scenes"][0]["fps"] == 24
+
+
 async def test_a_screen_can_read_the_library_over_the_websocket(hass, lights, hass_ws_client):
     await call(hass, "scene_save", {"id": "s", "name": "S", "preset": "ocean", "lights": LIGHTS})
     client = await hass_ws_client(hass)

@@ -144,3 +144,15 @@ test("the update rate goes to Home Control when a scene starts and when it is sa
   assert.equal(plain(sandbox.liveScenePayload(scene)).fps, 24);
   assert.equal(plain(sandbox.livePayload({ ...scene, live: { ...BASE } })).data.fps, 2);
 });
+
+test("what the dashboard sends to save a scene and an area is exactly what the services take (tests/live/dashboard_payloads.json)", () => {
+  const { sandbox, plain } = page();
+  sandbox.deviceGet = (_key, fallback) => fallback;
+  const sent = JSON.parse(readFileSync(new URL("../live/dashboard_payloads.json", import.meta.url), "utf8"));
+  const scene = { id: "s1", name: "S1", room: "living", live: { ...BASE } };
+  const area = { id: "room", name: "Room", room: "living", lights: [{ id: "light.a", x: 0, y: 0, z: 0 }] };
+  sandbox.STORE.scenes.push(scene);
+  sandbox.STORE.eareas.push(area);
+  assert.deepEqual(Object.keys(plain(sandbox.liveScenePayload(scene))).sort(), sent.scene_save);
+  assert.deepEqual(Object.keys(plain(sandbox.liveAreaPayload(area))).sort(), sent.area_save);
+});
