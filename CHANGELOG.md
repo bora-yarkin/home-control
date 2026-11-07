@@ -4,6 +4,12 @@ Format: [Keep a Changelog](https://keepachangelog.com/). Versions follow [semant
 
 ## [Unreleased]
 
+## [0.9.2] - 2026-11-08
+
+### Fixed
+- Segmented still changed colour in a short fade and then held it, which looked like a jump. A light now fades from one colour of the palette to the next across the whole segment (one command per segment, the fade as long as the segment, the next begins as it ends), with no colour of its own between the two.
+- Linear still seemed to stop between fades: a bridge eases the start and end of every fade, so fades that only just overlapped showed a pause at each join. A fade now lasts twice the time to the light's next command, so the next command arrives while the light is moving at its fastest.
+
 ## [0.9.1] - 2026-11-07
 
 ### Fixed
