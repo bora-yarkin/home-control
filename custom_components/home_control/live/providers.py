@@ -15,6 +15,7 @@ commands per second their bridge takes and a service that plays one of the light
      "set_effect": "set_effect",
      "menu": {"url": "/hue_plus_static/menu.js"},
      "replaces": ["hue"],
+     "separate_zones": {"service": "set_style", "field": "light", "data": {"style": "segmented"}},
      "catalogue": {"groups": [...], "effects": [...]}}
 
 ``lights`` maps an entity registry platform to what is known of its lights: ``rate`` (commands per second to share), ``group`` (lights of
@@ -24,7 +25,9 @@ a part of another, like a gradient light's zone, to get the unique id of the lig
 can be played as the whole light when the plus integration is gone). ``effects`` at the top lists the ids of the effects that can be played with a colour;
 ``play_effect`` names the service of the plus integration that plays one (entity_id, effect, xy, brightness, speed). ``set_effect`` names its service that starts an
 effect with a colour (hs_color or kelvin) and a speed on some lights (lights, effect, hs_color, kelvin, speed), which the effects page calls. ``menu`` is the script the dashboard loads for administrators (the integration's own pages in Settings, in the dashboard's plugin API
-``window.HomeControl``); its url must be a ``.js`` file under ``/<domain>_static/``, which the integration serves itself. ``replaces`` lists the integrations whose entities this one makes its own entity for (the same unique id), so the dashboard shows
+``window.HomeControl``); its url must be a ``.js`` file under ``/<domain>_static/``, which the integration serves itself. ``separate_zones`` says how to make every zone of a strip (a light made of zones) a light of its own, when the light has a style in which the bridge blends
+some of them: the service of the plus integration to call, the field that takes the entity id of one of the strip's zones, and the rest of its data. A scene
+that plays on the zones of a strip plays all of them, in order, as separate lights next to each other, and calls it first when some of them are unavailable. ``replaces`` lists the integrations whose entities this one makes its own entity for (the same unique id), so the dashboard shows
 only this one's: an entity of a replaced integration is left out when an enabled entity of this integration stands in for it. ``catalogue`` is what the
 dashboard shows of the effects (their groups, labels, pictures, defaults and colour variants) in the syntax of ``docs/effects-file.md``; a
 catalogue with a problem is ignored and logged, and the provider's lights and rates still count.
@@ -35,6 +38,7 @@ from __future__ import annotations
 import json
 import logging
 import re
+from collections.abc import Mapping
 from dataclasses import dataclass, field
 from pathlib import Path
 from typing import Any
@@ -85,6 +89,15 @@ _DECLARATION = vol.Schema(
         vol.Optional("menu"): vol.Schema(
             {vol.Required("url"): vol.All(cv.string, vol.Match(r"^/[a-z0-9_]+_static/[A-Za-z0-9_./-]{1,120}\.js$"))}
         ),
+        vol.Optional("separate_zones"): vol.Schema(
+            {
+                vol.Required("service"): vol.All(cv.string, vol.Match(r"^[a-z][a-z0-9_]{0,63}$")),
+                vol.Optional("field", default="light"): vol.All(cv.string, vol.Match(r"^[a-z][a-z0-9_]{0,31}$")),
+                vol.Optional("data", default=dict): vol.All(
+                    {vol.All(cv.string, vol.Match(r"^[a-z][a-z0-9_]{0,31}$")): vol.Any(str, int, float, bool)}, vol.Length(max=8)
+                ),
+            }
+        ),
         vol.Optional("replaces", default=list): vol.All([vol.All(cv.string, vol.Match(r"^[a-z0-9_]{1,64}$"))], vol.Length(max=8)),
         vol.Optional("catalogue"): dict,
     }
@@ -102,6 +115,15 @@ class LightClass:
 
 
 @dataclass(frozen=True)
+class SeparateZones:
+    """How a plus integration makes every zone of a strip a light of its own."""
+
+    service: str
+    light_field: str = "light"  # the field of the service that takes the entity id of one of the strip's zones
+    data: Mapping[str, Any] = field(default_factory=dict)
+
+
+@dataclass(frozen=True)
 class Provider:
     domain: str
     name: str
@@ -111,6 +133,7 @@ class Provider:
     set_effect: str | None = None
     menu_url: str | None = None
     replaces: tuple[str, ...] = ()
+    separate_zones: SeparateZones | None = None
     groups: tuple[Group, ...] = ()
     catalogue: tuple[Effect, ...] = ()
     catalogue_problems: tuple[str, ...] = ()
@@ -146,6 +169,9 @@ def parse(domain: str, raw: Any) -> Provider:
         set_effect=data.get("set_effect"),
         menu_url=menu_url,
         replaces=tuple(data["replaces"]),
+        separate_zones=SeparateZones(data["separate_zones"]["service"], data["separate_zones"]["field"], data["separate_zones"]["data"])
+        if "separate_zones" in data
+        else None,
         groups=groups,
         catalogue=shown,
         catalogue_problems=problems,
@@ -190,6 +216,17 @@ class Providers:
             if (not loaded or provider.domain in self.hass.config.components) and platform in provider.lights:
                 return provider, provider.lights[platform]
         return None
+
+    async def async_separate_zones(self, provider: Provider, zone_entity_id: str) -> None:
+        """Puts a strip in a style where each of its zones is a light of its own (what its provider declares). A failure is logged: the
+        scene plays on the zones that are available."""
+        how = provider.separate_zones
+        if how is None:
+            return
+        try:
+            await self.hass.services.async_call(provider.domain, how.service, {how.light_field: zone_entity_id, **how.data}, blocking=True)
+        except HomeAssistantError as err:
+            _LOGGER.warning("%s could not separate the zones of %s: %s", provider.name, zone_entity_id, err)
 
     async def async_play_effect(self, entity_id: str, platform: str, data: dict[str, Any]) -> bool:
         """Plays a light's own effect through its provider. False when no provider can (the caller plays the colour without it)."""

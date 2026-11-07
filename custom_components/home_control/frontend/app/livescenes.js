@@ -121,6 +121,7 @@ function liveParts(sc) {
   });
   return {
     colour_source: l.src || "palette",
+    mode: l.mode === "segmented" ? "segmented" : "linear",
     effects: l.fx || [],
     looks: looks,
     actions: (l.also || []).map(function (a) {
@@ -152,6 +153,7 @@ function livePayload(sc) {
     }),
     data: {
       colour_source: parts.colour_source,
+      mode: parts.mode,
       effects: parts.effects,
       looks: parts.looks,
       actions: parts.actions,
@@ -203,6 +205,7 @@ function liveScenePayload(sc) {
     id: liveId(sc.id),
     name: sc.name || sc.id,
     colour_source: parts.colour_source,
+    mode: parts.mode,
     effects: parts.effects,
     looks: parts.looks,
     actions: parts.actions,

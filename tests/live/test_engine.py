@@ -992,3 +992,59 @@ class FrozenSceneTests(unittest.TestCase):
         self.assertEqual(still, held)
         self.assertEqual(shown, (90, held + 1))
         self.assertEqual(after, held + 1)
+
+
+class SegmentedEngineTests(unittest.TestCase):
+    """A segmented scene sets each light to a colour of the palette, without a fade, as its segment begins."""
+
+    PALETTE = [{"xy": [0.6, 0.35]}, {"xy": [0.2, 0.2]}, {"xy": [0.3, 0.55]}, {"xy": [0.15, 0.08]}]
+
+    def _run(self, seconds, **kw):
+        async def go():
+            drv = FakeDriver({"light.a": info(), "light.b": info()})
+            clock = VirtualClock()
+            engine = e.Engine(drv, clock=clock, sleep=clock.sleep)
+            engine.start(definition(("light.a", "light.b"), palette=self.PALETTE, mode="segmented", speed=12, range=0, **kw))
+            await clock.run(seconds)
+            engine.stop_all()
+            return drv, clock
+
+        return asyncio.run(go())
+
+    def test_each_command_is_a_colour_of_the_palette_with_no_fade(self):
+        drv, _ = self._run(30)
+        colours = {tuple(data["xy_color"]) for _kind, _light, data in drv.calls}
+        self.assertEqual(colours, {(0.6, 0.35), (0.2, 0.2), (0.3, 0.55), (0.15, 0.08)})
+        self.assertTrue(all(data["transition"] == 0 for _kind, _light, data in drv.calls))
+
+    def test_a_light_is_sent_one_command_per_segment_not_one_per_update_interval(self):
+        drv, _ = self._run(32)  # four loops of 8 seconds at speed 12, four colours: sixteen segments
+        mine = [data for _kind, light, data in drv.calls if light == "light.a"]
+        self.assertAlmostEqual(len(mine), 16, delta=2)
+        for before, after in pairwise(mine):
+            self.assertNotEqual(before["xy_color"], after["xy_color"])
+
+    def test_the_commands_come_when_the_segments_begin(self):
+        at = []
+
+        async def go():
+            d2 = FakeDriver({"light.a": info()})
+            c2 = VirtualClock()
+            engine = e.Engine(d2, clock=c2, sleep=c2.sleep)
+            engine.start(definition(("light.a",), palette=self.PALETTE, mode="segmented", speed=12, range=0))
+            for _ in range(160):
+                before = len(d2.calls)
+                await c2.run(0.1)
+                if len(d2.calls) > before:
+                    at.append(round(c2.now - 1000.0, 1))
+            engine.stop_all()
+
+        asyncio.run(go())
+        gaps = [round(b - a, 1) for a, b in pairwise(at)]
+        self.assertTrue(all(abs(g - 2.0) <= 0.2 for g in gaps), gaps)  # a loop of 8 seconds in four segments
+
+    def test_the_brightness_effects_still_update_inside_a_segment(self):
+        drv, _ = self._run(30, effects=[{"type": "flicker", "speed": 12, "strength": 80}])
+        mine = [data for _kind, light, data in drv.calls if light == "light.a"]
+        self.assertGreater(len(mine), 30)
+        self.assertGreater(len({data["brightness"] for data in mine}), 5)

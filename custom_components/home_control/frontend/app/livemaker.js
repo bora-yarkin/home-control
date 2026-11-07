@@ -99,15 +99,24 @@ function liveMakerOpen(room, sc, target, areas, draft, pending) {
     areas: areas.slice(),
     live: JSON.parse(
       JSON.stringify(
-        live || { speed: 6, range: 100, bri: 100, fps: 2, spread: "x", src: "palette", fx: [], looks: {}, also: [] }
+        live || { speed: 6, range: 100, bri: 100, fps: 2, spread: "x", src: "palette", mode: "linear", fx: [], looks: {}, also: [] }
       )
     ),
-    joins: [],
+    /* What single lights do differently: their own brightness (percent) and their own effect, by light; the rest follows the scene. */
+    bri: {},
+    fx: {},
+    looks0: (live && live.looks) || {},
     S: null,
     saved: null,
     preview: false,
     snap: [],
   };
+  LMK.live.mode = LMK.live.mode === "segmented" ? "segmented" : "linear";
+  Object.keys(LMK.looks0).forEach(function (id) {
+    var look = LMK.looks0[id];
+    if (typeof look.bri === "number") LMK.bri[id] = look.bri;
+    if (look.native) LMK.fx[id] = look.native;
+  });
   vcolLoad(live ? live.palette : [{ hs: [0, 100] }, { hs: [240, 100] }]);
   LMK.lights = liveMakerLights(LMK.areas);
   LMK.snap = lightSnapshot(LMK.lights);
@@ -115,57 +124,15 @@ function liveMakerOpen(room, sc, target, areas, draft, pending) {
   showPopup("live-edit", true);
 }
 
-/* An edited scene opens with its lights as it has them: the ones it uses on, the ones it leaves off, and a colour joined to the lights that have it. */
+/* An edited scene opens with its lights as it has them: the ones it uses on and the ones it leaves off. Their brightness and effects are the scene's, kept here (LMK.bri, LMK.fx), not set on the lights. */
 function liveMakerShowScene(sc) {
   var off = {};
   (sc.live.off || []).forEach(function (id) {
     off[id] = 1;
   });
-  var looks = sc.live.looks || {};
   LMK.lights.forEach(function (id) {
-    if (off[id]) {
-      callRaw("light", "turn_off", { entity_id: id });
-      return;
-    }
-    /* A light shows its own brightness and effect, which is how the maker knows to keep them when the scene is saved. */
-    var d = { entity_id: id },
-      look = looks[id];
-    if (look && typeof look.bri === "number") d.brightness_pct = look.bri;
-    if (look && look.native) d.effect = look.native;
-    callRaw("light", "turn_on", d);
+    callRaw("light", off[id] ? "turn_off" : "turn_on", { entity_id: id });
   });
-  var pal = vcolPalette(),
-    ids = vcolIds();
-  Object.keys(looks).forEach(function (light) {
-    var look = sc.live.looks[light];
-    if (!look.palette || !look.palette.length) return;
-    var i = pal.findIndex(function (c) {
-      return JSON.stringify(c) === JSON.stringify(look.palette[0]);
-    });
-    if (i >= 0) LMK.joins.push([ids[i], light]);
-  });
-}
-
-/* The colour a light has by being joined to one, read from the panel. */
-function liveMakerJoins() {
-  if (!LMK.S) return LMK.joins;
-  var out = [];
-  LMK.S.joined.forEach(function (v) {
-    var colours = [],
-      lights = [];
-    v.kids.forEach(function (k) {
-      lpLeaves(k).forEach(function (n) {
-        n.cmd.forEach(function (id) {
-          (vlightIs(id) ? colours : lights).push(id);
-        });
-      });
-    });
-    if (colours.length === 1)
-      lights.forEach(function (l) {
-        out.push([colours[0], l]);
-      });
-  });
-  return out;
 }
 
 /* What the editor holds, for telling whether there is anything to lose. */
@@ -177,10 +144,10 @@ function liveMakerSig() {
     palette: vcolPalette(),
     live: LMK.live,
     lights: LMK.lights.map(function (id) {
-      var a = A(id);
-      return [id, V_(id), a.brightness || 0, a.effect || "", a.hs_color || a.color_temp_kelvin || 0];
+      return [id, V_(id)];
     }),
-    joins: liveMakerJoins(),
+    bri: LMK.bri,
+    fx: LMK.fx,
   });
 }
 
@@ -192,8 +159,6 @@ function liveMakerDirty() {
 function liveMakerScene() {
   var live = LMK.live,
     pal = vcolPalette(),
-    ids = vcolIds(),
-    joins = liveMakerJoins(),
     off = [],
     looks = {};
   LMK.lights.forEach(function (id) {
@@ -201,13 +166,11 @@ function liveMakerScene() {
       off.push(id);
       return;
     }
-    var a = A(id),
-      k = {};
-    if (typeof a.brightness === "number") k.bri = Math.max(1, Math.min(100, Math.round(a.brightness / 2.55)));
-    if (a.effect && a.effect !== "off" && LIVE_NATIVE.test(a.effect)) k.native = a.effect;
-    joins.forEach(function (j) {
-      if (j[1] === id && ids.indexOf(j[0]) >= 0) k.palette = [pal[ids.indexOf(j[0])]];
-    });
+    var k = {},
+      before = LMK.looks0[id];
+    if (typeof LMK.bri[id] === "number") k.bri = Math.max(1, Math.min(100, Math.round(LMK.bri[id])));
+    if (LMK.fx[id] && LIVE_NATIVE.test(LMK.fx[id]) && LMK.fx[id] !== "off") k.native = LMK.fx[id];
+    if (before && before.fx) k.fx = before.fx; /* brightness effects of a light, made elsewhere, are kept as they are */
     if (Object.keys(k).length) looks[id] = k;
   });
   var id = LMK.id || "s" + Date.now().toString(36);
@@ -229,6 +192,7 @@ function liveMakerScene() {
       fps: liveFps(live),
       spread: live.spread,
       src: live.src,
+      mode: live.mode === "segmented" ? "segmented" : "linear",
       fx: live.fx,
       looks: looks,
       also: live.also || [],
@@ -324,11 +288,7 @@ function liveMakerDef() {
 }
 
 function liveMakerBuild(b) {
-  /* Coming back from a page of the light popup, the colours joined to lights are what the old panel held. */
-  if (LMK.S) {
-    LMK.joins = liveMakerJoins();
-    LMK.S = null;
-  }
+  LMK.S = null;
   var w = mk("div", "sqw pane", svg(SCENE_ICON_LIVE)),
     inp = mk("input", "sq");
   inp.type = "text";
@@ -369,11 +329,12 @@ function liveMakerBuild(b) {
     stepper = mk("div");
   lightPanel(b, root, {
     sliders: false,
+    maker: true,
     ready: function (S) {
       LMK.S = S;
       S.ex[root.key] = true;
       S.ex[colorNode.key] = true;
-      liveMakerRestoreJoins(S, root);
+      S.sel = colorNode.key;
     },
   });
   b.appendChild(stepper);
@@ -389,22 +350,6 @@ function liveMakerBuild(b) {
   b.appendChild(tools);
   liveMakerTools(tools);
   if (LMK.saved === null) LMK.saved = liveMakerSig();
-}
-
-/* A colour joined to a light is one marker that moves them together, as the panel does for any two lights. */
-function liveMakerRestoreJoins(S, root) {
-  var byColour = {};
-  LMK.joins.forEach(function (j) {
-    (byColour[j[0]] = byColour[j[0]] || []).push(j[1]);
-  });
-  Object.keys(byColour).forEach(function (c) {
-    var kids = [lpFind(root, c)].concat(
-      byColour[c].map(function (l) {
-        return lpFind(root, l);
-      })
-    ).filter(Boolean);
-    if (kids.length > 1) S.joined.push(S.makeVirtual(kids, kids[0].icon));
-  });
 }
 
 /* How many colours the scene has, and a way to add and take away. */
@@ -521,6 +466,66 @@ function refreshMaker() {
   showPopup("live-edit", false);
 }
 
+/* Plays the scene as it is now on the lights, as the preview. */
+function liveMakerPreviewStart() {
+  var sc = liveMakerScene();
+  sc.id = "lm-preview";
+  var cs = cleanScene(sc);
+  if (!cs || !cs.live) return;
+  var p = livePayload(cs);
+  if (!p || !p.ids.length) {
+    toast(_T("turn_on_at_least_one_light"));
+    return;
+  }
+  p.data.scene_id = "lm-preview";
+  liveCall("start", p.data);
+  LMK.preview = true;
+}
+
+/* Something in the scene changed: a preview that is playing takes it at once. */
+function liveMakerChanged() {
+  if (LMK && LMK.preview) liveMakerPreviewStart();
+}
+
+var LMK_MODE_ICONS = {
+  linear: "<circle cx='5' cy='8' r='2.4'/><circle cx='12' cy='8' r='2.4'/><circle cx='19' cy='8' r='2.4'/><path d='M3 16h18'/>",
+  segmented: "<circle cx='5' cy='8' r='2.4'/><circle cx='12' cy='8' r='2.4'/><circle cx='19' cy='8' r='2.4'/><path d='M3 16h4M10 16h4M17 16h4'/>",
+};
+
+function liveMakerModeIcon(mode) {
+  return "<svg viewBox='0 0 24 24'>" + LMK_MODE_ICONS[mode === "segmented" ? "segmented" : "linear"] + "</svg>";
+}
+
+/* The popup of the mode button: Linear blends each colour into the next, Segmented shows each colour as it is. */
+function liveMakerModePopup(b) {
+  var tiles = {};
+  b.appendChild(sep(_T("mode"), "palette"));
+  var g = mk("div", "gridl g2 lp-modes");
+  ["linear", "segmented"].forEach(function (m) {
+    var el = mk("div", "lp-mode", liveMakerModeIcon(m));
+    el.appendChild(mk("div", "lp-mode-n")).textContent = _T("live_" + m);
+    el.setAttribute("role", "button");
+    el.addEventListener("click", function () {
+      LMK.live.mode = m;
+      liveMakerChanged();
+      paint();
+    });
+    tiles[m] = el;
+    g.appendChild(el);
+  });
+  b.appendChild(g);
+  var hint = mk("div", "hint");
+  b.appendChild(hint);
+  function paint() {
+    Object.keys(tiles).forEach(function (m) {
+      tiles[m].classList.toggle("picked", LMK.live.mode === m);
+    });
+    hint.textContent = _T("live_" + LMK.live.mode + "_hint");
+    if (LMK.S) LMK.S.rebuild();
+  }
+  paint();
+}
+
 function liveMakerTools(box) {
   box.appendChild(
     pill("play", _T("preview"), {
@@ -535,18 +540,7 @@ function liveMakerTools(box) {
           liveMakerStopPreview();
           return;
         }
-        var sc = liveMakerScene();
-        sc.id = "lm-preview";
-        var cs = cleanScene(sc);
-        if (!cs || !cs.live) return;
-        var p = livePayload(cs);
-        if (!p || !p.ids.length) {
-          toast(_T("turn_on_at_least_one_light"));
-          return;
-        }
-        p.data.scene_id = "lm-preview";
-        liveCall("start", p.data);
-        LMK.preview = true;
+        liveMakerPreviewStart();
       },
     })
   );

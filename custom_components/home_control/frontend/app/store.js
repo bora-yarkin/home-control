@@ -162,6 +162,7 @@ function cleanLive(l) {
     fps: cleanLiveInt(l.fps, 1, 60, 2),
     spread: ["x", "y", "z", "radial"].indexOf(l.spread) >= 0 ? l.spread : "x",
     src: LIVE_SRC.indexOf(l.src) >= 0 ? l.src : "palette",
+    mode: l.mode === "segmented" ? "segmented" : "linear",
     fx: cleanLiveFx(l.fx),
     looks: cleanLiveLooks(l.looks),
     also: cleanLiveAlso(l.also),

@@ -7,6 +7,7 @@ import json
 from pathlib import Path
 
 import pytest
+import voluptuous as vol
 from homeassistant.exceptions import ServiceValidationError
 from homeassistant.helpers import entity_registry as er
 from pytest_homeassistant_custom_component.common import MockConfigEntry, async_mock_service
@@ -82,6 +83,7 @@ async def test_the_services_take_everything_the_dashboard_sends_when_it_saves(ha
         "id": "evening",
         "name": "Evening",
         "colour_source": "palette",
+        "mode": "segmented",
         "effects": [],
         "looks": {},
         "actions": [],
@@ -98,7 +100,7 @@ async def test_the_services_take_everything_the_dashboard_sends_when_it_saves(ha
     await call(hass, "area_save", area)
     await call(hass, "scene_save", scene)
     library = await call(hass, "get_library", response=True)
-    assert library["scenes"][0]["fps"] == 24
+    assert library["scenes"][0]["fps"] == 24 and library["scenes"][0]["mode"] == "segmented"
 
 
 async def test_a_screen_can_read_the_library_over_the_websocket(hass, lights, hass_ws_client):
@@ -395,6 +397,88 @@ async def test_an_effect_the_strip_cannot_play_leaves_its_zones_to_play_the_colo
     hass.config.components.remove("hue_plus")  # and nothing plays effects once Hue Plus is gone
     out = resolve_request(hass, providers, {"lights": zones, "looks": {"light.strip": {"native": "candle"}}})
     assert [light["entity_id"] for light in out["lights"]] == [z["entity_id"] for z in zones]
+
+
+# --- a strip is played by all of its zones, as separate lights next to each other (D-19) ---------------------------------------------
+
+
+SEPARATE = {"service": "set_style", "field": "light", "data": {"style": "segmented"}}
+
+
+def _five_zones(hass, *, available=(1, 2, 3, 4, 5), saved=(1, 2, 3)):
+    """A strip of Hue Plus with five zone lights; the bridge blends two of them in some styles, so those are unavailable. An area saved in
+    such a style holds only `saved` of them, at -0.3, 0 and 0.3 along x."""
+    registry = er.async_get(hass)
+    for i in (1, 2, 3, 4, 5):
+        registry.async_get_or_create("light", "hue_plus", f"L1_zone_{i}", suggested_object_id=f"strip_zone_{i}")
+        hass.states.async_set(f"light.strip_zone_{i}", "on" if i in available else "unavailable", ATTRIBUTES)
+    return [{"entity_id": f"light.strip_zone_{i}", "x": -0.3 + 0.3 * k, "y": 0.1, "z": 0.2} for k, i in enumerate(saved)]
+
+
+@pytest.fixture
+async def separating(hass, hue_lights):
+    providers, turn_on, _play_effect = hue_lights
+    providers.declared["hue_plus"] = providers_module.parse("hue_plus", {**HUE_DECLARATION, "separate_zones": SEPARATE})
+    return providers, turn_on, async_mock_service(hass, "hue_plus", "set_style")
+
+
+async def test_every_zone_of_a_strip_is_played_in_order_even_when_the_area_saved_only_some(hass, separating):
+    _providers, turn_on, set_style = separating
+    saved = _five_zones(hass, available=(1, 2, 3, 4, 5))
+    await call(hass, "scene_start", {"scene_id": "z", "preset": "ocean", "lights": saved})
+    lights = hass.states.get("sensor.home_control_live_scenes").attributes["sessions"]["z"]["lights"]
+    assert lights == [f"light.strip_zone_{i}" for i in (1, 2, 3, 4, 5)]
+    assert list(set_style) == []  # all five are available: nothing to change
+    await wait_for(lambda: {c.data["entity_id"] for c in turn_on} == set(lights))
+
+
+async def test_the_zones_keep_the_strips_length_and_the_new_ones_stand_evenly_between_the_first_and_the_last(hass, separating):
+    from custom_components.home_control.live.resolve import resolve_request, separate_strips
+
+    providers = separating[0]
+    saved = _five_zones(hass)
+    request, _calls = separate_strips(hass, providers, resolve_request(hass, providers, {"lights": saved}))
+    xs = [light["x"] for light in request["lights"]]
+    assert xs == pytest.approx([-0.3, -0.15, 0.0, 0.15, 0.3])
+    assert {light["y"] for light in request["lights"]} == {0.1} and all(light["alt"] == "L1" for light in request["lights"])
+
+
+async def test_a_strip_whose_zones_are_blended_is_made_separate_first_and_then_played_as_five(hass, separating):
+    _providers, turn_on, set_style = separating
+    saved = _five_zones(hass, available=(1, 2, 3))
+    await call(hass, "scene_start", {"scene_id": "z", "preset": "ocean", "lights": saved, "wake": True})
+    assert [c.data for c in set_style] == [{"light": "light.strip_zone_1", "style": "segmented"}]
+    assert len(hass.states.get("sensor.home_control_live_scenes").attributes["sessions"]["z"]["lights"]) == 5
+    hass.states.async_set("light.strip_zone_4", "on", ATTRIBUTES)  # the bridge makes the rest available
+    hass.states.async_set("light.strip_zone_5", "on", ATTRIBUTES)
+    await wait_for(lambda: {"light.strip_zone_4", "light.strip_zone_5"} <= {c.data["entity_id"] for c in turn_on})
+
+
+async def test_a_strip_of_a_provider_that_says_nothing_is_played_as_it_was_saved(hass, hue_lights):
+    from custom_components.home_control.live.resolve import resolve_request, separate_strips
+
+    providers, _turn_on, _play = hue_lights  # its declaration has no separate_zones
+    saved = _five_zones(hass, available=(1, 2, 3))
+    request, calls = separate_strips(hass, providers, resolve_request(hass, providers, {"lights": saved}))
+    assert [light["entity_id"] for light in request["lights"]] == [z["entity_id"] for z in saved] and calls == []
+
+
+@pytest.mark.parametrize(
+    "bad",
+    [
+        {"service": "Set Style"},
+        {"service": "set_style", "field": "Light"},
+        {"service": "set_style", "data": {"style": ["a"]}},
+        {"service": "set_style", "data": {f"k{i}": 1 for i in range(9)}},
+        {"data": {"style": "segmented"}},
+        "set_style",
+    ],
+)
+def test_how_to_separate_zones_is_a_service_a_field_and_a_little_data(bad):
+    with pytest.raises(vol.Invalid):
+        providers_module.parse("hue_plus", {**HUE_DECLARATION, "separate_zones": bad})
+    parsed = providers_module.parse("hue_plus", {**HUE_DECLARATION, "separate_zones": SEPARATE}).separate_zones
+    assert (parsed.service, parsed.light_field, dict(parsed.data)) == ("set_style", "light", {"style": "segmented"})
 
 
 # --- a gradient light's zones, and what is left when its plus integration is gone (D-14) ------------------------------------------
