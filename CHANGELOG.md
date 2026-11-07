@@ -4,6 +4,12 @@ Format: [Keep a Changelog](https://keepachangelog.com/). Versions follow [semant
 
 ## [Unreleased]
 
+## [0.9.1] - 2026-11-07
+
+### Fixed
+- Segmented kept its colours exact but sent every change with no fade, so the lights jumped from one colour to the next. Segmented is about which colours are shown (each as it is, with no blended colours between two of them), not about how a change looks: every change is a smooth fade. The wording of the mode and of the `mode` field said the opposite and is corrected.
+- Lights stopped between two colours (faded, rested, faded again) instead of moving without a break as in the bridge's own scenes. A fade now lasts as long as the light's own gap between commands (measured, since a hub takes only a few commands a second) plus a short overlap, so the next fade starts before the last one ends, in both Linear and Segmented. Someone changing a light is still noticed: a light is judged against the colours sent and the path between them.
+
 ## [0.9.0] - 2026-11-07
 
 ### Changed
