@@ -38,6 +38,14 @@ function page(extra = {}) {
     staticOpen: (...a) => log.opened.push(a),
     EAD: { draft: { id: "imp-bora" } },
     uiChanged() {},
+    refresh() {},
+    edDel: (el, fn, label) => Object.assign(el, { del: fn, delLabel: label }),
+    sep: () => ({}),
+    TITLES: {},
+    sceneAllowed: () => true,
+    secById: () => ({ id: "s1", scn: [] }),
+    PLUGIN_SCENE_IMPORTS: [],
+    mk: () => ({ appendChild(c) { this.kids.push(c); }, kids: [] }),
     eaIdentifyOff() {},
     POPGUARD: null,
     STACK: [],
@@ -49,7 +57,7 @@ function page(extra = {}) {
   vm.createContext(sandbox);
   for (const file of ["scenes.js", "livescenes.js", "areas.js"]) vm.runInContext(read(file), sandbox);
   /* What the test stands in for wins over the file's own function of that name; the rest is the code under test. */
-  for (const name of Object.keys(stubs)) if (!["sceneEntRow", "liveImportFrom", "classicImportFrom", "eaDelete", "eaRemove", "sceneShown", "liveImportSource"].includes(name) || name in extra) sandbox[name] = stubs[name];
+  for (const name of Object.keys(stubs)) if (!["sceneEntRow", "liveImportFrom", "classicImportFrom", "eaDelete", "eaRemove", "sceneShown", "liveImportSource", "sceneDeleteEverywhere", "scnPick"].includes(name) || name in extra) sandbox[name] = stubs[name];
   sandbox.PLUGIN_SCENE_IMPORTS = extra.SOURCES || [];
   return sandbox;
 }
@@ -149,4 +157,42 @@ test("an area no scene uses is deleted at once", () => {
   p.eaDelete();
   assert.deepEqual(plain(p.STORE.eareas), []);
   assert.equal(p.log.confirms.length, 0);
+});
+
+test("the trash of a scene deletes it from every page and the saved scenes, once confirmed, and forgets a live scene with its area", () => {
+  const p = page({ allSectionLists: () => [[{ scn: ["s1"] }]], liveRun: () => true });
+  p.STORE.scenes = [live("s1", "One", ["imp-bora"]), { id: "s2", name: "Classic" }];
+  p.sceneDeleteEverywhere(p.STORE.scenes[0]);
+  assert.equal(p.STORE.scenes.length, 2, "nothing is deleted before the answer");
+  assert.match(p.log.confirms[0].text, /One/);
+  p.log.confirms[0].fn();
+  assert.deepEqual(plain(p.STORE.scenes.map((x) => x.id)), ["s2"]);
+  assert.deepEqual(plain(p.log.stops), [["stop", { scene_id: "s1" }]]);
+  assert.deepEqual(plain(p.log.forgot), [["s1", "lx-s1"]]);
+  assert.deepEqual(plain(p.log.toasts), ["scene_deleted"]);
+});
+
+test("a classic scene is deleted without the integration being asked about it", () => {
+  const p = page();
+  p.STORE.scenes = [{ id: "s2", name: "Classic" }];
+  p.sceneDeleteEverywhere(p.STORE.scenes[0]);
+  p.log.confirms[0].fn();
+  assert.deepEqual(p.STORE.scenes, []);
+  assert.deepEqual(plain(p.log.forgot), []);
+});
+
+test("in the list of existing scenes a scene that is on no page has a trash that deletes it, and one that is on a page does not", () => {
+  const box = { kids: [], appendChild(c) { this.kids.push(c); } };
+  const p = page({
+    allSectionLists: () => [[{ scn: ["s1"] }]],
+    mk: () => box,
+    secById: () => ({ id: "sec", scn: ["s1"] }),
+  });
+  p.STORE.scenes = [{ id: "s1", name: "Shown" }, { id: "s2", name: "Hidden" }];
+  p.scnPick({ appendChild() {} }, "room:sec");
+  const by = Object.fromEntries(box.kids.filter((k) => k && k.name).map((r) => [r.name, r]));
+  assert.equal(by.Shown.del, undefined);
+  assert.equal(typeof by.Hidden.del, "function");
+  by.Hidden.del();
+  assert.match(p.log.confirms[0].text, /Hidden/);
 });

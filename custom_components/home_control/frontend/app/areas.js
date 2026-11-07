@@ -943,15 +943,6 @@ function eaSave(leave) {
   return true;
 }
 
-/* Whether a section of some page lists the scene. A scene taken off every page is still saved (it is under "Existing scenes" when adding one). */
-function sceneShown(id) {
-  return allSectionLists().some(function (l) {
-    return l.some(function (s) {
-      return (s.scn || []).indexOf(id) >= 0;
-    });
-  });
-}
-
 function eaDelete() {
   var id = EAD.draft.id,
     used = STORE.scenes.filter(function (s) {

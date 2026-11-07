@@ -7,7 +7,8 @@ Format: [Keep a Changelog](https://keepachangelog.com/). Versions follow [semant
 ## [0.9.3] - 2026-11-08
 
 ### Fixed
-- A scene taken off every page (un-ticked in the page editor) is still saved, so its area could not be deleted and the message named only one scene, which could not be seen anywhere. The message now names every scene that is on a page and uses the area; scenes that are on no page are named in a question and deleted with the area when you confirm.
+- The trash on a scene in the page editor only took the scene off that page (the scene stayed saved, invisible), so nothing was deleted and its area could not be deleted. The trash now deletes the scene, after a question, from every page and from the saved scenes (a live scene is stopped and forgotten by the integration too); picking a scene again in the list is what takes it off one section. In that list a scene that is on no page has a trash too, to delete the scenes the old trash left behind.
+- Deleting an area names every scene on a page that uses it; scenes on no page are named in a question and deleted with the area when you confirm.
 - A static scene of a plugin (a Hue scene the bridge says does not play by itself, such as Desk light) was a live scene on the dashboard: a popup with speed controls. It is now used like a classic scene: a tap anywhere on its row switches it on or off, with no popup.
 
 ### Added

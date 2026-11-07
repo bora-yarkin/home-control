@@ -255,6 +255,7 @@ var EN = {
   "purifier_air_hint": "Air quality, filter life, humidity and temperature",
   "purifier_options_hint": "LED, buzzer, child lock, auto mode and fan level",
   "air_title": "Air",
+  "from_every_page_it_cannot_be_undone": "” from every page? It cannot be undone.",
   "scenes_on_no_page_use_this_area": "These scenes are on no page and use this area: ",
   "delete_them_with_the_area": ". Delete them with the area?",
   "scenes_use_this_area": "Scenes use this area: ",
