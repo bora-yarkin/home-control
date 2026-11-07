@@ -18,6 +18,7 @@ A file of that name in the integration's folder (`custom_components/<domain>/hom
   "set_effect": "set_effect",
   "menu": { "url": "/govee_plus_static/menu.js" },
   "replaces": [],
+  "separate_zones": {"service": "set_style", "field": "light", "data": {"style": "segmented"}},
   "catalogue": { "groups": [], "effects": [] }
 }
 ```
@@ -28,6 +29,7 @@ A file of that name in the integration's folder (`custom_components/<domain>/hom
 | `effects`, `play_effect` | The ids of the effects that can be played *with a colour*, and your service (`entity_id`, `effect`, `xy`, `brightness`, `speed`) that plays one. Live scenes use it. |
 | `set_effect` | Your service (`lights`, `effect`, `hs_color` or `kelvin`, `speed`) that starts an effect with a colour and a speed. The effects page uses it. |
 | `catalogue` | The effects' groups, labels, pictures, defaults and colour variants, in the syntax of `docs/effects-file.md` (pictures, `art`, are allowed here). |
+| `separate_zones` | How to make every zone of a strip (a light made of zones) a light of its own, for a brand whose bridge blends some zones in some styles: `{service, field, data}`, the service of yours to call, the field that takes the entity id of one of the strip's zones, and its other data (Hue Plus: `set_style`, `light`, `{"style": "segmented"}`). A live scene plays all the zones of a strip in order, as separate lights next to each other, and calls it first when some of them are unavailable. The strip's zones are the lights of your platform whose unique id, with your `parent` pattern cut from it, is the strip's. |
 | `replaces` | The integrations whose entities yours makes its own entity for (the same domain and unique id): the dashboard shows only yours, and leaves out an entity of a replaced integration when an enabled one of yours stands in for it. One yours has no entity for stays. Hue Plus: `["hue"]`. |
 | `menu` | The script below. Its url must be a `.js` file under `/<domain>_static/`, which your integration serves itself (`hass.http.async_register_static_paths`). Anything else is refused. |
 

@@ -18,7 +18,7 @@ from typing import Any
 from homeassistant.core import HomeAssistant, State
 from homeassistant.helpers import entity_registry as er
 
-from .providers import Providers
+from .providers import Provider, Providers
 
 
 def _usable(state: State | None) -> bool:
@@ -115,6 +115,70 @@ def fold_strips(
             for zone in zones:
                 kept.setdefault(zone["entity_id"], look)
     return out, kept
+
+
+def _zone_number(entry: er.RegistryEntry) -> tuple[int, str]:
+    numbers = re.findall(r"\d+", entry.unique_id or "")
+    return (int(numbers[-1]) if numbers else 0, entry.entity_id)
+
+
+def separate_strips(
+    hass: HomeAssistant, providers: Providers, request: dict[str, Any]
+) -> tuple[dict[str, Any], list[tuple[Provider, str]]]:
+    """The request with every strip it plays on, played by all of its zones, and what has to be called first to make them lights of their own.
+
+    A strip (a light made of zones, found by the unique id of the light its zones are parts of) is played as its zones, as separate
+    lights next to each other along the strip. When its plus integration says how (``separate_zones``), every zone it has is played, in
+    order, whether or not the area saved them all (the bridge blends some zones in some styles, and an area saved then has fewer), and
+    the call that makes them separate is returned for each strip that has a zone that is unavailable. The zones keep the strip's length,
+    from the first zone saved to the last, and the rest are put evenly between them."""
+    lights = list(request["lights"])
+    groups: dict[str, list[dict[str, Any]]] = {}
+    for light in lights:
+        if light.get("alt"):
+            groups.setdefault(light["alt"], []).append(light)
+    registry = er.async_get(hass)
+    calls: list[tuple[Provider, str]] = []
+    for alt, zones in groups.items():
+        entries = [registry.async_get(zone["entity_id"]) for zone in zones]
+        first = next((entry for entry in entries if entry is not None), None)
+        owned = providers.for_platform(first.platform, loaded=False) if first is not None else None
+        if owned is None or owned[0].separate_zones is None or not owned[1].parent:
+            continue
+        provider, kind = owned
+        every = sorted(
+            (
+                entry
+                for entry in registry.entities.values()
+                if entry.domain == "light"
+                and entry.platform == first.platform
+                and entry.unique_id != alt
+                and re.sub(kind.parent, "", entry.unique_id or "") == alt
+            ),
+            key=_zone_number,
+        )
+        if len(every) < 2:
+            continue
+        number = {entry.entity_id: _zone_number(entry) for entry in entries if entry is not None}
+        saved = sorted(zones, key=lambda zone: number.get(zone["entity_id"], (0, "")))
+        start, end = saved[0], saved[-1]
+        placed = []
+        for k, entry in enumerate(every):
+            t = k / (len(every) - 1)
+            placed.append(
+                {
+                    "entity_id": entry.entity_id,
+                    "uid": entry.unique_id,
+                    "alt": alt,
+                    **{axis: start.get(axis, 0) + (end.get(axis, 0) - start.get(axis, 0)) * t for axis in ("x", "y", "z")},
+                }
+            )
+        at = min(lights.index(zone) for zone in zones)
+        lights = [light for light in lights if light not in zones]
+        lights[at:at] = placed
+        if any((state := hass.states.get(entry.entity_id)) is None or state.state == "unavailable" for entry in every):
+            calls.append((provider, every[0].entity_id))
+    return {**request, "lights": lights}, calls
 
 
 def resolve_request(hass: HomeAssistant, providers: Providers, request: dict[str, Any]) -> dict[str, Any]:

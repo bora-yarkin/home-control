@@ -13,7 +13,7 @@ from ..service_support import schema_for
 from .actions import run_actions
 from .definitions import DefinitionError, parse_brightness, parse_definition, parse_range, parse_speed
 from .library import clean_area
-from .resolve import attach_unique_ids, resolve_request
+from .resolve import attach_unique_ids, resolve_request, separate_strips
 from .setup import LiveRuntime
 from .spec import SPEC
 
@@ -31,7 +31,10 @@ async def scene_start(hass: HomeAssistant, call: ServiceCall) -> None:
     live = _live(hass)
     try:
         request = live.library.request(dict(call.data))
-        definition = parse_definition(resolve_request(hass, live.providers, request))
+        request, separations = separate_strips(hass, live.providers, resolve_request(hass, live.providers, request))
+        definition = parse_definition(request)
+        for provider, zone in separations:
+            await live.providers.async_separate_zones(provider, zone)
         live.engine.start(definition)
     except (DefinitionError, ValueError) as err:
         raise ServiceValidationError(str(err)) from err
