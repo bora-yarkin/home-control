@@ -150,3 +150,53 @@ async def test_a_plus_integrations_catalogue_is_offered_only_while_it_is_loaded(
     assert sources[0]["set_effect"] == "set_effect", "the service the effects page calls for a colour or a speed"
     hass.config.components.remove("hue_plus")
     assert (await ask(client, "effects"))["result"]["sources"] == []
+
+
+@pytest.mark.parametrize(
+    "url",
+    ["/hue_plus_static/menu.js", "/hue_plus_static/sub/menu-2.js"],
+)
+def test_a_menu_script_under_the_integrations_own_folder_is_accepted(url):
+    from custom_components.home_control.live import providers as providers_module
+
+    assert providers_module.parse("hue_plus", {**HUE_DECLARATION, "menu": {"url": url}}).menu_url == url
+
+
+@pytest.mark.parametrize(
+    "url",
+    [
+        "/other_static/menu.js",  # another integration's folder
+        "/api/webhook/x.js",
+        "https://evil.example/menu.js",
+        "//evil.example/menu.js",
+        "/hue_plus_static/../local/x.js",
+        "/hue_plus_static/menu.html",
+        "/hue_plus_static/menu.js?x=1",
+        "javascript:alert(1)",
+        "menu.js",
+        "",
+    ],
+)
+def test_a_menu_script_anywhere_else_is_refused(url):
+    import voluptuous as vol
+
+    from custom_components.home_control.live import providers as providers_module
+
+    with pytest.raises(vol.Invalid):
+        providers_module.parse("hue_plus", {**HUE_DECLARATION, "menu": {"url": url}})
+
+
+async def test_the_plugins_listed_are_the_loaded_integrations_with_a_menu(hass, client):
+    from custom_components.home_control.live import providers as providers_module
+
+    entry = hass.config_entries.async_loaded_entries("home_control")[0]
+    entry.runtime_data.providers.declared["hue_plus"] = providers_module.parse(
+        "hue_plus", {**HUE_DECLARATION, "menu": {"url": "/hue_plus_static/menu.js"}}
+    )
+    assert (await ask(client, "plugins"))["result"]["plugins"] == []
+    hass.config.components.add("hue_plus")
+    assert (await ask(client, "plugins"))["result"]["plugins"] == [
+        {"id": "hue_plus", "name": "Hue Plus", "menu": "/hue_plus_static/menu.js"}
+    ]
+    hass.config.components.remove("hue_plus")
+    assert (await ask(client, "plugins"))["result"]["plugins"] == []

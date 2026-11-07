@@ -66,6 +66,14 @@ async def effects_delete(hass: HomeAssistant, connection: websocket_api.ActiveCo
     connection.send_result(msg["id"], {"ok": True})
 
 
+@websocket_api.websocket_command({vol.Required("type"): f"{DOMAIN}/plugins"})
+@websocket_api.async_response
+async def plugins(hass: HomeAssistant, connection: websocket_api.ActiveConnection, msg: dict[str, Any]) -> None:
+    """The plus integrations that are loaded and bring a script of their own (their pages in Settings). The dashboard loads it for administrators."""
+    store = _store(hass)
+    connection.send_result(msg["id"], {"plugins": store.plugins() if store is not None else []})
+
+
 def async_register(hass: HomeAssistant) -> None:
-    for command in (effects, effects_import, effects_delete):
+    for command in (effects, effects_import, effects_delete, plugins):
         websocket_api.async_register_command(hass, command)

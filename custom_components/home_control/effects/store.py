@@ -116,6 +116,14 @@ class EffectsStore:
             out.append(_source(identity, catalogue.name, "file", lights, catalogue.groups, catalogue.effects))
         return out
 
+    def plugins(self) -> list[dict[str, str]]:
+        """The loaded plus integrations that bring a menu script: [{id, name, menu}]."""
+        return [
+            {"id": p.domain, "name": p.name, "menu": p.menu_url}
+            for p in self._providers.declared.values()
+            if p.menu_url and p.domain in self._hass.config.components
+        ]
+
     def add(self, raw: Any) -> tuple[str | None, Catalogue]:
         """Validates and keeps a file. Returns its id (None when it has problems) and what was read, with the problems."""
         catalogue = parse(raw)
