@@ -124,3 +124,23 @@ test("saving a scene writes the parts to Hue Plus as well", () => {
   assert.deepEqual(saved.effects, [{ type: "flicker", speed: 5, strength: 30 }]);
   assert.deepEqual(saved.actions, [{ entity_id: "fan.f", do: "off" }]);
 });
+
+test("the update rate for lights that cannot fade is kept from 1 to 60 and is 2 when a scene says nothing", () => {
+  const { clean } = page();
+  assert.equal(clean(BASE).fps, 2);
+  assert.equal(clean({ ...BASE, fps: 30 }).fps, 30);
+  assert.equal(clean({ ...BASE, fps: 500 }).fps, 60);
+  assert.equal(clean({ ...BASE, fps: 0 }).fps, 1);
+  for (const bad of ["fast", null, NaN]) assert.equal(clean({ ...BASE, fps: bad }).fps, 2);
+});
+
+test("the update rate goes to Home Control when a scene starts and when it is saved", () => {
+  const { sandbox, plain } = page();
+  sandbox.deviceGet = (_key, fallback) => fallback; // nothing this device changed about the scene
+  const scene = { id: "s1", name: "S1", room: "living", live: { ...BASE, fps: 24 } };
+  sandbox.STORE.scenes.push(scene);
+  sandbox.STORE.eareas.push({ id: "room", name: "Room", room: "living", lights: [{ id: "light.a", x: 0, y: 0, z: 0 }] });
+  assert.equal(plain(sandbox.livePayload(scene)).data.fps, 24);
+  assert.equal(plain(sandbox.liveScenePayload(scene)).fps, 24);
+  assert.equal(plain(sandbox.livePayload({ ...scene, live: { ...BASE } })).data.fps, 2);
+});

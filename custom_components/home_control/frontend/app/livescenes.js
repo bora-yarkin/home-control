@@ -100,6 +100,11 @@ function liveSave(sc, st) {
   deviceSet("db_ls_" + sc.id, st);
 }
 
+/* The updates per second for lights that cannot fade by themselves (experimental): what the scene says, else 2. */
+function liveFps(live) {
+  return typeof live.fps === "number" ? Math.max(1, Math.min(60, Math.round(live.fps))) : 2;
+}
+
 /* The parts of a live scene beyond the palette, in the words of Hue Plus's services. */
 function liveParts(sc) {
   var l = sc.live,
@@ -158,6 +163,7 @@ function livePayload(sc) {
       range: st.range,
       brightness: Math.max(1, Math.min(255, Math.round(st.bri * 2.55))),
       spread: sc.live.spread,
+      fps: liveFps(sc.live),
       wake: true,
     },
   };
@@ -204,6 +210,7 @@ function liveScenePayload(sc) {
     range: sc.live.range,
     brightness: Math.max(1, Math.min(255, Math.round(sc.live.bri * 2.55))),
     spread: sc.live.spread,
+    fps: liveFps(sc.live),
     area: liveId(ar.id),
     ui: { room: sc.room || "" },
   };

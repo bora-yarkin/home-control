@@ -5,6 +5,9 @@ MAX_SESSIONS = 8
 MAX_LIGHTS = 32
 MAX_PALETTE = 16
 SPEED_STEPS = 12
+# Updates per second for lights that cannot fade by themselves (experimental above the default): each is a single command.
+DEFAULT_FPS = 2
+MAX_FPS = 60
 
 # Commands per second to one bridge or hub when its integration does not say (a plus integration declares its own rate: Hue's bridge takes about 10 in total).
 DEFAULT_RATE = 15.0

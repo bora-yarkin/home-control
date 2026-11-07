@@ -88,7 +88,7 @@
         },
         "fps": {
           "name": "Fps",
-          "description": "For lights that cannot fade by themselves: updates per second, from 1 to 4."
+          "description": "For lights that cannot fade by themselves: updates per second, from 1 to 60 (experimental: each update is a single command, so a high rate loads the light's hub and is held to the rate it takes)."
         },
         "wake": {
           "name": "Wake",

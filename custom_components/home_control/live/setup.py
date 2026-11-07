@@ -18,6 +18,7 @@ from .identify import Identifier
 from .library import Library
 from .migration import take_over_saved_scenes
 from .providers import Providers
+from .resolve import attach_unique_ids
 
 _LOGGER = logging.getLogger(__name__)
 
@@ -61,6 +62,19 @@ async def _load_library(hass: HomeAssistant, store: Store[dict[str, Any]]) -> Li
     return library
 
 
+def _attach_identities(hass: HomeAssistant, providers: Providers, library: Library) -> bool:
+    """Gives the lights of saved areas and scenes the unique ids they were saved without (everything taken over from before had none), so
+    they can be found again when an entity id is gone. True when something was added."""
+    changed = False
+    holders = [*library.areas.values(), *(scene for scene in library.scenes.values() if scene.get("lights"))]
+    for holder in holders:
+        lights = attach_unique_ids(hass, providers, holder["lights"])
+        if lights != holder["lights"]:
+            holder["lights"] = lights
+            changed = True
+    return changed
+
+
 async def async_setup(hass: HomeAssistant, entry: ConfigEntry) -> LiveRuntime:
     providers = Providers(hass)
     await providers.async_scan()
@@ -68,7 +82,10 @@ async def async_setup(hass: HomeAssistant, entry: ConfigEntry) -> LiveRuntime:
     engine = Engine(driver, spawn=lambda coro: hass.async_create_background_task(coro, f"{DOMAIN} scene"))
     identifier = Identifier(driver, engine, spawn=lambda coro: hass.async_create_background_task(coro, f"{DOMAIN} locate"))
     store: Store[dict[str, Any]] = Store(hass, STORAGE_VERSION, STORAGE_KEY)
-    live = LiveRuntime(engine, identifier, await _load_library(hass, store), store, providers)
+    library = await _load_library(hass, store)
+    if _attach_identities(hass, providers, library):
+        await store.async_save(library.as_json())
+    live = LiveRuntime(engine, identifier, library, store, providers)
 
     @callback
     def state_changed(event: Event) -> None:
