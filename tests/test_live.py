@@ -298,3 +298,34 @@ async def test_a_light_that_is_not_a_part_gets_no_parent(hass, hue_lights):
     await call(hass, "area_save", {"id": "room", "name": "Room", "lights": LIGHTS})
     saved = (await call(hass, "get_library", response=True))["areas"][0]["lights"]
     assert all("alt" not in light for light in saved) and [light["uid"] for light in saved] == ["hue-left", "hue-right"]
+
+
+# --- what was saved without unique ids (everything taken over from Hue Plus) gets them (D-14) -------------------------------------
+
+
+async def test_areas_saved_without_unique_ids_get_them_when_home_control_starts(hass, hass_storage):
+    registry = er.async_get(hass)
+    registry.async_get_or_create("light", "matter", "bulb-left", suggested_object_id="left")
+    registry.async_get_or_create("light", "zigbee", "bulb-right", suggested_object_id="right")
+    hass_storage["home_control.live"] = {
+        "version": 1,
+        "minor_version": 1,
+        "key": "home_control.live",
+        "data": {"areas": {"room": {"id": "room", "name": "Room", "lights": LIGHTS, "ui": {}}}, "scenes": {}},
+    }
+    await setup_home_control(hass)
+    area = (await call(hass, "get_library", response=True))["areas"][0]
+    assert [light["uid"] for light in area["lights"]] == ["bulb-left", "bulb-right"]
+    assert [light["uid"] for light in hass_storage["home_control.live"]["data"]["areas"]["room"]["lights"]] == ["bulb-left", "bulb-right"]
+
+
+async def test_a_light_that_has_no_entity_yet_is_left_without_one_and_the_area_still_loads(hass, hass_storage):
+    hass_storage["home_control.live"] = {
+        "version": 1,
+        "minor_version": 1,
+        "key": "home_control.live",
+        "data": {"areas": {"room": {"id": "room", "name": "Room", "lights": LIGHTS, "ui": {}}}, "scenes": {}},
+    }
+    await setup_home_control(hass)
+    area = (await call(hass, "get_library", response=True))["areas"][0]
+    assert all("uid" not in light for light in area["lights"])

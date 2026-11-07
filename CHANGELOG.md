@@ -4,6 +4,12 @@ Format: [Keep a Changelog](https://keepachangelog.com/). Versions follow [semant
 
 ## [Unreleased]
 
+### Added
+- Lights that cannot fade by themselves (no transition support) are played with single commands at an update rate you choose, from 1 to 60 per second (it was 1 to 4, and not offered on the dashboard): the live scene editor has *Update rate (experimental)*, saved with the scene (default 2). Each update is one command, so a high rate loads the light's hub and is held to the rate it takes; the engine does this only for lights that cannot fade, and gives a light that can its own smooth fade as before. Marked experimental: it has not been tried on real lights.
+
+### Changed
+- Scenes and areas that were saved without the unique ids of their lights (everything taken over from Hue Plus) get them when Home Control starts, so they can be found again when an entity id is gone.
+
 ## [0.5.0]
 
 ### Changed

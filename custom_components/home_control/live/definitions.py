@@ -18,9 +18,11 @@ from .chroma import hs_to_xy, kelvin_to_xy
 from .const import (
     ACTION_DOMAINS,
     COLOUR_SOURCES,
+    DEFAULT_FPS,
     EFFECT_TYPES,
     MAX_ACTIONS,
     MAX_EFFECTS,
+    MAX_FPS,
     MAX_LIGHTS,
     MAX_PALETTE,
     SPEED_STEPS,
@@ -190,6 +192,10 @@ def parse_lights(raw: Any) -> tuple[AreaLight, ...]:
     return tuple(out)
 
 
+def parse_fps(value: Any) -> int:
+    return _integer(value, "fps", 1, MAX_FPS)
+
+
 def parse_speed(value: Any) -> int:
     return _integer(value, "speed", 1, SPEED_STEPS)
 
@@ -290,7 +296,7 @@ def parse_definition(data: Mapping[str, Any]) -> Definition:
         range_pct=parse_range(data.get("range", 100)),
         brightness=parse_brightness(data.get("brightness", 255)),
         spread=spread,
-        fps=_integer(data.get("fps", 2), "fps", 1, 4),
+        fps=parse_fps(data.get("fps", DEFAULT_FPS)),
         wake=_flag(data.get("wake", False), "wake"),
         colour_source=colour_source,
         effects=parse_effects(data.get("effects", [])),

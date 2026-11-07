@@ -110,6 +110,7 @@ Live scenes and areas are played by Home Control's integration for every light (
   which the panel finds through its integration.
 - **Plus integrations (decision D-13):** a brand's plus integration (Hue Plus) declares itself in `home_control.json` and plays its own lights' own
   effects through a service of its own. Without one, every light is played through `light.turn_on`.
+- **Lights that cannot fade:** a light with no transition support is given single commands at the scene's *Update rate (experimental)* (1 to 60 per second, default 2); a light that can fade gets its own smooth fade.
 - **Hue scene import** (*Import as a live scene*) reads the bridge, so it needs Hue Plus (`hue_plus.import_hue_scene`); without Hue Plus it says so.
   Nothing else about live scenes needs Hue Plus.
 

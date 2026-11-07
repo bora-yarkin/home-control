@@ -99,7 +99,7 @@ function liveMakerOpen(room, sc, target, areas, draft, pending) {
     areas: areas.slice(),
     live: JSON.parse(
       JSON.stringify(
-        live || { speed: 6, range: 100, bri: 100, spread: "x", src: "palette", fx: [], looks: {}, also: [] }
+        live || { speed: 6, range: 100, bri: 100, fps: 2, spread: "x", src: "palette", fx: [], looks: {}, also: [] }
       )
     ),
     joins: [],
@@ -226,6 +226,7 @@ function liveMakerScene() {
       speed: live.speed,
       range: live.range,
       bri: live.bri,
+      fps: liveFps(live),
       spread: live.spread,
       src: live.src,
       fx: live.fx,
@@ -494,16 +495,17 @@ function liveMakerSettings(b) {
     ["speed", "clock", 1, 12, function (v) { return String(v); }],
     ["range", "target", 0, 100, function (v) { return v + "%"; }],
     ["bri", "bright", 1, 100, function (v) { return v + "%"; }],
+    ["fps", "tune", 1, 60, function (v) { return v + " /s"; }],
   ].forEach(function (r) {
     b.appendChild(
       sliderRow({
         icon: r[1],
-        name: _T(r[0] === "bri" ? "brightness" : r[0]),
+        name: _T(r[0] === "bri" ? "brightness" : r[0] === "fps" ? "update_rate_experimental" : r[0]),
         min: r[2],
         max: r[3],
         step: 1,
         get: function () {
-          return live[r[0]];
+          return r[0] === "fps" ? liveFps(live) : live[r[0]];
         },
         fmt: r[4],
         commit: function (v) {

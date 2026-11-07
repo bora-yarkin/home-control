@@ -159,6 +159,7 @@ function cleanLive(l) {
     speed: cleanLiveInt(l.speed, 1, 12, 6),
     range: cleanLiveInt(l.range, 0, 100, 100),
     bri: cleanLiveInt(l.bri, 1, 100, 100),
+    fps: cleanLiveInt(l.fps, 1, 60, 2),
     spread: ["x", "y", "z", "radial"].indexOf(l.spread) >= 0 ? l.spread : "x",
     src: LIVE_SRC.indexOf(l.src) >= 0 ? l.src : "palette",
     fx: cleanLiveFx(l.fx),

@@ -60,7 +60,12 @@ SPEC: dict[str, dict[str, Any]] = {
             "effects": EFFECTS,
             "looks": LOOKS,
             "actions": ACTIONS,
-            "fps": f("int", "For lights that cannot fade by themselves: updates per second, from 1 to 4.", min=1, max=4),
+            "fps": f(
+                "int",
+                "For lights that cannot fade by themselves: updates per second, from 1 to 60 (experimental: each update is a single command, so a high rate loads the light's hub and is held to the rate it takes).",
+                min=1,
+                max=60,
+            ),
             "wake": f("bool", "Turn on the lights that are off when the scene starts."),
         },
     },

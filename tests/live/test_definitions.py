@@ -79,12 +79,19 @@ class DefinitionTests(unittest.TestCase):
             ("brightness", 0),
             ("brightness", 256),
             ("spread", "diagonal"),
-            ("fps", 5),
+            ("fps", 0),
+            ("fps", 61),
+            ("fps", 2.5),
             ("scene_id", "Has Space"),
             ("scene_id", ""),
         ):
             with self.assertRaises(d.DefinitionError, msg=f"{key}={bad!r}"):
                 d.parse_definition(base(**{key: bad}))
+
+    def test_fps_goes_up_to_sixty_and_is_two_by_default(self):
+        self.assertEqual(d.parse_definition(base()).fps, 2)
+        for fps in (1, 30, 60):
+            self.assertEqual(d.parse_definition(base(fps=fps)).fps, fps)
 
     def test_wake_is_a_flag_and_off_by_default(self):
         self.assertFalse(d.parse_definition(base()).wake)

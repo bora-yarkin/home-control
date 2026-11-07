@@ -1,6 +1,7 @@
 # SPDX-License-Identifier: GPL-3.0-or-later
 import asyncio
 import unittest
+from itertools import pairwise
 
 from tests.live.fakes import HUE_RATE, Clock, FakeDriver, VirtualClock, info
 from tests.support import load
@@ -97,6 +98,29 @@ class StepTests(unittest.TestCase):
         self.assertEqual(s.step(clock.now, drv, set()).commands, [])
         clock.now += 0.1
         self.assertEqual(len(s.step(clock.now, drv, set()).commands), 2)
+
+    def test_at_sixty_fps_a_light_without_transition_gets_a_single_command_every_sixtieth_of_a_second(self):
+        drv = FakeDriver({"light.a": info(transition=False, rate=None)})
+        s, clock = session(drv, fps=60, speed=12)
+        sent = []
+        for _ in range(61):  # one virtual second in 60 ticks
+            r = s.step(clock.now, drv, set())
+            drv.follow(r.commands)
+            sent += [data for _light, data in r.commands]
+            clock.now += 1 / 60
+        self.assertGreaterEqual(len(sent), 58)
+        self.assertTrue(all("transition" not in data for data in sent), "a light that cannot fade is given single commands, no transition")
+        steps = [abs(a["xy_color"][0] - b["xy_color"][0]) + abs(a["xy_color"][1] - b["xy_color"][1]) for a, b in pairwise(sent)]
+        self.assertLess(max(steps), 0.05, "each single command moves the colour a little, so it looks smooth")
+
+    def test_a_light_that_fades_by_itself_is_not_given_the_fps_whatever_it_is(self):
+        drv = FakeDriver({"light.a": info(transition=True)})
+        s, clock = session(drv, fps=60)
+        first = s.step(clock.now, drv, set())
+        drv.follow(first.commands)
+        clock.now += 0.1
+        self.assertEqual(s.step(clock.now, drv, set()).commands, [])
+        self.assertIn("transition", first.commands[0][1])
 
     def test_a_white_only_light_gets_a_temperature_and_a_colour_light_gets_xy(self):
         drv = FakeDriver({"light.a": info(colour=False, xy=None), "light.b": info()})

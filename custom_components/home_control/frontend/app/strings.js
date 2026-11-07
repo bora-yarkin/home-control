@@ -139,6 +139,7 @@ var EN = {
   "live_scene": "Live scene",
   "live_scene_sub": "Colours and effects that move across the lights of an area",
   "live_scenes_are_not_available": "Live scenes are not available yet",
+  "update_rate_experimental": "Update rate (experimental)",
   "importing_a_hue_scene_needs_hue_plus": "Importing a Hue scene needs Hue Plus",
   "no_areas_yet_sub": "A live scene plays in an area. Make one first.",
   "pick_the_areas_for_this_live_scene": "Pick the areas this scene plays in. Their lights are the lights it can use.",
