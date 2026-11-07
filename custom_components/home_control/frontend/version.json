@@ -1,5 +1,5 @@
 {
-  "version":234,
+  "version":236,
   "files": [
     "integrations.js",
     "app/strings.js",
@@ -8,6 +8,7 @@
     "app/widgets.js",
     "app/lights.js",
     "app/lightpanel.js",
+    "app/effects.js",
     "app/hsync.js",
     "app/hsbox.js",
     "app/media.js",
@@ -39,9 +40,7 @@
     "app/conditions.js",
     "app/access.js",
     "app/settings.js",
-    "app/hueplus.js",
-    "app/hmdraft.js",
-    "app/huemenu.js",
+    "app/pluginapi.js",
     "app/saved.js",
     "app/lighteditor.js",
     "app/scenenew.js",

@@ -122,6 +122,66 @@ class StepTests(unittest.TestCase):
         self.assertEqual(s.step(clock.now, drv, set()).commands, [])
         self.assertIn("transition", first.commands[0][1])
 
+    def _play_with_a_lagging_light(self, *, behind: int, steps: int = 24, then=None):
+        """A light that reports what a fade it was given `behind` commands ago ended on, as a hub does that only reports when a fade ends.
+        The palette moves fast, so one command's colour is far from the next. `then(drv, step)` may change the light afterwards."""
+        drv = FakeDriver({"light.a": info()})
+        s, clock = session(drv, palette=[{"hs": [0, 100]}, {"hs": [240, 100]}], speed=12)
+        sent, dropped = [], []
+        for step in range(steps):
+            result = s.step(clock.now, drv, set())
+            dropped += result.dropped
+            if result.dropped:
+                break  # the engine takes a light that left out of the scene
+            sent += [data for light, data in result.commands if light == "light.a"]
+            if len(sent) > behind:
+                late = sent[-1 - behind]
+                drv.lights["light.a"] = info(xy=tuple(late["xy_color"]), brightness=late["brightness"])
+            if then is not None:
+                then(drv, step)
+            clock.now += 1.6
+        return sent, dropped
+
+    def test_a_light_that_reports_a_command_or_two_behind_stays_in_the_scene(self):
+        for behind in (1, 2):
+            sent, dropped = self._play_with_a_lagging_light(behind=behind)
+            self.assertEqual(dropped, [], f"reporting {behind} behind is a lag, not someone else")
+            steps = [abs(a["xy_color"][0] - b["xy_color"][0]) + abs(a["xy_color"][1] - b["xy_color"][1]) for a, b in pairwise(sent)]
+            self.assertGreater(max(steps), 0.12, "the test needs steps larger than the limit, or it proves nothing")
+
+    def test_a_light_set_to_a_colour_unlike_anything_sent_leaves_even_when_it_also_lags(self):
+        def someone_sets_it(drv, step):
+            if step == 12:
+                drv.lights["light.a"] = info(xy=(0.30, 0.55), brightness=200)  # green: not a colour of this palette
+
+        _sent, dropped = self._play_with_a_lagging_light(behind=1, then=someone_sets_it)
+        self.assertEqual(dropped, ["light.a"])
+
+    def test_a_light_switched_off_or_dimmed_while_it_lags_leaves(self):
+        """Whatever the lag, off and a very different brightness are never what the scene sent."""
+
+        def switched_off(drv, step):
+            if step == 12:
+                drv.lights["light.a"] = info("off")
+
+        def dimmed(drv, step):
+            if step == 12:
+                drv.lights["light.a"] = info(xy=drv.lights["light.a"].xy, brightness=20)
+
+        for change in (switched_off, dimmed):
+            _sent, dropped = self._play_with_a_lagging_light(behind=1, then=change)
+            self.assertEqual(dropped, ["light.a"], change.__name__)
+
+    def test_a_light_that_shows_its_colour_from_before_the_scene_while_the_first_fade_runs_stays(self):
+        """The first reading after the scene starts is still the colour the light had: that is not someone else."""
+        drv = FakeDriver({"light.a": info(xy=(0.52, 0.41), brightness=255)})  # a warm white, as a lamp in the evening
+        s, clock = session(drv, palette=[{"hs": [240, 100]}, {"hs": [200, 100]}], speed=12)
+        dropped = []
+        for _ in range(4):
+            dropped += s.step(clock.now, drv, set()).dropped
+            clock.now += 1.6  # the light has not changed what it shows: its first fade has not been reported yet
+        self.assertEqual(dropped, [])
+
     def test_a_white_only_light_gets_a_temperature_and_a_colour_light_gets_xy(self):
         drv = FakeDriver({"light.a": info(colour=False, xy=None), "light.b": info()})
         s, clock = session(drv)
@@ -238,6 +298,104 @@ class StepTests(unittest.TestCase):
         s = e.Session(d.parse_definition(data), 0.0)
         drv = FakeDriver({"light.a": info()})
         self.assertEqual(s.step(0.0, drv, set()).commands[0][1]["brightness"], 100)
+
+
+class RejoinTests(unittest.TestCase):
+    """A light the colour check let go of comes back when it shows the scene's colours again; a person's change is final."""
+
+    GREEN = info(xy=(0.30, 0.55), brightness=200)  # nothing like a colour of the red to blue palette
+
+    def _engine(self, lights=("light.a", "light.b")):
+        drv = FakeDriver({light: info() for light in lights})
+        clock = VirtualClock()
+        engine = e.Engine(drv, clock=clock, sleep=clock.sleep)
+        engine.start(definition(lights, palette=[{"hs": [0, 100]}, {"hs": [240, 100]}], speed=12))
+        return drv, clock, engine
+
+    @staticmethod
+    def _last_sent(drv, light):
+        return next(data for kind, entity, data in reversed(drv.calls) if entity == light and kind == "on")
+
+    def test_a_dropped_light_rejoins_when_it_shows_a_colour_the_scene_sent(self):
+        async def go():
+            drv, clock, engine = self._engine()
+            await clock.run(12)
+            drv.lights["light.a"] = self.GREEN
+            await clock.run(8)
+            dropped = "light.a" not in engine.sessions["s1"].lights
+            sent = self._last_sent(drv, "light.b")
+            drv.lights["light.a"] = info(xy=tuple(self._last_sent(drv, "light.b")["xy_color"]), brightness=sent["brightness"])
+            await clock.run(8)
+            result = (dropped, "light.a" in engine.sessions["s1"].lights, engine._owner.get("light.a"))
+            engine.stop_all()
+            return result
+
+        self.assertEqual(asyncio.run(go()), (True, True, "s1"))
+
+    def test_a_rejoined_light_is_sent_colours_again(self):
+        async def go():
+            drv, clock, engine = self._engine()
+            await clock.run(12)
+            drv.lights["light.a"] = self.GREEN
+            await clock.run(8)
+            drv.lights["light.a"] = info(xy=tuple(self._last_sent(drv, "light.b")["xy_color"]), brightness=200)
+            before = sum(1 for kind, entity, _ in drv.calls if entity == "light.a")
+            await clock.run(15)
+            after = sum(1 for kind, entity, _ in drv.calls if entity == "light.a")
+            engine.stop_all()
+            return after - before
+
+        self.assertGreater(asyncio.run(go()), 2)
+
+    def test_a_light_that_keeps_showing_something_else_does_not_rejoin(self):
+        async def go():
+            drv, clock, engine = self._engine()
+            await clock.run(12)
+            drv.lights["light.a"] = self.GREEN
+            await clock.run(200)  # longer than it is watched for
+            result = ("light.a" in engine.sessions["s1"].lights, "light.a" in engine._owner)
+            engine.stop_all()
+            return result
+
+        self.assertEqual(asyncio.run(go()), (False, False))
+
+    def test_a_light_a_person_changed_does_not_rejoin(self):
+        async def go():
+            drv, clock, engine = self._engine()
+            await clock.run(12)
+            engine.changed_by_someone("light.a")
+            drv.lights["light.a"] = info(xy=tuple(self._last_sent(drv, "light.b")["xy_color"]), brightness=200)
+            await clock.run(20)
+            result = "light.a" in engine.sessions["s1"].lights
+            engine.stop_all()
+            return result
+
+        self.assertFalse(asyncio.run(go()))
+
+    def test_a_light_another_scene_took_meanwhile_does_not_rejoin(self):
+        async def go():
+            drv, clock, engine = self._engine()
+            await clock.run(12)
+            drv.lights["light.a"] = self.GREEN
+            await clock.run(8)
+            engine.start(definition(("light.a",), scene_id="s2"))
+            drv.lights["light.a"] = info(xy=tuple(self._last_sent(drv, "light.b")["xy_color"]), brightness=200)
+            await clock.run(10)
+            result = ("light.a" in engine.sessions["s1"].lights, engine._owner["light.a"])
+            engine.stop_all()
+            return result
+
+        self.assertEqual(asyncio.run(go()), (False, "s2"))
+
+    def test_a_scene_whose_every_light_was_taken_ends_at_once_and_nothing_rejoins_it(self):
+        async def go():
+            drv, clock, engine = self._engine(("light.a",))
+            await clock.run(12)
+            drv.lights["light.a"] = self.GREEN
+            await clock.run(10)
+            return "s1" in engine.sessions, engine._owner, dict(engine._tasks)
+
+        self.assertEqual(asyncio.run(go()), (False, {}, {}))
 
 
 class EngineTests(unittest.TestCase):

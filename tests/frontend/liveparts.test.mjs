@@ -63,7 +63,7 @@ test("brightness effects: known types only, at most four, speed and strength kep
   ]);
 });
 
-test("single lights: only lights, only known fields, empty looks dropped, at most 32", () => {
+test("single lights: only lights, only known fields, an effect name that is not an id dropped, empty looks dropped, at most 32", () => {
   const { clean } = page();
   const many = {};
   for (let i = 0; i < 40; i++) many["light.l" + i] = { bri: 20 };
@@ -72,7 +72,7 @@ test("single lights: only lights, only known fields, empty looks dropped, at mos
     ...BASE,
     looks: {
       "light.a": { palette: [{ hs: [200, 100] }, { hs: [400, 100] }, null], bri: 500, fx: [], native: "underwater", junk: 1 },
-      "light.b": { native: "disco" },
+      "light.b": { native: "Not An Effect!" },
       "light.c": {},
       "switch.d": { bri: 5 },
       "light.e": "x",

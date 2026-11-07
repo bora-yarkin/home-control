@@ -84,7 +84,7 @@ function cleanLiveInt(v, lo, hi, def) {
 
 var LIVE_SRC = ["palette", "rainbow"],
   LIVE_FX = ["pulse", "flicker", "sparkle", "lightning"],
-  LIVE_NATIVE = ["candle", "fire", "sparkle", "glisten", "opal", "prism", "underwater", "cosmos", "sunbeam", "enchant"],
+  LIVE_NATIVE = /^[a-z][a-z0-9_]{0,31}$/,
   LIVE_ALSO = ["light", "switch", "fan", "media_player", "climate", "humidifier", "input_boolean", "cover"];
 
 /* Brightness effects of a scene or a light: up to 4, each a type, a speed (1 to 12) and a strength (1 to 100). */
@@ -117,7 +117,7 @@ function cleanLiveLooks(m) {
       }
       if (typeof k.bri === "number") o.bri = cleanLiveInt(k.bri, 1, 100, 100);
       if (Array.isArray(k.fx)) o.fx = cleanLiveFx(k.fx);
-      if (LIVE_NATIVE.indexOf(k.native) >= 0) o.native = k.native;
+      if (typeof k.native === "string" && LIVE_NATIVE.test(k.native)) o.native = k.native;
       if (Object.keys(o).length) out[id] = o;
     });
   return out;

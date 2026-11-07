@@ -4,6 +4,21 @@ Format: [Keep a Changelog](https://keepachangelog.com/). Versions follow [semant
 
 ## [Unreleased]
 
+## [0.7.0] - 2026-11-07
+
+### Added
+- Effects catalogues (decision D-15): a light's effects can be described as data: their groups, labels, pictures or colours, how bright and how fast they start, how the speed maps to the light's own scale, and colour variants. One syntax (`docs/effects-file.md`, JSON) serves a plus integration, which ships its catalogue in `home_control.json` (Hue Plus: everything that was the dashboard's Hue table), and **Settings → Effects → Import an effects file**, where an administrator imports a file for lights of any brand, written by hand or with an AI's help. The file is checked before it is kept and every mistake is listed with where it is; a typo in a field name is an error, not ignored. A file never carries code (its only picture is a palette or an icon); a plus integration's own pictures are checked against a short list of drawing elements on both sides. Effects no catalogue knows are listed as the light reports them.
+- The effects page calls the plus integration's own service for an effect with a colour or a speed, instead of Hue Plus's by name.
+
+### Changed
+- The Hue Plus menu in Settings, the bridge's entertainment areas in the area editor and Hue's texts are no longer in the dashboard: Hue Plus brings them in one script that Home Control loads for administrators, through a documented plugin API (`window.HomeControl`, version 1, `docs/plugin-api.md`) that any plus integration can use. The area editor calls a plugin's hooks for areas it owns; Settings and its search list the categories plugins register. With an older Hue Plus the Hue Plus category is not there (update Home Control and Hue Plus together).
+- The dashboard no longer has Hue's effects, their groups, labels or pictures in its own code: they come from Hue Plus's catalogue (Home Control 0.7.0 and later with Hue Plus 0.9.0 and later; with an older Hue Plus the effects are listed as the lights report them).
+
+### Fixed
+- A light the colour check let go of is put back: it is watched for two minutes while its scene still has other lights, and rejoins as soon as it shows one of the scene's colours again. A light a person changed, or another scene took, is gone for good, and a scene whose every light was taken still ends at once.
+- A gradient light's zones in a saved area get the unique id of their light at start even when Hue Plus has not loaded yet (Home Control can start first), so they keep working as the one light if Hue Plus is removed.
+- A live scene no longer drops a light that is merely behind. The engine ended a light's part in a scene when it showed a colour far from what was sent last, once that was due. Hue reports a fade only when it ends, so on a fast palette a light still showed the colour of the command before, or, right after the scene started, the colour it had before; Hue Play bars and the desk light dropped out of Arctic aurora within seconds, in some runs. A light now has to be far from the colours of the last three commands and from its colour before the scene. Switching a light off, dimming it, or setting a colour that is nothing like the scene's still ends its part.
+
 ## [0.6.0]
 
 ### Added

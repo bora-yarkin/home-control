@@ -18,7 +18,7 @@ THIN = {"__init__", "setup", "services", "spec", "websocket", "hass_driver", "pr
 # The one-time takeover of what Hue Plus saved (D-12) is the only file that names a brand; it goes when every install has moved over.
 BRAND_EXEMPT = {"migration"}
 # What the thin files may take from outside the package (relative to home_control).
-ALLOWED_OUTSIDE = {"const", "service_support", "fieldspec"}
+ALLOWED_OUTSIDE = {"const", "service_support", "fieldspec", "effects"}
 BRANDS = re.compile(r"hue_plus|hue plus|philips|govee|tuya|ikea", re.IGNORECASE)  # a brand, not the colour term "hue"
 
 

@@ -29,6 +29,7 @@ from .const import (
     PANEL_ELEMENT,
     URL_BASE,
 )
+from .effects import websocket as effects_websocket
 from .images import URL_IMAGES, RemoteImageDeleteView, RemoteImageUploadView
 from .live import services as live_services
 from .live import setup as live_setup
@@ -75,6 +76,7 @@ async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
     if not hass.services.has_service(DOMAIN, "scene_start"):
         live_services.async_register(hass)
         live_websocket.async_register(hass)
+        effects_websocket.async_register(hass)
     await hass.config_entries.async_forward_entry_setups(entry, PLATFORMS)
     entry.async_on_unload(entry.add_update_listener(_reload))
     return True

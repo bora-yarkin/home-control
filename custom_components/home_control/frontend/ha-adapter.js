@@ -228,6 +228,14 @@ window.HA={
  users:function(){return ws({type:"config/auth/list"})},
  entityRegistry:function(){return ws({type:"config/entity_registry/list"}).then(withoutHue)},
  serviceResponse:serviceResponse,
+ /* The effects catalogues Home Control offers (a plus integration's, and the files an administrator imported), and importing or removing a file. */
+ effects:{
+  sources:function(){return ws({type:"home_control/effects"}).then(function(r){return r&&r.sources})},
+  importFile:function(content){return ws({type:"home_control/effects_import",content:content})},
+  removeFile:function(id){return ws({type:"home_control/effects_delete",file_id:id})}
+ },
+ /* The plus integrations that bring a script of their own: [{ id, name, menu, version }]. */
+ plugins:function(){return ws({type:"home_control/plugins"}).then(function(r){return r&&r.plugins})},
  camera:camera,
  route:route,
  signPath:signPath,

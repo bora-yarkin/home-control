@@ -207,6 +207,34 @@ def test_a_wrong_declaration_is_refused(bad):
         providers_module.parse("hue_plus", {**HUE_DECLARATION, **bad})
 
 
+def test_a_declaration_may_carry_a_catalogue_with_pictures():
+    raw = {
+        **HUE_DECLARATION,
+        "catalogue": {
+            "groups": [{"id": "wavy", "label": "Wavy"}],
+            "effects": [
+                {
+                    "id": "underwater",
+                    "label": "Underwater",
+                    "group": "wavy",
+                    "art": "<svg viewBox='0 0 100 100'></svg>",
+                    "speed_range": [0.2, 0.5],
+                }
+            ],
+        },
+    }
+    provider = providers_module.parse("hue_plus", raw)
+    assert [g.id for g in provider.groups] == ["wavy"] and provider.catalogue[0].speed_range == (0.2, 0.5)
+    assert provider.catalogue[0].art.startswith("<svg") and provider.catalogue_problems == ()
+
+
+def test_a_wrong_catalogue_is_ignored_and_the_providers_lights_still_count():
+    raw = {**HUE_DECLARATION, "catalogue": {"groups": [], "effects": [{"id": "underwater", "speed": 99}]}}
+    provider = providers_module.parse("hue_plus", raw)
+    assert provider.catalogue == () and provider.groups == () and provider.catalogue_problems
+    assert provider.lights["hue_plus"].rate == 8.0 and provider.plays_effects()
+
+
 async def test_nothing_is_read_from_an_integration_that_declares_nothing(hass):
     entry = await setup_home_control(hass)
     assert entry.runtime_data.providers.declared == {}
@@ -329,3 +357,30 @@ async def test_a_light_that_has_no_entity_yet_is_left_without_one_and_the_area_s
     await setup_home_control(hass)
     area = (await call(hass, "get_library", response=True))["areas"][0]
     assert all("uid" not in light for light in area["lights"])
+
+
+async def test_a_zone_gets_its_lights_unique_id_at_start_even_before_its_plus_integration_has_loaded(hass, hass_storage):
+    """Home Control can start before Hue Plus: what a declaration says about a light's parts does not depend on that."""
+    from custom_components.home_control.live import providers as providers_module
+
+    registry = er.async_get(hass)
+    zones = [{"entity_id": f"light.strip_zone_{i}", "x": i / 10, "y": 0, "z": 0} for i in (1, 2)]
+    for light in zones:
+        registry.async_get_or_create(
+            "light", "hue_plus", "L1_zone_" + light["entity_id"][-1], suggested_object_id=light["entity_id"].removeprefix("light.")
+        )
+    hass_storage["home_control.live"] = {
+        "version": 1,
+        "minor_version": 1,
+        "key": "home_control.live",
+        "data": {"areas": {"room": {"id": "room", "name": "Room", "lights": zones, "ui": {}}}, "scenes": {}},
+    }
+    from custom_components.home_control.live.setup import _attach_identities
+
+    entry = await setup_home_control(hass)
+    providers = entry.runtime_data.providers
+    providers.declared["hue_plus"] = providers_module.parse("hue_plus", HUE_DECLARATION)
+    assert "hue_plus" not in hass.config.components  # not loaded (yet)
+    assert _attach_identities(hass, providers, entry.runtime_data.library) is True
+    lights = entry.runtime_data.library.areas["room"]["lights"]
+    assert [(x["uid"], x["alt"]) for x in lights] == [("L1_zone_1", "L1"), ("L1_zone_2", "L1")]

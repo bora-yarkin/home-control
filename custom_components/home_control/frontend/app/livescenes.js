@@ -31,7 +31,8 @@ function engineSensor() {
 
 /* Reading a Hue scene, to import it as a live scene, is Hue Plus's: it reads the bridge. Nothing else about live scenes needs it. */
 function hueImportable() {
-  return Integrations.hueplus.has(H(), "import_hue_scene");
+  var s = H().services;
+  return !!(s && s.hue_plus && s.hue_plus.import_hue_scene);
 }
 
 /* The services of live scenes, by what they do. */
@@ -178,7 +179,7 @@ function liveId(id) {
   return String(id).toLowerCase().replace(/[^a-z0-9_-]/g, "_").slice(0, 48);
 }
 
-function hpAreaLights(ar) {
+function liveAreaLights(ar) {
   var out = [];
   ar.lights.forEach(function (l) {
     (eaIsBar(l.id) ? eaZonePoints(l) : [l]).forEach(function (q) {
@@ -189,7 +190,7 @@ function hpAreaLights(ar) {
 }
 
 function liveAreaPayload(ar) {
-  var lights = hpAreaLights(ar);
+  var lights = liveAreaLights(ar);
   if (!lights.length) return null;
   return { id: liveId(ar.id), name: ar.name || ar.id, lights: lights, ui: { room: ar.room || "" } };
 }
