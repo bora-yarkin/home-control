@@ -31,7 +31,7 @@ def attach_unique_ids(hass: HomeAssistant, providers: Providers, lights: list[di
         entry = registry.async_get(light["entity_id"])
         uid = light.get("uid") or (entry.unique_id if entry is not None else "")
         item = {**light, "uid": uid} if uid else dict(light)
-        owned = providers.for_platform(entry.platform) if entry is not None else None
+        owned = providers.for_platform(entry.platform, loaded=False) if entry is not None else None
         parent = owned[1].parent if owned is not None else None
         if uid and parent and not light.get("alt") and (whole := re.sub(parent, "", uid)) != uid:
             item["alt"] = whole

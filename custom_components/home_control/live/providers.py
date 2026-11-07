@@ -135,10 +135,11 @@ class Providers:
                 _LOGGER.warning("%s of %s is not valid and is ignored: %s", DECLARATION, domain, err)
         self.declared = found
 
-    def for_platform(self, platform: str) -> tuple[Provider, LightClass] | None:
-        """The provider that owns the lights of this entity platform, when its integration is loaded."""
+    def for_platform(self, platform: str, *, loaded: bool = True) -> tuple[Provider, LightClass] | None:
+        """The provider that owns the lights of this entity platform. By default only when its integration is loaded, which playing
+        needs; what a declaration says about a light (its parent) is true whether or not the integration has loaded yet."""
         for provider in self.declared.values():
-            if provider.domain in self.hass.config.components and platform in provider.lights:
+            if (not loaded or provider.domain in self.hass.config.components) and platform in provider.lights:
                 return provider, provider.lights[platform]
         return None
 
