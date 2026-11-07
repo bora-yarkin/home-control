@@ -4,6 +4,12 @@ Format: [Keep a Changelog](https://keepachangelog.com/). Versions follow [semant
 
 ## [Unreleased]
 
+## [0.8.0] - 2026-11-07
+
+### Changed
+- The rest of what was Hue-specific in the dashboard is Hue Plus's now, brought through the plugin API (decision D-17; Hue Plus 0.10.0 and later, install both together): Hue's scenes (their rows, popup with brightness, speed, play and freeze, the scene tiles of the light panel, and *Import as a live scene*), the Hue Spotify sync and the Hue Play HDMI Sync Box (their rows in the Lights section, popups, and the lights they play on), and the Style button of a gradient light. The dashboard keeps what a light made of zones is (any light that reports `zone_colors` and lists its zones in `entity_id`) and a scene import list for any source. Without Hue Plus a scene of the Hue integration is run like any scene and the sync switches are plain switches.
+- The plugin API (still version 1, only added to) has hooks for these: `registerSceneKind`, `registerSceneImport`, `registerDeviceKind`, `registerPlayback`, `registerLightStyle`, `addStyles`, the dashboard's controls under `ui`, and a page title that can be a function. The page is drawn again when a plugin's script has loaded, so what it registers shows at once.
+
 ## [0.7.1] - 2026-11-07
 
 ### Fixed

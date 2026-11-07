@@ -2,7 +2,7 @@
  An integration that declares a `menu` script in its home_control.json has it loaded for administrators; the script finds `window.HomeControl` and uses nothing else of the
  dashboard. Every function is looked up when it is called, so the order the dashboard's files load in never matters. */
 
-/* Pages a plugin registered: key -> [title (a string key), icon, builder(body, id)]. A key may carry an id after a colon ("hue-light:light.desk_lamp"). */
+/* Pages a plugin registered: key -> [title (a string key, or a function of the id that gives the text), icon, builder(body, id)]. A key may carry an id after a colon ("hue-light:light.desk_lamp"). */
 var PLUGIN_PAGES = {};
 
 /* Categories of Settings a plugin registered: id -> { title, icon, page, sub(), visible(), keywords }. */
@@ -11,6 +11,49 @@ var PLUGIN_SETTINGS = {};
 /* What a plugin does in the area editor, by plugin id: { importRow(box, room), actions(box, draft), lights(), save(leave) }. An area a plugin owns (one it opened
  with `areas.openExternal`) is edited with its `lights` and saved with its `save`. */
 var PLUGIN_AREA = {};
+
+/* Scene entities a plugin owns (Hue's): { match(id), icon, popup (a page key), active(id), toggle(id), start(id), dynamic(id), palette(id, done) }. The dashboard lists them
+ with the room's scenes, runs them and shows their popup; what a scene does is the plugin's. */
+var PLUGIN_SCENE_KINDS = [];
+
+/* Places a live scene can be imported from: { id, title, sub (string keys), available(), list(): [{id, name, group}], read(id): a promise of { name, palette, speed, brightness, lights } }. */
+var PLUGIN_SCENE_IMPORTS = [];
+
+/* Devices of a kind the dashboard does not know, shown as rows of the Lights section: { match(id), pop (a page key), row(device), search (a domain) }. */
+var PLUGIN_DEVICE_KINDS = [];
+
+/* What plays on a light that the light itself does not say (Hue's Spotify sync): { plays(id): { entity, label, pct } or null }. */
+var PLUGIN_PLAYBACK = [];
+
+/* A style a light panel offers for some lights (Hue's gradient styles): { applies(id), icon(id): svg markup, popup(body, id), blends(id) (optional: whether the zones are drawn blended into a line, the default) }. */
+var PLUGIN_STYLES = [];
+
+function pluginFind(list, id) {
+  for (var i = 0; i < list.length; i++) if (list[i].match(id)) return list[i];
+  return null;
+}
+
+function pluginSceneKind(id) {
+  return pluginFind(PLUGIN_SCENE_KINDS, id);
+}
+
+function pluginDeviceKind(id) {
+  return id ? pluginFind(PLUGIN_DEVICE_KINDS, id) : null;
+}
+
+/* The playback a plugin reports on a light: { entity, label, pct } or null. */
+function pluginPlays(id) {
+  for (var i = 0; i < PLUGIN_PLAYBACK.length; i++) {
+    var p = PLUGIN_PLAYBACK[i].plays(id);
+    if (p) return p;
+  }
+  return null;
+}
+
+function pluginStyle(id) {
+  for (var i = 0; i < PLUGIN_STYLES.length; i++) if (PLUGIN_STYLES[i].applies(id)) return PLUGIN_STYLES[i];
+  return null;
+}
 
 function pluginLate(name) {
   return function () {
@@ -68,6 +111,48 @@ window.HomeControl = {
   set popGuard(value) {
     window.POPGUARD = value;
   },
+  /* Whether the administrator is editing the page. */
+  editing: pluginLate("editing"),
+  /* Controls and helpers the dashboard's own pages are made of, for plugin pages that look and behave the same. */
+  ui: {
+    attachSlide: pluginLate("attachSlide"),
+    briControl: pluginLate("briControl"),
+    callLive: pluginLate("callLive"),
+    cap: pluginLate("cap"),
+    closeSheet: pluginLate("closeSheet"),
+    cssRgb: pluginLate("cssRgb"),
+    cssToRgb: pluginLate("cssToRgb"),
+    deviceGet: pluginLate("deviceGet"),
+    deviceSet: pluginLate("deviceSet"),
+    dom: pluginLate("dom"),
+    dropRow: pluginLate("dropRow"),
+    ic: pluginLate("ic"),
+    inkRow: pluginLate("inkRow"),
+    kelvinRgb: pluginLate("kelvinRgb"),
+    lightMembers: pluginLate("lightMembers"),
+    liveStopOn: pluginLate("liveStopOn"),
+    liveXyRgb: pluginLate("liveXyRgb"),
+    pinPop: pluginLate("pinPop"),
+    pop: pluginLate("pop"),
+    sep: pluginLate("sep"),
+    sliderRow: pluginLate("sliderRow"),
+    switchPill: pluginLate("switchPill"),
+    get pageFill() {
+      return window.PAGEFILL;
+    },
+  },
+  /* The dashboard's rooms and scenes. */
+  room: pluginLate("roomById"),
+  serviceResponse: function (domain, service, data) {
+    return HA.serviceResponse(domain, service, data);
+  },
+  scenes: {
+    /* A scene entity hidden from a room's page (the administrator's choice, kept with the room). */
+    hidden: pluginLate("sceneEntHidden"),
+    setHidden: pluginLate("sceneEntSetHidden"),
+    /* Imports a live scene from a registered source into the live scene editor. */
+    importFrom: pluginLate("liveImportFrom"),
+  },
   /* The area editor, for a plugin that owns areas of its own. */
   areas: {
     roomLights: pluginLate("eaRoomLights"),
@@ -105,6 +190,27 @@ window.HomeControl = {
     CATS.splice(at, 0, [def.id, _T(def.title), def.page, def.icon, def.visible || null]);
     STG_INDEX.push([_T(def.title), def.keywords || "", def.id, null]);
   },
+  /* Adds a plugin's own styles to the page. */
+  addStyles: function (css) {
+    var el = document.createElement("style");
+    el.textContent = css;
+    document.head.appendChild(el);
+  },
+  registerSceneKind: function (def) {
+    PLUGIN_SCENE_KINDS.push(def);
+  },
+  registerSceneImport: function (def) {
+    PLUGIN_SCENE_IMPORTS.push(def);
+  },
+  registerDeviceKind: function (def) {
+    PLUGIN_DEVICE_KINDS.push(def);
+  },
+  registerPlayback: function (def) {
+    PLUGIN_PLAYBACK.push(def);
+  },
+  registerLightStyle: function (def) {
+    PLUGIN_STYLES.push(def);
+  },
   registerAreaHooks: function (plugin, hooks) {
     PLUGIN_AREA[plugin] = hooks;
   },
@@ -125,6 +231,10 @@ function pluginsLoad() {
         var s = document.createElement("script");
         s.src = p.menu + (p.version ? "?v=" + encodeURIComponent(p.version) : "");
         s.async = false;
+        /* What the plugin registered (scenes, devices, styles) was not there when the page was first drawn: draw it again once it is. */
+        s.onload = function () {
+          if (BOOTED) rerender();
+        };
         document.head.appendChild(s);
       });
     },

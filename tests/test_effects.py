@@ -5,6 +5,7 @@ import copy
 import json
 
 import pytest
+import voluptuous as vol
 
 from custom_components.home_control.effects.store import MAX_BYTES, MAX_FILES
 
@@ -186,17 +187,35 @@ def test_a_menu_script_anywhere_else_is_refused(url):
         providers_module.parse("hue_plus", {**HUE_DECLARATION, "menu": {"url": url}})
 
 
-async def test_the_plugins_listed_are_the_loaded_integrations_with_a_menu(hass, client):
+async def test_the_plugins_listed_are_the_loaded_integrations_with_what_they_bring(hass, client):
     from custom_components.home_control.live import providers as providers_module
 
     entry = hass.config_entries.async_loaded_entries("home_control")[0]
     entry.runtime_data.providers.declared["hue_plus"] = providers_module.parse(
-        "hue_plus", {**HUE_DECLARATION, "menu": {"url": "/hue_plus_static/menu.js"}}
+        "hue_plus", {**HUE_DECLARATION, "menu": {"url": "/hue_plus_static/menu.js"}, "replaces": ["hue"]}
     )
+    entry.runtime_data.providers.declared["other_plus"] = providers_module.parse("other_plus", HUE_DECLARATION)
     assert (await ask(client, "plugins"))["result"]["plugins"] == []
-    hass.config.components.add("hue_plus")
-    assert (await ask(client, "plugins"))["result"]["plugins"] == [
-        {"id": "hue_plus", "name": "Hue Plus", "menu": "/hue_plus_static/menu.js", "version": ""}
-    ]
-    hass.config.components.remove("hue_plus")
+    hass.config.components.update({"hue_plus", "other_plus"})
+    listed = {p["id"]: p for p in (await ask(client, "plugins"))["result"]["plugins"]}
+    assert listed["hue_plus"] == {
+        "id": "hue_plus",
+        "name": "Hue Plus",
+        "menu": "/hue_plus_static/menu.js",
+        "version": "",
+        "replaces": ["hue"],
+    }
+    assert (
+        listed["other_plus"]["menu"] == "" and listed["other_plus"]["replaces"] == []
+    )  # one with no menu is still listed: it can replace entities
+    hass.config.components.difference_update({"hue_plus", "other_plus"})
     assert (await ask(client, "plugins"))["result"]["plugins"] == []
+
+
+@pytest.mark.parametrize("bad", [["Hue"], ["hue plus"], [""], ["a"] * 9, "hue"])
+def test_what_a_plus_integration_replaces_is_a_short_list_of_integration_names(bad):
+    from custom_components.home_control.live import providers as providers_module
+
+    with pytest.raises(vol.Invalid):
+        providers_module.parse("hue_plus", {**HUE_DECLARATION, "replaces": bad})
+    assert providers_module.parse("hue_plus", {**HUE_DECLARATION, "replaces": ["hue", "other_2"]}).replaces == ("hue", "other_2")

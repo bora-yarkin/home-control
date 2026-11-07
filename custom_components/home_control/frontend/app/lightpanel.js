@@ -323,10 +323,10 @@ function lpFinger(circ, mode, krange, count, e) {
   };
 }
 
-/* Whether the zones of a light made of zones are blended into a line (the Linear and Mirrored styles); in Scattered and Segmented every zone is a colour of its own. */
+/* Whether the zones of a light made of zones are blended into a line: a light with no style of its own is; one a plugin gives styles to says (Hue's Scattered and Segmented give every zone a colour of its own). */
 function lpSmooth(n) {
-  var m = A(n.cmd[0]).gradient_mode;
-  return !m || m === "interpolated_palette" || m === "interpolated_palette_mirrored";
+  var style = pluginStyle(n.cmd[0]);
+  return !style || !style.blends || !!style.blends(n.cmd[0]);
 }
 
 /* The blend line through the zones of a light made of zones that is separated: one smooth path per such light. */
@@ -1020,7 +1020,7 @@ function lpFxLight(e) {
   return e;
 }
 
-/* The effects of a node's lights (what Home Assistant lists for them) and the Hue scenes of its room. */
+/* The effects of a node's lights (what Home Assistant lists for them) and the scenes of its room that a plugin owns (Hue's). */
 function lpFxOf(root) {
   var h = H(),
     seen = {},
@@ -1043,32 +1043,15 @@ function lpFxOf(root) {
   });
   var scenes = Object.keys(h.states)
     .filter(function (id) {
-      return Integrations.scenes.isHue(h, id) && areas[areaIdOf(id)];
+      return pluginSceneKind(id) && areas[areaIdOf(id)];
     })
     .sort(function (x, y) {
       return (
-        (A(y).is_dynamic !== false) - (A(x).is_dynamic !== false) ||
+        !!pluginSceneKind(y).dynamic(y) - !!pluginSceneKind(x).dynamic(x) ||
         String(A(x).name || x).localeCompare(String(A(y).name || y))
       );
     });
   return { effects: effects, scenes: scenes };
-}
-
-/* The colours of a Hue scene, read once from the bridge (needs the Scene engine). */
-var LP_SCENEPAL = {};
-
-function lpScenePalette(id, done) {
-  if (LP_SCENEPAL[id]) return done(LP_SCENEPAL[id]);
-  if (!hueImportable()) return;
-  HA.serviceResponse("hue_plus", "import_hue_scene", { entity_id: id })
-    .then(function (r) {
-      if (!r || !r.palette || !r.palette.length) return;
-      LP_SCENEPAL[id] = r.palette.map(function (c) {
-        return cssRgb(c.k ? kelvinRgb(c.k) : liveXyRgb(c.xy[0], c.xy[1]));
-      });
-      done(LP_SCENEPAL[id]);
-    })
-    .catch(function () {});
 }
 
 /* What was chosen for each effect (kept in this browser): { effect: { hs: [hue, saturation] or k: kelvin, speed: 1 to 12 } }. An effect with nothing chosen runs as it is by default. */
@@ -1326,22 +1309,23 @@ function lpFxPane(S, pane, fx) {
     fx.scenes.forEach(function (id) {
       var t = tile(A(id).name || id, "", "");
       t.sw.style.background = "var(--f-raise)";
-      lpScenePalette(id, function (stops) {
+      var kind = pluginSceneKind(id);
+      kind.palette(id, function (stops) {
         t.sw.style.background = "linear-gradient(135deg," + (stops.length > 1 ? stops : [stops[0], stops[0]]).join(",") + ")";
       });
       t.active = function () {
-        return Integrations.scenes.active(H(), id);
+        return !!kind.active(id);
       };
       t.el.addEventListener("click", function () {
-        if (A(id).is_dynamic !== false) hueSceneStart(id);
+        if (kind.dynamic(id)) kind.start(id);
         else {
           liveStopOn(S.root.cmd);
           call("scene", "turn_on", { entity_id: id });
         }
       });
-      if (A(id).is_dynamic !== false)
+      if (kind.dynamic(id))
         t.pen.addEventListener("click", function () {
-          lpGo(S, "hscene:" + id);
+          lpGo(S, kind.popup + ":" + id);
         });
       else t.pen.style.display = "none";
       put(row, t);
@@ -1778,69 +1762,11 @@ function lpTray(S) {
   return tray;
 }
 
-/* The styles of a light made of zones, as in the Hue app: pins with a smooth blend (Linear, Mirrored) or colours of their own (Scattered, Segmented). */
-var LP_STYLES = [
-  ["interpolated_palette", "linear", "<circle cx='5' cy='8' r='2.4'/><circle cx='12' cy='8' r='2.4'/><circle cx='19' cy='8' r='2.4'/><path d='M3 16h18'/>"],
-  ["interpolated_palette_mirrored", "mirrored", "<circle cx='6' cy='8' r='2.4'/><circle cx='18' cy='8' r='2.4'/><path d='M12 3v16M3 16h18'/>"],
-  ["random_pixelated", "scattered", "<circle cx='5' cy='11' r='2.4'/><circle cx='12' cy='6' r='2.4'/><circle cx='19' cy='12' r='2.4'/>"],
-  ["segmented_palette", "segmented", "<circle cx='5' cy='8' r='2.4'/><circle cx='12' cy='8' r='2.4'/><circle cx='19' cy='8' r='2.4'/><path d='M3 16h4M10 16h4M17 16h4'/>"],
-];
-
-function lpStyleIcon(mode) {
-  var s = LP_STYLES.filter(function (x) {
-    return x[0] === mode;
-  })[0];
-  return "<svg viewBox='0 0 24 24'>" + (s ? s[2] : LP_STYLES[0][2]) + "</svg>";
-}
-
-/* The light made of zones that the style button is for: the selected one, or the one whose zone is selected. */
+/* The light made of zones that the style button is for: the selected one, or the one whose zone is selected, when a plugin offers styles for it (Hue Plus's). */
 function lpStyleNode(S) {
   var n = S.target(),
     z = n.zones ? n : n.parent && n.parent.zones ? n.parent : null;
-  return z && A(z.cmd[0]).gradient_modes ? z : null;
-}
-
-/* The popup of the style button. Tapping a style changes the light at once; the orientation turns the zones around (Linear and Mirrored). */
-function lpStylePopup(b, id) {
-  var box = mk("div"),
-    tiles = {};
-  b.appendChild(sep(_T("mode"), "palette"));
-  var g = mk("div", "gridl g2 lp-modes");
-  LP_STYLES.forEach(function (s) {
-    var el = mk("div", "lp-mode", "<svg viewBox='0 0 24 24'>" + s[2] + "</svg>");
-    el.appendChild(mk("div", "lp-mode-n")).textContent = _T(s[1]);
-    el.setAttribute("role", "button");
-    el.addEventListener("click", function () {
-      call("hue_plus", "set_style", { light: A(id).hue_light_id, style: s[1] });
-    });
-    tiles[s[0]] = el;
-    g.appendChild(el);
-  });
-  b.appendChild(g);
-  b.appendChild(box);
-  function paint() {
-    var mode = A(id).gradient_mode,
-      offered = A(id).gradient_modes || [];
-    Object.keys(tiles).forEach(function (k) {
-      tiles[k].classList.toggle("picked", k === mode);
-      tiles[k].style.display = offered.indexOf(k) < 0 ? "none" : "";
-    });
-    box.innerHTML = "";
-    if (mode === "interpolated_palette" || mode === "interpolated_palette_mirrored") {
-      box.appendChild(sep(_T("orientation"), "swap"));
-      box.appendChild(
-        pill("swap", _T("turn_the_colours_around"), {
-          tap: function () {
-            call("hue_plus", "set_style", { light: A(id).hue_light_id, flip: true });
-          },
-        })
-      );
-    }
-  }
-  paint();
-  reg(function () {
-    if (b.isConnected) paint();
-  });
+  return z && pluginStyle(z.cmd[0]) ? z : null;
 }
 
 /* The brightness button with the slider that rises from it. 'o' has pct(), lit(), live(v), commit(v), stage() and, to show the number in another way than as a percent of the slider, fmt(v).  Pressing it opens the slider smoothly: held, the slider follows the finger and closes when it is let go; tapped, it stays open until something else is tapped. The light popup and the Spotify sync popup both use it. `o` says what it controls: pct() the brightness now, lit() whether it is on (the button is bright), live(v) while the finger moves, commit(v) when it is let go, and stage() the element that gets the class bri-open while the slider is open, so the rest of that popup can be dimmed. */
@@ -2040,7 +1966,7 @@ function lpStage(S, host) {
   function paintStyle() {
     var z = lpStyleNode(S);
     style.style.display = z ? "" : "none";
-    if (z) style.innerHTML = lpStyleIcon(A(z.cmd[0]).gradient_mode);
+    if (z) style.innerHTML = pluginStyle(z.cmd[0]).icon(z.cmd[0]);
   }
   S.subs.push({ build: paintStyle, sel: paintStyle });
   reg(function () {

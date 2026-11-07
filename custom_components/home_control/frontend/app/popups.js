@@ -41,7 +41,7 @@ function popupDefBase(key) {
     id = p.slice(1).join(":");
   if (PLUGIN_PAGES[k])
     return {
-      title: _T(PLUGIN_PAGES[k][0]),
+      title: typeof PLUGIN_PAGES[k][0] === "function" ? PLUGIN_PAGES[k][0](id) : _T(PLUGIN_PAGES[k][0]),
       icon: PLUGIN_PAGES[k][1],
       build: function (b) {
         PLUGIN_PAGES[k][2](b, id);
@@ -145,18 +145,6 @@ function popupDefBase(key) {
     return { title: _T("automatic_backups"), icon: "sd", build: bkAutoPage };
   if (k === "manage-wallphotos")
     return { title: _T("screensaver_photos"), icon: "media", build: wallPhotosPage };
-  if (k === "hscene") {
-    var hs = id.split("~"),
-      hsId = hs[0],
-      hsRoom = hs[1] ? roomById(hs[1]) : null;
-    return {
-      title: A(hsId).name || A(hsId).friendly_name || _T("scenes"),
-      icon: SCENE_ICON_HUE,
-      build: function (b) {
-        hueScenePopup(b, hsId, hsRoom);
-      },
-    };
-  }
   if (k === "lscene") {
     var ls = sceneById(id);
     return {
@@ -184,14 +172,16 @@ function popupDefBase(key) {
         sceneAreasPage(b, id);
       },
     };
-  if (k === "live-import")
+  if (k === "live-import") {
+    var src = liveImportSource(id);
     return {
-      title: _T("import_a_live_scene_from_hue"),
+      title: src ? _T(src.title) : _T("scenes"),
       icon: "palette",
       build: function (b) {
         liveImportPage(b, id);
       },
     };
+  }
   if (k === "areas")
     return {
       title: (TITLES[id] ? TITLES[id] + " · " : "") + _T("areas"),
@@ -228,38 +218,16 @@ function popupDefBase(key) {
         lpFxColourPopup(b, id);
       },
     };
-  if (k === "lstyle")
+  if (k === "lstyle") {
+    var style = pluginStyle(id);
     return {
       title: _T("style"),
       icon: "palette",
       build: function (b) {
-        lpStylePopup(b, id);
+        if (style) style.popup(b, id);
       },
     };
-  if (k === "hsync")
-    return {
-      title: _T("spotify_sync"),
-      icon: "syncring",
-      build: function (b) {
-        hsyncPopup(b, id);
-      },
-    };
-  if (k === "hsbox")
-    return {
-      title: _T("hue_play_hdmi_sync_box"),
-      icon: "syncring",
-      build: function (b) {
-        hsboxPopup(b, id);
-      },
-    };
-  if (k.indexOf("hsync-") === 0 && HS_PICK[k])
-    return {
-      title: _T(HS_PICK[k][0]),
-      icon: HS_PICK[k][1],
-      build: function (b) {
-        HS_PICK[k][2](b, id);
-      },
-    };
+  }
   if (k === "roomoff")
     return {
       title: _T("everything_off"),
@@ -1024,14 +992,10 @@ function devPop(d) {
   if (!d.id) return "";
   /* Lights and switches have their own popup; the other devices use the popup of their type, or the generic one. */
   if (d.kind === "light") return "light:" + d.id;
-  if (d.kind === "switch")
-    return (
-      (Integrations.huesync.isSync(H(), d.id)
-        ? "hsync:"
-        : Integrations.huesyncbox.isBox(H(), d.id)
-          ? "hsbox:"
-          : "sw:") + d.id
-    );
+  if (d.kind === "switch") {
+    var dk = pluginDeviceKind(d.id);
+    return (dk ? dk.pop : "sw") + ":" + d.id;
+  }
   var p = { media: "media:", climate: "ac:", fan: "fan:", vacuum: "vac:" }[d.kind];
   return p ? p + d.id : "dev:" + d.id;
 }

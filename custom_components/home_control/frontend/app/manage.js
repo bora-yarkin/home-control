@@ -586,7 +586,7 @@ function candidates(doms, roomId, q) {
       .filter(Boolean);
   Object.keys(h.states).forEach(function (id) {
     if (have[id]) return;
-    if (!any && doms.indexOf(Integrations.huesync.isSync(h, id) || Integrations.huesyncbox.isBox(h, id) ? "light" : dom(id)) < 0)
+    if (!any && doms.indexOf(pluginDeviceKind(id) ? pluginDeviceKind(id).search : dom(id)) < 0)
       return;
     var e = h.entities && h.entities[id];
     if (e && (e.entity_category || e.hidden)) return;
@@ -607,8 +607,7 @@ function candidates(doms, roomId, q) {
 }
 
 function defIcon(kind, name, id) {
-  if (id && (Integrations.huesync.isSync(H(), id) || Integrations.huesyncbox.isBox(H(), id)))
-    return "syncring";
+  if (id && pluginDeviceKind(id)) return pluginDeviceKind(id).icon;
   return kind === "sensor"
     ? id
       ? sensorIcon(id)

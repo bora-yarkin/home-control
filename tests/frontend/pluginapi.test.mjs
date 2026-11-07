@@ -30,14 +30,18 @@ function page(extra = {}) {
   return { sandbox, log, HC: sandbox.window.HomeControl };
 }
 
-const documented = ["version", "hass", "attrs", "state", "isOn", "registry", "isAdmin", "call", "callRaw", "toggle", "toast", "refresh", "el", "icon", "row", "count", "confirm", "open", "back", "closeLayer", "guard", "popGuard", "sheet", "t", "addStrings", "registerPage", "registerSettings", "registerAreaHooks"];
+const documented = ["version", "hass", "attrs", "state", "isOn", "registry", "isAdmin", "call", "callRaw", "toggle", "toast", "refresh", "el", "icon", "row", "count", "confirm", "open", "back", "closeLayer", "guard", "popGuard", "sheet", "t", "addStrings", "registerPage", "registerSettings", "registerAreaHooks", "editing", "room", "serviceResponse", "addStyles", "registerSceneKind", "registerSceneImport", "registerDeviceKind", "registerPlayback", "registerLightStyle"];
+const documentedUi = ["attachSlide", "briControl", "callLive", "cap", "closeSheet", "cssRgb", "cssToRgb", "deviceGet", "deviceSet", "dom", "dropRow", "ic", "inkRow", "kelvinRgb", "lightMembers", "liveStopOn", "liveXyRgb", "pinPop", "pop", "sep", "sliderRow", "switchPill", "pageFill"];
+const documentedScenes = ["hidden", "setHidden", "importFrom"];
 const documentedAreas = ["open", "openExternal", "editor", "rebuild", "roomLights", "clamp", "identifyOff"];
 
 test("the API has what the documentation lists, and nothing it does not", () => {
   const { HC } = page();
-  assert.deepEqual(Object.keys(HC).filter((k) => k !== "areas").sort(), [...documented].sort());
+  assert.deepEqual(Object.keys(HC).filter((k) => !["areas", "ui", "scenes"].includes(k)).sort(), [...documented].sort());
   assert.deepEqual(Object.keys(HC.areas).sort(), [...documentedAreas].sort());
-  for (const name of [...documented, ...documentedAreas.map((n) => `areas.${n}`)]) assert.ok(DOCS.includes(name.replace("areas.", "")), `${name} is not in docs/plugin-api.md`);
+  assert.deepEqual(Object.keys(HC.ui).sort(), [...documentedUi].sort());
+  assert.deepEqual(Object.keys(HC.scenes).sort(), [...documentedScenes].sort());
+  for (const name of [...documented, ...documentedAreas, ...documentedUi, ...documentedScenes]) assert.ok(DOCS.includes(name), `${name} is not in docs/plugin-api.md`);
   assert.equal(HC.version, 1);
 });
 
@@ -106,4 +110,31 @@ test("a plugin's script is loaded once, for administrators, and only from its ow
   sandbox.pluginsLoad();
   await new Promise((r) => setImmediate(r));
   assert.equal(added.length, 1, "nothing is loaded for someone who is not an administrator");
+});
+
+test("a scene kind, a device kind, a playback and a style a plugin registered are found for the entities they match, and for no others", () => {
+  const { sandbox, HC } = page();
+  const kind = { match: (id) => id === "scene.a", icon: "palette", popup: "p", active: () => true, toggle() {}, start() {}, dynamic: () => true, palette() {} };
+  HC.registerSceneKind(kind);
+  HC.registerDeviceKind({ match: (id) => id === "switch.s", pop: "sp", icon: "i", search: "light", row() {} });
+  HC.registerPlayback({ plays: (id) => (id === "light.l" ? { entity: "switch.s", label: "Sync", pct: () => 50 } : null) });
+  HC.registerLightStyle({ applies: (id) => id === "light.tube", icon: () => "<svg/>", popup() {} });
+  const run = (code) => plain(vm.runInContext(code, sandbox));
+  assert.equal(run('pluginSceneKind("scene.a").popup'), "p");
+  assert.equal(run('pluginSceneKind("scene.b")'), null);
+  assert.equal(run('pluginDeviceKind("switch.s").pop'), "sp");
+  assert.equal(run('pluginDeviceKind("switch.x")'), null);
+  assert.equal(run('pluginDeviceKind("")'), null);
+  assert.equal(run('pluginPlays("light.l").entity'), "switch.s");
+  assert.equal(run('pluginPlays("light.m")'), null);
+  assert.equal(run('pluginStyle("light.tube").icon()'), "<svg/>");
+  assert.equal(run('pluginStyle("light.plain")'), null);
+});
+
+test("a plugin's own styles are added to the page", () => {
+  const added = [];
+  const { HC } = page({ document: { createElement: () => ({}), head: { appendChild: (el) => added.push(el) } } });
+  HC.addStyles(".x{color:red}");
+  assert.equal(added.length, 1);
+  assert.equal(added[0].textContent, ".x{color:red}");
 });

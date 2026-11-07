@@ -1,5 +1,5 @@
 // SPDX-License-Identifier: GPL-3.0-or-later
-// With Hue Plus installed the panel shows nothing from the Hue integration that Hue Plus has an entity for, and Hue Plus's scenes are driven as Hue scenes.
+// A plus integration that declares it replaces another integration's entities (Hue Plus replaces Hue's): the panel shows nothing of the replaced integration that it has an entity for.
 // Run: node --test tests/frontend
 import assert from "node:assert/strict";
 import { readFileSync } from "node:fs";
@@ -10,7 +10,7 @@ const FRONTEND = new URL("../../custom_components/home_control/frontend/", impor
 const read = (name) => readFileSync(new URL(name, FRONTEND), "utf8");
 const plain = (value) => JSON.parse(JSON.stringify(value));
 
-async function adapter(rows) {
+async function adapter(rows, plugins = [{ id: "hue_plus", name: "Hue Plus", menu: "/hue_plus_static/menu.js", version: "1", replaces: ["hue"] }]) {
   const sandbox = {
     window: {},
     requestAnimationFrame: (fn) => fn(),
@@ -21,7 +21,7 @@ async function adapter(rows) {
   vm.createContext(sandbox);
   vm.runInContext(read("ha-adapter.js"), sandbox);
   const connection = {
-    sendMessagePromise: async (msg) => (msg.type === "config/entity_registry/list" ? rows : []),
+    sendMessagePromise: async (msg) => (msg.type === "config/entity_registry/list" ? rows : msg.type === "home_control/plugins" ? { plugins } : []),
     subscribeEvents: () => {},
     addEventListener: () => {},
   };
@@ -61,40 +61,27 @@ test("without Hue Plus, the Hue integration's entities are shown as before", asy
   assert.deepEqual(Object.keys(plain(HA.hass().entities)).sort(), ["light.other", "scene.read"]);
 });
 
-function integrations() {
-  const context = { window: { HA: {} } };
-  vm.createContext(context);
-  vm.runInContext(read("integrations.js"), context);
-  return context.window.Integrations.scenes;
-}
-
-const state = (name) => ({ attributes: { name }, state: "scening" });
-
-test("a Hue Plus scene is a Hue scene, started with Hue Plus's own service", () => {
-  const scenes = integrations();
-  const h = { entities: { "scene.a": { platform: "hue_plus" }, "scene.b": { platform: "hue" }, "scene.c": { platform: "matter" } } };
-  assert.equal(scenes.isHue(h, "scene.a"), true);
-  assert.equal(scenes.isHue(h, "scene.b"), true);
-  assert.equal(scenes.isHue(h, "scene.c"), false);
-  assert.deepEqual(plain(scenes.start(h, "scene.a", 50, 128)).slice(0, 2), ["hue_plus", "activate_scene"]);
-  assert.deepEqual(plain(scenes.start(h, "scene.b", 50, 128)).slice(0, 2), ["hue", "activate_scene"]);
+test("what is replaced is what a plus integration declares, not a brand the panel knows", async () => {
+  const rows = [row("light.a", "other_plus", "u1"), row("light.a_orig", "orig", "u1"), row("light.a_hue", "hue", "u1")];
+  const HA = await adapter(rows, [{ id: "other_plus", name: "Other Plus", menu: "", version: "", replaces: ["orig"] }]);
+  assert.deepEqual(Object.keys(plain(HA.hass().entities)).sort(), ["light.a", "light.a_hue"]);
 });
 
-test("a Hue Plus scene is on when its room's scene select shows its name, and only a select of the same integration counts", () => {
-  const scenes = integrations();
-  const h = {
-    entities: {
-      "scene.read": { platform: "hue_plus", device_id: "room" },
-      "select.room": { platform: "hue_plus", device_id: "room" },
-      "select.hue_room": { platform: "hue", device_id: "room" },
+test("when Home Control cannot say what is replaced, nothing is hidden", async () => {
+  const sandbox = { window: {}, requestAnimationFrame: (fn) => fn(), setTimeout, clearTimeout, console };
+  vm.createContext(sandbox);
+  vm.runInContext(read("ha-adapter.js"), sandbox);
+  const rows = [row("light.a", "hue_plus", "u1"), row("light.a_hue", "hue", "u1")];
+  const connection = {
+    sendMessagePromise: async (msg) => {
+      if (msg.type === "home_control/plugins") throw new Error("unknown command");
+      return msg.type === "config/entity_registry/list" ? rows : [];
     },
-    states: {
-      "scene.read": state("Read"),
-      "select.room": { state: "Read", attributes: { options: ["Read", "Relax"] } },
-      "select.hue_room": { state: "Read", attributes: { options: ["Read", "Relax"] } },
-    },
+    subscribeEvents: () => {},
+    addEventListener: () => {},
   };
-  assert.equal(scenes.active(h, "scene.read"), true);
-  h.states["select.room"].state = "Relax";
-  assert.equal(scenes.active(h, "scene.read"), false);
+  const HA = sandbox.window.HA;
+  HA.attach({ states: {}, services: {}, connection });
+  await HA.ready();
+  assert.deepEqual(Object.keys(plain(HA.hass().entities)).sort(), ["light.a", "light.a_hue"]);
 });

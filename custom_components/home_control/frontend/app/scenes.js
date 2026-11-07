@@ -76,17 +76,19 @@ function scnPick(b, key) {
       },
     })
   );
-  if (hueImportable() && hueLiveScenes().length)
+  PLUGIN_SCENE_IMPORTS.forEach(function (src) {
+    if (!src.available() || !src.list().length) return;
     box.appendChild(
-      pill("palette", _T("import_a_live_scene_from_hue"), {
+      pill("palette", _T(src.title), {
         sub: function () {
-          return _T("copies_its_colours_and_speed");
+          return _T(src.sub);
         },
         tap: function () {
-          showPopup("live-import:" + scope + ":" + e.id, true);
+          showPopup("live-import:" + src.id + ":" + scope + ":" + e.id, true);
         },
       })
     );
+  });
   var all = STORE.scenes.filter(sceneAllowed);
   if (all.length) box.appendChild(sep(_T("existing_scenes"), "scene"));
   all.forEach(function (sc) {
@@ -385,12 +387,12 @@ function applyPresetData(d, p, id) {
   } else d.hs_color = [p.h, p.s];
 }
 
-/* Hue scenes belong to a Home Assistant area, so their dashboard visibility belongs to the room that shows that area. */
-function hueSceneHidden(room, id) {
+/* A scene entity can be hidden from the page of the room that shows its area (the administrator's choice, kept with the room). */
+function sceneEntHidden(room, id) {
   return !!room && (room.hscn || []).indexOf(id) >= 0;
 }
 
-function hueSceneSetHidden(room, id, hide) {
+function sceneEntSetHidden(room, id, hide) {
   if (!room || !/^scene\.[a-z0-9_]+$/.test(id)) return;
   var scenes = (room.hscn || []).filter(function (x) {
     return x !== id;
@@ -401,188 +403,32 @@ function hueSceneSetHidden(room, id, hide) {
   uiChanged();
 }
 
-function hueScenePopupKey(id, room) {
-  return "hscene:" + id + (room ? "~" + room.id : "");
+/* The popup of a scene a plugin owns: the page its kind names, with the room it is shown in. */
+function sceneKindPopupKey(kind, id, room) {
+  return kind.popup + ":" + id + (room ? "~" + room.id : "");
 }
 
-/* The Home Assistant scene entities (Hue): one row for all places that list them. Hue scenes are live: the icon switches the scene on or off and the rest of the row opens its popup. Other scenes just run. */
+/* The Home Assistant scene entities: one row for all places that list them. A scene a plugin owns (Hue's) is live: the icon switches it on or off and the rest of the row opens its popup. Other scenes just run. */
 function sceneEntRow(id, name, icon, sub, room) {
-  var hue = Integrations.scenes.isHue(H(), id);
-  return pill(icon || "palette", name, {
+  var kind = pluginSceneKind(id);
+  return pill(icon || kind && kind.icon || "scene", name, {
     on: function () {
-      return Integrations.scenes.active(H(), id);
+      return kind ? !!kind.active(id) : false;
     },
     sub: sub || null,
     tap: function () {
-      if (hue) showPopup(hueScenePopupKey(id, room), true);
+      if (kind) showPopup(sceneKindPopupKey(kind, id, room), true);
       else {
         call("scene", "turn_on", { entity_id: id });
         toast(name);
       }
     },
-    iconTap: hue
+    iconTap: kind
       ? function () {
-          hueSceneToggle(id);
+          kind.toggle(id);
         }
       : null,
   });
-}
-
-/* Speed and brightness a Hue scene is started with, kept on this device. */
-function hueSceneSet(id) {
-  var s = deviceGet("db_hsc_" + id, {});
-  return {
-    speed: typeof s.speed === "number" ? s.speed : Math.round((A(id).speed || 0.5) * 100),
-    bri: typeof s.bri === "number" ? s.bri : Math.round((A(id).brightness || 255) / 2.55),
-  };
-}
-
-function hueSceneSave(id, st) {
-  deviceSet("db_hsc_" + id, st);
-}
-
-/* The room's Hue group light of the scene that was frozen last, so the Freeze button can show it. */
-var HFROZEN = {};
-
-/* Starts the scene live with the saved speed, keeping the brightness the room has now. */
-function hueSceneStart(id) {
-  var st = hueSceneSet(id),
-    grp = Integrations.scenes.group(H(), id),
-    bri = grp && V_(grp) === "on" ? (A(grp).brightness || 0) / 2.55 : st.bri;
-  if (grp) {
-    delete HFROZEN[grp];
-    liveStopOn([grp]);
-  }
-  var c = Integrations.scenes.start(H(), id, st.speed, Math.max(1, bri) * 2.55);
-  call(c[0], c[1], c[2]);
-}
-
-/* Freezes the scene where it is: the lights keep the colours they show now. */
-function hueSceneFreeze(id) {
-  var grp = Integrations.scenes.group(H(), id);
-  if (!grp || V_(grp) !== "on") return;
-  Integrations.scenes.freeze(H(), grp).forEach(function (c) {
-    call(c[0], c[1], c[2]);
-  });
-  HFROZEN[grp] = id;
-}
-
-function hueSceneToggle(id) {
-  var grp = Integrations.scenes.group(H(), id);
-  if (Integrations.scenes.active(H(), id)) {
-    if (grp) call("light", "turn_off", { entity_id: grp });
-  } else hueSceneStart(id);
-}
-
-/* The popup of a Hue scene: brightness (follows the room live), speed (starts the scene again at the new speed), play (live) and freeze (a still picture). */
-function hueScenePopup(b, id, room) {
-  var P = Integrations.scenes;
-  function grp() {
-    return P.group(H(), id);
-  }
-  function playing() {
-    return P.active(H(), id) && P.playing(H(), grp());
-  }
-  function live() {
-    var g = grp();
-    return P.active(H(), id) && !!g && V_(g) === "on";
-  }
-  b.appendChild(
-    sliderRow({
-      icon: "bright",
-      name: _T("brightness"),
-      min: 1,
-      max: 100,
-      step: 1,
-      get: function () {
-        var g = grp();
-        return g && V_(g) === "on" ? Math.max(1, Math.round((A(g).brightness || 0) / 2.55)) : hueSceneSet(id).bri;
-      },
-      fmt: function (v) {
-        return v + "%";
-      },
-      on: function () {
-        return P.active(H(), id);
-      },
-      live: function (v) {
-        if (live()) callLive(grp(), "light", "turn_on", { entity_id: grp(), brightness_pct: v });
-      },
-      commit: function (v) {
-        var st = hueSceneSet(id);
-        st.bri = v;
-        hueSceneSave(id, st);
-        if (live()) call("light", "turn_on", { entity_id: grp(), brightness_pct: v });
-      },
-    })
-  );
-  b.appendChild(
-    sliderRow({
-      icon: "tune",
-      name: _T("speed"),
-      min: 1,
-      max: P.speedSteps,
-      step: 1,
-      get: function () {
-        return P.speedToStep(hueSceneSet(id).speed);
-      },
-      fmt: function (v) {
-        return v + " / " + P.speedSteps;
-      },
-      on: function () {
-        return P.active(H(), id);
-      },
-      commit: function (v) {
-        var st = hueSceneSet(id);
-        st.speed = P.stepToSpeed(v);
-        hueSceneSave(id, st);
-        if (playing()) hueSceneStart(id);
-      },
-    })
-  );
-  var g2 = mk("div", "gridl g2");
-  g2.appendChild(
-    pill("play", _T("play"), {
-      on: playing,
-      tap: function () {
-        hueSceneStart(id);
-      },
-    })
-  );
-  g2.appendChild(
-    pill("pause", _T("freeze"), {
-      on: function () {
-        var g = grp();
-        return !!g && HFROZEN[g] === id && V_(g) === "on" && !P.playing(H(), g);
-      },
-      tap: function () {
-        hueSceneFreeze(id);
-      },
-    })
-  );
-  b.appendChild(g2);
-  if (ISADMIN && hueImportable())
-    b.appendChild(
-      pill("palette", _T("import_as_a_live_scene"), {
-        sub: function () {
-          return _T("a_copy_you_can_edit_and_place_on_your_lights");
-        },
-        tap: function () {
-          liveImportHue(id, null, null);
-        },
-      })
-    );
-  if (editing() && room)
-    b.appendChild(
-      pill("eye", hueSceneHidden(room, id) ? _T("show_this_scene") : _T("hide_this_scene"), {
-        sub: function () {
-          return hueSceneHidden(room, id) ? _T("hidden") : _T("visible");
-        },
-        tap: function () {
-          hueSceneSetHidden(room, id, !hueSceneHidden(room, id));
-          closeSheet();
-        },
-      })
-    );
 }
 
 /* A scene is active while everything it sets is as it sets it: lights on or off with the brightness and colour (within a small margin), climate in its mode and temperature, other devices on or off, and what it turns off is off. */
@@ -673,7 +519,7 @@ function scenesSection(room, extra) {
         );
       });
     }
-    /* Scenes made here and devices come first, then live scenes, then the scenes Hue made. They are drawn as one list; each kind is reordered among its own. */
+    /* Scenes made here and devices come first, then live scenes, then the scenes a plugin owns (Hue's). They are drawn as one list; each kind is reordered among its own. */
     var classic = mine.filter(function (sc) {
         return !sc.live;
       }),
@@ -682,8 +528,8 @@ function scenesSection(room, extra) {
       }),
       classicRows = sceneRows(classic),
       liveRows = sceneRows(lives),
-      hueItems = hueSceneOrder(e, ents.filter(function (x) {
-        return x.hue;
+      kindItems = sceneKindOrder(e, ents.filter(function (x) {
+        return x.kind;
       })),
       first = classicRows.slice();
     /* A scenes section can also hold devices, such as a switch that starts a lighting effect. */
@@ -697,13 +543,13 @@ function scenesSection(room, extra) {
         );
     });
     ents.forEach(function (x) {
-      if (!x.hue) first.push(x.row);
+      if (!x.kind) first.push(x.row);
     });
-    var hueRows = hueItems.map(function (x) {
+    var kindRows = kindItems.map(function (x) {
       return x.row;
     });
-    /* One list of scenes: the ones made here, the live ones, then Hue's. */
-    [first, liveRows, hueRows].forEach(function (g) {
+    /* One list of scenes: the ones made here, the live ones, then those a plugin owns (Hue's). */
+    [first, liveRows, kindRows].forEach(function (g) {
       g.forEach(function (r) {
         dyn.appendChild(r);
       });
@@ -731,8 +577,8 @@ function scenesSection(room, extra) {
         );
         uiChanged();
       });
-      edSort(hueRows, function (f, t) {
-        var ids = hueItems.map(function (x) {
+      edSort(kindRows, function (f, t) {
+        var ids = kindItems.map(function (x) {
           return x.id;
         });
         ids.splice(t, 0, ids.splice(f, 1)[0]);
@@ -809,8 +655,8 @@ function devRowRaw(d) {
     });
   }
   if (d.kind === "switch") {
-    if (Integrations.huesync.isSync(H(), d.id)) return hsyncRow(d);
-    if (Integrations.huesyncbox.isBox(H(), d.id)) return hsboxRow(d);
+    var dk = pluginDeviceKind(d.id);
+    if (dk) return dk.row(d);
     pk = devPop(d);
     var pw = powerSib(d.id);
     return pill(d.icon || "plug", d.name, {
@@ -856,8 +702,8 @@ function devRowRaw(d) {
   return null;
 }
 
-/* The Hue scenes in the order the administrator gave them (the section's hord); the ones not in it follow, by name. */
-function hueSceneOrder(e, items) {
+/* The scenes a plugin owns, in the order the administrator gave them (the section's hord); the ones not in it follow. */
+function sceneKindOrder(e, items) {
   var pos = {};
   (e.hord || []).forEach(function (id, i) {
     pos[id] = i;
@@ -873,24 +719,24 @@ function lightingScenesExtra(key) {
   var r = UIROOM[key];
   if (!r || !r.area || !sceneIds(r.area).length) return null;
   if (!ISADMIN && ["view", "hide"].indexOf(modeOf("", key).mode) >= 0) return null;
-  /* The scene entities of the room's area, each with whether Hue made it. */
+  /* The scene entities of the room's area, each with the kind a plugin owns it as (Hue's), if any. */
   return function () {
     return sceneIds(r.area)
       .filter(function (s) {
-        return editing() || !Integrations.scenes.isHue(H(), s[0]) || !hueSceneHidden(r, s[0]);
+        return editing() || !pluginSceneKind(s[0]) || !sceneEntHidden(r, s[0]);
       })
       .map(function (s) {
         var nm = A(s[0]).friendly_name || s[0],
-          hue = Integrations.scenes.isHue(H(), s[0]);
+          kind = pluginSceneKind(s[0]);
         if (nm.indexOf(r.name) === 0) nm = nm.slice(r.name.length).replace(/^\s+/, "") || nm;
-        var row = sceneEntRow(s[0], nm, hue ? SCENE_ICON_HUE : "scene", null, r);
+        var row = sceneEntRow(s[0], nm, kind ? kind.icon : "scene", null, r);
         return {
           id: s[0],
-          hue: hue,
-          row: hue
+          kind: kind,
+          row: kind
             ? edMark(row, function () {
-                showPopup(hueScenePopupKey(s[0], r), true);
-              }, hueSceneHidden(r, s[0]))
+                showPopup(sceneKindPopupKey(kind, s[0], r), true);
+              }, sceneEntHidden(r, s[0]))
             : row,
         };
       });
