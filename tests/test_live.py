@@ -319,6 +319,84 @@ async def test_without_its_provider_the_same_scene_plays_the_colours_and_refuses
     assert providers.for_platform("hue_plus") is None
 
 
+# --- a strip's look: the effect runs on the strip, not under its zones --------------------------------------------------------------
+
+
+def _strip(hass, *, parent_effects=True):
+    """A gradient strip of Hue Plus: the light itself (unique id L1) and its three zones, as an area saves them."""
+    registry = er.async_get(hass)
+    registry.async_get_or_create("light", "hue_plus", "L1", suggested_object_id="strip")
+    hass.states.async_set("light.strip", "on", NATIVE if parent_effects else ATTRIBUTES)
+    zones = []
+    for i in (1, 2, 3):
+        registry.async_get_or_create("light", "hue_plus", f"L1_zone_{i}", suggested_object_id=f"strip_zone_{i}")
+        hass.states.async_set(f"light.strip_zone_{i}", "on", ATTRIBUTES)
+        zones.append({"entity_id": f"light.strip_zone_{i}", "x": 0.5 + i / 20, "y": 0, "z": 0})
+    return zones
+
+
+async def test_a_strip_with_its_own_effect_plays_it_as_one_light_in_the_scenes_colour_and_its_zones_are_left_alone(hass, hue_lights):
+    _providers, turn_on, play_effect = hue_lights
+    zones = _strip(hass)
+    request = {"scene_id": "sea", "preset": "ocean", "lights": [*LIGHTS, *zones], "looks": {"light.strip": {"native": "candle"}}}
+    await call(hass, "scene_start", request)
+    await wait_for(lambda: play_effect and turn_on)
+    assert hass.states.get("sensor.home_control_live_scenes").attributes["sessions"]["sea"]["lights"] == [
+        "light.left",
+        "light.right",
+        "light.strip",
+    ]
+    assert play_effect[0].data["entity_id"] == "light.strip" and play_effect[0].data["effect"] == "candle"
+    assert len(play_effect[0].data["xy"]) == 2
+    await asyncio.sleep(0.3)
+    assert not {c.data["entity_id"] for c in turn_on} & {f"light.strip_zone_{i}" for i in (1, 2, 3)}
+
+
+async def test_the_strip_stands_where_its_zones_stood(hass, hue_lights):
+    from custom_components.home_control.live.resolve import resolve_request
+
+    providers = hue_lights[0]
+    zones = _strip(hass)
+    request = {"lights": [*LIGHTS, *zones], "looks": {"light.strip": {"native": "candle"}}}
+    out = resolve_request(hass, providers, request)
+    strip = next(light for light in out["lights"] if light["entity_id"] == "light.strip")
+    assert [light["entity_id"] for light in out["lights"]] == ["light.left", "light.right", "light.strip"]
+    assert strip["x"] == pytest.approx(sum(z["x"] for z in zones) / 3) and strip["uid"] == "L1"
+    assert list(out["looks"]) == ["light.strip"]
+
+
+async def test_a_strips_other_looks_go_to_each_of_its_zones_and_its_zones_stay_zones(hass, hue_lights):
+    from custom_components.home_control.live.resolve import resolve_request
+
+    zones = _strip(hass)
+    request = {"lights": zones, "looks": {"light.strip": {"brightness": 40}, "light.gone": {"brightness": 9}}}
+    out = resolve_request(hass, hue_lights[0], request)
+    assert [light["entity_id"] for light in out["lights"]] == [z["entity_id"] for z in zones]
+    assert out["looks"] == {z["entity_id"]: {"brightness": 40} for z in zones}  # and the look of a light that is not in the scene is gone
+
+
+async def test_a_zones_own_look_wins_over_the_strips(hass, hue_lights):
+    from custom_components.home_control.live.resolve import resolve_request
+
+    zones = _strip(hass)
+    request = {"lights": zones, "looks": {"light.strip": {"brightness": 40}, "light.strip_zone_2": {"brightness": 90}}}
+    out = resolve_request(hass, hue_lights[0], request)
+    assert out["looks"]["light.strip_zone_2"] == {"brightness": 90} and out["looks"]["light.strip_zone_1"] == {"brightness": 40}
+
+
+async def test_an_effect_the_strip_cannot_play_leaves_its_zones_to_play_the_colours(hass, hue_lights):
+    from custom_components.home_control.live.resolve import resolve_request
+
+    providers = hue_lights[0]
+    zones = _strip(hass, parent_effects=False)  # the strip does not list the effect
+    out = resolve_request(hass, providers, {"lights": zones, "looks": {"light.strip": {"native": "candle"}}})
+    assert [light["entity_id"] for light in out["lights"]] == [z["entity_id"] for z in zones]
+    hass.states.async_set("light.strip", "on", NATIVE)
+    hass.config.components.remove("hue_plus")  # and nothing plays effects once Hue Plus is gone
+    out = resolve_request(hass, providers, {"lights": zones, "looks": {"light.strip": {"native": "candle"}}})
+    assert [light["entity_id"] for light in out["lights"]] == [z["entity_id"] for z in zones]
+
+
 # --- a gradient light's zones, and what is left when its plus integration is gone (D-14) ------------------------------------------
 
 

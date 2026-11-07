@@ -783,3 +783,167 @@ class IdentifyTests(unittest.TestCase):
 
 if __name__ == "__main__":
     unittest.main()
+
+
+class SlowLight(FakeDriver):
+    """Lights that show a command only `delay` seconds after it was sent (a hub or a cloud behind other lights)."""
+
+    def __init__(self, lights, clock, delay):
+        super().__init__(lights)
+        self._clock, self._delay, self._pending = clock, delay, []
+
+    async def turn_on(self, entity_id, data):
+        self._pending.append((self._clock() + self._delay, entity_id, data))
+        self.calls.append(("on", entity_id, data))
+
+    def info(self, entity_id):
+        for due, light, data in [p for p in self._pending if p[0] <= self._clock()]:
+            self._pending.remove((due, light, data))
+            changes = {"state": "on", "brightness": data["brightness"]}
+            if "xy_color" in data:
+                changes["xy"] = tuple(data["xy_color"])
+            self.lights[light] = __import__("dataclasses").replace(self.lights[light], **changes)
+        return self.lights.get(entity_id)
+
+
+class WakingLightTests(unittest.TestCase):
+    """A light that is off when a scene is started is switched on and kept, however long its command takes."""
+
+    def test_a_light_that_has_not_answered_yet_is_not_taken_for_one_switched_off_again(self):
+        drv = FakeDriver({"light.a": info("off"), "light.b": info()})
+        clock = Clock()
+        s = e.Session(definition(wake=True), clock.now)
+        first = s.step(clock.now, drv, set())
+        self.assertIn("light.a", [c[0] for c in first.commands])
+        s.sent("light.a", clock.now + 1.6)  # the hub's rate held the command back
+        clock.now += 2.0  # still off: it has not answered yet
+        self.assertEqual(s.step(clock.now, drv, set()).dropped, [])
+        clock.now += e.WAKE_GRACE_SECONDS + 2  # but one that stays off long after its command is switched off again
+        self.assertEqual(s.step(clock.now, drv, set()).dropped, ["light.a"])
+
+    def test_a_light_that_answers_is_watched_like_any_other_afterwards(self):
+        drv = FakeDriver({"light.a": info("off"), "light.b": info()})
+        clock = Clock()
+        s = e.Session(definition(wake=True), clock.now)
+        s.step(clock.now, drv, set())
+        s.sent("light.a", clock.now)
+        drv.lights["light.a"] = info(xy=(0.2, 0.2), brightness=200)
+        clock.now += 1.0
+        s.step(clock.now, drv, set())
+        self.assertEqual(s.lights["light.a"].grace_until, 0.0)
+        drv.lights["light.a"] = info("off")  # now someone switches it off
+        clock.now += 8.0
+        self.assertEqual(s.step(clock.now, drv, set()).dropped, ["light.a"])
+
+    def test_fourteen_lights_that_are_off_all_come_on_and_stay_in_the_scene_behind_the_hubs_rate_and_a_slow_answer(self):
+        names = tuple(f"light.l{i}" for i in range(14))
+
+        async def go():
+            clock = VirtualClock()
+            drv = SlowLight({n: info("off") for n in names}, clock, delay=4.0)
+            engine = e.Engine(drv, clock=clock, sleep=clock.sleep)
+            engine.start(
+                d.parse_definition(
+                    {
+                        "scene_id": "s1",
+                        "lights": [{"entity_id": n, "x": i / 14} for i, n in enumerate(names)],
+                        "palette": [{"xy": [0.2, 0.2]}, {"xy": [0.6, 0.35]}],
+                        "speed": 12,
+                        "wake": True,
+                    }
+                )
+            )
+            await clock.run(20)
+            on = [n for n in names if drv.lights[n].state == "on"]
+            kept = sorted(engine.sessions["s1"].lights)
+            engine.stop_all()
+            return on, kept
+
+        on, kept = asyncio.run(go())
+        self.assertEqual(len(on), 14)
+        self.assertEqual(kept, sorted(names))
+
+
+class NativeEffectTests(unittest.TestCase):
+    """A light that plays its own effect is told once, and again only when the scene's colour has really moved."""
+
+    @staticmethod
+    def _engine(drv, **kw):
+        clock = VirtualClock()
+        engine = e.Engine(drv, clock=clock, sleep=clock.sleep)
+        engine.start(definition(("light.strip",), looks={"light.strip": {"native": "candle"}}, **kw))
+        return clock, engine
+
+    def _drv(self, state="on"):
+        return FakeDriver({"light.strip": info(state, effects=("candle",))})
+
+    def test_a_colour_that_does_not_move_is_sent_once_and_again_only_after_a_minute(self):
+        async def go():
+            drv = self._drv()
+            clock, engine = self._engine(drv, palette=[{"xy": [0.3, 0.4]}], wake=True)
+            await clock.run(50)
+            early = len(drv.calls)
+            await clock.run(30)
+            engine.stop_all()
+            return early, len(drv.calls)
+
+        early, later = asyncio.run(go())
+        self.assertEqual((early, later), (1, 2))
+
+    def test_a_palette_that_moves_recolours_the_effect_and_only_when_it_has_moved_enough(self):
+        async def go():
+            drv = self._drv()
+            clock, engine = self._engine(drv, palette=[{"hs": [0, 100]}, {"hs": [240, 100]}], speed=12, wake=True)
+            await clock.run(40)
+            engine.stop_all()
+            return [data["native_effect"]["xy"] for _kind, _light, data in drv.calls]
+
+        sent = asyncio.run(go())
+        self.assertGreater(len(sent), 3)
+        for before, after in pairwise(sent):
+            self.assertGreaterEqual(max(abs(before[0] - after[0]), abs(before[1] - after[1])), e.NATIVE_MIN_XY * 0.7)
+
+    def test_a_change_of_speed_or_brightness_is_shown_at_once(self):
+        async def go():
+            drv = self._drv()
+            clock, engine = self._engine(drv, palette=[{"xy": [0.3, 0.4]}], wake=True)
+            await clock.run(10)
+            engine.update("s1", speed=11)
+            await clock.run(2)
+            n = len(drv.calls)
+            engine.update("s1", brightness=40)
+            await clock.run(2)
+            engine.stop_all()
+            return n, len(drv.calls), drv.calls[-1][2]["brightness"]
+
+        n, after, brightness = asyncio.run(go())
+        self.assertEqual((n, after), (2, 3))
+        self.assertEqual(brightness, 40)
+
+    def test_an_effect_light_that_starts_off_is_switched_on_and_not_dropped_before_it_answers(self):
+        async def go():
+            clock = VirtualClock()
+            drv = SlowLight({"light.strip": info("off", effects=("candle",))}, clock, delay=4.5)
+            engine = e.Engine(drv, clock=clock, sleep=clock.sleep)
+            engine.start(
+                definition(("light.strip",), looks={"light.strip": {"native": "candle"}}, palette=[{"xy": [0.3, 0.4]}], speed=12, wake=True)
+            )
+            await clock.run(12)
+            result = ("light.strip" in engine.sessions["s1"].lights, drv.lights["light.strip"].state)
+            engine.stop_all()
+            return result
+
+        self.assertEqual(asyncio.run(go()), (True, "on"))
+
+    def test_an_effect_light_switched_off_by_someone_once_it_was_on_leaves_the_scene(self):
+        async def go():
+            drv = self._drv()
+            clock, engine = self._engine(drv, palette=[{"xy": [0.3, 0.4]}])
+            await clock.run(5)
+            drv.lights["light.strip"] = info("off", effects=("candle",))
+            await clock.run(5)
+            left = "light.strip" not in getattr(engine.sessions.get("s1"), "lights", {})
+            engine.stop_all()
+            return left
+
+        self.assertTrue(asyncio.run(go()))

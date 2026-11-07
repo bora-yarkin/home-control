@@ -257,7 +257,7 @@ class LibraryTests(unittest.TestCase):
         self.assertEqual(library.scenes, {})
         self.assertEqual(len(problems), 1)
 
-    def test_a_start_request_carries_the_parts_and_drops_looks_of_lights_that_left_the_area(self):
+    def test_a_start_request_carries_the_parts_and_the_looks_as_saved(self):
         library = lib.Library()
         library.save_area({"id": "room", "name": "Room", "lights": [{"entity_id": "light.a"}, {"entity_id": "light.b"}]})
         library.save_scene(
@@ -271,7 +271,12 @@ class LibraryTests(unittest.TestCase):
                 "actions": [{"entity_id": "media_player.tv", "do": "off"}],
             }
         )
-        v = d.parse_definition(library.request({"scene_id": "s"}))
+        request = library.request({"scene_id": "s"})
+        # The looks of lights that left the area are left out, and those of strips brought to their zones, when the scene starts
+        # (resolve_request, tests/test_live.py): the library does not know which lights are strips.
+        self.assertEqual(list(request["looks"]), ["light.a", "light.gone"])
+        request["looks"].pop("light.gone")
+        v = d.parse_definition(request)
         self.assertEqual([x.kind for x in v.effects], ["pulse"])
         self.assertEqual(list(v.looks), ["light.a"])
         self.assertEqual([(a.entity_id, a.do) for a in v.actions], [("media_player.tv", "off")])

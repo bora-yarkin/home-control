@@ -229,7 +229,8 @@ class Library:
 
     def request(self, data: Mapping[str, Any]) -> dict[str, Any]:
         """The start request for ``parse_definition``, from the shipped defaults, a preset, a saved scene of this id and what the
-        call gives, in that order (later ones win). The lights come from the call, else the area it names, else the saved scene's."""
+        call gives, in that order (later ones win). The lights come from the call, else the area it names, else the saved scene's. Looks are
+        as given: ``resolve_request`` brings those of strips to their zones and leaves out those of lights the scene no longer has."""
         merged: dict[str, Any] = {}
         scene = self.scenes.get(data["scene_id"], {})
         preset_id = data.get("preset") or scene.get("preset")
@@ -259,10 +260,6 @@ class Library:
         if lights is None:
             raise DefinitionError("give lights, or an area (or a saved scene that has one)")
         merged["lights"] = lights
-        # A look for a light the scene no longer has (its area changed) is left out, not an error.
-        if isinstance(merged.get("looks"), Mapping):
-            present = {light["entity_id"] for light in lights}
-            merged["looks"] = {k: v for k, v in merged["looks"].items() if k in present}
         if "palette" not in merged:
             raise DefinitionError("give a palette, or a preset (or a saved scene that has one)")
         return merged

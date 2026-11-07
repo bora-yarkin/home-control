@@ -4,6 +4,16 @@ Format: [Keep a Changelog](https://keepachangelog.com/). Versions follow [semant
 
 ## [Unreleased]
 
+## [0.8.1] - 2026-11-07
+
+### Fixed
+- A light's own effect (Candle, Fire, ...) chosen for a gradient strip in a live scene is played on the strip, in the scene's colour. It was dropped when the scene started, and the strip's zones were given colours of their own instead (the area holds the zones, the look was for the strip). Now a look for a strip that names an effect its plus integration can play is for the strip as one light, standing where its zones stood, and its zones are left alone; any other look (brightness, colours, brightness effects) is given to each of its zones. A look for a light the scene does not have is still left out.
+- A light that is off when a scene starts is switched on and kept. The engine counted a light that had not yet answered as switched off by someone else, which happened to the lights at the end of a long queue behind a hub's command rate (13 Hue lights take 1.6 seconds to send to), to a light that plays an effect, and to slow lights. A light that was off is now given 10 seconds from the moment its command is actually sent.
+- A light playing its own effect is told again only when the scene's colour, brightness or speed has really changed (or after a minute), not every few seconds: a new colour can start the effect's animation again.
+
+### Changed
+- The zones of a strip now cover the palette between them (in proportion to the scene's Range) instead of by where they are in the room, so a strip a few centimetres long shows several clearly different colours (decision D-18).
+
 ## [0.8.0] - 2026-11-07
 
 ### Changed

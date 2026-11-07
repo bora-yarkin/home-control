@@ -41,8 +41,15 @@ WATCH_SECONDS = 120.0
 # Updates of a light that fades by itself: as often as the palette needs, within these seconds.
 MIN_INTERVAL = 1.5
 MAX_INTERVAL = 6.0
-# A light playing its own effect is recoloured no more often than this (every change is a write to the bridge).
+# A light playing its own effect is recoloured no more often than this (every change is a write to the bridge), and only when its colour
+# or brightness has really moved (a new colour may start the effect's animation again), or this long after the last time.
 NATIVE_MIN_INTERVAL = 3.0
+NATIVE_MIN_XY = 0.01
+NATIVE_MIN_BRIGHTNESS = 8
+NATIVE_REFRESH_SECONDS = 60.0
+# A light that was off when it was sent its first command is not taken to have been switched off by someone else for this long after
+# the command was sent: a hub, a cloud or a queue behind other lights can take that long to switch it on.
+WAKE_GRACE_SECONDS = 10.0
 
 
 @dataclass
@@ -54,6 +61,12 @@ class _Light:
     reach_at: float = 0.0
     driven: bool = False
     native: bool = False  # playing one of the light's own effects, which the engine only recolours
+    ahead: float = 0.0  # how far ahead of now the last command's colour is meant to be reached
+    waking: bool = False  # it was off when the last command was built: that command is to switch it on
+    grace_until: float = 0.0  # until then a waking light that still shows as off has only not answered yet
+    native_pending: tuple[float, float, int, float] | None = None  # (x, y, brightness, speed) of the effect command built last
+    native_sent: tuple[float, float, int, float] | None = None  # the same, once it was sent
+    native_sent_at: float = 0.0
 
 
 @dataclass
@@ -120,6 +133,8 @@ class Session:
 
     def _left_the_scene(self, entity_id: str, light: _Light, info: LightInfo, now: float) -> bool:
         """Whether something else has taken the light from the scene (a frozen scene is still watched for this)."""
+        if info.state == "off" and now < light.grace_until:
+            return False  # a light sent its command to switch it on has not answered yet
         if light.native and info.state == "off":
             return True  # someone switched it off while it played its own effect
         if light.target is None or now < light.reach_at - 0.25:
@@ -127,8 +142,10 @@ class Session:
         moves = self._look.moves_brightness(entity_id)
         return all(self._changed(info, sent, brightness_moves=moves) for sent in light.recent)
 
-    def _command(self, entity_id: str, light: _Light, info: LightInfo, now: float) -> dict[str, Any]:
-        """What to send a light that is due: its own effect with the scene's colour, or the colour and brightness for this moment."""
+    def _command(self, entity_id: str, light: _Light, info: LightInfo, now: float) -> dict[str, Any] | None:
+        """What to send a light that is due: its own effect with the scene's colour, or the colour and brightness for this moment.
+        None when it plays its own effect and nothing about it has changed enough to send."""
+        light.waking = info.state == "off"
         native = self._look.native(entity_id)
         if native is not None and native in info.effects and info.can_colour:
             return self._native_command(entity_id, native, light, now)
@@ -148,10 +165,23 @@ class Session:
             # Until the first fade ends the light still shows what it showed before the scene: that is not someone else either.
             light.recent.append((info.xy[0], info.xy[1], info.brightness if info.brightness is not None else bri))
         light.recent = [*light.recent, light.target][-(RECENT_TARGETS + 1) :]
+        light.ahead = ahead
         light.reach_at = now + ahead
         light.next_due = now + interval
         light.driven = True
         return data
+
+    def sent(self, entity_id: str, at: float) -> None:
+        """A command for a light has gone out (``at`` is when, which is later than when it was built when the hub's rate held it back):
+        the time its colour is to be reached, and the time a light that was off is given to switch on, run from now."""
+        light = self.lights.get(entity_id)
+        if light is None:
+            return
+        light.reach_at = max(light.reach_at, at + light.ahead)
+        if light.waking:
+            light.grace_until = at + WAKE_GRACE_SECONDS
+        if light.native_pending is not None:
+            light.native_sent, light.native_sent_at, light.native_pending = light.native_pending, at, None
 
     def step(self, now: float, driver: Driver, held: set[str]) -> StepResult:
         """What to do at this moment: the commands that are due, and the lights that left the scene."""
@@ -165,10 +195,14 @@ class Session:
                 continue
             if info.state == "off" and not light.driven:
                 continue  # never turned on by a scene
+            if info.state == "on":
+                light.waking, light.grace_until = False, 0.0
             if self._left_the_scene(entity_id, light, info, now):
                 result.dropped.append(entity_id)
             elif not self.frozen and now >= light.next_due:
-                result.commands.append((entity_id, self._command(entity_id, light, info, now)))
+                command = self._command(entity_id, light, info, now)
+                if command is not None:
+                    result.commands.append((entity_id, command))
         self._look_for_lights_that_came_back(now, driver, held, result)
         return result
 
@@ -186,8 +220,9 @@ class Session:
             if not all(self._changed(info, sent, brightness_moves=moves) for sent in light.recent):
                 result.rejoined.append(entity_id)
 
-    def _native_command(self, entity_id: str, native: str, light: _Light, now: float) -> dict[str, Any]:
-        """The light plays its own effect; the scene only changes its colour (the palette's, moving) and brightness, and not often."""
+    def _native_command(self, entity_id: str, native: str, light: _Light, now: float) -> dict[str, Any] | None:
+        """The light plays its own effect; the scene only changes its colour (the palette's, moving) and brightness, and not often: a
+        new colour may start the effect's animation again, so nothing is sent while the colour, the brightness and the speed are as sent."""
         interval = max(NATIVE_MIN_INTERVAL, min(MAX_INTERVAL, cycle_seconds(self.definition.speed) / self._look.steps(entity_id)))
         x, y, bri = self._target(entity_id, self.phase, self.progress, self.seconds)
         light.target = None  # the light's colour is not the one sent while its effect plays, so it cannot be compared
@@ -196,7 +231,22 @@ class Session:
         light.driven = True
         light.next_due = now + interval
         speed = round((self.definition.speed - 1) / (SPEED_STEPS - 1), 2)
-        return {"brightness": bri, "native_effect": {"effect": native, "xy": [round(x, 4), round(y, 4)], "speed": speed}}
+        wanted = (round(x, 4), round(y, 4), bri, speed)
+        before = light.native_sent
+        if (
+            before is not None
+            and light.native_pending is None
+            and light.waking is False
+            and speed == before[3]
+            and math.hypot(x - before[0], y - before[1]) < NATIVE_MIN_XY
+            and abs(bri - before[2]) < NATIVE_MIN_BRIGHTNESS
+            and now - light.native_sent_at < NATIVE_REFRESH_SECONDS
+        ):
+            return None
+        light.ahead = 0.0
+        light.reach_at = now
+        light.native_pending = wanted
+        return {"brightness": bri, "native_effect": {"effect": native, "xy": [wanted[0], wanted[1]], "speed": speed}}
 
     def next_wake(self, now: float) -> float:
         """The next moment a light is due (at least a little ahead)."""
@@ -346,6 +396,7 @@ class Engine:
             return
         light = watched[0]
         light.next_due = 0.0
+        light.native_sent = None  # its effect may have ended while it was away
         session.lights[entity_id] = light
         self._owner[entity_id] = scene_id
         session.wake.set()
@@ -395,7 +446,8 @@ class Engine:
                 self.stop(scene_id)
                 return
             for entity_id, data in result.commands:
-                await self._send(entity_id, data)
+                if await self._send(entity_id, data):
+                    session.sent(entity_id, self._clock())
             session = self.sessions.get(scene_id)
             if session is None:
                 return
@@ -413,12 +465,15 @@ class Engine:
             sleeper.cancel()
             waker.cancel()
 
-    async def _send(self, entity_id: str, data: dict[str, Any]) -> None:
+    async def _send(self, entity_id: str, data: dict[str, Any]) -> bool:
+        """Sends one command, held back to the rate of the light's hub. True when it went out."""
         info = self._driver.info(entity_id)
         if info is None:
-            return
+            return False
         await self._limiter(info).acquire()
         try:
             await self._driver.turn_on(entity_id, data)
         except Exception as err:
             _LOGGER.warning("Could not send a colour to %s: %s", entity_id, err)
+            return False
+        return True
