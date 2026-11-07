@@ -116,12 +116,18 @@ class EffectsStore:
             out.append(_source(identity, catalogue.name, "file", lights, catalogue.groups, catalogue.effects))
         return out
 
-    def plugins(self) -> list[dict[str, str]]:
-        """The loaded plus integrations that bring a menu script: [{id, name, menu, version}]."""
+    def plugins(self) -> list[dict[str, Any]]:
+        """The loaded plus integrations: [{id, name, menu (the script, or "" when there is none), version, replaces}]."""
         return [
-            {"id": p.domain, "name": p.name, "menu": p.menu_url, "version": self._providers.versions.get(p.domain, "")}
+            {
+                "id": p.domain,
+                "name": p.name,
+                "menu": p.menu_url or "",
+                "version": self._providers.versions.get(p.domain, ""),
+                "replaces": list(p.replaces),
+            }
             for p in self._providers.declared.values()
-            if p.menu_url and p.domain in self._hass.config.components
+            if p.domain in self._hass.config.components
         ]
 
     def add(self, raw: Any) -> tuple[str | None, Catalogue]:

@@ -6,9 +6,7 @@
  samsungtv_smart / samsungtv      TV remote, typing on the TV (only samsungtv_smart can type)
  apple_tv                         Apple TV remote, typing on the Apple TV
  androidtv_remote                 Android TV remote
- hue                              scenes: which one is on, playing, speed, brightness
- hue_plus (sync module)           Hue's Spotify sync: which entities belong to one bridge
- hue_plus (sync box)              Hue Play HDMI Sync Box: which entities belong to one box */
+ Hue (scenes, the Spotify sync, the sync box, gradient styles) is Hue Plus's: it registers them through the plugin API (docs/plugin-api.md). */
 (function(){
 "use strict";
 
@@ -111,107 +109,5 @@ var vacuum={
  positionSensor:function(mapImage){return mapImage.replace(/^image\./,"sensor.").replace(/_live_map$/,"_vacuum_position")}
 };
 
-/* ---- scenes ---- */
-
-var scenes={
- /* Philips Hue: a scene entity says nothing about being on, but the room has a "Scene" select entity (same device) whose state is the name of the scene that is on. */
- /* Hue Plus runs the Hue integration's scenes itself (platform hue_plus), with the same attributes, and its own activate_scene service. */
- isHue:function(h,id){var e=h.entities[id];return id.indexOf("scene.")===0&&!!e&&(e.platform==="hue"||e.platform==="hue_plus")},
- /* The light that stands for the whole room of a Hue scene: the Hue group light on the same device. Its "dynamics" attribute says whether a live scene is playing. */
- group:function(h,id){
-  var e=h.entities[id];
-  if(!e||!e.device_id)return null;
-  return Object.keys(h.states).filter(function(k){var x=h.entities[k];return k.indexOf("light.")===0&&x&&x.device_id===e.device_id&&h.states[k].attributes.is_hue_group})[0]||null;
- },
- /* The service call that starts a scene live, at a speed (0 to 100) and brightness (1 to 255). It is the only way to change a scene's speed; dynamic:false does not stop a live scene. */
- start:function(h,id,speed,brightness){
-  return[h.entities[id].platform==="hue_plus"?"hue_plus":"hue","activate_scene",{entity_id:id,dynamic:true,speed:Math.max(0,Math.min(100,Math.round(speed))),brightness:Math.max(1,Math.min(255,Math.round(brightness)))}];
- },
- /* The Hue app sets a scene's speed in 12 steps. The service takes 0 to 100, so step 1 is 0 and step 12 is 100. */
- speedSteps:12,
- stepToSpeed:function(step){return Math.round((step-1)/(this.speedSteps-1)*100)},
- speedToStep:function(speed){return Math.max(1,Math.min(this.speedSteps,Math.round(speed/100*(this.speedSteps-1))+1))},
- /* Each Hue light reports "dynamic_palette" in its dynamics attribute while a live scene plays on it (an off light keeps the word). */
- playing:function(h,grp){
-  return !!grp&&(h.states[grp].attributes.entity_id||[]).some(function(m){var s=h.states[m];return s&&s.state==="on"&&s.attributes.dynamics==="dynamic_palette"});
- },
- /* Freezing a live scene: every light that is on is told the colour and brightness it shows right now, as a plain command. Hue then stops animating it. Returns service calls as [domain, service, data]. */
- freeze:function(h,grp){
-  var out=[];
-  (h.states[grp].attributes.entity_id||[]).forEach(function(m){
-   var s=h.states[m];
-   if(!s||s.state!=="on")return;
-   var a=s.attributes,d={entity_id:m,transition:0};
-   if(a.brightness)d.brightness=a.brightness;
-   if(a.color_mode==="color_temp"&&a.color_temp_kelvin)d.color_temp_kelvin=a.color_temp_kelvin;
-   else if(a.xy_color)d.xy_color=a.xy_color;
-   else if(a.hs_color)d.hs_color=a.hs_color;
-   out.push(["light","turn_on",d]);
-  });
-  return out;
- },
- active:function(h,id){
-  var nm=h.states[id]&&h.states[id].attributes.name,e=h.entities[id];
-  if(!nm||!e||(e.platform!=="hue"&&e.platform!=="hue_plus")||!e.device_id)return false;
-  return Object.keys(h.states).some(function(k){
-   var se=h.entities[k];
-   return k.indexOf("select.")===0&&se&&se.platform===e.platform&&se.device_id===e.device_id&&(h.states[k].attributes.options||[]).indexOf(nm)>=0&&h.states[k].state===nm;
-  });
- }
-};
-
-/* ---- Hue Spotify sync (the sync module of the Philips Hue Plus integration) ---- */
-
-var huesync={
- /* What each of its entities is for. The registry's unique_id of an entity is "<bridge>_sync_<key>". */
- keys:["sync","now_playing","brightness","light_delay","intensity","palette","style","area"],
- keyOf:function(h,id){
-  var e=h.entities[id];
-  if(!e||e.platform!=="hue_plus"||!e.unique_id)return null;
-  return huesync.keys.filter(function(k){var tail="_sync_"+k;return e.unique_id.length>tail.length&&e.unique_id.slice(-tail.length)===tail})[0]||null;
- },
- /* The entities of the bridge that owns entity `id`, as {sync, now_playing, brightness, light_delay, intensity, palette, style, area}
-  (a key is missing when that entity is disabled), or null when `id` is not a sync entity. */
- entities:function(h,id){
-  var key=huesync.keyOf(h,id);
-  if(!key)return null;
-  var uid=h.entities[id].unique_id,bridge=uid.slice(0,uid.length-key.length-6),out={};
-  Object.keys(h.entities).forEach(function(k){
-   var e=h.entities[k],kk=e.platform==="hue_plus"&&e.unique_id&&e.unique_id.indexOf(bridge+"_sync_")===0?huesync.keyOf(h,k):null;
-   if(kk&&e.unique_id===bridge+"_sync_"+kk)out[kk]=k;
-  });
-  return out.sync?out:null;
- },
- isSync:function(h,id){return huesync.keyOf(h,id)==="sync"}
-};
-
-/* ---- Hue Play HDMI Sync Box (an entry of the Philips Hue Plus integration) ---- */
-
-var huesyncbox={
- /* What each of its entities is for. The registry's unique_id of an entity is "<box>_syncbox_<key>". */
- keys:["sync","mode","source","intensity","brightness","hdmi_signal"],
- keyOf:function(h,id){
-  var e=h.entities[id];
-  if(!e||e.platform!=="hue_plus"||!e.unique_id)return null;
-  var at=e.unique_id.indexOf("_syncbox_");
-  if(at<0)return null;
-  var key=e.unique_id.slice(at+9);
-  return huesyncbox.keys.indexOf(key)>=0?key:null;
- },
- /* The entities of the box that owns entity `id`, as {sync, mode, source, intensity, brightness, hdmi_signal}, or null when `id` is not
-  an entity of a sync box (or the box has no sync switch). */
- entities:function(h,id){
-  var key=huesyncbox.keyOf(h,id);
-  if(!key)return null;
-  var uid=h.entities[id].unique_id,box=uid.slice(0,uid.indexOf("_syncbox_")),out={};
-  Object.keys(h.entities).forEach(function(k){
-   var e=h.entities[k],kk=e.platform==="hue_plus"&&e.unique_id&&e.unique_id.indexOf(box+"_syncbox_")===0?huesyncbox.keyOf(h,k):null;
-   if(kk&&e.unique_id===box+"_syncbox_"+kk)out[kk]=k;
-  });
-  return out.sync?out:null;
- },
- isBox:function(h,id){return huesyncbox.keyOf(h,id)==="sync"}
-};
-
-window.Integrations={media:media,vacuum:vacuum,scenes:scenes,huesync:huesync,huesyncbox:huesyncbox};
+window.Integrations={media:media,vacuum:vacuum};
 })();

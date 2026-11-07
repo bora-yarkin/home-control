@@ -14,6 +14,7 @@ commands per second their bridge takes and a service that plays one of the light
      "play_effect": "play_effect",
      "set_effect": "set_effect",
      "menu": {"url": "/hue_plus_static/menu.js"},
+     "replaces": ["hue"],
      "catalogue": {"groups": [...], "effects": [...]}}
 
 ``lights`` maps an entity registry platform to what is known of its lights: ``rate`` (commands per second to share), ``group`` (lights of
@@ -23,7 +24,8 @@ a part of another, like a gradient light's zone, to get the unique id of the lig
 can be played as the whole light when the plus integration is gone). ``effects`` at the top lists the ids of the effects that can be played with a colour;
 ``play_effect`` names the service of the plus integration that plays one (entity_id, effect, xy, brightness, speed). ``set_effect`` names its service that starts an
 effect with a colour (hs_color or kelvin) and a speed on some lights (lights, effect, hs_color, kelvin, speed), which the effects page calls. ``menu`` is the script the dashboard loads for administrators (the integration's own pages in Settings, in the dashboard's plugin API
-``window.HomeControl``); its url must be a ``.js`` file under ``/<domain>_static/``, which the integration serves itself. ``catalogue`` is what the
+``window.HomeControl``); its url must be a ``.js`` file under ``/<domain>_static/``, which the integration serves itself. ``replaces`` lists the integrations whose entities this one makes its own entity for (the same unique id), so the dashboard shows
+only this one's: an entity of a replaced integration is left out when an enabled entity of this integration stands in for it. ``catalogue`` is what the
 dashboard shows of the effects (their groups, labels, pictures, defaults and colour variants) in the syntax of ``docs/effects-file.md``; a
 catalogue with a problem is ignored and logged, and the provider's lights and rates still count.
 """
@@ -83,6 +85,7 @@ _DECLARATION = vol.Schema(
         vol.Optional("menu"): vol.Schema(
             {vol.Required("url"): vol.All(cv.string, vol.Match(r"^/[a-z0-9_]+_static/[A-Za-z0-9_./-]{1,120}\.js$"))}
         ),
+        vol.Optional("replaces", default=list): vol.All([vol.All(cv.string, vol.Match(r"^[a-z0-9_]{1,64}$"))], vol.Length(max=8)),
         vol.Optional("catalogue"): dict,
     }
 )
@@ -107,6 +110,7 @@ class Provider:
     play_effect: str | None
     set_effect: str | None = None
     menu_url: str | None = None
+    replaces: tuple[str, ...] = ()
     groups: tuple[Group, ...] = ()
     catalogue: tuple[Effect, ...] = ()
     catalogue_problems: tuple[str, ...] = ()
@@ -141,6 +145,7 @@ def parse(domain: str, raw: Any) -> Provider:
         play_effect=data.get("play_effect"),
         set_effect=data.get("set_effect"),
         menu_url=menu_url,
+        replaces=tuple(data["replaces"]),
         groups=groups,
         catalogue=shown,
         catalogue_problems=problems,

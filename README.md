@@ -5,8 +5,8 @@ cameras, a wall display, and a first-run editor to arrange it. It runs in the br
 the connection Home Assistant gives every panel; it does not replace Home Assistant and keeps no data of its own on the
 server. Layouts and settings are stored by Home Assistant for each user.
 
-Parts that belong to one integration appear only when that integration is installed: for example, Hue effects, gradient
-styles, live scenes and the Spotify sync appear when [Philips Hue Plus](https://github.com/bora-yarkin/hue-plus) is installed, and nothing Hue shows
+Parts that belong to one integration appear only when that integration is installed: for example, Hue's scenes, effects, gradient
+styles and the Spotify sync appear when [Philips Hue Plus](https://github.com/bora-yarkin/hue-plus) is installed, and nothing Hue shows
 without it.
 
 ## Install

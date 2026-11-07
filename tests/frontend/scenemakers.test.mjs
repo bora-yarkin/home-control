@@ -229,10 +229,10 @@ test("opening a scene in the maker puts its lights as the scene has them, so sav
   ]);
 });
 
-test("the Hue scenes of a section follow the order it was given, and new ones come after, by name", () => {
+test("the scenes a plugin owns (Hue's) follow the order a section was given, and new ones come after", () => {
   const p = page();
   const items = ["a", "b", "c", "d"].map((id) => ({ id: "scene." + id }));
-  const order = (hord) => plain(p.hueSceneOrder({ hord }, items)).map((x) => x.id);
+  const order = (hord) => plain(p.sceneKindOrder({ hord }, items)).map((x) => x.id);
   assert.deepEqual(order(undefined), ["scene.a", "scene.b", "scene.c", "scene.d"]);
   assert.deepEqual(order(["scene.c", "scene.a"]), ["scene.c", "scene.a", "scene.b", "scene.d"]);
   assert.deepEqual(order(["scene.gone", "scene.d"]), ["scene.d", "scene.a", "scene.b", "scene.c"]);
@@ -275,11 +275,9 @@ test("a scene made from the lights as they are keeps the lights that are on and 
   assert.equal(made.length, 0); // nothing on, nothing to save
 });
 
-test("each kind of scene has its own icon: a live scene the sparkle unless one was chosen, a Hue scene the palette", () => {
+test("a live scene has the sparkle for an icon unless one was chosen", () => {
   const p = page();
   assert.equal(p.liveIcon({ icon: "palette" }), "sparkle"); // what live scenes were given before the sparkle
   assert.equal(p.liveIcon({}), "sparkle");
   assert.equal(p.liveIcon({ icon: "moon" }), "moon");
-  assert.equal(p.SCENE_ICON_HUE, "palette");
-  assert.notEqual(p.SCENE_ICON_HUE, p.SCENE_ICON_LIVE);
 });

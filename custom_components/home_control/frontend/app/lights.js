@@ -200,8 +200,8 @@ function lightRow(id, showRoom, inPopup) {
   }
   function pct() {
     if (V_(id) === "on") return Math.round((A(id).brightness || 0) / 2.55);
-    var syn = lightSyncPlays(id);
-    return syn ? hsyncPct(syn) : 0;
+    var syn = pluginPlays(id);
+    return syn ? syn.pct() : 0;
   }
   attachSlide(r, {
     onMove: function (f) {
@@ -231,16 +231,16 @@ function lightRow(id, showRoom, inPopup) {
       drag = false;
       if (t && t.closest(".ic")) {
         /* While an effect or the Spotify sync plays the icon shows a stop button, and it stops that instead of turning the light off. */
-        var syn = lightSyncPlays(id),
+        var syn = pluginPlays(id),
           fxl = V_(id) === "on" ? lightEffectLights(id) : [];
-        if (syn) call("switch", "turn_off", { entity_id: syn });
+        if (syn) call("switch", "turn_off", { entity_id: syn.entity });
         else if (fxl.length) call("light", "turn_on", { entity_id: fxl, effect: "off" });
         else toggleEnt(id);
       } else showPopup("light:" + id, true);
     },
   });
   r.refresh = function () {
-    var syn = lightSyncPlays(id),
+    var syn = pluginPlays(id),
       on = V_(id) === "on" || !!syn,
       icon = r.querySelector(".ic"),
       playing = on && (!!syn || lightEffectLights(id).length > 0);
@@ -262,7 +262,7 @@ function lightRow(id, showRoom, inPopup) {
       (on && la.color_mode === "color_temp" && la.color_temp_kelvin
         ? Math.round(la.color_temp_kelvin) + _T("k")
         : "") +
-      (syn && V_(id) !== "on" ? _T("spotify_sync") : stAgo(id));
+      (syn && V_(id) !== "on" ? syn.label : stAgo(id));
     cd.style.display = rgb && full ? "" : "none";
     var cc = full ? rgb && cssRgb(rgb) : on && PAGEFILL;
     if (cc) {

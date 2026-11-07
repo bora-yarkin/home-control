@@ -745,43 +745,6 @@ body.pinhdr:not(.editing) .wrap::before{content:"";position:fixed;top:0;left:0;r
 @keyframes slsh{from{background-position:100% 0}to{background-position:-150% 0}}
 @media(prefers-reduced-motion:reduce){.pill.slidable .vl{animation:none;background-image:none;color:var(--ink2)}.pill.easing .ic,.pill.easing .tx,.pill.easing .vl{transition:none}}
 
-/* Spotify sync popup (app/hsync.js) */
-.hs-now{display:flex;flex-direction:column;align-items:center;text-align:center;gap:4px;padding:4px 0 var(--sp)}
-.hs-art{width:min(62%,248px);aspect-ratio:1;border-radius:var(--r-m);background:var(--f-raise);border:1px solid var(--f-line);overflow:hidden;display:flex;align-items:center;justify-content:center;color:var(--ink2);position:relative}
-.hs-art svg{width:44px;height:44px;fill:none;stroke:currentColor;stroke-width:1.5;stroke-linecap:round;stroke-linejoin:round}
-.hs-art img{position:absolute;inset:0;width:100%;height:100%;object-fit:cover;display:block}
-.hs-art.has-art svg{visibility:hidden}
-.hs-st{margin-top:12px;font-size:var(--fs-xs);letter-spacing:.14em;text-transform:uppercase;color:var(--ink2)}
-.hs-tt{font-size:19px;font-weight:600;max-width:100%;overflow:hidden;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow-wrap:anywhere}
-.hs-sub{font-size:var(--fs-m);color:var(--ink2);max-width:100%;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
-.hs-set{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:var(--sp-s);margin:var(--sp) 0}
-.hs-set.one{grid-template-columns:minmax(0,1fr)}
-.hs-col{display:flex;flex-direction:column;align-items:center;gap:6px;min-width:0}
-.hs-cap{font-size:var(--fs-xs);letter-spacing:.08em;text-transform:uppercase;color:var(--ink2);text-align:center;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;max-width:100%}
-.hs-tile{display:flex;align-items:center;justify-content:center;width:76px;height:50px;border-radius:25px;box-sizing:border-box;background:var(--f-card);border:1px solid var(--f-line);color:var(--ink);cursor:pointer;min-width:0;transition:background .2s}
-.hs-tile:active{background:var(--f-line)}
-.hs-tile.hs-grad{border-color:transparent}
-.hs-i{display:flex;align-items:center;justify-content:center}
-.hs-i svg{width:26px;height:26px;fill:none;stroke:currentColor;stroke-width:1.7;stroke-linecap:round;stroke-linejoin:round}
-
-.hs-now,.hs-bar,.hs>.pill,.hs-col{transition:opacity .25s}
-.hs.bri-open .hs-now,.hs.bri-open .hs-bar,.hs.bri-open>.pill,.hs.bri-open .hs-col:not(:last-child){opacity:.25;pointer-events:none}
-.hs-bar{display:grid;grid-template-columns:minmax(0,1fr) auto minmax(0,1fr);align-items:center;gap:var(--sp);padding:14px 12px;margin:var(--sp) 0;border-radius:var(--r-l)}
-.hs-side{display:flex;flex-direction:column;align-items:center;gap:6px;min-width:0;text-align:center}
-.hs-btn{cursor:pointer}
-.hs-nm{font-size:var(--fs-s);color:var(--ink);max-width:100%;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
-.hs-go{width:76px;height:76px;border-radius:50%;display:flex;align-items:center;justify-content:center;background:var(--f-raise);border:2px solid var(--f-line2);color:var(--ink);cursor:pointer;transition:background .2s,border-color .2s}
-.hs-go svg{width:34px;height:34px;fill:none;stroke:currentColor;stroke-width:1.7;stroke-linecap:round;stroke-linejoin:round}
-.hs-go.on{background:color-mix(in srgb,var(--acc) 40%,var(--f-raise));border-color:var(--acc)}
-.hs-go.on svg{animation:hs-spin 14s linear infinite}
-@keyframes hs-spin{to{transform:rotate(360deg)}}
-@media(prefers-reduced-motion:reduce){.hs-go.on svg{animation:none}}
-.hs-tile:focus-visible,.hs-go:focus-visible,.hs-btn:focus-visible{outline:2px solid var(--acc);outline-offset:2px}
-.hs-off{opacity:.5;pointer-events:none}
-.hs-sw{width:54px;height:16px;border-radius:999px;flex:none;margin-left:auto;border:1px solid var(--f-line2)}
-.hs-sw+.ck{margin-left:10px}
-.lp-mode.hs-m svg{fill:none}
-
 /* A device of a classic scene whose settings slide open and shut. */
 .dslide{display:grid;grid-template-rows:0fr;opacity:0;transition:grid-template-rows .28s ease,opacity .2s ease}
 .openc>.dslide{grid-template-rows:1fr;opacity:1}

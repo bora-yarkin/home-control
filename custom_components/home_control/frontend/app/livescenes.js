@@ -29,10 +29,11 @@ function engineSensor() {
   return ENGINE.id;
 }
 
-/* Reading a Hue scene, to import it as a live scene, is Hue Plus's: it reads the bridge. Nothing else about live scenes needs it. */
-function hueImportable() {
-  var s = H().services;
-  return !!(s && s.hue_plus && s.hue_plus.import_hue_scene);
+/* The speed of a live scene is set in 12 steps; an imported scene brings its speed from 0 (slowest) to 1. */
+var LIVE_SPEED_STEPS = 12;
+
+function liveSpeedToStep(speed) {
+  return Math.max(1, Math.min(LIVE_SPEED_STEPS, Math.round((Math.round(speed * 100) / 100) * (LIVE_SPEED_STEPS - 1)) + 1));
 }
 
 /* The services of live scenes, by what they do. */
@@ -59,8 +60,7 @@ function liveSessions() {
 }
 
 /* The icons of the kinds of scene: a classic scene keeps its own (the scene icon unless one was chosen), a live scene the sparkle (unless one was chosen; the palette was the old default and counts as none), a Hue scene the palette. */
-var SCENE_ICON_HUE = "palette",
-  SCENE_ICON_LIVE = "sparkle";
+var SCENE_ICON_LIVE = "sparkle";
 
 function liveIcon(sc) {
   return sc && sc.icon && sc.icon !== "palette" ? sc.icon : SCENE_ICON_LIVE;
@@ -424,13 +424,13 @@ function liveScenePopup(b, id) {
       icon: "tune",
       name: _T("speed"),
       min: 1,
-      max: Integrations.scenes.speedSteps,
+      max: LIVE_SPEED_STEPS,
       step: 1,
       get: function () {
         return liveSet(sc).speed;
       },
       fmt: function (v) {
-        return v + " / " + Integrations.scenes.speedSteps;
+        return v + " / " + LIVE_SPEED_STEPS;
       },
       on: function () {
         return !!run();
@@ -502,24 +502,9 @@ function liveScenePopup(b, id) {
 
 /* ---- the editor ---- */
 
-/* ---- import from Hue ---- */
+/* ---- importing a live scene from a registered source (a plugin's: Hue Plus reads Hue scenes from the bridge) ---- */
 
-/* The Hue live scenes of the home, by room. */
-function hueLiveScenes() {
-  var h = H();
-  return Object.keys(h.states)
-    .filter(function (id) {
-      return Integrations.scenes.isHue(h, id) && A(id).is_dynamic !== false;
-    })
-    .sort(function (x, y) {
-      return (
-        String(A(x).group_name || "").localeCompare(String(A(y).group_name || "")) ||
-        String(A(x).name || x).localeCompare(String(A(y).name || y))
-      );
-    });
-}
-
-/* The page a Hue scene belongs on: the open room, or else the room that has most of its lights. */
+/* The page an imported scene belongs on: the open room, or else the room that has most of its lights. */
 function liveRoomFor(lights) {
   if (VIEW !== "home" && UIROOM[VIEW]) return VIEW;
   var best = null,
@@ -582,13 +567,22 @@ function liveAreaFor(room, lights) {
   return { area: auto, save: true };
 }
 
-/* Reads a Hue scene from the bridge and opens the editor with it. */
-function liveImportHue(sceneId, room, target) {
-  if (!hueImportable()) {
-    toast(_T("importing_a_hue_scene_needs_hue_plus"));
+function liveImportSource(key) {
+  var id = String(key).split(":")[0];
+  return PLUGIN_SCENE_IMPORTS.filter(function (x) {
+    return x.id === id;
+  })[0];
+}
+
+/* Reads a scene from a source and opens the editor with it. The source gives { name, palette, speed (0 to 1), brightness (1 to 255), lights }. */
+function liveImportFrom(sourceId, sceneId, room, target) {
+  var src = liveImportSource(sourceId);
+  if (!src || !src.available()) {
+    toast(_T((src && src.unavailable) || "that_scene_cannot_be_imported_now"));
     return;
   }
-  HA.serviceResponse("hue_plus", "import_hue_scene", { entity_id: sceneId })
+  src
+    .read(sceneId)
     .then(function (r) {
       if (!r || !r.palette || !r.palette.length) throw new Error("empty");
       var lights = eaUnits(
@@ -606,8 +600,7 @@ function liveImportHue(sceneId, room, target) {
         if (c.b && c.b < 99) o.b = Math.round(c.b);
         return o;
       });
-      if (typeof r.speed === "number")
-        draft.live.speed = Integrations.scenes.speedToStep(Math.round(r.speed * 100));
+      if (typeof r.speed === "number") draft.live.speed = liveSpeedToStep(r.speed);
       draft.live.bri = Math.max(1, Math.min(100, Math.round(r.brightness / 2.55)));
       if (!target) {
         var secs = secOrder(scopeKey(rm)).filter(function (s) {
@@ -622,28 +615,29 @@ function liveImportHue(sceneId, room, target) {
       liveMakerOpen(rm, null, target, [ar.id], draft, found.save ? ar : null);
     })
     .catch(function () {
-      toast(_T("couldn_t_read_that_scene_from_the_hue_bridge"));
+      toast(_T((src && src.failed) || "couldn_t_read_that_scene"));
     });
 }
 
-/* The list of Hue scenes to import from. */
+/* The list of scenes a source offers to import: the page key is "<source>:<room>:<section>". */
 function liveImportPage(b, key) {
   var q = key.split(":"),
-    target = q.length >= 2 ? { scope: q[0], sid: q[1] } : null,
+    src = liveImportSource(key),
+    target = q.length >= 3 ? { scope: q[1], sid: q[2] } : null,
     room = target && target.scope !== "home" ? target.scope : null,
-    list = hueLiveScenes();
-  if (!list.length) b.appendChild(pill("info", _T("no_hue_scenes_found"), {}));
+    list = src ? src.list() : [];
+  if (!list.length) b.appendChild(pill("info", _T((src && src.empty) || "no_scenes_found"), {}));
   var last = null;
-  list.forEach(function (id) {
-    var g = A(id).group_name || "";
+  list.forEach(function (x) {
+    var g = x.group || "";
     if (g !== last) {
       b.appendChild(sep(g, "home"));
       last = g;
     }
     b.appendChild(
-      pill("palette", A(id).name || id, {
+      pill("palette", x.name, {
         tap: function () {
-          liveImportHue(id, room, target);
+          liveImportFrom(src.id, x.id, room, target);
         },
       })
     );

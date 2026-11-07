@@ -47,22 +47,34 @@ var SOURCES=[
   id:function(f){return f.floor_id}}
 ];
 
-/* Hue Plus makes its own entity for each entity of the Hue integration (the same unique id), so with Hue Plus installed the panel shows only Hue Plus's: an entity of the Hue integration is left out when a Hue Plus entity stands in for it. One Hue Plus has no entity for (a module switched off) stays. */
-function withoutHue(rows){
+/* A plus integration can declare in its home_control.json that its entities stand in for another integration's (it makes its own entity for each one, with the same unique id): the panel then shows only the plus integration's. An entity of a replaced integration is left out when an enabled entity of the integration that replaces it stands in for it; one it has no entity for stays. What each integration replaces is asked of Home Control once. */
+var REPLACES={},replacesAsked=null;
+function loadReplaces(){
+ if(!replacesAsked)replacesAsked=ws({type:"home_control/plugins"}).then(function(r){
+  var out={};
+  ((r&&r.plugins)||[]).forEach(function(p){if(p&&p.id&&Array.isArray(p.replaces)&&p.replaces.length)out[p.id]=p.replaces});
+  REPLACES=out;
+ },function(){replacesAsked=null});
+ return replacesAsked;
+}
+function withoutReplaced(rows){
  rows=rows||[];
  var stood={};
  rows.forEach(function(r){
-  if(r.platform==="hue_plus"&&!r.disabled_by&&r.unique_id)stood[r.entity_id.split(".")[0]+"|"+r.unique_id]=1;
+  var replaced=REPLACES[r.platform];
+  if(replaced&&!r.disabled_by&&r.unique_id)replaced.forEach(function(p){stood[p+"|"+r.entity_id.split(".")[0]+"|"+r.unique_id]=1});
  });
  return rows.filter(function(r){
-  return !(r.platform==="hue"&&r.unique_id&&stood[r.entity_id.split(".")[0]+"|"+r.unique_id]);
+  return !(r.unique_id&&stood[r.platform+"|"+r.entity_id.split(".")[0]+"|"+r.unique_id]);
  });
 }
 
 function loadRegistry(src,attempt){
  return ws({type:src.list}).then(function(rows){
+  return src.key==="entities"?loadReplaces().then(function(){return withoutReplaced(rows)}):rows;
+ }).then(function(rows){
   var out={};
-  (src.key==="entities"?withoutHue(rows):rows||[]).forEach(function(r){var v=src.pick(r);if(v)out[src.id(r)]=v});
+  (rows||[]).forEach(function(r){var v=src.pick(r);if(v)out[src.id(r)]=v});
   registry[src.key]=out;
   schedule();
  },function(err){
@@ -226,7 +238,7 @@ window.HA={
  logbook:function(params){return withType("logbook/get_events",params)},
  statistics:function(params){return withType("recorder/statistics_during_period",params)},
  users:function(){return ws({type:"config/auth/list"})},
- entityRegistry:function(){return ws({type:"config/entity_registry/list"}).then(withoutHue)},
+ entityRegistry:function(){return ws({type:"config/entity_registry/list"}).then(function(rows){return loadReplaces().then(function(){return withoutReplaced(rows)})})},
  serviceResponse:serviceResponse,
  /* The effects catalogues Home Control offers (a plus integration's, and the files an administrator imported), and importing or removing a file. */
  effects:{

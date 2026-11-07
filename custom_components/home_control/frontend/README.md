@@ -18,7 +18,7 @@ Home Assistant. Anything that Home Assistant does well (automations, helpers, gr
 | `app/vlights.js` | Lights that exist only in the dashboard: the Colors light of the live scene maker and its colours (up to 10), which answer to the light popup like a light made of zones. `core.js` reads them before Home Assistant's states and `callRaw` gives them the commands meant for them. |
 | `app/livemaker.js` | The live scene maker: the light popup with the Colors light, the lights of the chosen areas, the effects and settings of the whole scene, preview and saving. `livescenes.js` keeps playing, sharing with Hue Plus and the scene's popup. |
 | `app/kinds.js` | Guided setup of a device that has other entities (a TV's remote, a camera's second stream, pan/tilt, privacy and detection entities): finds them by itself, offers a searchable list for the rest, keeps the links with the device, and says whether a TV gets the full or the basic remote. Add a kind of device in `DEVSETUP`. |
-| `integrations.js` | Everything that is specific to one integration (xiaomi_miot, robot_vacuum_map, samsungtv_smart, apple_tv, androidtv_remote, hue, hue_plus sync module, hue_plus sync box). It draws nothing and reads nothing from the page. |
+| `integrations.js` | Everything that is specific to one integration (xiaomi_miot, robot_vacuum_map, samsungtv_smart, apple_tv, androidtv_remote). It draws nothing and reads nothing from the page. |
 | `dashboard.css` | Styles. |
 | `mdi/` | Material Design Icons 7.4.47 (Apache 2.0, see `mdi/LICENSE.txt`): `index.json` is the list the icon picker searches, `a.json` to `z.json` hold the drawing paths by first letter. Same data as the npm package `@mdi/svg@7.4.47`. Nothing is fetched from the internet or from Home Assistant's own files. |
 | `vendor/hls.min.js` | hls.js 1.5.13, loaded only when HLS is needed. Same bytes as cdnjs (`sha512-bqtMkEqGSOPPb8qbYSd9gHwR7C5mgmN+Z5Uaquvhana/U9H3zppGvlLV9HOdM7eYHF/GzzhS1lOGzCMhUvYcjQ==`, source map comment removed). |
@@ -38,7 +38,7 @@ Only a change to this one file needs that number raised (and a Home Assistant re
 
 ## What it needs from Home Assistant
 
-When entities belong to the `hue_plus` integration, `ha-adapter.js` leaves an entity of the `hue` integration out of the registry it hands to the panel when a Hue Plus entity with the same domain and unique id stands in for it (`withoutHue`); a Hue entity Hue Plus has none for stays. This holds whether Hue Plus hid and renamed the Hue entities or left them alone and ended its own in `_plus`. Hue Plus's scenes are then the Hue scenes, started with `hue_plus.activate_scene`.
+A plus integration can declare in `home_control.json` that its entities replace another integration's (`replaces`; Hue Plus: `["hue"]`). `ha-adapter.js` then leaves an entity of the replaced integration out of the registry it hands to the panel when an enabled entity of the plus integration with the same domain and unique id stands in for it (`withoutReplaced`); one it has no entity for stays. This holds whether the plus integration hid and renamed the original entities or left them alone and ended its own in `_plus`. Home Control tells the adapter what each integration replaces (`home_control/plugins`); if it cannot, nothing is left out.
 
 If an update to Home Assistant breaks the panel, these are the only places to look, and every one is used only from
 `ha-adapter.js`.
@@ -81,24 +81,6 @@ When an integration changes a service or an attribute, fix it in this file only.
 - **apple_tv**: `apple_tv.set_keyboard_text`.
 - **androidtv_remote**: only the remote layout; commands go out as `remote.send_command`.
 
-## Spotify sync (`hue_plus sync module`, optional)
-
-The Spotify sync popup (`app/hsync.js`) needs the separate `hue_plus sync module` custom integration. It opens from that integration's
-switch (`devPop` returns `hsync:<switch>`), and finds the rest of its entities by their registry `unique_id` (`<account>_<key>`,
-keys: `sync`, `now_playing`, `brightness`, `light_delay`, `intensity`, `palette`, `style`, `area`; see `Integrations.huesync`).
-It reads:
-
-- the switch (state `on`/`off`/`unavailable`) and `switch.turn_on` / `turn_off`;
-- the `now_playing` sensor: state = track name, attributes `artists`, `album`, `album_art_url` (shown only when it is an
-  `https://*.scdn.co/` address), `is_playing`, `playback_device`;
-- the `number` entities `brightness` (1-100) and `light_delay` (whole seconds, 0-10) with `number.set_value`;
-- the `select` entities `intensity`, `palette`, `style`, `area` (attribute `options`; the palette also has `colors`, a map from palette
-  name to [r,g,b] lists; the area also has `light_ids`, the Hue ids of the lights in the chosen area) with `select.select_option`.
-
-The switch is shown as a light-style row (`hsyncRow`, also offered under the Lights chip of the add list), and while it is on, the lights
-of its area (matched by the Hue id: a Hue light's registry `unique_id`, or the `hue_light_id` of a Hue gradient zones light) show as on and
-playing in their rows. The "turn all lights off" button of a Lights section only sends the entities that are lights.
-
 ## Live scenes (Home Control's own integration)
 
 Live scenes and areas are played by Home Control's integration for every light (`live/`, decision D-12); the panel keeps no engine of its own.
@@ -109,8 +91,8 @@ Live scenes and areas are played by Home Control's integration for every light (
 - **Plus integrations (decision D-13):** a brand's plus integration (Hue Plus) declares itself in `home_control.json` and plays its own lights' own
   effects through a service of its own. Without one, every light is played through `light.turn_on`.
 - **Lights that cannot fade:** a light with no transition support is given single commands at the scene's *Update rate (experimental)* (1 to 60 per second, default 2); a light that can fade gets its own smooth fade.
-- **Hue scene import** (*Import as a live scene*) reads the bridge, so it needs Hue Plus (`hue_plus.import_hue_scene`); without Hue Plus it says so.
-  Nothing else about live scenes needs Hue Plus.
+- **Importing a scene** from another system (*Import a live scene*) is a source a plugin registers (`registerSceneImport`): Hue Plus reads Hue's scenes from
+  the bridge. Without a source the dashboard does not offer it. Nothing else about live scenes needs a plugin.
 
 ## The address bar
 
@@ -122,13 +104,6 @@ The panel runs in a frame that Home Assistant owns. The current page is kept in 
 Pages, rooms and devices are in Home Assistant system data `dashboard`; per-user options in user data `dashboard_prefs`.
 Local preferences use `localStorage` keys beginning `db_` and `dh_`.
 
-## Hue Play HDMI Sync Box (`hue_plus`, optional)
-
-`app/hsbox.js` draws the box like the Spotify sync: a row that looks like a light (the bar is the brightness, the icon starts and stops
-the sync) and a popup, both made of the shared controls only. The user adds the box's sync switch to a page like any device. Its entities are
-found by their registry `unique_id` (`<box>_syncbox_<key>`, keys: `sync`, `mode`, `source`, `intensity`, `brightness`, `hdmi_signal`; see
-`Integrations.huesyncbox`). The box's brightness runs from 0 to 200, where 100 is the lights' normal brightness.
-
 ## Saving
 
 Everything that has something to save looks and behaves the same: the classic scene editor, the live scene maker, the area editor (and the bridge's light placement), the light editor and a device of the Hue Plus menu. Its popup has a **checkmark next to the close button**; the checkmark saves and goes on (the popup closes for the scene editors, one page back for the rest). Closing it in any way (the close button, the back arrow, tapping outside) after a change asks *Unsaved changes: Save / Discard changes / Cancel*, and *Save* is the checkmark. There is no other Save button. An editor registers with `guardUnsaved({dirty, save(leave), discard, done, inner})` (`scenenew.js`), which also puts the checkmark in the header (`popupCheck` in `popups.js`): `save` returns `false` when it cannot save (it says why and the editor stays open), or a promise of whether it did (the bridge). `inner` marks a page that is one step of a larger edit; it asks on closing but not on the way back.
@@ -139,7 +114,10 @@ A plus integration adds pages to the dashboard through the plugin API (`window.H
 integration names under `menu` in its `home_control.json`, for administrators only, from that integration's own static folder. The script registers its pages (`PLUGIN_PAGES`), a category in
 Settings (`PLUGIN_SETTINGS`), its texts and, for areas it owns, the hooks the area editor calls (`PLUGIN_AREA`: an import row, actions, the lights, saving, per-light rows). Hue Plus is the first:
 its menu (the Settings category *Hue Plus*), the entertainment areas of the bridge and their placement, and their texts are in the Hue Plus repository (`frontend/src`, built into `menu.js`),
-not here. Everything that saves still looks and behaves the same: a checkmark next to the close button, and closing with changes that are not saved asks (`guardUnsaved`).
+not here. Hue's scenes (their rows, popup and tiles in the light panel, and importing one), the Spotify sync and the Hue Play HDMI Sync Box (rows of the Lights section and their popups,
+and what plays on a light) and the style button of a gradient light are Hue Plus's too, through `registerSceneKind`, `registerSceneImport`, `registerDeviceKind`, `registerPlayback` and `registerLightStyle`
+(the dashboard asks `pluginSceneKind`, `pluginDeviceKind`, `pluginPlays` and `pluginStyle` when it draws); a plugin that registers after the page was drawn makes the page draw again. What a *light made of zones* is
+(a light that reports `zone_colors` and lists its zone lights in `entity_id`: its markers, its place in an area and in a live scene) is the dashboard's, for any brand; only the choice of Hue's gradient styles is Hue Plus's. Everything that saves still looks and behaves the same: a checkmark next to the close button, and closing with changes that are not saved asks (`guardUnsaved`).
 
 ## Trying a change
 
