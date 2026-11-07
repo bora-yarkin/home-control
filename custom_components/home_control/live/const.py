@@ -18,6 +18,9 @@ IDENTIFY_SECONDS = 30.0
 SPREADS = ("x", "y", "z", "radial")
 # Where a scene's colours come from (effects.py builds each).
 COLOUR_SOURCES = ("palette", "rainbow")
+# How the colours of the palette follow each other: blended into one another (linear), or each shown as it is, one after the other, with
+# no colour in between (segmented).
+COLOUR_MODES = ("linear", "segmented")
 # Brightness effects that can be put on a scene or one of its lights (effects.py builds each).
 EFFECT_TYPES = ("pulse", "flicker", "sparkle", "lightning")
 MAX_EFFECTS = 4

@@ -41,6 +41,10 @@ WATCH_SECONDS = 120.0
 # Updates of a light that fades by itself: as often as the palette needs, within these seconds.
 MIN_INTERVAL = 1.5
 MAX_INTERVAL = 6.0
+# A segmented scene changes a light's colour as its segment ends (no fade), never sooner than this after the last change, and a little
+# after the boundary so the change is not made just before it.
+SEGMENT_MIN_INTERVAL = 0.1
+SEGMENT_PAST_BOUNDARY = 0.03
 # A light playing its own effect is recoloured no more often than this (every change is a write to the bridge), and only when its colour
 # or brightness has really moved (a new colour may start the effect's animation again), or this long after the last time.
 NATIVE_MIN_INTERVAL = 3.0
@@ -105,6 +109,13 @@ class Session:
         lowest = MIN_INTERVAL if floor is None else min(MIN_INTERVAL, floor)
         return max(lowest, min(MAX_INTERVAL, wanted))
 
+    def _segment_interval(self, entity_id: str) -> float:
+        """Seconds until a light of a segmented scene is next to be updated: when its colour next changes, or sooner for its brightness effects."""
+        loops = self._look.until_next(entity_id, self.phase)
+        change = loops * cycle_seconds(self.definition.speed) + SEGMENT_PAST_BOUNDARY if loops is not None else math.inf
+        effects, _floor = self._look.effect_interval(entity_id)
+        return max(SEGMENT_MIN_INTERVAL, min(change, effects if effects is not None else math.inf, 3600.0))
+
     def _target(self, entity_id: str, phase: float, progress: float, seconds: float) -> tuple[float, float, int]:
         x, y, b = self._look.colour(entity_id, phase, progress, seconds)
         bri = round(self._look.brightness(entity_id) * b / 100)
@@ -151,8 +162,11 @@ class Session:
         native = self._look.native(entity_id)
         if native is not None and native in info.effects and info.can_colour:
             return self._native_command(entity_id, native, light, now)
-        interval = self._interval(entity_id, info)
-        ahead = interval if info.can_transition else 0.0
+        segmented = self.definition.mode == "segmented"
+        interval = self._segment_interval(entity_id) if segmented else self._interval(entity_id, info)
+        ahead = (
+            0.0 if segmented or not info.can_transition else interval
+        )  # a segment is shown at once, a blend is fading towards the next colour
         ahead_loops = ahead / cycle_seconds(self.definition.speed)
         x, y, bri = self._target(entity_id, self.phase + ahead_loops, self.progress + ahead_loops, self.seconds + ahead)
         data: dict[str, Any] = {"brightness": bri}
@@ -161,7 +175,7 @@ class Session:
         elif info.can_white:
             data["color_temp_kelvin"] = nearest_kelvin((x, y))
         if info.can_transition:
-            data["transition"] = round(interval, 1)
+            data["transition"] = 0 if segmented else round(interval, 1)
         light.target = (x, y, bri)
         if not light.recent and info.xy is not None:
             # Until the first fade ends the light still shows what it showed before the scene: that is not someone else either.

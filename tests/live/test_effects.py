@@ -126,3 +126,51 @@ class LibraryTests(unittest.TestCase):
 
 if __name__ == "__main__":
     unittest.main()
+
+
+class SegmentedTests(unittest.TestCase):
+    """Segmented: each colour of the palette as it is, one after the other, with none in between (linear blends them)."""
+
+    PALETTE = [{"xy": [0.6, 0.35]}, {"xy": [0.2, 0.2]}, {"xy": [0.3, 0.55]}]
+
+    def _look(self, **kw):
+        return effects.build(definition(palette=self.PALETTE, range=0, **kw))
+
+    def test_every_colour_a_light_shows_is_a_colour_of_the_palette(self):
+        look = self._look(mode="segmented")
+        shown = {tuple(round(v, 3) for v in look.colour("light.a", p / 200, 0.0, 0.0)[:2]) for p in range(200)}
+        self.assertEqual(shown, {(0.6, 0.35), (0.2, 0.2), (0.3, 0.55)})
+
+    def test_linear_shows_colours_between_them(self):
+        look = self._look()
+        shown = {tuple(round(v, 3) for v in look.colour("light.a", p / 200, 0.0, 0.0)[:2]) for p in range(200)}
+        self.assertGreater(len(shown), 20)
+
+    def test_the_colours_change_at_equal_parts_of_the_loop_and_the_wait_says_when(self):
+        look = self._look(mode="segmented")
+        self.assertEqual(look.colour("light.a", 0.0, 0, 0)[:2], (0.6, 0.35))
+        self.assertEqual(look.colour("light.a", 0.3, 0, 0)[:2], (0.6, 0.35))
+        self.assertAlmostEqual(look.until_next("light.a", 0.0), 1 / 3)
+        self.assertAlmostEqual(look.until_next("light.a", 0.25), 1 / 3 - 0.25)
+        self.assertAlmostEqual(look.until_next("light.a", 1 / 3 + 0.01), 1 / 3 - 0.01)
+        after = look.colour("light.a", 0.25 + (1 / 3 - 0.25) + 0.001, 0, 0)[:2]
+        self.assertEqual(after, (0.2, 0.2))
+
+    def test_a_light_follows_its_own_place_so_two_lights_change_at_different_times(self):
+        look = effects.build(definition(palette=self.PALETTE, range=100, mode="segmented"))
+        self.assertNotAlmostEqual(look.until_next("light.a", 0.0), look.until_next("light.b", 0.0))
+
+    def test_linear_and_a_single_colour_never_wait_for_a_change(self):
+        self.assertIsNone(self._look().until_next("light.a", 0.0))
+        one = effects.build(definition(palette=[{"xy": [0.3, 0.3]}], mode="segmented"))
+        self.assertIsNone(one.until_next("light.a", 0.0))
+
+    def test_the_rainbow_is_cut_into_its_steps_and_a_lights_own_palette_is_segmented_too(self):
+        look = effects.build(definition(colour_source="rainbow", mode="segmented", range=0))
+        shown = {look.colour("light.a", p / 400, 0, 0)[:2] for p in range(400)}
+        self.assertEqual(len(shown), effects.RAINBOW_STEPS)
+        own = effects.build(
+            definition(mode="segmented", range=0, looks={"light.a": {"palette": [{"xy": [0.6, 0.35]}, {"xy": [0.2, 0.2]}]}})
+        )
+        colours = {tuple(round(v, 3) for v in own.colour("light.a", p / 100, 0, 0)[:2]) for p in range(100)}
+        self.assertEqual(colours, {(0.6, 0.35), (0.2, 0.2)})

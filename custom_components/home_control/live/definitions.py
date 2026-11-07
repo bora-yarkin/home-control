@@ -17,6 +17,7 @@ from typing import Any
 from .chroma import hs_to_xy, kelvin_to_xy
 from .const import (
     ACTION_DOMAINS,
+    COLOUR_MODES,
     COLOUR_SOURCES,
     DEFAULT_FPS,
     EFFECT_TYPES,
@@ -98,6 +99,7 @@ class Definition:
     fps: int
     wake: bool  # turn on the lights that are off when the scene starts
     colour_source: str = "palette"  # where the colours come from (const.COLOUR_SOURCES)
+    mode: str = "linear"  # linear: the colours blend into one another; segmented: each shows as it is (const.COLOUR_MODES)
     effects: tuple[BrightnessEffect, ...] = ()
     looks: Mapping[str, Look] = field(default_factory=dict)  # by light entity id
     actions: tuple[Action, ...] = ()
@@ -287,6 +289,9 @@ def parse_definition(data: Mapping[str, Any]) -> Definition:
     colour_source = data.get("colour_source", "palette")
     if colour_source not in COLOUR_SOURCES:
         raise DefinitionError(f"colour_source must be one of {', '.join(COLOUR_SOURCES)}")
+    mode = data.get("mode", "linear")
+    if mode not in COLOUR_MODES:
+        raise DefinitionError(f"mode must be one of {', '.join(COLOUR_MODES)}")
     lights = parse_lights(data.get("lights"))
     return Definition(
         scene_id=scene_id,
@@ -299,6 +304,7 @@ def parse_definition(data: Mapping[str, Any]) -> Definition:
         fps=parse_fps(data.get("fps", DEFAULT_FPS)),
         wake=_flag(data.get("wake", False), "wake"),
         colour_source=colour_source,
+        mode=mode,
         effects=parse_effects(data.get("effects", [])),
         looks=parse_looks(data.get("looks", {}), lights),
         actions=parse_actions(data.get("actions", [])),

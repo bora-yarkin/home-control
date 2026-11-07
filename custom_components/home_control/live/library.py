@@ -13,7 +13,7 @@ import re
 from collections.abc import Callable, Iterable, Mapping
 from typing import Any
 
-from .const import COLOUR_SOURCES, MAX_LIGHTS, MAX_PALETTE, SPREADS
+from .const import COLOUR_MODES, COLOUR_SOURCES, MAX_LIGHTS, MAX_PALETTE, SPREADS
 from .defaults import presets
 from .definitions import (
     AreaLight,
@@ -147,6 +147,7 @@ SCENE_FIELDS: dict[str, Callable[[Any], Any]] = {
     "looks": _looks_json,
     "actions": _clean_actions,
     "colour_source": _one_of("colour_source", COLOUR_SOURCES),
+    "mode": _one_of("mode", COLOUR_MODES),
     "area": lambda value: _id(value, "area"),
     "lights": _clean_lights,
     "preset": _clean_preset,
@@ -245,7 +246,20 @@ class Library:
                     k: v
                     for k, v in source.items()
                     if k
-                    in ("palette", "speed", "range", "brightness", "spread", "fps", "wake", "colour_source", "effects", "looks", "actions")
+                    in (
+                        "palette",
+                        "speed",
+                        "range",
+                        "brightness",
+                        "spread",
+                        "fps",
+                        "wake",
+                        "colour_source",
+                        "mode",
+                        "effects",
+                        "looks",
+                        "actions",
+                    )
                     and v is not None
                 }
             )
