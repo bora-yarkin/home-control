@@ -82,6 +82,7 @@ async def test_the_services_take_everything_the_dashboard_sends_when_it_saves(ha
         "id": "evening",
         "name": "Evening",
         "colour_source": "palette",
+        "mode": "segmented",
         "effects": [],
         "looks": {},
         "actions": [],
@@ -98,7 +99,7 @@ async def test_the_services_take_everything_the_dashboard_sends_when_it_saves(ha
     await call(hass, "area_save", area)
     await call(hass, "scene_save", scene)
     library = await call(hass, "get_library", response=True)
-    assert library["scenes"][0]["fps"] == 24
+    assert library["scenes"][0]["fps"] == 24 and library["scenes"][0]["mode"] == "segmented"
 
 
 async def test_a_screen_can_read_the_library_over_the_websocket(hass, lights, hass_ws_client):

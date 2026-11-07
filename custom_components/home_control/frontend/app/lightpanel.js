@@ -325,6 +325,7 @@ function lpFinger(circ, mode, krange, count, e) {
 
 /* Whether the zones of a light made of zones are blended into a line: a light with no style of its own is; one a plugin gives styles to says (Hue's Scattered and Segmented give every zone a colour of its own). */
 function lpSmooth(n) {
+  if (vlightIs(n.cmd[0])) return !LMK || LMK.live.mode !== "segmented"; /* the colours of a live scene blend unless it is segmented */
   var style = pluginStyle(n.cmd[0]);
   return !style || !style.blends || !!style.blends(n.cmd[0]);
 }
@@ -571,7 +572,7 @@ function lpCircle(S, mode) {
     if (lineSvg) lineSvg.remove();
     lineSvg = linePath = null;
     var list = lpVisible(S).filter(function (n) {
-      return lpCap(n, mode).length;
+      return lpCap(n, mode).length && (!S.maker || n.cmd.every(vlightIs));
     });
     marks = list.map(function (n) {
       var m = lpMarker(n, list.length > 1);
@@ -969,6 +970,7 @@ function lpState(root, both) {
   };
   /* Dropping one marker on another: they become one marker that moves together. When that makes all the lights of a separated group, the group is whole again. */
   S.join = function (a, b) {
+    if (S.maker) return; /* the colours of a live scene are not joined to one another or to lights */
     var kids = [],
       gone = [];
     [a, b].forEach(function (n) {
@@ -1197,6 +1199,74 @@ function lpFxRun(S, id, draft) {
     if (bri) t.brightness_pct = bri;
     call("light", "turn_on", t);
   }
+}
+
+/* The effects page of the live scene maker: the effects of the selected light (the lights, when none or the colours are selected), No effect first. Tapping one sets it for that light in the scene (the colours come from the scene); nothing is sent to the lights. */
+function lpMakerFxPane(S, pane, fx) {
+  var box = mk("div", "lp-fx"),
+    tiles = [];
+  pane.appendChild(box);
+  function lightsOf(name) {
+    var ids = S.target().cmd.filter(function (x) {
+      return !vlightIs(x);
+    });
+    if (!ids.length) ids = LMK.lights.slice();
+    return ids.filter(function (id) {
+      return name === "off" || (Array.isArray(A(id).effect_list) && A(id).effect_list.indexOf(name) >= 0);
+    });
+  }
+  function active(name) {
+    var ids = lightsOf(name);
+    return (
+      ids.length > 0 &&
+      ids.every(function (id) {
+        return name === "off" ? !LMK.fx[id] : LMK.fx[id] === name;
+      })
+    );
+  }
+  function tile(name) {
+    var el = mk("div", "lp-fxt"),
+      sw = mk("div", "lp-fxs");
+    sw.innerHTML = lpFxArt(name);
+    el.appendChild(sw);
+    el.appendChild(mk("div", "lp-fxn")).textContent = lpFxLabel(name);
+    el.addEventListener("click", function () {
+      var ids = lightsOf(name);
+      if (!ids.length) return toast(_T("nothing_selected_has_effects"));
+      ids.forEach(function (id) {
+        if (name === "off") delete LMK.fx[id];
+        else LMK.fx[id] = name;
+      });
+      liveMakerChanged();
+      paint();
+      if (S.rebuild) S.rebuild();
+    });
+    tiles.push({ el: el, name: name });
+    return el;
+  }
+  function row(names) {
+    var r = mk("div", "lp-fxr");
+    names.forEach(function (n) {
+      r.appendChild(tile(n));
+    });
+    return r;
+  }
+  box.appendChild(row(["off"]));
+  fxGroups(
+    fx.effects.filter(function (x) {
+      return x !== "off";
+    })
+  ).forEach(function (g) {
+    box.appendChild(mk("div", "lp-fx-h")).textContent = g.label;
+    box.appendChild(row(g.names));
+  });
+  function paint() {
+    tiles.forEach(function (t) {
+      t.el.classList.toggle("picked", active(t.name));
+    });
+  }
+  S.subs.push({ build: paint, sel: paint });
+  paint();
 }
 
 /* The Effects page, as in the Hue app: the effects of the lights in groups (Flames, Sparkly, ...), each effect a row that scrolls sideways with its colours and a Create tile at the end, then the Hue scenes of the room. Tapping a tile starts it on what is selected (the whole when nothing is); tapping the one that runs stops it. The tile that runs turns to its colour, and the pencil that opens its settings slides in on its right, pushing the tiles after it along. */
@@ -1645,6 +1715,10 @@ function lpTrayNodes(S) {
 
 /* The effect that a tile's lights play, if any (a light made of zones plays it on the Hue light behind it). */
 function lpTileEffect(n) {
+  if (LMK && n.cmd.every(function (x) { return !vlightIs(x); }) && lpMakerOn()) {
+    var own = n.cmd.map(function (x) { return LMK.fx[x]; }).filter(Boolean)[0];
+    return own || "";
+  }
   var e = n.cmd.map(lpFxLight).filter(function (x) {
     var f = A(x).effect;
     return f && f !== "off";
@@ -1872,7 +1946,42 @@ function lpAll(S) {
   return !!(k && k.indexOf("m:") === 0 && LMASTER_ALL[k.slice(2)]);
 }
 
+/* A single light of the live scene maker that is selected (not the colours, not the whole): its own brightness is set, and it is the one light the maker keeps a brightness for. */
+function lpMakerLight(S) {
+  var n = S.target();
+  return n !== S.root && n.cmd.length === 1 && !vlightIs(n.cmd[0]) && !(n.kids && n.kids.length > 1 && !n.zones) ? n.cmd[0] : null;
+}
+
+/* Whether the maker is open (the panel of a light popup is not the maker's). */
+function lpMakerOn() {
+  return !!(LMK && LMK.S);
+}
+
+/* The brightness button of the live scene maker: with one light selected it is that light's brightness, with nothing or the colours selected it is the scene's. Nothing is sent to the lights (the preview plays the scene). */
+function lpMakerBrightness(S) {
+  return briControl({
+    pct: function () {
+      var id = lpMakerLight(S);
+      return (id && LMK.bri[id]) || LMK.live.bri;
+    },
+    lit: function () {
+      return liveMakerLightsOn();
+    },
+    live: function () {},
+    commit: function (v) {
+      var id = lpMakerLight(S);
+      if (id) LMK.bri[id] = Math.max(1, v);
+      else LMK.live.bri = Math.max(1, v);
+      liveMakerChanged();
+    },
+    stage: function () {
+      return S.stage;
+    },
+  });
+}
+
 function lpBrightness(S) {
+  if (S.maker) return lpMakerBrightness(S);
   var ids = function () {
     return S.target().cmd;
   };
@@ -1911,7 +2020,7 @@ function lpStage(S, host) {
     modes = [];
   if (colorOk) modes.push("color");
   if (whiteOk) modes.push("white");
-  if (fx.effects.length || fx.scenes.length) modes.push("fx");
+  if (fx.effects.length || (!S.maker && fx.scenes.length)) modes.push("fx");
   S.modes = modes;
   if (S.restore && modes.indexOf(S.restore.mode) >= 0) S.mode = S.restore.mode;
   if (S.restore && S.restore.sel) S.sel = S.restore.sel;
@@ -1935,7 +2044,8 @@ function lpStage(S, host) {
       });
     if (S.mode === "fx" && !panes.fx._built) {
       panes.fx._built = true;
-      lpFxPane(S, panes.fx, fx);
+      if (S.maker) lpMakerFxPane(S, panes.fx, fx);
+      else lpFxPane(S, panes.fx, fx);
     }
   }
   if (modes.length > 1) {
@@ -1960,10 +2070,16 @@ function lpStage(S, host) {
   style.setAttribute("role", "button");
   style.setAttribute("aria-label", _T("style"));
   style.addEventListener("click", function () {
+    if (S.maker) return lpGo(S, "lmkmode:");
     var z = lpStyleNode(S);
     if (z) lpGo(S, "lstyle:" + z.key);
   });
   function paintStyle() {
+    if (S.maker) {
+      style.style.display = "";
+      style.innerHTML = liveMakerModeIcon(LMK.live.mode);
+      return;
+    }
     var z = lpStyleNode(S);
     style.style.display = z ? "" : "none";
     if (z) style.innerHTML = pluginStyle(z.cmd[0]).icon(z.cmd[0]);
@@ -2072,6 +2188,7 @@ function lightPanel(b, root, o) {
     whiteOk = lpCap(root, "white").length > 0,
     any = colorOk || whiteOk,
     S = lpState(root, colorOk && whiteOk);
+  S.maker = !!o.maker;
   S.mode = lpFirstMode(root, colorOk, whiteOk);
   S.restore = LPBACK && LPBACK.root === root.key ? LPBACK : null;
   LPBACK = null;

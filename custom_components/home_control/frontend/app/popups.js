@@ -218,6 +218,14 @@ function popupDefBase(key) {
         lpFxColourPopup(b, id);
       },
     };
+  if (k === "lmkmode")
+    return {
+      title: _T("mode"),
+      icon: "palette",
+      build: function (b) {
+        liveMakerModePopup(b);
+      },
+    };
   if (k === "lstyle") {
     var style = pluginStyle(id);
     return {

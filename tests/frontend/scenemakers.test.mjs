@@ -214,19 +214,52 @@ test("discarding undoes what was previewed and then leaves", () => {
   assert.equal(p.POPGUARD, null);
 });
 
-test("opening a scene in the maker puts its lights as the scene has them, so saving keeps their brightness and effect", () => {
+test("opening a scene in the maker only switches its lights on or off: their brightness and effects are the scene's, not set on the lights", () => {
   const calls = [];
   const p = page({ callRaw: (d, s, data) => calls.push([s, plain(data)]) });
   p.vcolLoad([{ hs: [0, 100] }]);
-  vm.runInContext("LMK = { joins: [], lights: ['light.a', 'light.b', 'light.c'] };", p);
-  p.liveMakerShowScene({
-    live: { off: ["light.c"], looks: { "light.a": { bri: 40, native: "candle" }, "light.b": { palette: [{ hs: [1, 1] }] } } },
-  });
+  vm.runInContext("LMK = { lights: ['light.a', 'light.b', 'light.c'] };", p);
+  p.liveMakerShowScene({ live: { off: ["light.c"], looks: { "light.a": { bri: 40, native: "candle" } } } });
   assert.deepEqual(calls, [
-    ["turn_on", { entity_id: "light.a", brightness_pct: 40, effect: "candle" }],
+    ["turn_on", { entity_id: "light.a" }],
     ["turn_on", { entity_id: "light.b" }],
     ["turn_off", { entity_id: "light.c" }],
   ]);
+});
+
+function makerScene(over = {}, looks0 = {}) {
+  const states = { "light.a": "on", "light.b": "on", "light.c": "off" };
+  const p = page({ V_: (id) => states[id], A: () => ({ effect: "off", brightness: 200 }) });
+  p.vcolLoad([{ hs: [0, 100] }, { hs: [240, 100] }]);
+  vm.runInContext("LMK = null", p);
+  p.LMK = {
+    id: "s1", name: "Calm", room: "r", icon: "sparkle", areas: ["x"],
+    live: { speed: 6, range: 100, bri: 70, fps: 2, spread: "x", src: "palette", mode: "linear", fx: [], looks: {}, also: [] },
+    lights: ["light.a", "light.b", "light.c"], bri: {}, fx: {}, looks0, ...over,
+  };
+  return plain(p.liveMakerScene());
+}
+
+test("a scene made in the maker keeps the brightness of the whole, and of a light only when that light was given its own", () => {
+  const sc = makerScene({ bri: { "light.a": 35 } });
+  assert.equal(sc.live.bri, 70);
+  assert.deepEqual(sc.live.looks, { "light.a": { bri: 35 } });
+  assert.deepEqual(sc.live.off, ["light.c"]);
+  assert.deepEqual(makerScene().live.looks, {}); // lights that report a brightness of their own are not given a look for it
+});
+
+test("saving a scene whose lights report an effect does not throw, and keeps an effect that was chosen (not No effect)", () => {
+  const sc = makerScene({ fx: { "light.a": "candle", "light.b": "off", "light.c": "fire" } });
+  assert.deepEqual(sc.live.looks, { "light.a": { native: "candle" } }); // No effect ("off") is no look, and a light that is off is not in the scene
+  assert.deepEqual(sc.live.off, ["light.c"]);
+});
+
+test("the mode of the scene is saved, and brightness effects made elsewhere are kept; colours joined to lights are not", () => {
+  const sc = makerScene({ live: { speed: 6, range: 100, bri: 70, fps: 2, spread: "x", src: "palette", mode: "segmented", fx: [], looks: {}, also: [] } }, {
+    "light.a": { palette: [{ hs: [1, 1] }], fx: [{ type: "pulse", speed: 3, strength: 40 }] },
+  });
+  assert.equal(sc.live.mode, "segmented");
+  assert.deepEqual(sc.live.looks, { "light.a": { fx: [{ type: "pulse", speed: 3, strength: 40 }] } });
 });
 
 test("the scenes a plugin owns (Hue's) follow the order a section was given, and new ones come after", () => {
