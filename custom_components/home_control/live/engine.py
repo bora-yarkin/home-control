@@ -50,7 +50,8 @@ SEGMENT_PAST_BOUNDARY = 0.03
 # next command can reach it, and a little longer, so the next one arrives while the light is still moving. That time is how often
 # the light really is sent a command, which is more than its interval when the hub's rate holds it back (a bridge takes about 8 a
 # second for all its lights, so 17 lights are 2 seconds apart).
-FADE_OVERLAP = 0.6
+FADE_LENGTH = 2.0
+SEGMENT_FADE_OVERLAP = 0.3
 MAX_FADE = 120.0
 # A light playing its own effect is recoloured no more often than this (every change is a write to the bridge), and only when its colour
 # or brightness has really moved (a new colour may start the effect's animation again), or this long after the last time.
@@ -203,11 +204,18 @@ class Session:
             return self._native_command(entity_id, native, light, now)
         segmented = self.definition.mode == "segmented"
         interval = self._segment_interval(entity_id) if segmented else self._interval(entity_id, info)
-        # The fade outlasts the time to the next command, so the light never rests. A blend aims at the colour the palette will have when the
-        # fade ends; a segment's colour is the one that has begun (the next boundary is where the next colour begins).
-        fade = min(max(interval, light.period) + FADE_OVERLAP, MAX_FADE)
-        ahead = fade if info.can_transition else 0.0
-        looks_ahead = 0.0 if segmented else ahead
+        # A blend fades for twice the time to the next command: the next command comes while the light is still moving, so it never rests
+        # between two fades (a bridge eases the start and the end of each fade, which shows as a pause when fades are back to back) and a late
+        # command does not leave it waiting. A segment is one fade from its colour to the next, as long as the segment, and the next command
+        # begins as it ends.
+        if segmented:
+            fade = min(max(interval, light.period) + SEGMENT_FADE_OVERLAP, MAX_FADE)
+            ahead = fade if info.can_transition else 0.0
+            looks_ahead = interval if info.can_transition else 0.0
+        else:
+            fade = min(max(interval, light.period) * FADE_LENGTH, MAX_FADE)
+            ahead = fade if info.can_transition else 0.0
+            looks_ahead = ahead
         ahead_loops = looks_ahead / cycle_seconds(self.definition.speed)
         x, y, bri = self._target(entity_id, self.phase + ahead_loops, self.progress + ahead_loops, self.seconds + looks_ahead)
         data: dict[str, Any] = {"brightness": bri}

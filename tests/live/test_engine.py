@@ -37,8 +37,8 @@ class StepTests(unittest.TestCase):
         self.assertEqual([c[0] for c in r.commands], ["light.a", "light.b"])
         data = r.commands[0][1]
         self.assertEqual(set(data), {"brightness", "xy_color", "transition"})
-        self.assertGreaterEqual(data["transition"], e.MIN_INTERVAL + e.FADE_OVERLAP)  # a fade outlasts the time to the next command
-        self.assertLessEqual(data["transition"], e.MAX_INTERVAL + e.FADE_OVERLAP)
+        self.assertGreaterEqual(data["transition"], e.MIN_INTERVAL * e.FADE_LENGTH)  # a fade outlasts the time to the next command
+        self.assertLessEqual(data["transition"], e.MAX_INTERVAL * e.FADE_LENGTH)
         self.assertEqual(data["brightness"], 200)
 
     def test_a_light_that_is_off_is_never_turned_on_by_a_scene(self):
@@ -61,7 +61,7 @@ class StepTests(unittest.TestCase):
         s, clock = session(drv, wake=True)
         drv.follow(s.step(clock.now, drv, set()).commands)
         drv.lights["light.a"] = info("off")
-        clock.now += e.MAX_INTERVAL + e.FADE_OVERLAP + 0.5  # past the end of the longest fade
+        clock.now += e.MAX_INTERVAL * e.FADE_LENGTH + 0.5  # past the end of the longest fade
         self.assertEqual(s.step(clock.now, drv, set()).dropped, ["light.a"])
 
     def test_a_light_that_is_switched_on_later_joins(self):
@@ -228,7 +228,7 @@ class StepTests(unittest.TestCase):
         s, clock = session(drv)
         drv.follow(s.step(clock.now, drv, set()).commands)
         drv.lights["light.a"] = info(xy=(0.15, 0.7))  # far from what was sent
-        clock.now += e.MAX_INTERVAL + e.FADE_OVERLAP + 0.5  # past the end of the longest fade
+        clock.now += e.MAX_INTERVAL * e.FADE_LENGTH + 0.5  # past the end of the longest fade
         r = s.step(clock.now, drv, set())
         self.assertEqual(r.dropped, ["light.a"])
         self.assertEqual([c[0] for c in r.commands], ["light.b"])
@@ -238,7 +238,7 @@ class StepTests(unittest.TestCase):
         s, clock = session(drv)
         drv.follow(s.step(clock.now, drv, set()).commands)
         drv.lights["light.a"] = info("off")
-        clock.now += e.MAX_INTERVAL + e.FADE_OVERLAP + 0.5  # past the end of the longest fade
+        clock.now += e.MAX_INTERVAL * e.FADE_LENGTH + 0.5  # past the end of the longest fade
         self.assertEqual(s.step(clock.now, drv, set()).dropped, ["light.a"])
 
     def test_a_light_a_little_behind_in_a_fade_is_not_taken_for_changed(self):
@@ -248,7 +248,7 @@ class StepTests(unittest.TestCase):
         drv.follow(first)
         target = dict(first)["light.a"]["xy_color"]
         drv.lights["light.a"] = info(xy=(target[0] + 0.03, target[1] - 0.03), brightness=190)
-        clock.now += e.MAX_INTERVAL + e.FADE_OVERLAP + 0.5  # past the end of the longest fade
+        clock.now += e.MAX_INTERVAL * e.FADE_LENGTH + 0.5  # past the end of the longest fade
         self.assertEqual(s.step(clock.now, drv, set()).dropped, [])
 
     def test_a_frozen_session_sends_nothing_and_resumes_without_a_jump(self):
@@ -270,7 +270,7 @@ class StepTests(unittest.TestCase):
         drv.follow(s.step(clock.now, drv, set()).commands)
         s.frozen = True
         drv.lights["light.a"] = info(xy=(0.15, 0.7))
-        clock.now += 8
+        clock.now += e.MAX_INTERVAL * e.FADE_LENGTH + 0.5  # past the end of the longest fade
         r = s.step(clock.now, drv, set())
         self.assertEqual(r.dropped, ["light.a"])
         self.assertEqual(r.commands, [])
@@ -995,7 +995,7 @@ class FrozenSceneTests(unittest.TestCase):
 
 
 class SegmentedEngineTests(unittest.TestCase):
-    """A segmented scene sets each light to a colour of the palette, without a fade, as its segment begins."""
+    """A segmented scene fades each light from one colour of the palette to the next over the whole segment, with no colour of its own between."""
 
     PALETTE = [{"xy": [0.6, 0.35]}, {"xy": [0.2, 0.2]}, {"xy": [0.3, 0.55]}, {"xy": [0.15, 0.08]}]
 
@@ -1016,9 +1016,8 @@ class SegmentedEngineTests(unittest.TestCase):
         colours = {tuple(data["xy_color"]) for _kind, _light, data in drv.calls}
         self.assertEqual(colours, {(0.6, 0.35), (0.2, 0.2), (0.3, 0.55), (0.15, 0.08)})  # no colour of its own between two of them
         for _kind, _light, data in drv.calls:  # but a change is never a jump, and the light is never still: each fade outlasts the segment
-            self.assertGreaterEqual(
-                data["transition"], 2.0 + e.FADE_OVERLAP - 0.1
-            )  # a colour lasts 2 seconds at speed 12 with four colours
+            self.assertGreaterEqual(data["transition"], 2.0)  # a colour lasts 2 seconds at speed 12 with four colours
+            self.assertLessEqual(data["transition"], 2.0 + e.SEGMENT_FADE_OVERLAP + 0.1)
 
     def test_a_light_that_cannot_fade_is_not_given_a_transition_and_still_gets_exact_colours(self):
         async def go():
@@ -1033,10 +1032,9 @@ class SegmentedEngineTests(unittest.TestCase):
         drv = asyncio.run(go())
         self.assertTrue(drv.calls and all("transition" not in data for _k, _l, data in drv.calls))
 
-    def test_the_colour_sent_is_the_one_of_the_segment_that_has_begun(self):
-        """Linear aims at the colour the light will have when the fade ends; a segment's colour is the one it has now."""
+    def test_the_colour_sent_is_the_next_one_so_the_fade_runs_across_the_segment(self):
         drv, _ = self._run(3)
-        self.assertEqual(drv.calls[0][2]["xy_color"], [0.6, 0.35])  # the first colour of the palette, at the start
+        self.assertEqual(drv.calls[0][2]["xy_color"], [0.2, 0.2])  # at the start of the first colour, the fade is to the second
 
     def test_a_light_is_sent_one_command_per_segment_not_one_per_update_interval(self):
         drv, _ = self._run(32)  # four loops of 8 seconds at speed 12, four colours: sixteen segments
