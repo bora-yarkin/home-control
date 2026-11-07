@@ -4,6 +4,15 @@ Format: [Keep a Changelog](https://keepachangelog.com/). Versions follow [semant
 
 ## [Unreleased]
 
+## [0.9.3] - 2026-11-08
+
+### Fixed
+- A scene taken off every page (un-ticked in the page editor) is still saved, so its area could not be deleted and the message named only one scene, which could not be seen anywhere. The message now names every scene that is on a page and uses the area; scenes that are on no page are named in a question and deleted with the area when you confirm.
+- A static scene of a plugin (a Hue scene the bridge says does not play by itself, such as Desk light) was a live scene on the dashboard: a popup with speed controls. It is now used like a classic scene: a tap anywhere on its row switches it on or off, with no popup.
+
+### Added
+- A plugin can register a source of classic scenes (`registerSceneImport` with `classic: true`, whose `read` gives what each light is set to); the scene is made as *Save the lights as they are* does, from the scene's settings, not from the lights now. Hue Plus 0.12.0 offers it as *Import a classic scene from Hue*.
+
 ## [0.9.2] - 2026-11-08
 
 ### Fixed

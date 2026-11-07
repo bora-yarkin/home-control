@@ -408,22 +408,24 @@ function sceneKindPopupKey(kind, id, room) {
   return kind.popup + ":" + id + (room ? "~" + room.id : "");
 }
 
-/* The Home Assistant scene entities: one row for all places that list them. A scene a plugin owns (Hue's) is live: the icon switches it on or off and the rest of the row opens its popup. Other scenes just run. */
+/* The Home Assistant scene entities: one row for all places that list them. A scene a plugin owns (Hue's) that plays by itself is live: the icon switches it on or off and the rest of the row opens its popup. One that does not (a static Hue scene), like the scenes made here, switches on or off from anywhere on the row. Other scenes just run. */
 function sceneEntRow(id, name, icon, sub, room) {
-  var kind = pluginSceneKind(id);
+  var kind = pluginSceneKind(id),
+    live = !!kind && kind.dynamic(id) !== false;
   return pill(icon || kind && kind.icon || "scene", name, {
     on: function () {
       return kind ? !!kind.active(id) : false;
     },
     sub: sub || null,
     tap: function () {
-      if (kind) showPopup(sceneKindPopupKey(kind, id, room), true);
+      if (live) showPopup(sceneKindPopupKey(kind, id, room), true);
+      else if (kind) kind.toggle(id);
       else {
         call("scene", "turn_on", { entity_id: id });
         toast(name);
       }
     },
-    iconTap: kind
+    iconTap: live
       ? function () {
           kind.toggle(id);
         }

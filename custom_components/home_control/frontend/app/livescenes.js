@@ -577,13 +577,55 @@ function liveImportSource(key) {
   })[0];
 }
 
-/* Reads a scene from a source and opens the editor with it. The source gives { name, palette, speed (0 to 1), brightness (1 to 255), lights }. */
+/* A classic scene from what a source's scene sets, as "save the lights as they are" does for the lights now: the editor opens on it, not saved yet. The source gives { name, lights: [{ entity_id, on, brightness (1 to 255), xy: [x, y] or k (kelvin) }] }. */
+function classicImportFrom(src, sceneId, room, target) {
+  src
+    .read(sceneId)
+    .then(function (r) {
+      var acts = ((r && r.lights) || [])
+        .filter(function (l) {
+          return H().states[l.entity_id];
+        })
+        .slice(0, 20)
+        .map(function (l) {
+          if (!l.on) return { id: l.entity_id, on: false };
+          var act = { id: l.entity_id, on: true };
+          if (typeof l.brightness === "number") act.bri = Math.max(1, Math.min(100, Math.round(l.brightness / 2.55)));
+          if (l.k) act.col = { k: Math.round(l.k) };
+          else if (l.xy) {
+            var hs = liveXyHs(l.xy[0], l.xy[1]);
+            act.col = { h: hs[0], s: hs[1] };
+          }
+          return act;
+        });
+      if (!acts.length) throw new Error("empty");
+      var rm = room || liveRoomFor(
+          acts.map(function (a) {
+            return a.id;
+          })
+        ),
+        name = (r && r.name) || A(sceneId).name || "";
+      if (!target) {
+        var secs = secOrder(scopeKey(rm)).filter(function (s) {
+          return s.k === "scenes";
+        });
+        if (secs.length) target = { scope: rm, sid: secs[0].id };
+      }
+      staticOpen(rm, null, target, { name: name, others: "keep", acts: acts });
+    })
+    .catch(function () {
+      toast(_T((src && src.failed) || "couldn_t_read_that_scene"));
+    });
+}
+
+/* Reads a scene from a source and opens the editor with it. The source gives { name, palette, speed (0 to 1), brightness (1 to 255), lights }; a source of classic scenes gives what classicImportFrom takes. */
 function liveImportFrom(sourceId, sceneId, room, target) {
   var src = liveImportSource(sourceId);
   if (!src || !src.available()) {
     toast(_T((src && src.unavailable) || "that_scene_cannot_be_imported_now"));
     return;
   }
+  if (src.classic) return classicImportFrom(src, sceneId, room, target);
   src
     .read(sceneId)
     .then(function (r) {
@@ -638,7 +680,7 @@ function liveImportPage(b, key) {
       last = g;
     }
     b.appendChild(
-      pill("palette", x.name, {
+      pill(src.classic ? "scene" : "palette", x.name, {
         tap: function () {
           liveImportFrom(src.id, x.id, room, target);
         },

@@ -943,15 +943,61 @@ function eaSave(leave) {
   return true;
 }
 
+/* Whether a section of some page lists the scene. A scene taken off every page is still saved (it is under "Existing scenes" when adding one). */
+function sceneShown(id) {
+  return allSectionLists().some(function (l) {
+    return l.some(function (s) {
+      return (s.scn || []).indexOf(id) >= 0;
+    });
+  });
+}
+
 function eaDelete() {
   var id = EAD.draft.id,
     used = STORE.scenes.filter(function (s) {
       return s.live && (s.live.areas && s.live.areas.length ? s.live.areas : [s.live.area]).indexOf(id) >= 0;
+    }),
+    shown = used.filter(function (s) {
+      return sceneShown(s.id);
     });
-  if (used.length) {
-    toast(_T("scenes_use_this_area") + used[0].name);
+  if (shown.length) {
+    toast(
+      _T("scenes_use_this_area") +
+        shown
+          .map(function (s) {
+            return s.name;
+          })
+          .join(", ")
+    );
     return;
   }
+  if (used.length) {
+    confirmDlg(
+      _T("scenes_on_no_page_use_this_area") +
+        used
+          .map(function (s) {
+            return s.name;
+          })
+          .join(", ") +
+        _T("delete_them_with_the_area"),
+      function () {
+        used.forEach(function (s) {
+          if (liveRun({ id: s.id })) liveCall("stop", { scene_id: s.id });
+          liveForget(s.id, s.live.areas ? s.live.area : null);
+        });
+        STORE.scenes = STORE.scenes.filter(function (x) {
+          return used.indexOf(x) < 0;
+        });
+        pruneSceneRefs();
+        eaRemove(id);
+      }
+    );
+    return;
+  }
+  eaRemove(id);
+}
+
+function eaRemove(id) {
   eaIdentifyOff();
   STORE.eareas = STORE.eareas.filter(function (x) {
     return x.id !== id;
