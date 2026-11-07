@@ -4,6 +4,8 @@ Format: [Keep a Changelog](https://keepachangelog.com/). Versions follow [semant
 
 ## [Unreleased]
 
+## [0.6.0]
+
 ### Added
 - Lights that cannot fade by themselves (no transition support) are played with single commands at an update rate you choose, from 1 to 60 per second (it was 1 to 4, and not offered on the dashboard): the live scene editor has *Update rate (experimental)*, saved with the scene (default 2). Each update is one command, so a high rate loads the light's hub and is held to the rate it takes; the engine does this only for lights that cannot fade, and gives a light that can its own smooth fade as before. Marked experimental: it has not been tried on real lights.
 
