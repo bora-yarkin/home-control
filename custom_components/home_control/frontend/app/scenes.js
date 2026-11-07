@@ -81,6 +81,8 @@ function sceneDeleteEverywhere(sc) {
     pruneSceneRefs();
     uiChanged();
     refresh();
+    /* The list of scenes the trash was pressed in is drawn again without it. */
+    if (SHEET && /^pick-scene/.test(CURRENT || "")) showPopup(CURRENT, false);
     toast(_T("scene_deleted"));
   });
 }

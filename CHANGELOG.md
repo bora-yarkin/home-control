@@ -4,6 +4,11 @@ Format: [Keep a Changelog](https://keepachangelog.com/). Versions follow [semant
 
 ## [Unreleased]
 
+## [0.9.4] - 2026-11-08
+
+### Fixed
+- Deleting a scene from the list of existing scenes said "Scene deleted" but the scene stayed in the list until it was closed and opened again; the list is drawn again without it.
+
 ## [0.9.3] - 2026-11-08
 
 ### Fixed
