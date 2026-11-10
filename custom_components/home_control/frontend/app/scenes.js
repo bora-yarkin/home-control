@@ -765,15 +765,25 @@ function lightingScenesExtra(key) {
           kind = pluginSceneKind(s[0]);
         if (nm.indexOf(r.name) === 0) nm = nm.slice(r.name.length).replace(/^\s+/, "") || nm;
         var row = sceneEntRow(s[0], nm, kind ? kind.icon : "scene", null, r);
-        return {
-          id: s[0],
-          kind: kind,
-          row: kind
-            ? edMark(row, function () {
-                showPopup(sceneKindPopupKey(kind, s[0], r), true);
-              }, sceneEntHidden(r, s[0]))
-            : row,
-        };
+        if (kind)
+          row = edMark(row, function () {
+            showPopup(sceneKindPopupKey(kind, s[0], r), true);
+          }, sceneEntHidden(r, s[0]));
+        /* A scene a plugin can delete (Hue's, from the bridge) has the same trash as the scenes made here, and the same question. */
+        if (kind && kind.remove)
+          row = edDel(
+            row,
+            function () {
+              confirmDlg(_T("delete_scene") + ": " + nm + "?", function () {
+                Promise.resolve(kind.remove(s[0])).then(function () {
+                  sceneEntSetHidden(r, s[0], false);
+                  rerender();
+                });
+              });
+            },
+            _T("delete_scene")
+          );
+        return { id: s[0], kind: kind, row: row };
       });
   };
 }

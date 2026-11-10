@@ -95,6 +95,24 @@ function sceneNewPage(b, key) {
       },
     })
   );
+  sceneMakerRows(b, scope, target);
+}
+
+/* What a plugin offers next to those (Hue Plus's "Hue scene"). */
+function sceneMakerRows(b, scope, target) {
+  PLUGIN_SCENE_MAKERS.forEach(function (m) {
+    if (m.available && !m.available(scope)) return;
+    b.appendChild(
+      pill(m.icon || "scene", _T(m.title), {
+        sub: function () {
+          return _T(m.sub);
+        },
+        tap: function () {
+          m.start(scope, target);
+        },
+      })
+    );
+  });
 }
 
 /* A classic scene made from the lights as they are: each light that is on keeps its brightness and its colour, white temperature or running effect; the lights of the page that are off are switched off by it. The editor opens on it, not saved yet. */

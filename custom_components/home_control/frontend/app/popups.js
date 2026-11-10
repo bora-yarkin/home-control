@@ -96,6 +96,7 @@ function popupDefBase(key) {
       },
     };
   if (k === "light-edit") return lightEditDef();
+  if (k === "lights-edit") return lightsEditDef();
   if (k === "settings") return { title: _T("settings"), icon: "cog", build: settingsRoot };
   if (k === "stg-wall") return { title: _T("wall_mode"), icon: "tv", build: wallSettings };
   if (k === "ed-order")

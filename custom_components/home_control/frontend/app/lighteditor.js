@@ -98,3 +98,60 @@ function lightEditDef() {
     },
   };
 }
+
+/* The same for several lights at once (a room's, a scene's): the light popup of the group, opened over whatever asks for it. Every light may be switched on from it, the lights follow each change at once, and the checkmark keeps what they show: o.onSave(acts) gets one act for each light and answers true (or a promise of true) when it kept them, false when it did not (the popup stays open). Leaving after a change asks; discarding puts the lights back as they were. o: { name, icon, lights, onSave(acts), after }. */
+var LIE = null;
+
+function openLightsEditor(o) {
+  LIE = { name: o.name, icon: o.icon, lights: o.lights.slice(), onSave: o.onSave };
+  var lights = LIE.lights;
+  /* The popup groups the lights that look the same when it opens. Lights changed just before (a scene played to edit it) report one by one, so it waits until they have stopped changing, or the grouping would be of how they were and not of how they are. */
+  var last = JSON.stringify(lightSnapshot(lights)),
+    steady = Date.now(),
+    began = steady;
+  (function check() {
+    var now = Date.now(),
+      cur = JSON.stringify(lightSnapshot(lights));
+    if (cur !== last) {
+      last = cur;
+      steady = now;
+    }
+    if (now - steady >= 600 || now - began >= 4000) {
+      showPopup("lights-edit", true, o.after || true);
+      return;
+    }
+    setTimeout(check, 150);
+  })();
+}
+
+function lightsEditDef() {
+  var le = LIE;
+  return {
+    title: le.name,
+    icon: le.icon || "lights",
+    build: function (b) {
+      var snap = lightSnapshot(le.lights);
+      LMASTER["edit"] = le.lights;
+      LMASTER_NAME["edit"] = le.name;
+      LMASTER_ALL["edit"] = true;
+      LWHEEL["m:edit"] = undefined;
+      lightsMasterPopup(b, "edit");
+      guardUnsaved({
+        dirty: function () {
+          return JSON.stringify(lightSnapshot(le.lights)) !== JSON.stringify(snap);
+        },
+        save: function (leave) {
+          return Promise.resolve(le.onSave(lightUnits(le.lights).map(lightAct))).then(function (ok) {
+            if (ok === false) return false;
+            POPGUARD = null;
+            leave();
+            return true;
+          });
+        },
+        discard: function () {
+          lightRestore(snap);
+        },
+      });
+    },
+  };
+}
