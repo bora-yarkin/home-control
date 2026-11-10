@@ -31,10 +31,12 @@ test("a way of making a scene a plugin offers is a row of the new-scene popup, s
   assert.deepEqual(rows.map((r) => r.name), ["T:tb"], "a way that is not available for the page is not offered");
 });
 
-function editor(lights, saved) {
+function editor(lights, saved, attrs = () => ({})) {
   const sandbox = {
-    A: () => ({}),
-    V_: () => "off",
+    setTimeout,
+    Date,
+    A: attrs,
+    V_: () => (attrs.watch ? "on" : "off"),
     lightIndividuals: (ids) => ids,
     lightUnits: (ids) => ids,
     lightAct: (id) => ({ id, on: false }),
@@ -55,14 +57,21 @@ function editor(lights, saved) {
   vm.createContext(sandbox);
   vm.runInContext(read("lighteditor.js"), sandbox);
   sandbox.openLightsEditor({ name: "Scene", lights, onSave: saved });
-  sandbox.def = sandbox.lightsEditDef();
-  sandbox.def.build({});
+  sandbox.open = () => {
+    sandbox.def = sandbox.lightsEditDef();
+    sandbox.def.build({});
+    return sandbox;
+  };
   return sandbox;
 }
+
+const until = (test) => new Promise((resolve) => (function tick() { test() ? resolve() : setTimeout(tick, 50); })());
 
 test("the lights editor opens the group's popup with every light switchable, and its checkmark saves what each light shows and leaves", async () => {
   const saved = [];
   const sb = editor(["light.a", "light.b"], (acts) => (saved.push(acts), true));
+  await until(() => sb.shown);
+  sb.open();
   assert.deepEqual(sb.shown, ["lights-edit", true, "boolean"]);
   assert.deepEqual([...sb.LMASTER.edit], ["light.a", "light.b"]);
   assert.equal(sb.LMASTER_ALL.edit, true, "a light that is off can be switched on from it");
@@ -75,7 +84,21 @@ test("the lights editor opens the group's popup with every light switchable, and
 
 test("a save that did not happen keeps the popup open", async () => {
   const sb = editor(["light.a"], () => Promise.resolve(false));
+  await until(() => sb.shown);
+  sb.open();
   let left = 0;
   assert.equal(await sb.guard.save(() => left++), false);
   assert.equal(left, 0);
+});
+
+test("the lights editor opens only once the lights have stopped changing, so the popup groups them as they are now", async () => {
+  const began = Date.now();
+  const changing = () => ({ color_mode: "color_temp", color_temp_kelvin: Date.now() - began < 1000 ? Math.floor((Date.now() - began) / 100) : 2700 });
+  changing.watch = true;
+  const sb = editor(["light.a"], () => true, changing);
+  await new Promise((resolve) => setTimeout(resolve, 700));
+  assert.equal(sb.shown, undefined, "the lights are still changing");
+  await until(() => sb.shown);
+  assert.ok(Date.now() - began >= 1500, "it waited for the lights to settle");
+  assert.deepEqual(sb.shown, ["lights-edit", true, "boolean"]);
 });

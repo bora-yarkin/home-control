@@ -104,7 +104,24 @@ var LIE = null;
 
 function openLightsEditor(o) {
   LIE = { name: o.name, icon: o.icon, lights: o.lights.slice(), onSave: o.onSave };
-  showPopup("lights-edit", true, o.after || true);
+  var lights = LIE.lights;
+  /* The popup groups the lights that look the same when it opens. Lights changed just before (a scene played to edit it) report one by one, so it waits until they have stopped changing, or the grouping would be of how they were and not of how they are. */
+  var last = JSON.stringify(lightSnapshot(lights)),
+    steady = Date.now(),
+    began = steady;
+  (function check() {
+    var now = Date.now(),
+      cur = JSON.stringify(lightSnapshot(lights));
+    if (cur !== last) {
+      last = cur;
+      steady = now;
+    }
+    if (now - steady >= 600 || now - began >= 4000) {
+      showPopup("lights-edit", true, o.after || true);
+      return;
+    }
+    setTimeout(check, 150);
+  })();
 }
 
 function lightsEditDef() {
