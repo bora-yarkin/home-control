@@ -5,7 +5,7 @@ Format: [Keep a Changelog](https://keepachangelog.com/). Versions follow [semant
 ## [Unreleased]
 
 ### Added
-- Plugin API: `registerSceneMaker` (a way of making a scene a plus integration offers in the new-scene popup), `scenes.editLights` (the light popup of several lights as an editor: the lights follow every change, the checkmark saves) and `scenes.roomLights`, and a `remove` hook of a scene kind (the trash of edit mode, after a question). Hue Plus uses them for Hue scenes (D-29 of Hue Plus).
+- Plugin API: `registerSceneMaker` (a way of making a scene a plus integration offers in the new-scene popup), `scenes.editLights` (the light popup of several lights as an editor: the lights follow every change, the checkmark saves), and a `remove` hook of a scene kind (the trash of edit mode, after a question). Hue Plus uses them for Hue scenes (D-29 of Hue Plus).
 
 ## [0.9.6] - 2026-11-10
 

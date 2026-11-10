@@ -98,11 +98,6 @@ function sceneNewPage(b, key) {
   sceneMakerRows(b, scope, target);
 }
 
-/* The lights of a page, by its key: a room's, or every light for the home page. */
-function scopeLights(scope) {
-  return scope === "home" ? allLights() : lightsAll(scope);
-}
-
 /* What a plugin offers next to those (Hue Plus's "Hue scene"). */
 function sceneMakerRows(b, scope, target) {
   PLUGIN_SCENE_MAKERS.forEach(function (m) {

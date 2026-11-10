@@ -153,8 +153,8 @@ export function makeHass(query) {
       { id: "auto-1", name: "Wake up", enabled: true, script: "Basic wake up routine", status: "running" },
       { id: "auto-2", name: "Evening timer", enabled: false, script: "Timers", status: "disabled" },
     ],
-    rooms: [{ id: "room-1", name: "Living room", children: [{ id: "dev-lamp", name: "Desk lamp" }] }],
-    zones: [], smart_scenes: [], scenes: [{ id: "scene-1", name: "Movie", group_id: "room-1" }, { id: "scene-2", name: "Relax", group_id: "room-1" }, { id: "scene-3", name: "Nightlight", group_id: "room-1" }],
+    rooms: [{ id: "room-1", name: "Living room", children: [{ id: "dev-lamp", name: "Desk lamp" }], lights: ["light-1", "light-2", "light-3"] }],
+    zones: [{ id: "zone-1", name: "Desk area", children: [], lights: ["light-1"] }], smart_scenes: [], scenes: [{ id: "scene-1", name: "Movie", group_id: "room-1", group_type: "room", lights: ["light-1", "light-2"] }, { id: "scene-2", name: "Relax", group_id: "room-1", group_type: "room", lights: ["light-1", "light-2", "light-3"] }, { id: "scene-3", name: "Nightlight", group_id: "room-1", group_type: "room", lights: ["light-2"] }],
     entertainment_areas: [
       {
         id: "area-1", name: "TV", type: "screen", end_state: "last_state", performance: "auto", performance_light: null,

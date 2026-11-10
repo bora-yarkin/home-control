@@ -157,8 +157,6 @@ window.HomeControl = {
     importFrom: pluginLate("liveImportFrom"),
     /* The light popup of several lights as an editor: `{ name, icon, lights, onSave(acts), after }`. The lights follow every change; the checkmark calls onSave with what each light shows (see app/lighteditor.js). */
     editLights: pluginLate("openLightsEditor"),
-    /* The lights of a page (a room's, or the home's), by the page's key. */
-    roomLights: pluginLate("scopeLights"),
   },
   /* The area editor, for a plugin that owns areas of its own. */
   areas: {

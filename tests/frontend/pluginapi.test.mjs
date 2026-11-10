@@ -32,7 +32,7 @@ function page(extra = {}) {
 
 const documented = ["version", "hass", "attrs", "state", "isOn", "registry", "isAdmin", "call", "callRaw", "toggle", "toast", "refresh", "el", "icon", "row", "count", "confirm", "open", "back", "closeLayer", "guard", "popGuard", "sheet", "t", "addStrings", "registerPage", "registerSettings", "registerAreaHooks", "editing", "room", "serviceResponse", "addStyles", "registerSceneKind", "registerSceneMaker", "registerSceneImport", "registerDeviceKind", "registerPlayback", "registerLightStyle"];
 const documentedUi = ["attachSlide", "briControl", "callLive", "cap", "closeSheet", "cssRgb", "cssToRgb", "deviceGet", "deviceSet", "dom", "dropRow", "ic", "inkRow", "kelvinRgb", "lightMembers", "liveStopOn", "liveXyRgb", "pinPop", "pop", "sep", "sliderRow", "switchPill", "pageFill"];
-const documentedScenes = ["hidden", "setHidden", "importFrom", "editLights", "roomLights"];
+const documentedScenes = ["hidden", "setHidden", "importFrom", "editLights"];
 const documentedAreas = ["open", "openExternal", "editor", "rebuild", "roomLights", "clamp", "identifyOff"];
 
 test("the API has what the documentation lists, and nothing it does not", () => {
