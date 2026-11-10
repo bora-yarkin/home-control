@@ -12,7 +12,7 @@ Format: [Keep a Changelog](https://keepachangelog.com/). Versions follow [semant
 - When the page comes back to the foreground, Home Assistant is sent a ping; a connection that does not answer within two seconds is closed and remade at once (a woken phone often holds a dead connection that the browser gives up on only after many seconds), and the page is drawn again immediately.
 
 ### Added
-- Samsung TV remote: an **Apps** dropdown beside the power button (the TV's source list: apps and inputs; it shows the one that is on), and the brightness button of the light popup in the empty place under Home, which sets the brightness of the lights in the TV's room.
+- Samsung TV remote: an **Apps** dropdown (the TV's source list: apps and inputs; it shows the one that is on) and the brightness button of the light popup in the empty place under Home, which sets the brightness of the lights in the TV's room. Where the dropdown sits follows the TV's Now playing setting: as the artwork or off, it is beside the power button; as the normal row, the Now playing row itself opens it (with a chevron) and the place beside power stays empty.
 
 ## [0.9.5] - 2026-11-08
 
