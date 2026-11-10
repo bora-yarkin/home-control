@@ -41,7 +41,7 @@ export function makeHass(query) {
     state("light.shelf_strip", "off", { friendly_name: "Shelf strip", supported_color_modes: ["xy"], hue_light_id: "light-2", hue_function: "decorative", hue_gradient_orientation: "horizontal", hue_gradient_orientation_configurable: true, hue_gradient_order: "forward", hue_gradient_order_configurable: true }),
     state("light.ceiling_plain", "on", { friendly_name: "Ceiling (not Hue)", brightness: 255, supported_color_modes: ["brightness"] }),
     // The Hue lights of a room: the room's own group light (its scenes play on it), a zoned gradient light, and the room's Hue scenes. The "Scene" select says which is on.
-    state("light.living_room", "on", { friendly_name: "Living room", brightness: 150, is_hue_group: true, entity_id: ["light.desk_lamp", "light.shelf_strip"], color_mode: "xy", xy_color: [0.3, 0.3] }),
+    state("light.living_room", "on", { friendly_name: "Living room", brightness: 150, is_hue_group: true, hue_type: "room", entity_id: ["light.desk_lamp", "light.shelf_strip"], color_mode: "xy", xy_color: [0.3, 0.3] }),
     state("light.gradient_tube", "on", {
       friendly_name: "Gradient tube", supported_color_modes: ["xy"], color_mode: "xy", brightness: 200, xy_color: [0.2, 0.3], hue_light_id: "light-3",
       entity_id: ["light.gradient_tube_zone_1", "light.gradient_tube_zone_2", "light.gradient_tube_zone_3"], zone_colors: [[0.6, 0.35], [0.3, 0.5], [0.15, 0.1]],
@@ -249,7 +249,7 @@ export function makeHass(query) {
     services: {
       light: { turn_on: {}, turn_off: {} }, switch: { turn_on: {}, turn_off: {} }, select: { select_option: {} },
       number: { set_value: {} }, button: { press: {} }, scene: { turn_on: {} },  update: { install: {} },
-      ...(withSync ? { hue_plus: Object.fromEntries(["get_resources", "set_effect", "set_style", "configure_light", "timed_effect", "signal", "create_routine", "configure_button", "set_streaming_end_state", "stream_colors", "stop_streaming", "set_motion_area", "set_auto_update", "check_for_update", "install_bridge_update", "set_zigbee_channel", "search_for_devices", "remove_matter_fabric", "revoke_app", "update_entertainment_area", "import_hue_scene"].map((s) => [s, {}])) } : {}),
+      ...(withSync ? { hue_plus: Object.fromEntries(["get_resources", "set_effect", "set_style", "configure_light", "timed_effect", "signal", "create_routine", "configure_button", "set_streaming_end_state", "stream_colors", "stop_streaming", "set_motion_area", "set_auto_update", "check_for_update", "install_bridge_update", "set_zigbee_channel", "search_for_devices", "remove_matter_fabric", "revoke_app", "update_entertainment_area", "import_hue_scene", "create_scene", "update_scene", "delete_scene", "create_daily_smart_scene", "set_name"].map((s) => [s, {}])) } : {}),
       home_control: Object.fromEntries(["scene_start", "scene_update", "scene_freeze", "scene_play", "scene_stop", "scene_save", "scene_delete", "area_save", "area_delete", "locate_light", "get_library"].map((s) => [s, {}])),
     },
     config: { unit_system: { temperature: "°C" }, time_zone: "UTC", language: "en", components: [] },

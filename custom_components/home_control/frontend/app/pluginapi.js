@@ -16,6 +16,9 @@ var PLUGIN_AREA = {};
  with the room's scenes, runs them and shows their popup; what a scene does is the plugin's. */
 var PLUGIN_SCENE_KINDS = [];
 
+/* Ways of making a scene a plugin offers in the new-scene popup: { id, title, sub (string keys), icon, available(scope), start(scope, target) }. `scope` is the page's key (a room or "home"), `target` { scope, sid } the section the scene goes in. */
+var PLUGIN_SCENE_MAKERS = [];
+
 /* Places a scene can be imported from: { id, title, sub (string keys), available(), list(): [{id, name, group}], read(id): a promise of { name, palette, speed, brightness, lights } }. With classic: true the scene becomes a classic scene and read(id) gives { name, lights: [{ entity_id, on, brightness (1 to 255), xy or k }] }. */
 var PLUGIN_SCENE_IMPORTS = [];
 
@@ -152,6 +155,10 @@ window.HomeControl = {
     setHidden: pluginLate("sceneEntSetHidden"),
     /* Imports a live scene from a registered source into the live scene editor. */
     importFrom: pluginLate("liveImportFrom"),
+    /* The light popup of several lights as an editor: `{ name, icon, lights, onSave(acts), after }`. The lights follow every change; the checkmark calls onSave with what each light shows (see app/lighteditor.js). */
+    editLights: pluginLate("openLightsEditor"),
+    /* The lights of a page (a room's, or the home's), by the page's key. */
+    roomLights: pluginLate("scopeLights"),
   },
   /* The area editor, for a plugin that owns areas of its own. */
   areas: {
@@ -198,6 +205,9 @@ window.HomeControl = {
   },
   registerSceneKind: function (def) {
     PLUGIN_SCENE_KINDS.push(def);
+  },
+  registerSceneMaker: function (def) {
+    PLUGIN_SCENE_MAKERS.push(def);
   },
   registerSceneImport: function (def) {
     PLUGIN_SCENE_IMPORTS.push(def);
