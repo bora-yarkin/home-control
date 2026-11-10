@@ -104,7 +104,7 @@ function stream(box, id, owner, tapOpen, noIntercom) {
     box.addEventListener("click", function () {
       if (!box._fs) showPopup(tapOpen === true ? "camera" : tapOpen, true);
     });
-  /* A picture that is slow to come (a building's camera) shows a spinner in the middle until the picture is really showing, and says so when it takes long, so a camera that has given up looks different from one that is still on its way. */
+  /* A picture that is slow to come (a building's camera) shows a spinner in the middle until the first picture has been decoded, and says so when it takes long, so a camera that has given up looks different from one that is still on its way. It goes with the first decoded frame, not with the player's own checks (which also wait for movement and a bright enough picture, and can take seconds more). */
   var spin = mk("div", "camspin", "<i></i><span></span>"),
     late = setTimeout(function () {
       spin.classList.add("late");
@@ -112,17 +112,24 @@ function stream(box, id, owner, tapOpen, noIntercom) {
     }, 12000);
   box.appendChild(spin);
   function spinSync() {
-    var waiting = vid.classList.contains("wait");
-    spin.style.display = waiting ? "" : "none";
-    if (!waiting) clearTimeout(late);
+    var pic = vid.readyState >= 2 && vid.videoWidth > 0;
+    spin.style.display = pic ? "none" : "";
+    if (pic) {
+      clearTimeout(late);
+      spin.classList.remove("late");
+    }
   }
-  var seen = typeof MutationObserver === "function" ? new MutationObserver(spinSync) : null;
-  if (seen) seen.observe(vid, { attributes: true, attributeFilter: ["class"] });
+  var spinEvents = ["loadeddata", "playing", "canplay", "resize", "emptied", "loadstart"];
+  spinEvents.forEach(function (ev) {
+    vid.addEventListener(ev, spinSync);
+  });
   spinSync();
   var stop = window.CameraStream.start(vid, id);
   STOPS[owner] = function () {
     clearTimeout(late);
-    if (seen) seen.disconnect();
+    spinEvents.forEach(function (ev) {
+      vid.removeEventListener(ev, spinSync);
+    });
     camFsExit(box);
     stop();
     vid.removeAttribute("src");
