@@ -1,6 +1,6 @@
 [project]
 name = "home-control"
-version = "0.9.7"
+version = "0.9.8"
 description = "Home Control: a dashboard panel for Home Assistant."
 license = "GPL-3.0-or-later"
 requires-python = ">=3.14"

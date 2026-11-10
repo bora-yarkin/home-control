@@ -299,32 +299,40 @@ function tvSources(id) {
   return r;
 }
 
-/* The brightness of the lights in the TV's room, with the brightness button of the light popup (its slider rises from the button), in the cell under Home. Left empty when the room has no lights. */
-function tvRoomBrightness(media) {
-  var room = UIOWN[media],
-    cell = mk("div", "tvbri");
-  if (!lightsAll(room).length) return cell;
-  function ids() {
-    return lightsAll(room);
+/* The TV's own screen brightness: on a Samsung that is its Backlight number (its Brightness number is the black level), shown on the TV's own scale, with the brightness button of the light popup (its slider rises from the button), in the cell under Home. Left empty when the TV has no Backlight number; it does nothing while the TV is off and the number is unavailable. */
+function tvBrightness(media) {
+  var cell = mk("div", "tvbri"),
+    num = sibBy(media, function (e) {
+      return dom(e.entity_id) === "number" && (e.name === "Backlight" || /_backlight$/.test(e.entity_id));
+    });
+  if (!num) return cell;
+  function range() {
+    var a = A(num),
+      lo = typeof a.min === "number" ? a.min : 0,
+      hi = typeof a.max === "number" && a.max > lo ? a.max : lo + 100;
+    return [lo, hi];
+  }
+  function usable() {
+    return V_(num) !== "unavailable" && V_(num) !== "unknown";
+  }
+  function toValue(pct) {
+    var r = range();
+    return Math.round(r[0] + (pct / 100) * (r[1] - r[0]));
   }
   cell.appendChild(
     briControl({
       pct: function () {
-        return lightsMasterPct(ids());
+        var r = range(),
+          v = parseFloat(V_(num));
+        return usable() && isFinite(v) ? Math.max(0, Math.min(100, Math.round(((v - r[0]) / (r[1] - r[0])) * 100))) : 0;
       },
-      lit: function () {
-        return countOn(ids()) > 0;
-      },
+      lit: usable,
+      fmt: toValue,
       live: function (v) {
-        if (v > 0)
-          callLive("tv:" + media, "light", "turn_on", {
-            entity_id: lightTargets(ids(), false),
-            brightness_pct: v,
-          });
+        if (usable()) callLive("tv:" + media, "number", "set_value", { entity_id: num, value: toValue(v) });
       },
       commit: function (v) {
-        if (v <= 0) call("light", "turn_off", { entity_id: lightTargets(ids(), false) });
-        else call("light", "turn_on", { entity_id: lightTargets(ids(), false), brightness_pct: v });
+        if (usable()) call("number", "set_value", { entity_id: num, value: toValue(v) });
       },
       stage: function () {
         return null;
@@ -413,7 +421,7 @@ function samsungRemote(b, remote, media) {
   b.appendChild(r3);
   var r4 = mk("div", "rrow");
   var l = mk("div", "rstack"),
-    m = tvRoomBrightness(media),
+    m = tvBrightness(media),
     rr = mk("div", "rstack");
   l.appendChild(
     rbtn(

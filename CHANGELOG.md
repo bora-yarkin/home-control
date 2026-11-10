@@ -4,6 +4,11 @@ Format: [Keep a Changelog](https://keepachangelog.com/). Versions follow [semant
 
 ## [Unreleased]
 
+## [0.9.8] - 2026-11-10
+
+### Fixed
+- The brightness button under Home on a Samsung TV's remote set the brightness of the lights in the TV's room; it now sets the TV's own screen brightness, which on a Samsung is its Backlight number (its Brightness number is the black level), shown on the TV's own scale, and does nothing while the TV is off.
+
 ## [0.9.7] - 2026-11-10
 
 ### Fixed
