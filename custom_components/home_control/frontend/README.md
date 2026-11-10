@@ -45,7 +45,7 @@ If an update to Home Assistant breaks the panel, these are the only places to lo
 
 From the `hass` object that Home Assistant gives a custom panel: `states`, `services`, `config`, `user`, `locale`,
 `connected`, `callService`, `callApi` (the REST paths below) and `connection` (`sendMessagePromise`, `subscribeMessage`,
-`subscribeEvents`, `addEventListener`).
+`subscribeEvents`, `addEventListener`, `ping`, `reconnect`). `ping` and `reconnect(true)` are used when the page comes back (a connection that does not answer a ping within two seconds is remade at once instead of waiting for the browser to give up on it).
 
 Websocket commands:
 

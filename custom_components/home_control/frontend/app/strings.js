@@ -431,6 +431,7 @@ var EN = {
   "now_playing": "Now playing",
   "close": "Close",
   "brightness": "Brightness",
+  "apps": "Apps",
   "colour": "Colour",
   "colour_circle": "Colour wheel",
   "palette": "Palette",

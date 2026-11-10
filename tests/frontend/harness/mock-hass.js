@@ -48,6 +48,9 @@ export function makeHass(query) {
       gradient_mode: "interpolated_palette", gradient_modes: ["interpolated_palette", "interpolated_palette_mirrored", "random_pixelated", "segmented_palette"],
     }),
     ...[1, 2, 3].map((n) => state(`light.gradient_tube_zone_${n}`, "on", { friendly_name: `Gradient tube zone ${n}`, supported_color_modes: ["xy"], color_mode: "xy", brightness: 200, xy_color: [0.2, 0.3] })),
+    // A Samsung TV (samsungtv_smart): its sources are apps and inputs; the remote entity belongs to the same device.
+    state("media_player.living_tv", "on", { friendly_name: "Living TV", source: "YouTube", source_list: ["TV", "HDMI", "YouTube", "Netflix", "Spotify - Music and Podcasts"], supported_features: 24509 }),
+    state("remote.living_tv", "on", { friendly_name: "Living TV" }),
     state("scene.living_room_arctic_aurora", "unknown", { friendly_name: "Living room Arctic aurora", name: "Arctic aurora", is_dynamic: true, group_name: "Living room", speed: 0.5, brightness: 200 }),
     state("scene.living_room_reading", "unknown", { friendly_name: "Living room Reading", name: "Reading", is_dynamic: false, group_name: "Living room" }),
     state("select.living_room_scene", "Reading", { friendly_name: "Scene", options: ["Arctic aurora", "Reading"] }),
@@ -91,6 +94,8 @@ export function makeHass(query) {
     reg("light.living_room", "hue_plus", "group-1", "dev-living-group", { area_id: "living" }),
     reg("light.gradient_tube", "hue_plus", "light-3", "dev-tube", { area_id: "living" }),
     ...[1, 2, 3].map((n) => reg(`light.gradient_tube_zone_${n}`, "hue_plus", `light-3_zone_${n}`, "dev-tube", { area_id: "living" })),
+    reg("media_player.living_tv", "samsungtv_smart", "tv-1", "dev-tv", { area_id: "living" }),
+    reg("remote.living_tv", "samsungtv_smart", "tv-1-remote", "dev-tv", { area_id: "living" }),
     reg("scene.living_room_arctic_aurora", "hue_plus", "scene-1", "dev-living-group", { area_id: "living" }),
     reg("scene.living_room_reading", "hue", "scene-2", "dev-living-group", { area_id: "living" }),
     reg("select.living_room_scene", "hue_plus", "group-1_scene", "dev-living-group", { area_id: "living" }),
@@ -125,7 +130,7 @@ export function makeHass(query) {
   ];
   const devices = [
     ["dev-lamp", "Desk lamp"], ["dev-strip", "Shelf strip"], ["dev-plain", "Ceiling (not Hue)"],
-    ["dev-bridge", "Hue Bridge"], ["dev-living-group", "Living room"], ["dev-tube", "Gradient tube"], ["dev-spotify", "Hue Spotify sync"], ["dev-box", "Living room box"],
+    ["dev-bridge", "Hue Bridge"], ["dev-living-group", "Living room"], ["dev-tube", "Gradient tube"], ["dev-spotify", "Hue Spotify sync"], ["dev-box", "Living room box"], ["dev-tv", "Living TV"],
   ].map(([id, name]) => ({ id, name, area_id: null, manufacturer: "Invented", model: "Test" }));
 
   const stored = { user: {}, system: {} };
@@ -247,6 +252,19 @@ export function makeHass(query) {
       const id = data && data.entity_id;
       const target = typeof id === "string" ? states[id] : null;
       if (target && domain === "switch") target.state = service === "turn_on" ? "on" : service === "turn_off" ? "off" : target.state === "on" ? "off" : "on";
+      if (target && domain === "media_player" && service === "select_source") target.attributes = { ...target.attributes, source: data.source };
+      // `?lag=300` makes each light answer a light command 300 ms after the one before it, the way separate integrations do.
+      const lag = Number(new URLSearchParams(location.search).get("lag"));
+      if (domain === "light" && (service === "turn_on" || service === "turn_off")) {
+        [].concat(id || []).forEach((lid, i) => {
+          if (!states[lid]) return;
+          setTimeout(() => {
+            states[lid] = { ...states[lid], state: service === "turn_on" ? "on" : "off", attributes: { ...states[lid].attributes, ...(service === "turn_on" ? { brightness: data.brightness_pct ? Math.round(data.brightness_pct * 2.55) : 255 } : {}) } };
+            hass.states = { ...states };
+            document.querySelector("dashboard-panel") && (document.querySelector("dashboard-panel").hass = hass);
+          }, lag * (i + 1));
+        });
+      }
       if (target && domain === "select" && service === "select_option") target.state = data.option;
       if (target && domain === "number" && service === "set_value") target.state = String(data.value);
       hass.states = { ...states };

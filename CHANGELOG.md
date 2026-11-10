@@ -4,6 +4,16 @@ Format: [Keep a Changelog](https://keepachangelog.com/). Versions follow [semant
 
 ## [Unreleased]
 
+## [0.9.6] - 2026-11-10
+
+### Changed
+- Turning lights (and switches and fans) on or off draws the new state at once. Ten lights turned off together used to change one row at a time, each when its own integration reported back; the page now shows them all, and goes back to what Home Assistant says if it reports something else or nothing within four seconds.
+- The "disconnected" banners wait one and a half seconds before they show, so a connection that comes back at once (a phone waking up) shows no warning.
+- When the page comes back to the foreground, Home Assistant is sent a ping; a connection that does not answer within two seconds is closed and remade at once (a woken phone often holds a dead connection that the browser gives up on only after many seconds), and the page is drawn again immediately.
+
+### Added
+- Samsung TV remote: an **Apps** dropdown beside the power button (the TV's source list: apps and inputs; it shows the one that is on), and the brightness button of the light popup in the empty place under Home, which sets the brightness of the lights in the TV's room.
+
 ## [0.9.5] - 2026-11-08
 
 ### Fixed

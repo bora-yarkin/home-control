@@ -199,7 +199,7 @@ function lightRow(id, showRoom, inPopup) {
     else liveT = setTimeout(go, wait);
   }
   function pct() {
-    if (V_(id) === "on") return Math.round((A(id).brightness || 0) / 2.55);
+    if (V_(id) === "on") return Math.round(briNow(id) / 2.55);
     var syn = pluginPlays(id);
     return syn ? syn.pct() : 0;
   }
@@ -519,7 +519,7 @@ function lightsMasterPct(ids) {
   if (!on.length) return 0;
   return Math.round(
     on.reduce(function (sum, i) {
-      return sum + (A(i).brightness || 0) / 2.55;
+      return sum + briNow(i) / 2.55;
     }, 0) / on.length
   );
 }

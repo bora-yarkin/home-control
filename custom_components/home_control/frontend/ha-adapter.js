@@ -97,6 +97,7 @@ var ready=null,registriesLoaded=false;
 
 function start(){
  facade=buildFacade();
+ watchWake();
  var loaded=Promise.all(SOURCES.map(function(src){return loadRegistry(src,0)})).then(function(){
   registriesLoaded=true;
   schedule();
@@ -148,6 +149,33 @@ function bindConnection(){
  if(!c||c===connBound||!connHandlers.length)return;
  connBound=c;
  connHandlers.forEach(function(x){c.addEventListener("disconnected",x.lost);c.addEventListener("ready",x.back)});
+}
+
+/* A phone that wakes up often finds its connection dead before the browser has noticed (it can take many seconds), and the page shows old states meanwhile. When the page comes back, Home Assistant is asked a ping: no answer within WAKE_MS and the connection is closed and made again at once, instead of waiting for the browser to give up on it. Either way the page is drawn again now. A connection that is already down is being remade by Home Assistant. */
+var WAKE_MS = 2000,
+  waking = false;
+function wake(){
+ var c=hass&&hass.connection;
+ schedule();
+ if(!c||waking||document.hidden||!c.connected)return;
+ waking=true;
+ var done=false;
+ function finish(dead){
+  if(done)return;
+  done=true;
+  clearTimeout(timer);
+  waking=false;
+  if(dead&&hass&&hass.connection===c&&c.connected)c.reconnect(true);
+  schedule();
+ }
+ var timer=setTimeout(function(){finish(true)},WAKE_MS);
+ c.ping().then(function(){finish(false)},function(){finish(false)});
+}
+function watchWake(){
+ document.addEventListener("visibilitychange",wake);
+ window.addEventListener("pageshow",wake);
+ window.addEventListener("focus",wake);
+ window.addEventListener("online",wake);
 }
 
 /* Settings saved in Home Assistant: scope is "user" (this user only) or "system" (everyone). Resolves to the saved value. */

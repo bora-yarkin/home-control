@@ -12,7 +12,8 @@ const plain = (value) => JSON.parse(JSON.stringify(value));
 
 async function adapter(rows, plugins = [{ id: "hue_plus", name: "Hue Plus", menu: "/hue_plus_static/menu.js", version: "1", replaces: ["hue"] }]) {
   const sandbox = {
-    window: {},
+    window: { addEventListener() {} },
+    document: { addEventListener() {}, hidden: false },
     requestAnimationFrame: (fn) => fn(),
     setTimeout,
     clearTimeout,
@@ -68,7 +69,7 @@ test("what is replaced is what a plus integration declares, not a brand the pane
 });
 
 test("when Home Control cannot say what is replaced, nothing is hidden", async () => {
-  const sandbox = { window: {}, requestAnimationFrame: (fn) => fn(), setTimeout, clearTimeout, console };
+  const sandbox = { window: { addEventListener() {} }, document: { addEventListener() {}, hidden: false }, requestAnimationFrame: (fn) => fn(), setTimeout, clearTimeout, console };
   vm.createContext(sandbox);
   vm.runInContext(read("ha-adapter.js"), sandbox);
   const rows = [row("light.a", "hue_plus", "u1"), row("light.a_hue", "hue", "u1")];
