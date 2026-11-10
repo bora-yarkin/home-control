@@ -217,6 +217,24 @@ var route={
  }
 };
 
+/* ---- voice ---- */
+
+/* Opens Home Assistant's own Assist and starts listening, when the phone app that shows this page does it with its own microphone (which works without https). Answers whether it did. */
+function assist(){
+ try{
+  var ext=hass&&hass.auth&&hass.auth.external;
+  if(!ext||!ext.config||!ext.config.hasAssist||!ext.fireMessage)return false;
+  ext.fireMessage({type:"assist/show",payload:{pipeline_id:"preferred",start_listening:true}});
+  return true;
+ }catch(e){return false}
+}
+
+/* The address of the panel, for a notification that opens it. */
+function panelPath(){
+ try{return window.parent.location.pathname||"/"}
+ catch(e){return"/"}
+}
+
 /* ---- a short-lived signed address ---- */
 
 /* An audio or video element cannot send Home Assistant's login header, so a stream that needs it is played from an address Home
@@ -279,6 +297,8 @@ window.HA={
  camera:camera,
  route:route,
  signPath:signPath,
+ assist:assist,
+ panelPath:panelPath,
  automations:automations,
  scripts:scripts,
  remotePictures:remotePictures

@@ -67,7 +67,7 @@ function camFull(box, vid, btn) {
   viaVideo();
 }
 
-function stream(box, id, owner, tapOpen) {
+function stream(box, id, owner, tapOpen, noIntercom) {
   stopStreams(owner);
   /* The snapshot sits behind the video, which stays transparent until the live picture is really showing, so a stream that connects black never replaces it. */
   var tok = A(id).access_token;
@@ -99,7 +99,7 @@ function stream(box, id, owner, tapOpen) {
   bt.appendChild(fs);
   camTalkButton(box, id, bt);
   box.appendChild(bt);
-  camIntercom(box, id);
+  if (!noIntercom) camIntercom(box, id);
   if (tapOpen)
     box.addEventListener("click", function () {
       if (!box._fs) showPopup(tapOpen === true ? "camera" : tapOpen, true);

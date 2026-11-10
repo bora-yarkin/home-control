@@ -9,7 +9,7 @@ Home Assistant. Anything that Home Assistant does well (automations, helpers, gr
 | --- | --- |
 | `dashboard-panel.js` | The panel element Home Assistant loads. Reads `version.json`, requests every file at once, runs them in order, passes `hass` on. |
 | `ha-adapter.js` | The only code that talks to Home Assistant. No other file sends a websocket message, calls a REST path or reads the connection; everything else calls `window.HA`. |
-| `camera-stream.js` | Live camera playback: WebRTC, then HLS, with black-picture and stall recovery. Uses `HA.camera`. |
+| `camera-stream.js` | Live camera playback: WebRTC, then HLS, with black-picture and stall recovery (`HA.camera`), push to talk to a camera (`CameraTalk`) and the microphone sent to a door call (`IntercomTalk`). |
 | `dashboard-app.js` | The entry of the application. It runs the files below, in the order of `files` in `version.json`. |
 | `app/*.js` | The application, split by feature (`lights.js`, `vacuum.js`, `editor.js`, ...). They share one global scope and run in the order of `files` in `version.json`; the first line of each file says what it holds. `app/main.js` is last and starts the app. They reach Home Assistant only through `window.HA` and integration specifics only through `window.Integrations`. |
 | `app/lighteditor.js` | The light popup as part of an editor: opens the dashboard's own light popup (colour wheel, groups separated into single lights, effects) as a layer; its checkmark keeps what the lights show in the scene, and closing after a change asks whether to keep it or put the lights back. Used by the classic scene editor. |
@@ -17,6 +17,7 @@ Home Assistant. Anything that Home Assistant does well (automations, helpers, gr
 | `app/staticmaker.js` | Classic scenes: the editor (a light opens the light popup, other devices slide open in place, live scenes can be added), saving, deleting. |
 | `app/vlights.js` | Lights that exist only in the dashboard: the Colors light of the live scene maker and its colours (up to 10), which answer to the light popup like a light made of zones. `core.js` reads them before Home Assistant's states and `callRaw` gives them the commands meant for them. |
 | `app/livemaker.js` | The live scene maker: the light popup with the Colors light, the lights of the chosen areas, the effects and settings of the whole scene, preview and saving. `livescenes.js` keeps playing, sharing with Hue Plus and the scene's popup. |
+| `app/doorcall.js` | Door calls: the popup of a ringing intercom (camera, answer, end, unlock, talk, listen), opened by itself and when the dashboard is opened during a call, and the audio it uses (`docs/intercom-contract.md`). |
 | `app/kinds.js` | Guided setup of a device that has other entities (a TV's remote, a camera's second stream, pan/tilt, privacy and detection entities): finds them by itself, offers a searchable list for the rest, keeps the links with the device, and says whether a TV gets the full or the basic remote. Add a kind of device in `DEVSETUP`. |
 | `integrations.js` | Everything that is specific to one integration (xiaomi_miot, robot_vacuum_map, samsungtv_smart, apple_tv, androidtv_remote). It draws nothing and reads nothing from the page. |
 | `dashboard.css` | Styles. |

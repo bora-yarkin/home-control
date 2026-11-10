@@ -9,7 +9,7 @@ import vm from "node:vm";
 const SOURCE = readFileSync(new URL("../../custom_components/home_control/frontend/app/notifications.js", import.meta.url), "utf8");
 
 /* The page's globals that notifications.js uses. `devices` are the dashboard's devices, `live` the automations in Home Assistant. */
-function load({ devices, bats = [], rules, live = {}, getError = {} }) {
+function load({ devices, bats = [], rules, live = {}, getError = {}, rings = [] }) {
   const saved = [];
   const sandbox = {
     _T: (key) => key,
@@ -23,10 +23,12 @@ function load({ devices, bats = [], rules, live = {}, getError = {} }) {
     STORE: { notify: { rules } },
     devsOf: (kind) => devices.filter((d) => !kind || d.kind === kind),
     storeChanged() {},
+    ixIsRing: (entity) => rings.includes(entity),
     setTimeout,
     clearTimeout,
     window: {
       HA: {
+        panelPath: () => "/dashboard",
         automations: {
           get: async (id) => {
             if (getError[id]) throw getError[id];
@@ -164,4 +166,12 @@ test("an alert for any entity is kept when it names an entity, a state and recip
   assert.deepEqual(p.actions.map((a) => a.action), ["notify.mobile_app_phone"]);
   assert.equal(sandbox.watchPayload({ ...n.watch[0], to: "" }), null, "no state, no automation");
   assert.equal(sandbox.watchPayload({ ...n.watch[0], targets: [] }), null, "no recipient, no automation");
+});
+
+test("the notification of a door call opens the dashboard when it is tapped; other alerts open nothing in particular", () => {
+  const watch = { id: "wdoor", name: "Door", e: "sensor.call_status", to: "ringing", on: true, targets: ["mobile_app_phone"] };
+  const door = load({ devices: [], rules: rules(), rings: ["sensor.call_status"] }).sandbox.watchPayload(watch);
+  assert.deepEqual(JSON.parse(JSON.stringify(door.actions[0].data.data)), { url: "/dashboard", clickAction: "/dashboard" });
+  const other = load({ devices: [], rules: rules() }).sandbox.watchPayload({ ...watch, e: "sensor.washer" });
+  assert.equal(other.actions[0].data.data, undefined);
 });

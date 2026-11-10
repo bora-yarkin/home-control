@@ -55,6 +55,14 @@ function popupDefBase(key) {
         advPopup(b, id);
       },
     };
+  if (k === "call")
+    return {
+      title: (UIDEV[id] && UIDEV[id].name) || _T("dc_door_call"),
+      icon: "bell",
+      build: function (b) {
+        callPopup(b, id);
+      },
+    };
   if (k === "kwiz")
     return {
       title: (devAt(id) && devAt(id).name ? devAt(id).name + " · " : "") + _T("device_setup"),

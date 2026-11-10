@@ -110,6 +110,9 @@ to{opacity:0;clip-path:inset(100% 0 0 0 round var(--r-row));transform:translateY
 .pill>.chev svg{width:18px;height:18px;fill:none;stroke:currentColor;stroke-width:1.8;stroke-linecap:round;stroke-linejoin:round}
 .pill.open>.chev{transform:rotate(180deg);background:var(--a2)}
 .pill.open{border-color:var(--ab);box-shadow:inset 0 1.5px 1px rgba(255,255,255,.55),0 0 0 2px var(--a3),0 14px 34px -14px var(--glow)}
+.dcrow{grid-template-columns:none;grid-auto-flow:column;grid-auto-columns:1fr}
+.dcrow .rbtn.act{background:color-mix(in srgb,var(--acc) 22%,var(--f-card))}
+.dcrow .dc-answer{background:color-mix(in srgb,var(--acc) 30%,var(--f-card))}
 .tvbri{display:flex;align-items:center;justify-content:center}
 .touch{height:clamp(260px,40vh,340px);touch-action:none;cursor:pointer;display:flex;align-items:flex-end;justify-content:center;padding-bottom:12px}
 .touch span{font-size:var(--fs-s);color:var(--ink2)}
@@ -748,8 +751,9 @@ body.pinhdr:not(.editing) .wrap::before{content:"";position:fixed;top:0;left:0;r
 .pill.sliding .ic{cursor:grabbing}
 .pill.easing .ic{transition:transform .22s cubic-bezier(.2,.8,.2,1)}
 .pill.easing .tx,.pill.easing .vl{transition:opacity .22s}
-.pill.slidable .vl{color:transparent;-webkit-background-clip:text;background-clip:text;background-image:linear-gradient(100deg,color-mix(in srgb,var(--ink) 38%,transparent) 35%,var(--ink) 50%,color-mix(in srgb,var(--ink) 38%,transparent) 65%);background-size:250% 100%;animation:slsh 2.4s linear infinite}
-@keyframes slsh{from{background-position:100% 0}to{background-position:-150% 0}}
+.pill.slidable .vl{color:transparent;-webkit-background-clip:text;background-clip:text;background-image:linear-gradient(100deg,color-mix(in srgb,var(--ink) 38%,transparent) 35%,var(--ink) 50%,color-mix(in srgb,var(--ink) 38%,transparent) 65%);background-size:200% 100%;animation:slsh 2.2s linear infinite}
+/* The picture is two text widths wide and repeats, so moving it by exactly one picture (200% of the free room) ends where it began: every pass is whole, and the loop shows no jump. */
+@keyframes slsh{from{background-position:200% 0}to{background-position:0% 0}}
 @media(prefers-reduced-motion:reduce){.pill.slidable .vl{animation:none;background-image:none;color:var(--ink2)}.pill.easing .ic,.pill.easing .tx,.pill.easing .vl{transition:none}}
 
 /* A device of a classic scene whose settings slide open and shut. */

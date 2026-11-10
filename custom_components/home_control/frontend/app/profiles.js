@@ -214,12 +214,7 @@ function vacProfileEditor(box, d, key) {
 /* ---- the camera's intercom: a call indicator, answer and reject while it rings, unlock for the chosen door only ---- */
 
 function ixRinging(ix) {
-  if (!ix.ring) return true;
-  var s = H().states[ix.ring];
-  if (!s) return false;
-  if (dom(ix.ring) === "event") return !!s.state && isFinite(Date.parse(s.state)) && Date.now() - Date.parse(s.state) < 30000;
-  if (dom(ix.ring) === "sensor") return ["", "idle", "off", "unknown", "unavailable", "0", "none"].indexOf(s.state) < 0;
-  return s.state === "on";
+  return !ix.ring || ixState(ix) !== "idle";
 }
 
 /* The door opens through the one entity chosen for it and nothing else: if that is unavailable nothing happens and it says so. */

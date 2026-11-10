@@ -58,6 +58,8 @@ test("a camera keeps push to talk and intercom entities that fit; a light keeps 
 function intercom(states) {
   const context = vm.createContext({ H: () => ({ states }), dom: (id) => id.split(".")[0], Date, isFinite });
   vm.runInContext(readFileSync(new URL("profiles.js", APP), "utf8"), context);
+  // The call state (idle, ringing, call) is read by doorcall.js.
+  vm.runInContext(readFileSync(new URL("doorcall.js", APP), "utf8"), context);
   return context;
 }
 

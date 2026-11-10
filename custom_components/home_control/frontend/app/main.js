@@ -17,6 +17,7 @@ function refresh() {
     dragging = 0;
   }
   ruleTick();
+  ixWatch();
   runUpdates(LIVE, "live update");
   runUpdates(SLIVE, "live update");
   if (LIVEPATCH_WAITING) livePatch();
