@@ -4,6 +4,12 @@ Format: [Keep a Changelog](https://keepachangelog.com/). Versions follow [semant
 
 ## [Unreleased]
 
+## [0.9.7] - 2026-11-10
+
+### Fixed
+- In the light popup, the lights on the circle of a group sometimes sat behind the circle (the later ones, while they were still appearing); they are above it now.
+- The lights editor (a scene being edited) opened and grouped the lights by how they were before the scene was played, so lights that now differ in temperature showed as one group. It waits until the lights have stopped changing before it opens.
+
 ### Added
 - Plugin API: `registerSceneMaker` (a way of making a scene a plus integration offers in the new-scene popup), `scenes.editLights` (the light popup of several lights as an editor: the lights follow every change, the checkmark saves), and a `remove` hook of a scene kind (the trash of edit mode, after a question). Hue Plus uses them for Hue scenes (D-29 of Hue Plus).
 
