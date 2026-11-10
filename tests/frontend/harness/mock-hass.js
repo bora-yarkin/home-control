@@ -36,6 +36,8 @@ function importEffects(content) {
 export function makeHass(query) {
   const withSync = query.get("sync") !== "0";
   const withBox = query.get("box") !== "0";
+  // ?many=1: nine white lights of one room at different temperatures, for the wheel that opens a group as a circle of its lights.
+  const manyKelvin = query.get("many") === "1" ? [2403, 2702, 3558, 2403, 2702, 3558, 2403, 2702, 3558] : [];
   const states = Object.fromEntries([
     state("light.desk_lamp", "on", { friendly_name: "Desk lamp", brightness: 180, supported_color_modes: ["xy", "color_temp"], color_mode: "xy", xy_color: [0.4, 0.4], effect_list: ["off", "candle", "prism"], hue_light_id: "light-1", hue_function: "mixed", hue_min_brightness: 0.2, hue_gamut: "C" }),
     state("light.shelf_strip", "off", { friendly_name: "Shelf strip", supported_color_modes: ["xy"], hue_light_id: "light-2", hue_function: "decorative", hue_gradient_orientation: "horizontal", hue_gradient_orientation_configurable: true, hue_gradient_order: "forward", hue_gradient_order_configurable: true }),
@@ -47,6 +49,7 @@ export function makeHass(query) {
       entity_id: ["light.gradient_tube_zone_1", "light.gradient_tube_zone_2", "light.gradient_tube_zone_3"], zone_colors: [[0.6, 0.35], [0.3, 0.5], [0.15, 0.1]],
       gradient_mode: "interpolated_palette", gradient_modes: ["interpolated_palette", "interpolated_palette_mirrored", "random_pixelated", "segmented_palette"],
     }),
+    ...manyKelvin.map((k, i) => state(`light.many_${i + 1}`, "on", { friendly_name: `White ${i + 1}`, brightness: 200, supported_color_modes: ["color_temp"], color_mode: "color_temp", color_temp_kelvin: k, min_color_temp_kelvin: 2202, max_color_temp_kelvin: 6535 })),
     ...[1, 2, 3].map((n) => state(`light.gradient_tube_zone_${n}`, "on", { friendly_name: `Gradient tube zone ${n}`, supported_color_modes: ["xy"], color_mode: "xy", brightness: 200, xy_color: [0.2, 0.3] })),
     // A Samsung TV (samsungtv_smart): its sources are apps and inputs; the remote entity belongs to the same device.
     state("media_player.living_tv", "on", { friendly_name: "Living TV", source: "YouTube", source_list: ["TV", "HDMI", "YouTube", "Netflix", "Spotify - Music and Podcasts"], supported_features: 24509 }),
@@ -99,6 +102,7 @@ export function makeHass(query) {
     reg("sensor.home_control_live_scenes", "home_control", "entry1_live_scenes", "dev-home-control"),
     reg("light.living_room", "hue_plus", "group-1", "dev-living-group", { area_id: "living" }),
     reg("light.gradient_tube", "hue_plus", "light-3", "dev-tube", { area_id: "living" }),
+    ...manyKelvin.map((_, i) => reg(`light.many_${i + 1}`, "other", `many-${i + 1}`, `dev-many-${i + 1}`, { area_id: "living" })),
     ...[1, 2, 3].map((n) => reg(`light.gradient_tube_zone_${n}`, "hue_plus", `light-3_zone_${n}`, "dev-tube", { area_id: "living" })),
     reg("media_player.living_tv", "samsungtv_smart", "tv-1", "dev-tv", { area_id: "living" }),
     reg("remote.living_tv", "samsungtv_smart", "tv-1-remote", "dev-tv", { area_id: "living" }),

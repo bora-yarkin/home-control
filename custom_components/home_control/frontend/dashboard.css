@@ -730,6 +730,9 @@ body.pinhdr:not(.editing) .wrap::before{content:"";position:fixed;top:0;left:0;r
 .lw-pin.bubm:not(.act) svg{width:6.6cqw;height:6.6cqw}
 .lw-pin.bubm:not(.act)::before{border-radius:50%;transform:none}
 .lw-pin.bubm:not(.act){transform-origin:50% 50%}
+/* The lights of a group sit on top of its circle, whichever of them are still animating in; without an order of their own the later ones could end up behind it. */
+.lw-bub{z-index:1}
+.lw-dot.bubm,.lw-pin.bubm{z-index:2}
 .lw-dot.off{border-color:rgba(255,255,255,.9);box-shadow:0 0 0 2px rgba(0,0,0,.35),0 2px 8px rgba(0,0,0,.4)}
 .lw-pin.pop{animation:lw-pop .46s cubic-bezier(.2,1.3,.4,1)}
 .lw-dot.pop{animation:lw-dotpop .46s cubic-bezier(.2,1.3,.4,1)}
