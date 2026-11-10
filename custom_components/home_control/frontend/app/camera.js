@@ -70,9 +70,10 @@ function camFull(box, vid, btn) {
 function stream(box, id, owner, tapOpen, noIntercom) {
   stopStreams(owner);
   /* The snapshot sits behind the video, which stays transparent until the live picture is really showing, so a stream that connects black never replaces it. */
-  var tok = A(id).access_token;
+  var tok = A(id).access_token,
+    snap = null;
   if (tok) {
-    var snap = mk("img", "snap");
+    snap = mk("img", "snap");
     snap.alt = "";
     snap.src = HA.camera.snapshotUrl(id, tok);
     box.appendChild(snap);
@@ -104,7 +105,7 @@ function stream(box, id, owner, tapOpen, noIntercom) {
     box.addEventListener("click", function () {
       if (!box._fs) showPopup(tapOpen === true ? "camera" : tapOpen, true);
     });
-  /* A picture that is slow to come (a building's camera) shows a spinner in the middle until the first picture has been decoded, and says so when it takes long, so a camera that has given up looks different from one that is still on its way. It goes with the first decoded frame, not with the player's own checks (which also wait for movement and a bright enough picture, and can take seconds more). */
+  /* A picture that is slow to come (a building's camera) shows a spinner in the middle until a picture is showing (the snapshot behind the video, or the first decoded frame of the video), and says so when it takes long, so a camera that has given up looks different from one that is still on its way. It goes with the first decoded frame, not with the player's own checks (which also wait for movement and a bright enough picture, and can take seconds more). */
   var spin = mk("div", "camspin", "<i></i><span></span>"),
     late = setTimeout(function () {
       spin.classList.add("late");
@@ -112,7 +113,7 @@ function stream(box, id, owner, tapOpen, noIntercom) {
     }, 12000);
   box.appendChild(spin);
   function spinSync() {
-    var pic = vid.readyState >= 2 && vid.videoWidth > 0;
+    var pic = (vid.readyState >= 2 && vid.videoWidth > 0) || !!(snap && snap.complete && snap.naturalWidth > 0);
     spin.style.display = pic ? "none" : "";
     if (pic) {
       clearTimeout(late);
@@ -123,6 +124,8 @@ function stream(box, id, owner, tapOpen, noIntercom) {
   spinEvents.forEach(function (ev) {
     vid.addEventListener(ev, spinSync);
   });
+  /* The snapshot behind the video is a picture too: it ends the wait as soon as it has loaded. */
+  if (snap) snap.addEventListener("load", spinSync);
   spinSync();
   var stop = window.CameraStream.start(vid, id);
   STOPS[owner] = function () {
@@ -130,6 +133,7 @@ function stream(box, id, owner, tapOpen, noIntercom) {
     spinEvents.forEach(function (ev) {
       vid.removeEventListener(ev, spinSync);
     });
+    if (snap) snap.removeEventListener("load", spinSync);
     camFsExit(box);
     stop();
     vid.removeAttribute("src");
