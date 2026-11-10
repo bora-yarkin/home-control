@@ -299,11 +299,11 @@ function tvSources(id) {
   return r;
 }
 
-/* The TV's own Brightness (the picture setting of its Brightness number, on the TV's own scale), with the brightness button of the light popup (its slider rises from the button), in the cell under Home. Left empty when the TV has no such number; it does nothing while the TV is off and the number is unavailable. */
+/* The TV's own screen brightness: on a Samsung that is its Backlight number (its Brightness number is the black level), shown on the TV's own scale, with the brightness button of the light popup (its slider rises from the button), in the cell under Home. Left empty when the TV has no Backlight number; it does nothing while the TV is off and the number is unavailable. */
 function tvBrightness(media) {
   var cell = mk("div", "tvbri"),
     num = sibBy(media, function (e) {
-      return dom(e.entity_id) === "number" && (e.name === "Brightness" || /_brightness$/.test(e.entity_id));
+      return dom(e.entity_id) === "number" && (e.name === "Backlight" || /_backlight$/.test(e.entity_id));
     });
   if (!num) return cell;
   function range() {

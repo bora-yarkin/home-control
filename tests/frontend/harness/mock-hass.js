@@ -54,8 +54,9 @@ export function makeHass(query) {
     // A Samsung TV (samsungtv_smart): its sources are apps and inputs; the remote entity belongs to the same device.
     state("media_player.living_tv", "on", { friendly_name: "Living TV", source: "YouTube", source_list: ["TV", "HDMI", "YouTube", "Netflix", "Spotify - Music and Podcasts"], supported_features: 24509 }),
     state("remote.living_tv", "on", { friendly_name: "Living TV" }),
-    // The TV's own picture setting (a Samsung's Brightness runs 0 to 50); the remote's brightness button sets it, never the room's lights.
-    state("number.living_tv_brightness", "25", { friendly_name: "Living TV Brightness", min: 0, max: 50, step: 1 }),
+    // The TV's screen brightness is its Backlight (a Samsung's Brightness number is the black level); the remote's brightness button sets it, never the room's lights.
+    state("number.living_tv_backlight", "25", { friendly_name: "Living TV Backlight", min: 0, max: 50, step: 1 }),
+    state("number.living_tv_brightness", "0", { friendly_name: "Living TV Brightness", min: -50, max: 50, step: 1 }),
     // A door station with an intercom: the call indicator says idle, ringing or call in progress and names where its audio is.
     state("camera.door_station", "idle", { friendly_name: "Door station", entity_picture: "/none" }),
     state("sensor.door_call_status", "idle", { friendly_name: "Call status", options: ["idle", "ringing", "call in progress"], listen_path: "/api/test_intercom/listen/e/s", talk_path: "/api/test_intercom/talk/e/s" }),
@@ -108,6 +109,7 @@ export function makeHass(query) {
     ...[1, 2, 3].map((n) => reg(`light.gradient_tube_zone_${n}`, "hue_plus", `light-3_zone_${n}`, "dev-tube", { area_id: "living" })),
     reg("media_player.living_tv", "samsungtv_smart", "tv-1", "dev-tv", { area_id: "living" }),
     reg("remote.living_tv", "samsungtv_smart", "tv-1-remote", "dev-tv", { area_id: "living" }),
+    reg("number.living_tv_backlight", "samsungtv_smart", "tv-1-backlight", "dev-tv", { area_id: "living", original_name: "Backlight" }),
     reg("number.living_tv_brightness", "samsungtv_smart", "tv-1-brightness", "dev-tv", { area_id: "living", original_name: "Brightness" }),
     reg("camera.door_station", "test_intercom", "door-cam", "dev-door", { area_id: "living" }),
     reg("sensor.door_call_status", "test_intercom", "door-call", "dev-door", { area_id: "living" }),
