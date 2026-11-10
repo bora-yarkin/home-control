@@ -38,9 +38,11 @@ function remoteNew() {
   };
 }
 
+/* A button has no state until it is first pressed ("unknown" is what Home Assistant shows for one that works), so only "unavailable" holds it back; for anything else "unknown" means no reading. */
 function remoteUsable(e) {
   var s = H().states[e];
-  return !!s && s.state !== "unavailable" && s.state !== "unknown";
+  if (!s || s.state === "unavailable") return false;
+  return s.state !== "unknown" || ["button", "input_button", "scene", "script"].indexOf(dom(e)) >= 0;
 }
 
 function remotePress(b) {

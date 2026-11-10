@@ -104,9 +104,57 @@ function A(id) {
   return (s && s.attributes) || {};
 }
 
+/* What a command is about to do is drawn at once, not when each device reports back: ten lights turned off together answer one after another (each integration in its own time), and the page used to change one row at a time. The state is kept only until Home Assistant reports the target or any other change, or for OPT_MS, so a command that fails never leaves a wrong state on the page. */
+var OPT = {},
+  OPT_MS = 4000,
+  OPT_DOM = { light: 1, switch: 1, fan: 1, input_boolean: 1 },
+  OPT_PAINT = 0;
+
 function V_(id) {
-  var s = S(id);
-  return s ? s.state : "unavailable";
+  var s = S(id),
+    v = s ? s.state : "unavailable",
+    o = OPT[id];
+  if (!o) return v;
+  if (v === o.to || v !== o.from || Date.now() > o.until) {
+    delete OPT[id];
+    return v;
+  }
+  return o.to;
+}
+
+/* The brightness (0-255) of a light that is on. A light switched on a moment ago has none until it reports: the one the command asked for, or full. */
+function briNow(id) {
+  var b = A(id).brightness;
+  if (b) return b;
+  var o = OPT[id];
+  return o && o.to === "on" ? o.bri || 255 : 0;
+}
+
+function optStart(d, s, data) {
+  if (!OPT_DOM[d] || (s !== "turn_on" && s !== "turn_off" && s !== "toggle")) return;
+  entIds(data).forEach(function (id) {
+    var cur = S(id) && S(id).state;
+    if (cur !== "on" && cur !== "off") return;
+    var to = s === "toggle" ? (cur === "on" ? "off" : "on") : s === "turn_on" ? "on" : "off";
+    if (to === cur) return;
+    OPT[id] = {
+      from: cur,
+      to: to,
+      until: Date.now() + OPT_MS,
+      bri: data && data.brightness_pct ? Math.round(data.brightness_pct * 2.55) : 0,
+    };
+  });
+  if (!OPT_PAINT)
+    OPT_PAINT = requestAnimationFrame(function () {
+      OPT_PAINT = 0;
+      refresh();
+    });
+}
+
+function optDrop(data) {
+  entIds(data).forEach(function (id) {
+    delete OPT[id];
+  });
 }
 
 var CMDERR = 0,
@@ -150,28 +198,33 @@ function verifyCmd(d, s, data) {
   }, 6000);
 }
 
-/* While the connection to Home Assistant is down a command would be lost silently, so say so and keep the controls from pretending. */
-var OFFLINE = false;
+/* While the connection to Home Assistant is down a command would be lost silently, so say so and keep the controls from pretending. Commands are refused at once; the banners wait BANNER_AFTER ms, because a connection that comes back at once (a phone waking up) is not worth a warning. */
+var OFFLINE = false,
+  BANNER_AFTER = 1500,
+  DOWNSEEN = 0;
+
+function offlineBanner() {
+  if (!OFFLINE || document.getElementById("offline")) return;
+  var b = mk("div", "offline pane");
+  b.id = "offline";
+  b.setAttribute("role", "status");
+  b.textContent = _T("connection_to_home_assistant_lost_co");
+  document.body.appendChild(b);
+}
 
 function offlineSet(v) {
   if (OFFLINE === v) return;
   OFFLINE = v;
-  var b = document.getElementById("offline");
   if (v) {
-    if (!b) {
-      b = mk("div", "offline pane");
-      b.id = "offline";
-      b.setAttribute("role", "status");
-      b.textContent = _T("connection_to_home_assistant_lost_co");
-      document.body.appendChild(b);
-    }
-  } else {
-    if (b) {
-      b.remove();
-      toast(_T("connected_again"));
-    }
-    refresh();
+    setTimeout(offlineBanner, BANNER_AFTER);
+    return;
   }
+  var b = document.getElementById("offline");
+  if (b) {
+    b.remove();
+    toast(_T("connected_again"));
+  }
+  refresh();
 }
 
 function offlineInit() {
@@ -211,9 +264,11 @@ function callRaw(d, s, data) {
   }
   if (p && p.catch)
     p.catch(function (e) {
+      optDrop(data);
       cmdFail(s, e);
     });
   verifyCmd(d, s, data);
+  optStart(d, s, data);
   return p;
 }
 
@@ -223,7 +278,9 @@ var CONNOK = 0;
 function connCheck() {
   var h = H(),
     down = !h || h.connected === false;
-  document.body.classList.toggle("off", down);
+  if (!down) DOWNSEEN = 0;
+  else if (!DOWNSEEN) DOWNSEEN = Date.now();
+  document.body.classList.toggle("off", down && Date.now() - DOWNSEEN >= BANNER_AFTER);
   if (OFFLINE && h && h.connected === true) {
     if (!CONNOK) CONNOK = Date.now();
     else if (Date.now() - CONNOK > 3000) {

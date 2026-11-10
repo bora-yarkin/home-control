@@ -53,7 +53,7 @@ test("a column count never goes below two or above six, and a width never exceed
 test("a press runs the right service for each kind and says nothing when it goes through", () => {
   const calls = [];
   const toasts = [];
-  const states = { "script.a": { state: "off" }, "button.b": { state: "unknown" }, "scene.c": { state: "2026-01-01" }, "switch.d": { state: "on" } };
+  const states = { "script.a": { state: "off" }, "button.b": { state: "unknown" }, "button.e": { state: "unavailable" }, "sensor.f": { state: "unknown" }, "scene.c": { state: "2026-01-01" }, "switch.d": { state: "on" } };
   const context = vm.createContext({
     H: () => ({ states }),
     dom: (id) => id.split(".")[0],
@@ -64,13 +64,15 @@ test("a press runs the right service for each kind and says nothing when it goes
     allSectionLists: () => [],
   });
   vm.runInContext(readFileSync(new URL("remote.js", APP), "utf8"), context);
-  for (const e of ["script.a", "button.b", "scene.c", "switch.d"]) context.remotePress({ e });
+  for (const e of ["script.a", "button.b", "scene.c", "switch.d", "button.e"]) context.remotePress({ e });
   assert.deepEqual(calls, [
     ["script", "turn_on", { entity_id: "script.a" }],
+    ["button", "press", { entity_id: "button.b" }], // a button nobody has pressed yet reads "unknown" and works
     ["scene", "turn_on", { entity_id: "scene.c" }],
     ["switch", "toggle", { entity_id: "switch.d" }],
   ]);
   assert.deepEqual(toasts, ["rm_not_available_right_now"], "only the unavailable button speaks");
+  assert.equal(context.remoteUsable("sensor.f"), false, "for anything that is not a button, unknown is no reading");
 });
 
 test("a picture of a remote keeps only an upload of the integration or a file under /local, with touch areas inside the picture", () => {

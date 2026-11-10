@@ -319,5 +319,116 @@ function talk(id){
 }
 
 window.CameraTalk={start:talk};
+/* ---- talking into a door call ----
+ IntercomTalk.start(url) opens the microphone and a WebSocket at `url` (a signed ws:// or wss:// address from HA.signPath) and sends 16 kHz,
+ 16-bit, little-endian mono PCM in binary messages (docs/intercom-contract.md). It returns {ready, stop, mute}: ready resolves when the line is
+ open and rejects (with userMessage) when it cannot be done; mute(true) stops the voice without ending the line; stop ends everything and always
+ releases the microphone. The line can answer with {"error": code} as text, which ends the talk and is passed to onEnd(code); onEnd(null) says
+ it ended another way. available() is false where the page may not use a microphone (plain http): the caller offers something else.
+ The microphone is read through a ScriptProcessorNode: it is deprecated but the one thing every browser the dashboard runs in (including the
+ phone apps' web views) still has; an AudioWorklet would need a second file served from this page. */
+
+var TALK_RATE=16000;
+var TALK_ERRORS={no_call:"There is no call to talk into.",busy:"Someone else is talking to the door.",station_offline:"The door station is not reachable.",app_unreachable:"The door station's app is not reachable."};
+
+/* Float samples at inRate to 16-bit samples at 16 kHz: each output sample is the average of the input it covers (a low-pass, so nothing above 8 kHz folds back), in chunks of any size. */
+function resampler(inRate){
+ var ratio=inRate/TALK_RATE,made=0,dropped=0,tail=[];
+ return function(input){
+  var data=tail.length?tail.concat(Array.prototype.slice.call(input)):input,out=[];
+  /* The place of each output sample is worked out from its number, not added up, so the chunk size cannot change a sample. */
+  for(;;){
+   var a=made*ratio-dropped,b=(made+1)*ratio-dropped;
+   if(b>data.length)break;
+   var sum=0,w=0;
+   for(var i=Math.floor(a);i<Math.ceil(b);i++){
+    var l=Math.max(a,i),r=Math.min(b,i+1);
+    sum+=data[i]*(r-l);w+=r-l;
+   }
+   var v=Math.max(-1,Math.min(1,sum/w));
+   out.push(Math.round(v<0?v*32768:v*32767));
+   made++;
+  }
+  var keep=Math.floor(made*ratio-dropped);
+  tail=Array.prototype.slice.call(data,keep);
+  dropped+=keep;
+  return Int16Array.from(out);
+ };
+}
+
+function talkAvailable(){
+ function has(md){return!!(md&&md.getUserMedia)}
+ var parentMedia=null;
+ try{parentMedia=window.parent&&window.parent!==window?window.parent.navigator.mediaDevices:null}catch(x){}
+ return has(navigator.mediaDevices)||has(parentMedia);
+}
+
+function intercomTalk(url,onEnd){
+ var closed=false,muted=false,mic=null,ctx=null,node=null,src=null,ws=null,over=false;
+ function end(code){
+  if(over)return;
+  over=true;
+  closed=true;
+  try{node&&(node.onaudioprocess=null,node.disconnect())}catch(e){}
+  try{src&&src.disconnect()}catch(e){}
+  try{ctx&&ctx.close()}catch(e){}
+  if(mic)mic.getTracks().forEach(function(t){t.stop()});
+  try{ws&&ws.close()}catch(e){}
+  mic=ctx=node=src=ws=null;
+  if(onEnd)onEnd(code===undefined?null:code);
+ }
+ function stop(){end(null)}
+ var ready=microphone().then(function(ms){
+  mic=ms;
+  if(closed){end(null);throw Object.assign(new Error("cancelled"),{userMessage:""})}
+  return new Promise(function(resolve,reject){
+   var Ctx=window.AudioContext||window.webkitAudioContext,opened=false;
+   if(!Ctx)return reject(Object.assign(new Error("no audio"),{userMessage:"This browser cannot record for the door."}));
+   ws=new WebSocket(url);
+   ws.binaryType="arraybuffer";
+   var timer=setTimeout(function(){reject(Object.assign(new Error("timeout"),{userMessage:"The door did not answer."}))},8000);
+   ws.onopen=function(){
+    opened=true;
+    clearTimeout(timer);
+    ctx=new Ctx();
+    var down=resampler(ctx.sampleRate);
+    src=ctx.createMediaStreamSource(mic);
+    node=ctx.createScriptProcessor(4096,1,1);
+    node.onaudioprocess=function(e){
+     if(muted||!ws||ws.readyState!==1||ws.bufferedAmount>262144)return;
+     var pcm=down(e.inputBuffer.getChannelData(0));
+     if(pcm.length)ws.send(pcm.buffer);
+    };
+    src.connect(node);
+    node.connect(ctx.destination);
+    resolve();
+   };
+   ws.onmessage=function(ev){
+    if(typeof ev.data!=="string")return;
+    var code=null;
+    try{code=JSON.parse(ev.data).error||null}catch(e){}
+    if(!opened)reject(Object.assign(new Error(code||"error"),{userMessage:TALK_ERRORS[code]||"Talking did not start."}));
+    end(code||"failed");
+   };
+   ws.onerror=function(){if(!opened)reject(Object.assign(new Error("socket"),{userMessage:"The door could not be reached."}))};
+   ws.onclose=function(){
+    clearTimeout(timer);
+    if(!opened)reject(Object.assign(new Error("closed"),{userMessage:"The door could not be reached."}));
+    end(null);
+   };
+  });
+ }).catch(function(e){
+  end(null);
+  throw Object.assign(new Error(e&&e.message),{userMessage:e&&e.userMessage!==undefined?e.userMessage:talkMessage(e)});
+ });
+ function mute(on){
+  muted=!!on;
+  if(mic)mic.getAudioTracks().forEach(function(t){t.enabled=!muted});
+ }
+ return{ready:ready,stop:stop,mute:mute};
+}
+
+window.IntercomTalk={start:intercomTalk,available:talkAvailable,resampler:resampler,errors:TALK_ERRORS};
+
 window.CameraStream={start:start};
 })();

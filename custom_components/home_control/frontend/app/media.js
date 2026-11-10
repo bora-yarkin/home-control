@@ -53,15 +53,21 @@ function artCard(id, icon) {
 }
 
 /* The now-playing block of a remote popup, as the device's Now playing setting says: nothing (off), a row with the title (on), or the artwork card. */
-function addNowPlaying(b, id, icon) {
-  var np = nowPlaying(id, icon);
+function addNowPlaying(b, id, icon, onTap) {
+  var np = nowPlaying(id, icon, onTap);
   if (np) b.appendChild(np);
+  return np;
 }
 
-function nowPlaying(id, icon) {
+function nowPlaying(id, icon, onTap) {
   if ((UIDEV[id] || {}).nonp) return null;
   if ((UIDEV[id] || {}).art) return artCard(id, icon);
   var p = pill(icon, _T("now_playing"), {
+    tap: onTap
+      ? function () {
+          onTap(p);
+        }
+      : undefined,
     sub: function () {
       var a = A(id);
       var t = typeof a.media_title === "string" ? a.media_title.trim() : "";
@@ -78,6 +84,7 @@ function nowPlaying(id, icon) {
       return _T("nothing_playing");
     },
   });
+  if (onTap) p.appendChild(mk("span", "chev", svg("chev")));
   return p;
 }
 
@@ -253,8 +260,93 @@ function kbDlg(sendText) {
   });
 }
 
+/* The apps and inputs a TV can switch to: the source list of its media player. */
+function tvSourceList(id) {
+  var l = A(id).source_list;
+  return Array.isArray(l)
+    ? l.filter(function (x) {
+        return typeof x === "string" && x;
+      })
+    : [];
+}
+
+function tvPickSource(id, v) {
+  call("media_player", "select_source", { entity_id: id, source: v });
+}
+
+/* Where the apps go depends on the Now playing setting of the TV: as the artwork or off, a dropdown beside Power; as the normal row, the row itself opens the dropdown and the cell beside Power stays empty. */
+function tvAppsInNowPlaying(id) {
+  var u = UIDEV[id] || {};
+  return !u.nonp && !u.art;
+}
+
+function tvSources(id) {
+  var r = selectTile(
+    _T("apps"),
+    function () {
+      return tvSourceList(id);
+    },
+    function () {
+      return A(id).source;
+    },
+    function (v) {
+      tvPickSource(id, v);
+    },
+    "apps",
+    String
+  );
+  r.classList.add("tvsrc");
+  return r;
+}
+
+/* The brightness of the lights in the TV's room, with the brightness button of the light popup (its slider rises from the button), in the cell under Home. Left empty when the room has no lights. */
+function tvRoomBrightness(media) {
+  var room = UIOWN[media],
+    cell = mk("div", "tvbri");
+  if (!lightsAll(room).length) return cell;
+  function ids() {
+    return lightsAll(room);
+  }
+  cell.appendChild(
+    briControl({
+      pct: function () {
+        return lightsMasterPct(ids());
+      },
+      lit: function () {
+        return countOn(ids()) > 0;
+      },
+      live: function (v) {
+        if (v > 0)
+          callLive("tv:" + media, "light", "turn_on", {
+            entity_id: lightTargets(ids(), false),
+            brightness_pct: v,
+          });
+      },
+      commit: function (v) {
+        if (v <= 0) call("light", "turn_off", { entity_id: lightTargets(ids(), false) });
+        else call("light", "turn_on", { entity_id: lightTargets(ids(), false), brightness_pct: v });
+      },
+      stage: function () {
+        return null;
+      },
+    })
+  );
+  return cell;
+}
+
 function samsungRemote(b, remote, media) {
-  addNowPlaying(b, media, "tv");
+  var inRow = tvAppsInNowPlaying(media);
+  addNowPlaying(
+    b,
+    media,
+    "tv",
+    inRow
+      ? function (row) {
+          var o = tvSourceList(media);
+          if (o.length) openMenu(row, o, A(media).source, function (v) { tvPickSource(media, v); }, String);
+        }
+      : undefined
+  );
   var r1 = mk(
     "div",
     "rrow"
@@ -265,6 +357,7 @@ function samsungRemote(b, remote, media) {
       else send(remote, "KEY_POWER");
     })
   );
+  if (!inRow) r1.appendChild(tvSources(media));
   b.appendChild(r1);
   var r2 = mk("div", "rrow");
   r2.appendChild(
@@ -320,7 +413,7 @@ function samsungRemote(b, remote, media) {
   b.appendChild(r3);
   var r4 = mk("div", "rrow");
   var l = mk("div", "rstack"),
-    m = mk("div"),
+    m = tvRoomBrightness(media),
     rr = mk("div", "rstack");
   l.appendChild(
     rbtn(

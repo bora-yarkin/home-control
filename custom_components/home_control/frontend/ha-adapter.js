@@ -97,6 +97,7 @@ var ready=null,registriesLoaded=false;
 
 function start(){
  facade=buildFacade();
+ watchWake();
  var loaded=Promise.all(SOURCES.map(function(src){return loadRegistry(src,0)})).then(function(){
   registriesLoaded=true;
   schedule();
@@ -150,6 +151,33 @@ function bindConnection(){
  connHandlers.forEach(function(x){c.addEventListener("disconnected",x.lost);c.addEventListener("ready",x.back)});
 }
 
+/* A phone that wakes up often finds its connection dead before the browser has noticed (it can take many seconds), and the page shows old states meanwhile. When the page comes back, Home Assistant is asked a ping: no answer within WAKE_MS and the connection is closed and made again at once, instead of waiting for the browser to give up on it. Either way the page is drawn again now. A connection that is already down is being remade by Home Assistant. */
+var WAKE_MS = 2000,
+  waking = false;
+function wake(){
+ var c=hass&&hass.connection;
+ schedule();
+ if(!c||waking||document.hidden||!c.connected)return;
+ waking=true;
+ var done=false;
+ function finish(dead){
+  if(done)return;
+  done=true;
+  clearTimeout(timer);
+  waking=false;
+  if(dead&&hass&&hass.connection===c&&c.connected)c.reconnect(true);
+  schedule();
+ }
+ var timer=setTimeout(function(){finish(true)},WAKE_MS);
+ c.ping().then(function(){finish(false)},function(){finish(false)});
+}
+function watchWake(){
+ document.addEventListener("visibilitychange",wake);
+ window.addEventListener("pageshow",wake);
+ window.addEventListener("focus",wake);
+ window.addEventListener("online",wake);
+}
+
 /* Settings saved in Home Assistant: scope is "user" (this user only) or "system" (everyone). Resolves to the saved value. */
 var data={
  get:function(scope,key){return ws({type:"frontend/get_"+scope+"_data",key:key}).then(function(r){return r&&r.value})},
@@ -188,6 +216,24 @@ var route={
   catch(e){try{sessionStorage.setItem("dashboard_route",key||"")}catch(e2){}}
  }
 };
+
+/* ---- voice ---- */
+
+/* Opens Home Assistant's own Assist and starts listening, when the phone app that shows this page does it with its own microphone (which works without https). Answers whether it did. */
+function assist(){
+ try{
+  var ext=hass&&hass.auth&&hass.auth.external;
+  if(!ext||!ext.config||!ext.config.hasAssist||!ext.fireMessage)return false;
+  ext.fireMessage({type:"assist/show",payload:{pipeline_id:"preferred",start_listening:true}});
+  return true;
+ }catch(e){return false}
+}
+
+/* The address of the panel, for a notification that opens it. */
+function panelPath(){
+ try{return window.parent.location.pathname||"/"}
+ catch(e){return"/"}
+}
 
 /* ---- a short-lived signed address ---- */
 
@@ -251,6 +297,8 @@ window.HA={
  camera:camera,
  route:route,
  signPath:signPath,
+ assist:assist,
+ panelPath:panelPath,
  automations:automations,
  scripts:scripts,
  remotePictures:remotePictures

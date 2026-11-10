@@ -85,7 +85,10 @@ function watchPayload(w) {
     triggers: [{ trigger: "state", entity_id: w.e, to: w.to }],
     conditions: [],
     actions: w.targets.map(function (t) {
-      return { action: "notify." + t, data: { title: _T("home"), message: msg } };
+      var data = { title: _T("home"), message: msg };
+      /* The notification of a door call opens this dashboard when it is tapped, and the dashboard opens the call (app/doorcall.js). `url` is what iOS reads, `clickAction` Android. */
+      if (ixIsRing(w.e)) data.data = { url: window.HA.panelPath(), clickAction: window.HA.panelPath() };
+      return { action: "notify." + t, data: data };
     }),
   };
 }
