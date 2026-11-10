@@ -225,8 +225,23 @@ function ixUnlock(e) {
   }
   if (dom(e) === "lock") callConfirmed("lock", "unlock", { entity_id: e });
   else confirmDlg(_T("px_open_the_door"), function () {
+    IXOPENED[e] = Date.now();
     remotePress({ e: e });
   });
+}
+
+/* A button that opens the door says nothing afterwards, so it counts as open for a few seconds after it was pressed; a lock says it itself. */
+var IXOPENED = {};
+
+function ixUnlocked(e) {
+  if (dom(e) === "lock") return ["unlocked", "unlocking", "open", "opening"].indexOf(V_(e)) >= 0;
+  return Date.now() - (IXOPENED[e] || 0) < 6000;
+}
+
+/* The padlock of an unlock button: its shackle lifts and swings open when the door is open, and drops shut again (a transition in the style sheet). */
+function ixPadlock(el, e) {
+  var s = el.querySelector("svg");
+  if (s) s.classList.toggle("open", ixUnlocked(e));
 }
 
 function camIntercom(box, id) {
@@ -235,7 +250,7 @@ function camIntercom(box, id) {
   if (!ix || !(ix.answer || ix.reject || ix.unlock || ix.listen)) return;
   var bar = mk("div", "cix"),
     btns = {};
-  [["answer", "ix-ans", "px_answer", "check"], ["reject", "ix-rej", "px_reject", "close"], ["unlock", "ix-unl", "px_unlock", "lock"]].forEach(function (g) {
+  [["answer", "ix-ans", "px_answer", "check"], ["reject", "ix-rej", "px_reject", "close"], ["unlock", "ix-unl", "px_unlock", "padlock"]].forEach(function (g) {
     if (!ix[g[0]]) return;
     var t = mk("div", "rnd pane " + g[1], svg(g[3]));
     t.setAttribute("role", "button");
@@ -300,6 +315,7 @@ function camIntercom(box, id) {
   }
   box.appendChild(bar);
   function up() {
+    if (btns.unlock) ixPadlock(btns.unlock, ix.unlock);
     var r = ixRinging(ix);
     if (btns.answer) btns.answer.style.display = r ? "" : "none";
     if (btns.reject) btns.reject.style.display = r ? "" : "none";
@@ -314,6 +330,21 @@ function camIntercom(box, id) {
 }
 
 /* ---- push to talk: hold the microphone button while talking ---- */
+
+/* An integration that can carry a dashboard's microphone to this camera (Tapo Talk) publishes `talk_path` on one of its entities and names the cameras in `talk_cameras` (docs/intercom-contract.md): the microphone goes there, as for a door call. A camera without one is talked to through its own WebRTC session. */
+function camTalkPath(id) {
+  var st = H().states,
+    found = null;
+  Object.keys(st).some(function (e) {
+    var a = st[e].attributes || {};
+    if (typeof a.talk_path === "string" && IXPATH.test(a.talk_path) && a.talk_path.indexOf("..") < 0 && Array.isArray(a.talk_cameras) && a.talk_cameras.indexOf(id) >= 0) {
+      found = a.talk_path;
+      return true;
+    }
+    return false;
+  });
+  return found;
+}
 
 function camTalkButton(box, id, group) {
   var d = UIDEV[id];
@@ -337,12 +368,18 @@ function camTalkButton(box, id, group) {
     e.stopPropagation();
     e.preventDefault();
     if (held) return;
+    var path = camTalkPath(id);
+    if (path && window.IntercomTalk && !window.IntercomTalk.available()) {
+      /* No microphone for a page on plain http: the phone app's own Assist is the way, when there is one. */
+      if (!window.HA.assist()) toast(_T("dc_talk_needs_https"));
+      return;
+    }
     held = true;
     b.classList.add("act", "wait");
     try {
       b.setPointerCapture(e.pointerId);
     } catch (x) {}
-    var s = window.CameraTalk.start(id);
+    var s = path ? ixTalkOpen(path) : window.CameraTalk.start(id);
     session = s;
     s.ready.then(
       function () {

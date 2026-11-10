@@ -7,6 +7,7 @@ Format: [Keep a Changelog](https://keepachangelog.com/). Versions follow [semant
 ## [0.9.6] - 2026-11-10
 
 ### Fixed
+- A camera's push to talk did nothing for a camera whose talking is done by an integration (Tapo Talk): it now sends the microphone to the `talk_path` that integration publishes for the camera (`talk_cameras`), the same way a door call does, and says what to do on plain http.
 - Answer and Reject of an intercom did nothing: a button that has never been pressed reads "unknown" in Home Assistant, which the dashboard took for "not available". Only "unavailable" holds a button back now.
 - The "slide to unlock" shimmer ended in a cut-off pass and restarted early (it ran about one and three quarter times); it now moves by exactly one picture, so every pass is whole and the loop shows no jump.
 
@@ -16,6 +17,8 @@ Format: [Keep a Changelog](https://keepachangelog.com/). Versions follow [semant
 - When the page comes back to the foreground, Home Assistant is sent a ping; a connection that does not answer within two seconds is closed and remade at once (a woken phone often holds a dead connection that the browser gives up on only after many seconds), and the page is drawn again immediately.
 
 ### Added
+- Every camera shows a spinner in the middle until its picture is really showing, and says "Still connecting…" after twelve seconds, so a slow camera (a building's door station) can be told from one that has given up.
+- The unlock button on a camera and in a door call is a padlock whose shackle lifts and swings open, with a small spring, when the door is unlocked (a lock entity says it; a button counts for six seconds after it was pressed), and drops shut again.
 - **Door calls.** When a camera's intercom rings, a popup with the camera, **Answer**, **End call**, **Unlock** and **Talk**/**Listen** opens by itself on every open dashboard, and when the dashboard is opened while the call is still going (a call's notification, when tapped, opens the dashboard). It works for everyone the camera's access rules allow, not only administrators. Answering starts the door's sound and the microphone; the microphone is sent to the integration's `talk_path` as 16 kHz PCM over a WebSocket, the door is played from its `listen_path`; both are read from the call indicator's attributes, so the popup knows no brand (`docs/intercom-contract.md`). On plain http, where a browser gives no microphone, Talk opens the phone app's own Assist when there is one. The notification an alert sends for a call indicator now carries the dashboard's address, which the phone apps open on a tap.
 - Samsung TV remote: an **Apps** dropdown (the TV's source list: apps and inputs; it shows the one that is on) and the brightness button of the light popup in the empty place under Home, which sets the brightness of the lights in the TV's room. Where the dropdown sits follows the TV's Now playing setting: as the artwork or off, it is beside the power button; as the normal row, the Now playing row itself opens it (with a chevron) and the place beside power stays empty.
 

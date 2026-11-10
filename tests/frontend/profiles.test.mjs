@@ -56,7 +56,7 @@ test("a camera keeps push to talk and intercom entities that fit; a light keeps 
 });
 
 function intercom(states) {
-  const context = vm.createContext({ H: () => ({ states }), dom: (id) => id.split(".")[0], Date, isFinite });
+  const context = vm.createContext({ H: () => ({ states }), V_: (id) => (states[id] ? states[id].state : "unavailable"), dom: (id) => id.split(".")[0], Date, isFinite, Array, Object });
   vm.runInContext(readFileSync(new URL("profiles.js", APP), "utf8"), context);
   // The call state (idle, ringing, call) is read by doorcall.js.
   vm.runInContext(readFileSync(new URL("doorcall.js", APP), "utf8"), context);
@@ -82,4 +82,28 @@ test("answer and reject show while it rings: a flag is on, an event is recent, a
   assert.equal(p.ixRinging({ ring: "sensor.call" }), true);
   assert.equal(p.ixRinging({ ring: "sensor.idle" }), false);
   assert.equal(p.ixRinging({ ring: "sensor.missing" }), false);
+});
+
+test("a camera's push to talk goes to the talk path an integration publishes for it, and only for the cameras it names", () => {
+  const p = intercom({
+    "stt.guest_talk": { state: "unknown", attributes: { talk_path: "/api/tapo_talk/talk/abc", talk_cameras: ["camera.guest_hd", "camera.guest_sd"] } },
+    "stt.evil": { state: "unknown", attributes: { talk_path: "https://evil.example/api/x", talk_cameras: ["camera.other"] } },
+    "stt.dots": { state: "unknown", attributes: { talk_path: "/api/../auth/token", talk_cameras: ["camera.dots"] } },
+    "sensor.noise": { state: "1", attributes: {} },
+  });
+  assert.equal(p.camTalkPath("camera.guest_sd"), "/api/tapo_talk/talk/abc");
+  for (const id of ["camera.other", "camera.dots", "camera.none"]) assert.equal(p.camTalkPath(id), null, id);
+});
+
+test("the door counts as open while its lock is unlocked, and for a few seconds after a button without a state was pressed", () => {
+  const states = { "lock.front": { state: "locked" }, "button.open": { state: "unknown" } };
+  const p = intercom(states);
+  assert.equal(p.ixUnlocked("lock.front"), false);
+  states["lock.front"] = { state: "unlocked" };
+  assert.equal(p.ixUnlocked("lock.front"), true);
+  assert.equal(p.ixUnlocked("button.open"), false);
+  p.IXOPENED["button.open"] = Date.now();
+  assert.equal(p.ixUnlocked("button.open"), true);
+  p.IXOPENED["button.open"] = Date.now() - 7000;
+  assert.equal(p.ixUnlocked("button.open"), false, "the padlock closes again by itself");
 });

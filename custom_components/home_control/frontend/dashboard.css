@@ -113,6 +113,17 @@ to{opacity:0;clip-path:inset(100% 0 0 0 round var(--r-row));transform:translateY
 .dcrow{grid-template-columns:none;grid-auto-flow:column;grid-auto-columns:1fr}
 .dcrow .rbtn.act{background:color-mix(in srgb,var(--acc) 22%,var(--f-card))}
 .dcrow .dc-answer{background:color-mix(in srgb,var(--acc) 30%,var(--f-card))}
+.camspin{position:absolute;inset:0;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:10px;pointer-events:none;z-index:2;color:#fff}
+.camspin i{width:40px;height:40px;border-radius:50%;box-sizing:border-box;border:3px solid rgba(255,255,255,.28);border-top-color:#fff;background:rgba(0,0,0,.28);animation:camspin 1s linear infinite}
+.camspin span{font-size:var(--fs-s);font-weight:600;text-shadow:0 1px 3px rgba(0,0,0,.8);opacity:0}
+.camspin.late span{opacity:1}
+@keyframes camspin{to{transform:rotate(360deg)}}
+@media(prefers-reduced-motion:reduce){.camspin i{animation:camspinfade 1.6s ease-in-out infinite;border-top-color:rgba(255,255,255,.28)}@keyframes camspinfade{50%{opacity:.35}}}
+.padlock .shk,svg .shk{transform-box:view-box;transform-origin:16px 11px;transition:transform .5s cubic-bezier(.3,1.5,.5,1)}
+svg.open .shk{transform:translateY(-3px) rotate(-30deg)}
+svg .key{transition:opacity .25s}
+svg.open .key{opacity:0}
+@media(prefers-reduced-motion:reduce){svg .shk{transition:none}}
 .tvbri{display:flex;align-items:center;justify-content:center}
 .touch{height:clamp(260px,40vh,340px);touch-action:none;cursor:pointer;display:flex;align-items:flex-end;justify-content:center;padding-bottom:12px}
 .touch span{font-size:var(--fs-s);color:var(--ink2)}

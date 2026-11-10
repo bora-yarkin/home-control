@@ -433,6 +433,7 @@ var EN = {
   "brightness": "Brightness",
   "apps": "Apps",
   "dc_door_call": "Door call",
+  "cam_still_connecting": "Still connecting…",
   "dc_ringing": "Calling…",
   "dc_on_call": "On a call",
   "dc_call_ended": "Call ended",

@@ -104,8 +104,25 @@ function stream(box, id, owner, tapOpen, noIntercom) {
     box.addEventListener("click", function () {
       if (!box._fs) showPopup(tapOpen === true ? "camera" : tapOpen, true);
     });
+  /* A picture that is slow to come (a building's camera) shows a spinner in the middle until the picture is really showing, and says so when it takes long, so a camera that has given up looks different from one that is still on its way. */
+  var spin = mk("div", "camspin", "<i></i><span></span>"),
+    late = setTimeout(function () {
+      spin.classList.add("late");
+      spin.querySelector("span").textContent = _T("cam_still_connecting");
+    }, 12000);
+  box.appendChild(spin);
+  function spinSync() {
+    var waiting = vid.classList.contains("wait");
+    spin.style.display = waiting ? "" : "none";
+    if (!waiting) clearTimeout(late);
+  }
+  var seen = typeof MutationObserver === "function" ? new MutationObserver(spinSync) : null;
+  if (seen) seen.observe(vid, { attributes: true, attributeFilter: ["class"] });
+  spinSync();
   var stop = window.CameraStream.start(vid, id);
   STOPS[owner] = function () {
+    clearTimeout(late);
+    if (seen) seen.disconnect();
     camFsExit(box);
     stop();
     vid.removeAttribute("src");

@@ -99,6 +99,24 @@ function ixSocketUrl(path) {
   });
 }
 
+/* A line to a talk path that is held while a button is held: {ready, stop} like a camera's own talk session. */
+function ixTalkOpen(path) {
+  var line = null,
+    stopped = false;
+  var ready = ixSocketUrl(path).then(function (url) {
+    if (stopped) throw Object.assign(new Error("cancelled"), { userMessage: "" });
+    line = window.IntercomTalk.start(url);
+    return line.ready;
+  });
+  return {
+    ready: ready,
+    stop: function () {
+      stopped = true;
+      if (line) line.stop();
+    },
+  };
+}
+
 /* Starts the microphone. Where the page may not use one (plain http) Home Assistant's own Assist is opened instead when the phone app offers it, and the person is told when nothing can be done. */
 function ixTalkStart(path, changed) {
   if (IXA.talker) return;
@@ -188,7 +206,7 @@ function callPopup(b, id) {
     }, 400);
   });
   if (ix.unlock)
-    add("unlock", "lock", "px_unlock", function () {
+    add("unlock", "padlock", "px_unlock", function () {
       ixUnlock(ix.unlock);
     });
   b.appendChild(row);
@@ -229,7 +247,7 @@ function callPopup(b, id) {
     }
     btn.answer.style.display = st === "ringing" && ix.answer ? "" : "none";
     btn.end.style.display = st === "idle" ? "none" : "";
-    if (btn.unlock) btn.unlock.style.display = "";
+    if (btn.unlock) ixPadlock(btn.unlock, ix.unlock);
     if (btn.talk) {
       btn.talk.classList.toggle("act", ixTalking() && !IXA.muted);
       btn.talk.querySelector("span") && (btn.talk.querySelector("span").textContent = ixTalking() ? (IXA.muted ? _T("dc_unmute") : _T("dc_mute")) : _T("dc_talk"));

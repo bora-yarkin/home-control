@@ -59,6 +59,7 @@ var IC = {
   axis: "<path d='M12 3v18M3 12h18M9 6l3-3 3 3M9 18l3 3 3-3M6 9l-3 3 3 3M18 9l3 3-3 3'/>",
   clock: "<circle cx='12' cy='12' r='9'/><path d='M12 7v5l3 2'/>",
   lock: "<rect x='5' y='11' width='14' height='9' rx='2'/><path d='M8 11V8a4 4 0 0 1 8 0v3'/>",
+  padlock: "<path class='shk' d='M8 11V8a4 4 0 0 1 8 0v3'/><rect x='5' y='11' width='14' height='9' rx='2'/><circle class='key' cx='12' cy='15.500' r='1' fill='currentColor' stroke='none'/>",
   bell: "<path d='M6 17h12l-1.500-2V11a4.500 4.500 0 0 0-9 0v4z'/><path d='M10 20a2 2 0 0 0 4 0'/>",
   playc: "<circle cx='12' cy='12' r='9'/><path d='M10 8l6 4-6 4z'/>",
   broom: "<path d='M14 4l6 6M12 6l6 6-8 8H4v-6z'/>",
