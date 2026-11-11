@@ -4,6 +4,10 @@ Format: [Keep a Changelog](https://keepachangelog.com/). Versions follow [semant
 
 ## [Unreleased]
 
+## [0.9.10] - 2026-11-11
+
+- Door call: the door's sound is requested again a few times after Answer, because the station may not report the call yet; the "nothing to listen to" message shows only after the last try.
+
 ## [0.9.9] - 2026-11-11
 
 ### Changed
