@@ -69,48 +69,120 @@ function ixListenStop() {
   var a = IXA.audio;
   IXA.audio = null;
   clearTimeout(IXA.retry);
-  if (!a) return;
-  try {
-    a.pause();
-    a.removeAttribute("src");
-    a.load();
-  } catch (x) {}
+  if (a) a.stop();
 }
 
-/* A tenth of a second of silence. Playing it inside the tap that answers lets the browser accept the door's sound later: its stream is only known after an asynchronous signing, by when the tap no longer counts. */
-var IX_SILENCE = "data:audio/wav;base64,UklGRkQDAABXQVZFZm10IBAAAAABAAEAQB8AAIA+AAACABAAZGF0YSADAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA==";
+var IX_WAV_HEADER = 44;
+var IX_LEAD = 0.15;
 
-/* Starts the door's sound. Right after an answer the station may not report the call yet and the stream is refused: it is asked for again a few times on the same player before the person is told. */
+/* The door's sound as a live stream of 16-bit mono PCM in a WAV wrapper (the listen path), played through Web Audio: a media element cannot play a stream that never ends, a phone's browser drops it after a moment. `muted` and `stop()` are what the popup uses. The context is made inside the tap that answers, which is what lets the browser play later. */
+function ixPlayer(muted) {
+  var Context = window.AudioContext || window.webkitAudioContext;
+  var ctx = new Context(),
+    gain = ctx.createGain(),
+    abort = window.AbortController ? new AbortController() : null,
+    stopped = false,
+    next = 0;
+  gain.gain.value = muted ? 0 : 1;
+  gain.connect(ctx.destination);
+  if (ctx.resume) ctx.resume();
+  function play(samples) {
+    var buffer = ctx.createBuffer(1, samples.length, 8000),
+      data = buffer.getChannelData(0);
+    for (var i = 0; i < samples.length; i++) data[i] = samples[i] / 32768;
+    var source = ctx.createBufferSource();
+    source.buffer = buffer;
+    source.connect(gain);
+    next = Math.max(next, ctx.currentTime + IX_LEAD);
+    source.start(next);
+    next += buffer.duration;
+  }
+  return {
+    get muted() {
+      return gain.gain.value === 0;
+    },
+    set muted(value) {
+      gain.gain.value = value ? 0 : 1;
+    },
+    /* Reads `url` to its end; resolves with whether any sound arrived, rejects when the stream could not be opened. */
+    read: function (url) {
+      return fetch(url, { signal: abort && abort.signal, cache: "no-store" }).then(function (response) {
+        if (!response.ok) throw new Error("listen " + response.status);
+        var reader = response.body.getReader(),
+          skip = IX_WAV_HEADER,
+          odd = null,
+          heard = false;
+        function pump() {
+          return reader.read().then(function (step) {
+            if (step.done || stopped) return heard;
+            var bytes = step.value;
+            if (skip) {
+              var cut = Math.min(skip, bytes.length);
+              skip -= cut;
+              bytes = bytes.subarray(cut);
+            }
+            if (odd !== null && bytes.length) {
+              var joined = new Uint8Array(bytes.length + 1);
+              joined[0] = odd;
+              joined.set(bytes, 1);
+              bytes = joined;
+              odd = null;
+            }
+            if (bytes.length % 2) {
+              odd = bytes[bytes.length - 1];
+              bytes = bytes.subarray(0, bytes.length - 1);
+            }
+            if (bytes.length) {
+              var view = new DataView(bytes.buffer, bytes.byteOffset, bytes.length),
+                samples = new Int16Array(bytes.length / 2);
+              for (var i = 0; i < samples.length; i++) samples[i] = view.getInt16(i * 2, true);
+              play(samples);
+              heard = true;
+            }
+            return pump();
+          });
+        }
+        return pump();
+      });
+    },
+    stop: function () {
+      stopped = true;
+      if (abort) abort.abort();
+      try {
+        ctx.close();
+      } catch (x) {}
+    },
+  };
+}
+
+/* Starts the door's sound. Right after an answer the station may not report the call yet and the stream is refused: it is asked for again a few times before the person is told. A stream that ran and then ended is the call ending. */
 function ixListenStart(path) {
   if (IXA.audio) return;
-  var a = new Audio(),
-    left = 4,
-    live = false;
-  a.muted = IXA.silent;
+  var a = ixPlayer(IXA.silent),
+    left = 4;
   IXA.audio = a;
-  a.src = IX_SILENCE;
-  a.play().catch(function () {});
   function attempt() {
     window.HA.signPath(path).then(function (url) {
       if (IXA.audio !== a) return;
-      live = true;
-      a.src = url;
-      return a.play();
-    }).catch(failed);
+      return a.read(url);
+    }).then(
+      function (heard) {
+        if (IXA.audio !== a) return;
+        if (heard) ixListenStop();
+        else failed();
+      },
+      function () {
+        if (IXA.audio === a) failed();
+      }
+    );
   }
   function failed() {
-    if (IXA.audio !== a || !live) return;
-    live = false;
     if (left-- <= 0) {
       ixListenStop();
       return toast(_T("px_listen_failed"));
     }
     IXA.retry = setTimeout(attempt, 1000);
   }
-  a.addEventListener("ended", function () {
-    if (IXA.audio === a && live) ixListenStop();
-  });
-  a.addEventListener("error", failed);
   attempt();
 }
 

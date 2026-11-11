@@ -170,7 +170,7 @@ test("the door slides open only while it can: a lock that is locked, or a button
 
 test("the door sound is silenced by the mute button and starts again with the next call", () => {
   const { sandbox: p } = page();
-  const audio = { muted: false, pause() {}, removeAttribute() {}, load() {} };
+  const audio = { muted: false, stop() {} };
   p.IXA.audio = audio;
   p.IXA.silent = true;
   p.ixAudioStop();
@@ -278,42 +278,86 @@ test("a door that says there is no call ends the talk with that reason, and rele
   assert.equal(stopped.length, 1, "stopping again does nothing more");
 });
 
-test("the door's sound starts a player inside the tap, is asked for again on it when refused, and the person is told only after the last try", async () => {
+function webAudio(sandbox) {
+  const started = [];
+  sandbox.window = {
+    HA: { signPath: async (path) => "signed:" + path },
+    AudioContext: class {
+      constructor() {
+        this.currentTime = 0;
+        this.destination = {};
+        started.push({ context: this, scheduled: [] });
+      }
+      createGain() {
+        return { gain: { value: 1 }, connect() {} };
+      }
+      createBuffer(channels, length, rate) {
+        const data = new Float32Array(length);
+        return { getChannelData: () => data, duration: length / rate, data, rate };
+      }
+      createBufferSource() {
+        const scheduled = started[0].scheduled;
+        return {
+          connect() {},
+          start(at) {
+            scheduled.push({ at, buffer: this.buffer });
+          },
+        };
+      }
+      resume() {}
+      close() {
+        this.closed = true;
+      }
+    },
+  };
+  return started;
+}
+
+function stream(parts, status = 200) {
+  let index = 0;
+  return {
+    ok: status === 200,
+    status,
+    body: {
+      getReader: () => ({
+        read: async () => (index < parts.length ? { done: false, value: parts[index++] } : { done: true }),
+      }),
+    },
+  };
+}
+
+test("the door's sound is played from a WAV stream: the header is skipped, odd byte splits are joined, samples reach the speaker in order", async () => {
+  const { sandbox } = page();
+  const started = webAudio(sandbox);
+  const pcm = Int16Array.of(0, 16384, -16384, 32767);
+  const bytes = new Uint8Array(pcm.buffer);
+  sandbox.fetch = async () => stream([new Uint8Array(30), new Uint8Array([...new Uint8Array(14), bytes[0], bytes[1], bytes[2]]), bytes.subarray(3)]);
+  sandbox.setTimeout = () => 0;
+  vm.runInContext('ixListenStart("/listen")', sandbox);
+  await new Promise((resolve) => setTimeout(resolve, 20));
+  const heard = started[0].scheduled.flatMap((s) => Array.from(s.buffer.data));
+  assert.deepEqual(heard, [0, 0.5, -0.5, 32767 / 32768]);
+  assert.equal(started[0].scheduled[0].buffer.rate, 8000);
+  assert.equal(sandbox.IXA.audio, null, "the stream ending is the call ending");
+  assert.equal(started[0].context.closed, true);
+});
+
+test("the door's sound is asked for again when the station is not yet in the call, and the person is told only after the last try", async () => {
   const { sandbox } = page();
   const toasts = [];
   const timers = [];
-  const players = [];
-  const played = [];
+  let requests = 0;
+  webAudio(sandbox);
   sandbox.toast = (key) => toasts.push(key);
   sandbox.setTimeout = (fn) => timers.push(fn) && timers.length;
-  sandbox.window = { HA: { signPath: async (path) => "signed:" + path } };
-  sandbox.Audio = class {
-    constructor() {
-      this.listeners = {};
-      players.push(this);
-    }
-    addEventListener(ev, fn) {
-      this.listeners[ev] = fn;
-    }
-    play() {
-      played.push(this.src);
-      return Promise.resolve();
-    }
-    pause() {}
-    removeAttribute() {}
-    load() {}
-  };
+  sandbox.fetch = async () => (requests++, stream([], 409));
   vm.runInContext('ixListenStart("/listen")', sandbox);
-  assert.equal(players.length, 1);
-  assert.match(played[0], /^data:audio\/wav/, "the silence is played synchronously, inside the tap");
   for (let attempt = 0; attempt < 5; attempt++) {
     await new Promise((resolve) => setImmediate(resolve));
-    assert.equal(played[attempt + 1], "signed:/listen");
-    players[0].listeners.error();
+    assert.equal(requests, attempt + 1);
     assert.equal(toasts.length, attempt < 4 ? 0 : 1);
     if (attempt < 4) timers.shift()();
   }
-  assert.equal(players.length, 1);
   assert.deepEqual(toasts, ["px_listen_failed"]);
-  assert.equal(timers.length, 0);
+  assert.equal(sandbox.IXA.audio, null);
 });
