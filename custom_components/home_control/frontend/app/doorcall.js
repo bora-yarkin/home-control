@@ -77,32 +77,41 @@ function ixListenStop() {
   } catch (x) {}
 }
 
-/* Starts the door's sound. Right after an answer the station may not report the call yet and the stream is refused: it is tried again a few times before the person is told (`tries` is how many more). */
-function ixListenStart(path, tries) {
+/* A tenth of a second of silence. Playing it inside the tap that answers lets the browser accept the door's sound later: its stream is only known after an asynchronous signing, by when the tap no longer counts. */
+var IX_SILENCE = "data:audio/wav;base64,UklGRkQDAABXQVZFZm10IBAAAAABAAEAQB8AAIA+AAACABAAZGF0YSADAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA==";
+
+/* Starts the door's sound. Right after an answer the station may not report the call yet and the stream is refused: it is asked for again a few times on the same player before the person is told. */
+function ixListenStart(path) {
   if (IXA.audio) return;
   var a = new Audio(),
-    left = tries === undefined ? 4 : tries;
+    left = 4,
+    live = false;
   a.muted = IXA.silent;
   IXA.audio = a;
-  function failed() {
-    if (IXA.audio !== a) return;
-    ixListenStop();
-    if (left <= 0) return toast(_T("px_listen_failed"));
-    IXA.retry = setTimeout(function () {
-      ixListenStart(path, left - 1);
-    }, 1000);
-  }
-  window.HA.signPath(path).then(
-    function (url) {
+  a.src = IX_SILENCE;
+  a.play().catch(function () {});
+  function attempt() {
+    window.HA.signPath(path).then(function (url) {
       if (IXA.audio !== a) return;
+      live = true;
       a.src = url;
-      a.addEventListener("ended", function () {
-        if (IXA.audio === a) ixListenStop();
-      });
-      a.addEventListener("error", failed);
       return a.play();
+    }).catch(failed);
+  }
+  function failed() {
+    if (IXA.audio !== a || !live) return;
+    live = false;
+    if (left-- <= 0) {
+      ixListenStop();
+      return toast(_T("px_listen_failed"));
     }
-  ).catch(failed);
+    IXA.retry = setTimeout(attempt, 1000);
+  }
+  a.addEventListener("ended", function () {
+    if (IXA.audio === a && live) ixListenStop();
+  });
+  a.addEventListener("error", failed);
+  attempt();
 }
 
 function ixTalkStop() {

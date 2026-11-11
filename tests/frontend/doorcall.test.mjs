@@ -278,15 +278,15 @@ test("a door that says there is no call ends the talk with that reason, and rele
   assert.equal(stopped.length, 1, "stopping again does nothing more");
 });
 
-test("the door's sound is asked for again when the station is not yet in the call, and the person is told only after the last try", async () => {
+test("the door's sound starts a player inside the tap, is asked for again on it when refused, and the person is told only after the last try", async () => {
   const { sandbox } = page();
   const toasts = [];
   const timers = [];
   const players = [];
+  const played = [];
   sandbox.toast = (key) => toasts.push(key);
   sandbox.setTimeout = (fn) => timers.push(fn) && timers.length;
-  sandbox.clearTimeout = () => {};
-  sandbox.window = { HA: { signPath: async (path) => path } };
+  sandbox.window = { HA: { signPath: async (path) => "signed:" + path } };
   sandbox.Audio = class {
     constructor() {
       this.listeners = {};
@@ -296,6 +296,7 @@ test("the door's sound is asked for again when the station is not yet in the cal
       this.listeners[ev] = fn;
     }
     play() {
+      played.push(this.src);
       return Promise.resolve();
     }
     pause() {}
@@ -303,13 +304,16 @@ test("the door's sound is asked for again when the station is not yet in the cal
     load() {}
   };
   vm.runInContext('ixListenStart("/listen")', sandbox);
+  assert.equal(players.length, 1);
+  assert.match(played[0], /^data:audio\/wav/, "the silence is played synchronously, inside the tap");
   for (let attempt = 0; attempt < 5; attempt++) {
     await new Promise((resolve) => setImmediate(resolve));
-    assert.equal(players.length, attempt + 1);
-    players[attempt].listeners.error();
+    assert.equal(played[attempt + 1], "signed:/listen");
+    players[0].listeners.error();
     assert.equal(toasts.length, attempt < 4 ? 0 : 1);
     if (attempt < 4) timers.shift()();
   }
+  assert.equal(players.length, 1);
   assert.deepEqual(toasts, ["px_listen_failed"]);
   assert.equal(timers.length, 0);
 });
