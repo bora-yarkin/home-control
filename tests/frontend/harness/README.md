@@ -12,6 +12,7 @@ dashboard settings in memory only. Every service call is recorded in `window.__c
 `mock-hass.js` updates itself, so a click can be checked afterwards (`__calls.map(c => c.domain + "." + c.service)`).
 
 Query options: `?sync=0` leaves out the Hue Plus entities, `?box=0` the sync box, `?user=guest` makes the user a non-administrator.
+`?door=ringing`, `?door=call`, `?door=security-ringing` and `?door=security-call` open the door call popup (a door station with a camera picture, or a guard desk with only the audio-wave picture and nothing to unlock). The pictures (`door-cam.svg`, `audio-wave.svg`) are stand-ins.
 
 ## Checking the spacing
 

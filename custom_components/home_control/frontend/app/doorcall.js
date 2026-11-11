@@ -40,8 +40,15 @@ function ixPaths(ix) {
   return { listen: ok(ix.listen) || ok(a.listen_path), talk: ok(a.talk_path) };
 }
 
+/* Whether the call that is going has anything to unlock: the profile binds an unlock, and the call indicator does not say (attribute `can_unlock: false`, docs/intercom-contract.md) that this caller has no door, as a guard desk has not. */
+function ixCanUnlock(ix) {
+  if (!ix || !ix.unlock) return false;
+  var s = ix.ring && H().states[ix.ring];
+  return !(s && s.attributes && s.attributes.can_unlock === false);
+}
+
 /* The audio of the call that is open: what plays the door, and what carries the microphone. */
-var IXA = { audio: null, talker: null, muted: false };
+var IXA = { audio: null, talker: null, silent: false };
 
 function ixListening() {
   return !!IXA.audio;
@@ -65,6 +72,7 @@ function ixListenStop() {
 function ixListenStart(path) {
   if (IXA.audio) return;
   var a = new Audio();
+  a.muted = IXA.silent;
   IXA.audio = a;
   window.HA.signPath(path).then(
     function (url) {
@@ -88,7 +96,6 @@ function ixListenStart(path) {
 function ixTalkStop() {
   var t = IXA.talker;
   IXA.talker = null;
-  IXA.muted = false;
   if (t) t.stop();
 }
 
@@ -124,19 +131,17 @@ function ixTalkStart(path, changed) {
     if (!window.HA.assist()) toast(_T("dc_talk_needs_https"));
     return;
   }
-  var t = { stop: function () {}, mute: function () {} };
+  var t = { stop: function () {} };
   IXA.talker = t;
   ixSocketUrl(path).then(function (url) {
     if (IXA.talker !== t) return;
     var line = window.IntercomTalk.start(url, function (code) {
       if (IXA.talker !== t) return;
       IXA.talker = null;
-      IXA.muted = false;
       if (code) toast(window.IntercomTalk.errors[code] || _T("dc_talk_stopped"));
       changed();
     });
     t.stop = line.stop;
-    t.mute = line.mute;
     return line.ready;
   }).then(changed, function (e) {
     if (IXA.talker === t) IXA.talker = null;
@@ -148,6 +153,7 @@ function ixTalkStart(path, changed) {
 function ixAudioStop() {
   ixListenStop();
   ixTalkStop();
+  IXA.silent = false; // the next call starts with sound again
 }
 
 function ixSeconds(since) {
@@ -155,7 +161,29 @@ function ixSeconds(since) {
   return Math.floor(s / 60) + ":" + ("0" + (s % 60)).slice(-2);
 }
 
-/* The popup of one door call: "call:<camera>". */
+/* One of the two big buttons of a call: a handset icon and a label (several labels sit on top of each other and cross-fade). */
+function dcButton(cls, labels, fn) {
+  var t = mk("div", "dcb " + cls);
+  t.setAttribute("role", "button");
+  t.tabIndex = 0;
+  t.innerHTML =
+    "<span class='dci'>" + svg("phone") + "</span><span class='dcl'>" +
+    labels.map(function (l, i) { return "<span class='l" + i + "'></span>"; }).join("") + "</span>";
+  labels.forEach(function (l, i) {
+    t.querySelector(".l" + i).textContent = l;
+  });
+  t.setAttribute("aria-label", labels[0]);
+  t.addEventListener("click", fn);
+  t.addEventListener("keydown", function (e) {
+    if (e.key === "Enter" || e.key === " ") {
+      e.preventDefault();
+      fn();
+    }
+  });
+  return t;
+}
+
+/* The popup of one door call: "call:<camera>". Answer takes the call with sound both ways (the door is played, the microphone goes to the door) and turns Decline into End call; the mute button of the picture silences the door (and starts it when the call was answered elsewhere). Where the caller has nothing to unlock (a guard desk) the slide to unlock is not shown. */
 function callPopup(b, id) {
   var ix = (UIDEV[id] && UIDEV[id].ix) || {},
     box = mk("div", "vidbox"),
@@ -163,8 +191,21 @@ function callPopup(b, id) {
     answered = false,
     ended = false;
   box.dataset.cam = id;
-  stream(box, id, "sheet", false, true);
-  camControls(box, id);
+  stream(box, id, "sheet", false, true, {
+    noFullscreen: true,
+    onMute: function () {
+      var listen = ixPaths(ix).listen;
+      if (!IXA.audio && listen && callShown() === "call") {
+        /* A call that was answered elsewhere has no sound here yet: the button starts it (the press is what the browser needs). */
+        IXA.silent = false;
+        ixListenStart(listen);
+      } else {
+        IXA.silent = !IXA.silent;
+        if (IXA.audio) IXA.audio.muted = IXA.silent;
+      }
+      paint();
+    },
+  });
   b.appendChild(box);
   var status = pill("bell", (UIDEV[id] && UIDEV[id].name) || entName(id), {
     sub: function () {
@@ -179,15 +220,8 @@ function callPopup(b, id) {
     if (ended || st === "idle") return "idle";
     return answered ? "call" : st;
   }
-  var row = mk("div", "rrow dcrow"),
-    btn = {};
-  function add(key, icon, label, fn) {
-    var t = rbtn(icon, fn, _T(label));
-    t.classList.add("dc-" + key);
-    btn[key] = t;
-    row.appendChild(t);
-  }
-  add("answer", "check", "px_answer", function () {
+  function answer() {
+    if (answered || ended || callShown() !== "ringing") return;
     answered = true;
     since = Date.now();
     if (ix.answer) remotePress({ e: ix.answer });
@@ -195,8 +229,9 @@ function callPopup(b, id) {
     if (p.listen) ixListenStart(p.listen);
     if (p.talk) ixTalkStart(p.talk, paint);
     paint();
-  });
-  add("end", "close", "dc_end", function () {
+  }
+  function end() {
+    if (ended) return;
     if (ix.reject) remotePress({ e: ix.reject });
     ixAudioStop();
     ended = true;
@@ -204,37 +239,28 @@ function callPopup(b, id) {
     setTimeout(function () {
       if (CURRENT === "call:" + id) closeSheet();
     }, 400);
-  });
-  if (ix.unlock)
-    add("unlock", "padlock", "px_unlock", function () {
-      ixUnlock(ix.unlock);
+  }
+  var act = mk("div", "dcact"),
+    ans = dcButton("dc-answer", [_T("px_answer")], answer),
+    stop = dcButton("dc-end", [_T("dc_decline"), _T("dc_end")], end);
+  act.appendChild(ans);
+  act.appendChild(stop);
+  b.appendChild(act);
+  var unl = null;
+  if (ix.unlock) {
+    unl = pill("padlock", _T("px_unlock"), {
+      slide: function () {
+        ixOpen(ix.unlock);
+      },
+      canSlide: function () {
+        return ixCanUnlock(ix) && callShown() !== "idle";
+      },
     });
-  b.appendChild(row);
-  var audio = mk("div", "rrow dcrow"),
-    paths = ixPaths(ix);
-  if (paths.talk) {
-    var talk = rbtn("mic", function () {
-      if (IXA.talker) {
-        IXA.muted = !IXA.muted;
-        IXA.talker.mute(IXA.muted);
-        paint();
-      } else ixTalkStart(paths.talk, paint);
-    }, _T("dc_talk"));
-    talk.classList.add("dc-talk");
-    audio.appendChild(talk);
-    btn.talk = talk;
+    unl.classList.add("dc-unlock");
+    b.appendChild(unl);
   }
-  if (paths.listen) {
-    var lis = rbtn("volup", function () {
-      if (IXA.audio) ixListenStop();
-      else ixListenStart(paths.listen);
-      paint();
-    }, _T("px_listen"));
-    lis.classList.add("dc-listen");
-    audio.appendChild(lis);
-    btn.listen = lis;
-  }
-  if (audio.children.length) b.appendChild(audio);
+  /* Room under the last control, where a row of buttons used to be, so that sliding to unlock does not meet the phone's own gesture at the bottom edge. */
+  b.appendChild(mk("div", "dcpad"));
   function paint() {
     var st = callShown();
     if (st === "call" && !since) since = Date.now();
@@ -245,18 +271,17 @@ function callPopup(b, id) {
         if (CURRENT === "call:" + id) closeSheet();
       }, 2500);
     }
-    btn.answer.style.display = st === "ringing" && ix.answer ? "" : "none";
-    btn.end.style.display = st === "idle" ? "none" : "";
-    if (btn.unlock) ixPadlock(btn.unlock, ix.unlock);
-    if (btn.talk) {
-      btn.talk.classList.toggle("act", ixTalking() && !IXA.muted);
-      btn.talk.querySelector("span") && (btn.talk.querySelector("span").textContent = ixTalking() ? (IXA.muted ? _T("dc_unmute") : _T("dc_mute")) : _T("dc_talk"));
-      btn.talk.style.display = st === "idle" ? "none" : "";
+    var ringing = st === "ringing" && !!ix.answer;
+    act.classList.toggle("answered", !ringing);
+    act.classList.toggle("over", st === "idle");
+    ans.tabIndex = ringing ? 0 : -1;
+    ans.setAttribute("aria-hidden", ringing ? "false" : "true");
+    if (unl) {
+      unl.style.display = ixCanUnlock(ix) ? "" : "none";
+      unl.classList.toggle("dcgone", st === "idle"); // fades while "Call ended" is shown, so the popup does not jump
+      ixPadlock(unl, ix.unlock);
     }
-    if (btn.listen) {
-      btn.listen.classList.toggle("act", ixListening());
-      btn.listen.style.display = st === "idle" ? "none" : "";
-    }
+    if (box._mu) box._mu.innerHTML = svg(ixListening() && !IXA.silent ? "volup" : "mute");
   }
   paint();
   reg(paint);

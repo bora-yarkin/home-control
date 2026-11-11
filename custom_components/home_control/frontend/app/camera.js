@@ -67,7 +67,9 @@ function camFull(box, vid, btn) {
   viaVideo();
 }
 
-function stream(box, id, owner, tapOpen, noIntercom) {
+/* opts (all optional): onMute(button) takes over the mute button, for a popup whose sound is not the video's (a door call's audio comes from its own channel; the button is kept as box._mu so the popup can show its state); noFullscreen leaves out the full screen button. */
+function stream(box, id, owner, tapOpen, noIntercom, opts) {
+  opts = opts || {};
   stopStreams(owner);
   /* The snapshot sits behind the video, which stays transparent until the live picture is really showing, so a stream that connects black never replaces it. */
   var tok = A(id).access_token,
@@ -89,15 +91,24 @@ function stream(box, id, owner, tapOpen, noIntercom) {
     fs = mk("div", "rnd pane", svg("expand"));
   mu.addEventListener("click", function (e) {
     e.stopPropagation();
+    if (opts.onMute) {
+      opts.onMute(mu);
+      return;
+    }
     vid.muted = !vid.muted;
     mu.innerHTML = svg(vid.muted ? "mute" : "volup");
   });
+  if (opts.onMute) {
+    mu.setAttribute("role", "button");
+    mu.setAttribute("aria-label", _T("dc_speaker"));
+  }
+  box._mu = mu;
   fs.addEventListener("click", function (e) {
     e.stopPropagation();
     camFull(box, vid, fs);
   });
   bt.appendChild(mu);
-  bt.appendChild(fs);
+  if (!opts.noFullscreen) bt.appendChild(fs);
   camTalkButton(box, id, bt);
   box.appendChild(bt);
   if (!noIntercom) camIntercom(box, id);
