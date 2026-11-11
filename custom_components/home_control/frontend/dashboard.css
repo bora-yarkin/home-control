@@ -113,12 +113,12 @@ to{opacity:0;clip-path:inset(100% 0 0 0 round var(--r-row));transform:translateY
 /* A door call: Answer and Decline side by side; answering fades Answer out while End call grows to the full width and its label changes. The slide to unlock is below, with room under it. */
 .dcact{display:flex;gap:var(--sp);margin-top:var(--sp);transition:opacity .25s ease}
 .dcact.over{opacity:0;pointer-events:none}
-.dcb{flex:1 1 0;min-width:0;min-height:60px;display:flex;align-items:center;justify-content:center;gap:10px;border-radius:var(--r-m);color:#fff;font-size:var(--fs-l);font-weight:600;cursor:pointer;overflow:hidden;white-space:nowrap;user-select:none;-webkit-tap-highlight-color:transparent;touch-action:manipulation;box-shadow:inset 0 1.5px 1px rgba(255,255,255,.35),0 8px 20px -10px rgba(0,0,0,.6);transition:flex-grow .4s cubic-bezier(.3,.9,.3,1),margin .4s cubic-bezier(.3,.9,.3,1),opacity .25s ease,transform .12s,filter .15s}
-.dcb:active{transform:scale(.985);filter:brightness(.92)}
-.dcb:focus-visible{outline:2px solid #fff;outline-offset:2px}
+.dcb{flex:1 1 0;min-width:0;min-height:60px;display:flex;align-items:center;justify-content:center;gap:10px;box-sizing:border-box;border-radius:var(--r-m);color:var(--ink);font-size:var(--fs-l);font-weight:600;cursor:pointer;overflow:hidden;white-space:nowrap;user-select:none;-webkit-tap-highlight-color:transparent;touch-action:manipulation;background:color-mix(in srgb,var(--k) 22%,var(--f-card));border:1px solid color-mix(in srgb,var(--k) 55%,var(--f-line));transition:flex-grow .4s cubic-bezier(.3,.9,.3,1),margin .4s cubic-bezier(.3,.9,.3,1),opacity .25s ease,transform .12s,filter .15s}
+.dcb:active{transform:scale(.985);filter:brightness(1.18)}
+.dcb:focus-visible{outline:2px solid var(--ink);outline-offset:2px}
 .dcb svg{width:26px;height:26px;fill:none;stroke:currentColor;stroke-width:2;stroke-linecap:round;stroke-linejoin:round;display:block}
-.dc-answer{background:linear-gradient(180deg,#3bb673,#2a9a5c)}
-.dc-end{background:linear-gradient(180deg,#e5564e,#c4403a)}
+.dc-answer{--k:#34c27a}
+.dc-end{--k:#e5564e}
 .dc-end .dci{display:flex;transform:rotate(135deg)}
 .dcl{display:grid}
 .dcl>span{grid-area:1/1;text-align:center;transition:opacity .3s ease,transform .3s ease}
