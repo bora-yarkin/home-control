@@ -122,6 +122,61 @@ test("a screensaver is taken away for a call, and the audio stops when the popup
   assert.equal(p.IXA.talker, null);
 });
 
+test("the slide to unlock is offered when an unlock is bound, unless the call indicator says this caller has nothing to unlock", () => {
+  const { sandbox: p } = page({
+    states: {
+      "sensor.door": sensor("ringing", { can_unlock: true }),
+      "sensor.plain": sensor("ringing"),
+      "sensor.guard": sensor("ringing", { can_unlock: false }),
+      "sensor.odd": sensor("ringing", { can_unlock: "no" }),
+    },
+  });
+  const can = (ring, unlock = "lock.door") => p.ixCanUnlock({ ring, unlock });
+  assert.equal(can("sensor.door"), true);
+  assert.equal(can("sensor.plain"), true, "an indicator that says nothing leaves the unlock available");
+  assert.equal(can("sensor.guard"), false, "a guard desk has no door");
+  assert.equal(can("sensor.odd"), true, "only a plain false hides it");
+  assert.equal(p.ixCanUnlock({ ring: "sensor.door" }), false, "no unlock bound, nothing to slide");
+  assert.equal(p.ixCanUnlock(null), false);
+  assert.equal(p.ixCanUnlock({ unlock: "lock.door" }), true, "no indicator at all");
+});
+
+test("the door slides open only while it can: a lock that is locked, or a button that has not just been pressed, and never for a caller with no door", () => {
+  const { sandbox: p } = page({ states: { "sensor.call": sensor("ringing", { can_unlock: true }), "sensor.guard": sensor("ringing", { can_unlock: false }) } });
+  let lock = "locked";
+  let open = false;
+  let usable = true;
+  p.V_ = () => lock;
+  p.remoteUsable = () => usable;
+  p.ixUnlocked = () => open;
+  const lockIx = { ring: "sensor.call", unlock: "lock.door" };
+  const buttonIx = { ring: "sensor.call", unlock: "button.door" };
+  assert.equal(p.ixCanSlide(lockIx), true);
+  lock = "unlocked";
+  assert.equal(p.ixCanSlide(lockIx), false, "a lock that is open does not slide, as in the dashboard's own lock row");
+  lock = "jammed";
+  assert.equal(p.ixCanSlide(lockIx), false);
+  assert.equal(p.ixCanSlide(buttonIx), true);
+  open = true;
+  assert.equal(p.ixCanSlide(buttonIx), false, "a button that was just pressed counts as open for a few seconds");
+  open = false;
+  usable = false;
+  assert.equal(p.ixCanSlide(buttonIx), false, "a button that is not available");
+  usable = true;
+  lock = "locked";
+  assert.equal(p.ixCanSlide({ ring: "sensor.guard", unlock: "lock.door" }), false, "nothing to unlock for a guard desk");
+});
+
+test("the door sound is silenced by the mute button and starts again with the next call", () => {
+  const { sandbox: p } = page();
+  const audio = { muted: false, pause() {}, removeAttribute() {}, load() {} };
+  p.IXA.audio = audio;
+  p.IXA.silent = true;
+  p.ixAudioStop();
+  assert.equal(p.IXA.audio, null);
+  assert.equal(p.IXA.silent, false, "a muted call does not mute the next one");
+});
+
 // ---- the microphone sent to the door ----
 
 function talker() {

@@ -218,15 +218,23 @@ function ixRinging(ix) {
 }
 
 /* The door opens through the one entity chosen for it and nothing else: if that is unavailable nothing happens and it says so. */
-function ixUnlock(e) {
+function ixOpen(e) {
   if (!remoteUsable(e)) {
     toast(_T("rm_not_available_right_now"));
     return;
   }
   if (dom(e) === "lock") callConfirmed("lock", "unlock", { entity_id: e });
-  else confirmDlg(_T("px_open_the_door"), function () {
+  else {
     IXOPENED[e] = Date.now();
     remotePress({ e: e });
+  }
+}
+
+/* A press on an unlock button asks first (a slide, as in a call, is the asking). */
+function ixUnlock(e) {
+  if (dom(e) === "lock" || !remoteUsable(e)) ixOpen(e);
+  else confirmDlg(_T("px_open_the_door"), function () {
+    ixOpen(e);
   });
 }
 
