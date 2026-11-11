@@ -160,7 +160,7 @@ export function makeHass(query) {
   const resources = {
     automations: [
       { id: "auto-1", name: "Wake up", enabled: true, script: "Basic wake up routine", status: "running" },
-      { id: "auto-2", name: "Evening timer", enabled: false, script: "Timers", status: "disabled" },
+      { id: "auto-2", name: "Evening timer", enabled: false, script: "Timers", status: "disabled", state: { timer_state: "started" }, configuration: { duration: { minutes: 25 }, what: [{ group: { rid: "room-1", rtype: "room" }, recall: { rid: "scene-2", rtype: "scene" } }], where: [{ group: { rid: "room-1", rtype: "room" } }] } },
       { id: "auto-3", name: "Hallway lights", enabled: true, script: "Motion Sensor", status: "running", configuration: { source: { rid: "ma-1", rtype: "motion_area_configuration" }, where: [{ group: { rid: "room-1", rtype: "room" } }], when: { timeslots: [{ start_time: { type: "time", time: { hour: 7, minute: 0 } }, on_motion: { recall_single: [{ action: { recall: { rid: "scene-4", rtype: "scene" } } }] }, on_no_motion: { after: { minutes: 10 }, recall_single: [{ action: "all_off" }] } }, { start_time: { type: "time", time: { hour: 23, minute: 0 } }, on_motion: { recall_single: [{ action: { recall: { rid: "scene-3", rtype: "scene" } } }] } }] } } },
     ],
     rooms: [{ id: "room-1", name: "Living room", children: [{ id: "dev-lamp", name: "Desk lamp" }, { id: "dev-strip", name: "Shelf strip" }, { id: "dev-floor", name: "Floor lamp" }, { id: "dev-ceiling", name: "Ceiling light" }], lights: ["light-1", "light-2", "light-3", "light-4"] }],
@@ -214,6 +214,7 @@ export function makeHass(query) {
       { id: "acc-2", name: "Door tap switch", dials: 1, automation_id: null, buttons: [{ id: "b5", number: 1, last_event: null }], actions: {}, targets: {} },
     ],
     bridge: { name: "Hue Bridge Pro", time_zone: "Europe/Istanbul", internet: "connected" },
+    home_and_away: { configured: true, clients: [] },
   };
 
   const connection = {
@@ -265,7 +266,7 @@ export function makeHass(query) {
     services: {
       light: { turn_on: {}, turn_off: {} }, switch: { turn_on: {}, turn_off: {} }, select: { select_option: {} },
       number: { set_value: {} }, button: { press: {} }, scene: { turn_on: {} },  update: { install: {} },
-      ...(withSync ? { hue_plus: Object.fromEntries(["get_resources", "set_effect", "set_style", "configure_light", "timed_effect", "signal", "create_routine", "configure_button", "set_streaming_end_state", "stream_colors", "stop_streaming", "set_motion_area", "create_motion_area", "set_motion_area_lights", "delete_motion_area", "update_routine", "update_automation", "delete_automation", "set_auto_update", "check_for_update", "install_bridge_update", "set_zigbee_channel", "search_for_devices", "remove_matter_fabric", "revoke_app", "update_entertainment_area", "import_hue_scene", "create_scene", "update_scene", "delete_scene", "create_daily_smart_scene", "set_name"].map((s) => [s, {}])) } : {}),
+      ...(withSync ? { hue_plus: Object.fromEntries(["get_resources", "set_effect", "set_style", "configure_light", "timed_effect", "signal", "create_routine", "configure_button", "set_streaming_end_state", "stream_colors", "stop_streaming", "trigger_automation", "set_motion_area", "create_motion_area", "set_motion_area_lights", "delete_motion_area", "update_routine", "update_automation", "delete_automation", "set_auto_update", "check_for_update", "install_bridge_update", "set_zigbee_channel", "search_for_devices", "remove_matter_fabric", "revoke_app", "update_entertainment_area", "import_hue_scene", "create_scene", "update_scene", "delete_scene", "create_daily_smart_scene", "set_name"].map((s) => [s, {}])) } : {}),
       home_control: Object.fromEntries(["scene_start", "scene_update", "scene_freeze", "scene_play", "scene_stop", "scene_save", "scene_delete", "area_save", "area_delete", "locate_light", "get_library"].map((s) => [s, {}])),
     },
     config: { unit_system: { temperature: "°C" }, time_zone: "UTC", language: "en", components: [] },
