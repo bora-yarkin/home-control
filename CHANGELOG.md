@@ -4,6 +4,8 @@ Format: [Keep a Changelog](https://keepachangelog.com/). Versions follow [semant
 
 ## [Unreleased]
 
+## [0.9.9] - 2026-11-11
+
 ### Changed
 - The door call popup is redone. Answer (green, with a handset) and Decline (red, with the handset put down) sit side by side; answering takes the call with sound both ways at once (the door is played, the microphone goes to the door), Decline turns into End call and grows to the full width as Answer fades away. The Talk and Listen buttons are gone: the mute button of the picture silences the door. The picture has no full screen and no settings button. The dashboard's slide to unlock is under the buttons, with some room below it so that it does not meet the phone's gesture at the bottom edge, and behaves as the dashboard's own lock row does: it slides while the door is locked, says "Unlocking…" with the handle back at the start as soon as it is slid, then "Unlocked" with the padlock open and the row tinted, and slides again once the door has locked itself; it is left out for a caller with nothing to unlock: a call indicator can say so with the attribute `can_unlock: false` (`docs/intercom-contract.md`). Nothing in it knows a brand.
 - The test harness shows the popup with `?door=ringing`, `?door=call`, `?door=security-ringing` or `?door=security-call`.
