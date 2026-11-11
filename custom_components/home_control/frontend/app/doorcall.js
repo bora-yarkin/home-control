@@ -68,6 +68,7 @@ function ixTalking() {
 function ixListenStop() {
   var a = IXA.audio;
   IXA.audio = null;
+  clearTimeout(IXA.retry);
   if (!a) return;
   try {
     a.pause();
@@ -76,28 +77,32 @@ function ixListenStop() {
   } catch (x) {}
 }
 
-function ixListenStart(path) {
+/* Starts the door's sound. Right after an answer the station may not report the call yet and the stream is refused: it is tried again a few times before the person is told (`tries` is how many more). */
+function ixListenStart(path, tries) {
   if (IXA.audio) return;
-  var a = new Audio();
+  var a = new Audio(),
+    left = tries === undefined ? 4 : tries;
   a.muted = IXA.silent;
   IXA.audio = a;
+  function failed() {
+    if (IXA.audio !== a) return;
+    ixListenStop();
+    if (left <= 0) return toast(_T("px_listen_failed"));
+    IXA.retry = setTimeout(function () {
+      ixListenStart(path, left - 1);
+    }, 1000);
+  }
   window.HA.signPath(path).then(
     function (url) {
       if (IXA.audio !== a) return;
       a.src = url;
-      ["ended", "error"].forEach(function (ev) {
-        a.addEventListener(ev, function () {
-          if (IXA.audio !== a) return;
-          ixListenStop();
-          if (ev === "error") toast(_T("px_listen_failed"));
-        });
+      a.addEventListener("ended", function () {
+        if (IXA.audio === a) ixListenStop();
       });
+      a.addEventListener("error", failed);
       return a.play();
     }
-  ).catch(function () {
-    if (IXA.audio === a) ixListenStop();
-    toast(_T("px_listen_failed"));
-  });
+  ).catch(failed);
 }
 
 function ixTalkStop() {

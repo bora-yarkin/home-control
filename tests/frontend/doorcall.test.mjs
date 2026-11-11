@@ -15,6 +15,7 @@ function page({ states = {}, UIDEV = {}, hidden = false, mode = () => ({ mode: "
     H: () => ({ states }),
     dom: (id) => id.split(".")[0],
     Date,
+    clearTimeout,
     isFinite,
     UIDEV,
     BOOTED: true,
@@ -192,6 +193,7 @@ function talker() {
     clearInterval() {},
     console,
     Date,
+    clearTimeout,
     Promise,
     Object,
     String,
@@ -274,4 +276,40 @@ test("a door that says there is no call ends the talk with that reason, and rele
   assert.equal(socket.closed, true);
   line.stop();
   assert.equal(stopped.length, 1, "stopping again does nothing more");
+});
+
+test("the door's sound is asked for again when the station is not yet in the call, and the person is told only after the last try", async () => {
+  const { sandbox } = page();
+  const toasts = [];
+  const timers = [];
+  const players = [];
+  sandbox.toast = (key) => toasts.push(key);
+  sandbox.setTimeout = (fn) => timers.push(fn) && timers.length;
+  sandbox.clearTimeout = () => {};
+  sandbox.window = { HA: { signPath: async (path) => path } };
+  sandbox.Audio = class {
+    constructor() {
+      this.listeners = {};
+      players.push(this);
+    }
+    addEventListener(ev, fn) {
+      this.listeners[ev] = fn;
+    }
+    play() {
+      return Promise.resolve();
+    }
+    pause() {}
+    removeAttribute() {}
+    load() {}
+  };
+  vm.runInContext('ixListenStart("/listen")', sandbox);
+  for (let attempt = 0; attempt < 5; attempt++) {
+    await new Promise((resolve) => setImmediate(resolve));
+    assert.equal(players.length, attempt + 1);
+    players[attempt].listeners.error();
+    assert.equal(toasts.length, attempt < 4 ? 0 : 1);
+    if (attempt < 4) timers.shift()();
+  }
+  assert.deepEqual(toasts, ["px_listen_failed"]);
+  assert.equal(timers.length, 0);
 });
