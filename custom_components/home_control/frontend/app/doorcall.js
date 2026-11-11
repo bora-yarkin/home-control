@@ -88,10 +88,10 @@ function ixPlayer(muted) {
   gain.gain.value = muted ? 0 : 1;
   gain.connect(ctx.destination);
   if (ctx.resume) ctx.resume();
-  /* On an iPhone Web Audio is silenced by the ring/silent switch unless the page counts as media playback: the audio session type says so where it exists, a looping silent media element where it does not. */
+  /* On an iPhone Web Audio is silenced by the ring/silent switch unless the page counts as media playback. The session type that does and still lets the microphone work (the call talks too; "playback" alone switches the microphone off) is play-and-record; a looping silent media element does the job where the type does not exist. */
   var keep = null;
   try {
-    if (navigator.audioSession) navigator.audioSession.type = "playback";
+    if (navigator.audioSession) navigator.audioSession.type = "play-and-record";
     keep = new Audio(IX_SILENCE);
     keep.loop = true;
     keep.play().catch(function () {});
