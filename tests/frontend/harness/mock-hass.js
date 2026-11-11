@@ -274,6 +274,16 @@ export function makeHass(query) {
       if (target && domain === "switch") target.state = service === "turn_on" ? "on" : service === "turn_off" ? "off" : target.state === "on" ? "off" : "on";
       if (domain === "button" && id === "button.door_answer") states["sensor.door_call_status"] = { ...states["sensor.door_call_status"], state: "call in progress" };
       if (domain === "button" && id === "button.door_hang_up") states["sensor.door_call_status"] = { ...states["sensor.door_call_status"], state: "idle" };
+      // A lock follows its commands (a moment later, and it locks itself again after a few seconds), so a slide to unlock can be seen to finish.
+      if (target && domain === "lock" && (service === "unlock" || service === "lock")) {
+        const set = (state) => () => {
+          states[id] = { ...states[id], state };
+          hass.states = { ...states };
+          document.querySelector("dashboard-panel") && (document.querySelector("dashboard-panel").hass = hass);
+        };
+        setTimeout(set(service === "unlock" ? "unlocked" : "locked"), 400);
+        if (service === "unlock") setTimeout(set("locked"), 7000);
+      }
       if (target && domain === "media_player" && service === "select_source") target.attributes = { ...target.attributes, source: data.source };
       // `?lag=300` makes each light answer a light command 300 ms after the one before it, the way separate integrations do.
       const lag = Number(new URLSearchParams(location.search).get("lag"));
@@ -294,6 +304,12 @@ export function makeHass(query) {
       return Promise.resolve();
     },
     callApi() { return Promise.resolve({}); },
+    // Sets a state (and merges attributes) in the harness's own states, so a later service call does not put the old one back.
+    setState(id, state, attributes = {}) {
+      states[id] = { ...states[id], ...(state === null ? {} : { state }), attributes: { ...states[id].attributes, ...attributes } };
+      hass.states = { ...states };
+      document.querySelector("dashboard-panel") && (document.querySelector("dashboard-panel").hass = hass);
+    },
   };
   return hass;
 }

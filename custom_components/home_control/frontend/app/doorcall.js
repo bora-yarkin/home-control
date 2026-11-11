@@ -47,6 +47,13 @@ function ixCanUnlock(ix) {
   return !(s && s.attributes && s.attributes.can_unlock === false);
 }
 
+/* Whether the door can be slid open now: the same rule as the dashboard's own lock row (a lock that is locked), and for an unlock that is a button, while it has not just been pressed (a button says nothing afterwards, so it counts as open for a few seconds). */
+function ixCanSlide(ix) {
+  if (!ixCanUnlock(ix)) return false;
+  if (dom(ix.unlock) === "lock") return V_(ix.unlock) === "locked";
+  return remoteUsable(ix.unlock) && !ixUnlocked(ix.unlock);
+}
+
 /* The audio of the call that is open: what plays the door, and what carries the microphone. */
 var IXA = { audio: null, talker: null, silent: false };
 
@@ -246,14 +253,30 @@ function callPopup(b, id) {
   act.appendChild(ans);
   act.appendChild(stop);
   b.appendChild(act);
-  var unl = null;
+  var unl = null,
+    opening = 0;
+  /* From the slide until the door says it is open (a few seconds at most, as a lock answers after the cloud has), the row says it is unlocking and the handle is back at the start, so the slide does not seem stuck at the end. */
+  function unlocking() {
+    if (ixUnlocked(ix.unlock)) opening = 0;
+    return Date.now() - opening < 4000;
+  }
   if (ix.unlock) {
     unl = pill("padlock", _T("px_unlock"), {
+      /* As the dashboard's lock row: it slides while the door is locked, and once it is open the row shows Unlocked, the handle goes back and the padlock stands open. */
+      on: function () {
+        return ixUnlocked(ix.unlock);
+      },
+      val: function () {
+        return ixUnlocked(ix.unlock) ? _T("unlocked_2") : unlocking() ? _T("dc_unlocking") : "";
+      },
       slide: function () {
+        opening = Date.now();
         ixOpen(ix.unlock);
+        unl.refresh();
+        paint();
       },
       canSlide: function () {
-        return ixCanUnlock(ix) && callShown() !== "idle";
+        return ixCanSlide(ix) && callShown() !== "idle" && !unlocking();
       },
     });
     unl.classList.add("dc-unlock");

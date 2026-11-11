@@ -52,15 +52,8 @@ if (door) {
     };
     window.HA.signPath = () => Promise.resolve(silence());
     window.IntercomTalk = { available: () => true, errors: {}, start: () => ({ ready: Promise.resolve(), stop() {}, mute() {} }) };
-    const states = { ...hass.states };
-    states["camera.door_station"] = { ...states["camera.door_station"], attributes: { ...states["camera.door_station"].attributes, access_token: "harness" } };
-    states["sensor.door_call_status"] = {
-      ...states["sensor.door_call_status"],
-      state: door.endsWith("call") ? "call in progress" : "ringing",
-      attributes: { ...states["sensor.door_call_status"].attributes, ...(security ? { can_unlock: false } : {}) },
-    };
-    hass.states = states;
-    panel.hass = hass;
+    hass.setState("camera.door_station", null, { access_token: "harness" });
+    hass.setState("sensor.door_call_status", door.endsWith("call") ? "call in progress" : "ringing", security ? { can_unlock: false } : {});
   };
   show();
 }

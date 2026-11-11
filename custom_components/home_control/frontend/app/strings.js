@@ -440,6 +440,7 @@ var EN = {
   "dc_end": "End call",
   "dc_decline": "Decline",
   "dc_speaker": "Door sound",
+  "dc_unlocking": "Unlocking…",
   "dc_talk_stopped": "Talking stopped.",
   "dc_talk_needs_https": "Talking from this page needs a secure (https) address. Listening, answering and unlocking work here.",
   "colour": "Colour",
