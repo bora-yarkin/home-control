@@ -275,6 +275,10 @@ export function makeHass(query) {
     connection,
     callService(domain, service, data) {
       calls.push({ domain, service, data });
+      if (domain === "hue_plus" && service === "set_motion_area" && data.enabled === true) {
+        const area = resources.motion_areas.areas.filter((x) => x.id === data.area)[0];
+        if (area) area.health = "healthy";
+      }
       if (domain === "hue_plus" && service === "create_motion_area")
         resources.motion_areas.areas.push({ id: "ma-" + (resources.motion_areas.areas.length + 1), name: data.name, group: { rid: data.group, rtype: "room" }, participants: [], services: [], health: "not_running", enabled: true });
       // The few states a click should visibly change, so a control can be checked.
