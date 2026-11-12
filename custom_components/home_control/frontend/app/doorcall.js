@@ -232,7 +232,7 @@ function ixTalkOpen(path) {
 function ixTalkStart(path, changed) {
   if (IXA.talker) return;
   if (!window.IntercomTalk || !window.IntercomTalk.available()) {
-    if (!window.HA.assist()) toast(_T("dc_talk_needs_https"));
+    toast(_T("dc_talk_needs_https"));
     return;
   }
   var t = { stop: function () {} };

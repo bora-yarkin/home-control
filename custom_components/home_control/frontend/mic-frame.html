@@ -1,0 +1,64 @@
+<!doctype html>
+<meta charset="utf-8">
+<title>Microphone</title>
+<!-- SPDX-License-Identifier: GPL-3.0-or-later
+     Loaded in a hidden frame by the dashboard (camera-stream.js, secureMicrophone) when the dashboard itself is on plain http,
+     where a browser gives no microphone. This page is on Home Assistant's own https address, so it may record; it passes the
+     audio to the page that framed it, and only to a page on a private network address or on this same host. -->
+<script>
+(function () {
+  var parentOrigin = null, mic = null, ctx = null, node = null, source = null;
+
+  /* The dashboard that may ask: this host itself, localhost, a .local name, or a private network address. */
+  function allowed(origin) {
+    var host;
+    try { host = new URL(origin).hostname; } catch (e) { return false; }
+    if (host === location.hostname || host === "localhost" || /\.local$/.test(host)) return true;
+    var m = /^(\d+)\.(\d+)\.(\d+)\.(\d+)$/.exec(host);
+    if (!m) return false;
+    var a = +m[1], b = +m[2];
+    return a === 10 || a === 127 || (a === 192 && b === 168) || (a === 172 && b >= 16 && b <= 31);
+  }
+
+  function say(message, transfer) {
+    window.parent.postMessage(message, parentOrigin, transfer || []);
+  }
+
+  function stop() {
+    try { node && (node.onaudioprocess = null, node.disconnect()); } catch (e) {}
+    try { source && source.disconnect(); } catch (e) {}
+    try { ctx && ctx.close(); } catch (e) {}
+    if (mic) mic.getTracks().forEach(function (t) { t.stop(); });
+    mic = ctx = node = source = null;
+  }
+
+  function start() {
+    if (mic) return;
+    navigator.mediaDevices.getUserMedia({ audio: { echoCancellation: true, noiseSuppression: true, autoGainControl: true } }).then(function (stream) {
+      mic = stream;
+      var Context = window.AudioContext || window.webkitAudioContext;
+      ctx = new Context();
+      if (ctx.resume) ctx.resume();
+      source = ctx.createMediaStreamSource(stream);
+      node = ctx.createScriptProcessor(4096, 1, 1);
+      node.onaudioprocess = function (e) {
+        var copy = new Float32Array(e.inputBuffer.getChannelData(0));
+        say({ t: "frame", rate: ctx.sampleRate, pcm: copy.buffer }, [copy.buffer]);
+      };
+      source.connect(node);
+      node.connect(ctx.destination);
+      say({ t: "ready" });
+    }).catch(function (e) {
+      say({ t: "error", name: (e && e.name) || "NotAllowedError" });
+    });
+  }
+
+  window.addEventListener("message", function (ev) {
+    if (ev.source !== window.parent || !allowed(ev.origin) || !ev.data) return;
+    parentOrigin = ev.origin;
+    if (ev.data.cmd === "start") start();
+    else if (ev.data.cmd === "stop") stop();
+  });
+  window.addEventListener("pagehide", stop);
+})();
+</script>

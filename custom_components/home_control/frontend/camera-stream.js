@@ -238,10 +238,68 @@ function start(video,id){
  It returns {ready, stop}: ready resolves when the camera has accepted the audio and rejects (with userMessage) when it cannot be done;
  stop ends everything and always releases the microphone. Whether a camera takes audio is read from its answer: it must be willing to receive. */
 
+/* A page on plain http cannot have a microphone, but a frame of this Home Assistant's own https address can: it records and passes the
+ audio back (mic-frame.html), and this makes a MediaStream of it that the callers use like a microphone's. Closing a track of that stream
+ closes the frame. */
+var MIC_FRAME_PATH="/home_control_static/mic-frame.html";
+function secureMicrophone(origin){
+ return new Promise(function(resolve,reject){
+  var Ctx=window.AudioContext||window.webkitAudioContext;
+  if(!Ctx)return reject(Object.assign(new Error("no audio"),{name:"NotSupportedError"}));
+  var frame=document.createElement("iframe"),ctx=new Ctx(),dest=ctx.createMediaStreamDestination(),next=0,done=false;
+  if(ctx.resume)ctx.resume();
+  frame.allow="microphone";
+  frame.style.cssText="position:absolute;width:0;height:0;border:0;visibility:hidden";
+  frame.setAttribute("aria-hidden","true");
+  function release(){
+   window.removeEventListener("message",onMessage);
+   try{frame.contentWindow&&frame.contentWindow.postMessage({cmd:"stop"},origin)}catch(e){}
+   try{frame.remove()}catch(e){}
+   try{ctx.close()}catch(e){}
+  }
+  function fail(name){
+   if(done)return;
+   done=true;
+   release();
+   reject(Object.assign(new Error("microphone "+name),{name:name}));
+  }
+  function onMessage(ev){
+   if(ev.origin!==origin||ev.source!==frame.contentWindow||!ev.data)return;
+   var m=ev.data;
+   if(m.t==="ready"&&!done){
+    done=true;
+    var stream=dest.stream;
+    stream.getTracks().forEach(function(t){var stop=t.stop.bind(t);t.stop=function(){stop();release()}});
+    resolve(stream);
+   }else if(m.t==="error")fail(m.name||"NotAllowedError");
+   else if(m.t==="frame"&&m.pcm){
+    var samples=new Float32Array(m.pcm),buffer=ctx.createBuffer(1,samples.length,m.rate),source=ctx.createBufferSource();
+    buffer.getChannelData(0).set(samples);
+    source.buffer=buffer;
+    source.connect(dest);
+    next=Math.max(next,ctx.currentTime+0.05);
+    source.start(next);
+    next+=buffer.duration;
+   }
+  }
+  window.addEventListener("message",onMessage);
+  frame.onload=function(){try{frame.contentWindow.postMessage({cmd:"start"},origin)}catch(e){fail("NotAllowedError")}};
+  setTimeout(function(){fail("NotAllowedError")},15000);
+  frame.src=origin+MIC_FRAME_PATH;
+  document.body.appendChild(frame);
+ });
+}
+
+function secureOriginOf(){
+ return !window.isSecureContext&&window.HA&&window.HA.secureOrigin?window.HA.secureOrigin():null;
+}
+
 function microphone(){
  function get(md){
   return md&&md.getUserMedia?md.getUserMedia({audio:{echoCancellation:true,noiseSuppression:true,autoGainControl:true}}):Promise.reject(Object.assign(new Error("no microphone support"),{name:"NotSupportedError"}));
  }
+ var origin=secureOriginOf();
+ if(origin)return secureMicrophone(origin);
  /* The dashboard runs in a frame of the same site: when the frame may not use the microphone, the page around it may. */
  return get(navigator.mediaDevices).catch(function(e){
   var parentMedia=null;
@@ -360,7 +418,7 @@ function talkAvailable(){
  function has(md){return!!(md&&md.getUserMedia)}
  var parentMedia=null;
  try{parentMedia=window.parent&&window.parent!==window?window.parent.navigator.mediaDevices:null}catch(x){}
- return has(navigator.mediaDevices)||has(parentMedia);
+ return has(navigator.mediaDevices)||has(parentMedia)||!!secureOriginOf();
 }
 
 function intercomTalk(url,onEnd){
