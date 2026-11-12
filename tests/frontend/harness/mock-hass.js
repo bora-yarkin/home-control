@@ -160,10 +160,12 @@ export function makeHass(query) {
   const resources = {
     automations: [
       { id: "auto-1", name: "Wake up", enabled: true, script: "Basic wake up routine", status: "running" },
-      { id: "auto-2", name: "Evening timer", enabled: false, script: "Timers", status: "disabled" },
+      { id: "auto-2", name: "Evening timer", enabled: false, script: "Timers", status: "disabled", state: { timer_state: "started" }, configuration: { duration: { minutes: 25 }, what: [{ group: { rid: "room-1", rtype: "room" }, recall: { rid: "scene-2", rtype: "scene" } }], where: [{ group: { rid: "room-1", rtype: "room" } }] } },
+      { id: "auto-3", name: "Hallway lights", enabled: true, script: "Motion Sensor", status: "running", configuration: { source: { rid: "ma-1", rtype: "motion_area_configuration" }, where: [{ group: { rid: "room-1", rtype: "room" } }], when: { timeslots: [{ start_time: { type: "time", time: { hour: 7, minute: 0 } }, on_motion: { recall_single: [{ action: { recall: { rid: "scene-4", rtype: "scene" } } }] }, on_no_motion: { after: { minutes: 10 }, recall_single: [{ action: "all_off" }] } }, { start_time: { type: "time", time: { hour: 23, minute: 0 } }, on_motion: { recall_single: [{ action: { recall: { rid: "scene-3", rtype: "scene" } } }] } }] } } },
     ],
-    rooms: [{ id: "room-1", name: "Living room", children: [{ id: "dev-lamp", name: "Desk lamp" }], lights: ["light-1", "light-2", "light-3"] }],
-    zones: [{ id: "zone-1", name: "Desk area", children: [], lights: ["light-1"] }], smart_scenes: [], scenes: [{ id: "scene-1", name: "Movie", group_id: "room-1", group_type: "room", lights: ["light-1", "light-2"] }, { id: "scene-2", name: "Relax", group_id: "room-1", group_type: "room", lights: ["light-1", "light-2", "light-3"] }, { id: "scene-3", name: "Nightlight", group_id: "room-1", group_type: "room", lights: ["light-2"] }],
+    rooms: [{ id: "room-1", name: "Living room", children: [{ id: "dev-lamp", name: "Desk lamp" }, { id: "dev-strip", name: "Shelf strip" }, { id: "dev-floor", name: "Floor lamp" }, { id: "dev-ceiling", name: "Ceiling light" }], lights: ["light-1", "light-2", "light-3", "light-4"] }],
+    devices: [["dev-lamp", "Desk lamp"], ["dev-strip", "Shelf strip"], ["dev-floor", "Floor lamp"], ["dev-ceiling", "Ceiling light"]].map(([id, name]) => ({ id, name, model: "Hue color lamp", services: ["light", "motion_area_candidate"] })),
+    zones: [{ id: "zone-1", name: "Desk area", children: [], lights: ["light-1"] }], smart_scenes: [], scenes: [{ id: "scene-1", name: "Movie", group_id: "room-1", group_type: "room", lights: ["light-1", "light-2"] }, { id: "scene-2", name: "Relax", group_id: "room-1", group_type: "room", lights: ["light-1", "light-2", "light-3"] }, { id: "scene-3", name: "Nightlight", group_id: "room-1", group_type: "room", lights: ["light-2"] }, { id: "scene-4", name: "Concentrate", group_id: "room-1", group_type: "room", lights: ["light-1"] }, { id: "scene-5", name: "Read", group_id: "room-1", group_type: "room", lights: ["light-1"] }],
     entertainment_areas: [
       {
         id: "area-1", name: "TV", type: "screen", end_state: "last_state", performance: "auto", performance_light: null,
@@ -173,7 +175,11 @@ export function makeHass(query) {
         ],
       },
     ],
-    motion_areas: { candidates: [], areas: [{ id: "ma-1", metadata: { name: "Hallway" }, enabled: true }] },
+    motion_areas: {
+      candidates: ["dev-lamp", "dev-strip", "dev-floor", "dev-ceiling"].map((owner, i) => ({ id: "cand-" + i, owner: { rid: owner, rtype: "device" }, capabilities: ["sensor", "collector", "sync"] })),
+      areas: [{ id: "ma-1", name: "Hallway", group: { rid: "room-1", rtype: "room" }, participants: ["cand-0", "cand-1", "cand-2"].map((rid) => ({ resource: { rid, rtype: "motion_area_candidate" } })), services: [{ rid: "cv-1", rtype: "convenience_area_motion" }, { rid: "sec-1", rtype: "security_area_motion" }], health: "healthy", enabled: true }],
+      services: [{ id: "cv-1", enabled: true, sensitivity: { sensitivity: 1, sensitivity_max: 2 } }],
+    },
     apps: [{ id: "a1", name: "Hue app", last_used: "2026-11-04T21:00:00" }, { id: "a2", name: "Home Assistant", last_used: "2026-11-05T01:12:00" }],
     accessories: [
       {
@@ -208,6 +214,7 @@ export function makeHass(query) {
       { id: "acc-2", name: "Door tap switch", dials: 1, automation_id: null, buttons: [{ id: "b5", number: 1, last_event: null }], actions: {}, targets: {} },
     ],
     bridge: { name: "Hue Bridge Pro", time_zone: "Europe/Istanbul", internet: "connected" },
+    home_and_away: { configured: true, clients: [] },
   };
 
   const connection = {
@@ -237,6 +244,7 @@ export function makeHass(query) {
         case "call_service": {
           calls.push({ domain: msg.domain, service: msg.service, data: msg.service_data, response: true });
           if (msg.domain === "hue_plus" && msg.service === "get_resources") return Promise.resolve({ response: resources });
+
           if (msg.domain === "hue_plus" && msg.service === "import_hue_scene")
             return Promise.resolve({
               response: {
@@ -258,7 +266,7 @@ export function makeHass(query) {
     services: {
       light: { turn_on: {}, turn_off: {} }, switch: { turn_on: {}, turn_off: {} }, select: { select_option: {} },
       number: { set_value: {} }, button: { press: {} }, scene: { turn_on: {} },  update: { install: {} },
-      ...(withSync ? { hue_plus: Object.fromEntries(["get_resources", "set_effect", "set_style", "configure_light", "timed_effect", "signal", "create_routine", "configure_button", "set_streaming_end_state", "stream_colors", "stop_streaming", "set_motion_area", "set_auto_update", "check_for_update", "install_bridge_update", "set_zigbee_channel", "search_for_devices", "remove_matter_fabric", "revoke_app", "update_entertainment_area", "import_hue_scene", "create_scene", "update_scene", "delete_scene", "create_daily_smart_scene", "set_name"].map((s) => [s, {}])) } : {}),
+      ...(withSync ? { hue_plus: Object.fromEntries(["get_resources", "set_effect", "set_style", "configure_light", "timed_effect", "signal", "create_routine", "configure_button", "set_streaming_end_state", "stream_colors", "stop_streaming", "trigger_automation", "set_motion_area", "create_motion_area", "set_motion_area_lights", "delete_motion_area", "update_routine", "update_automation", "delete_automation", "set_auto_update", "check_for_update", "install_bridge_update", "set_zigbee_channel", "search_for_devices", "remove_matter_fabric", "revoke_app", "update_entertainment_area", "import_hue_scene", "create_scene", "update_scene", "delete_scene", "create_daily_smart_scene", "set_name"].map((s) => [s, {}])) } : {}),
       home_control: Object.fromEntries(["scene_start", "scene_update", "scene_freeze", "scene_play", "scene_stop", "scene_save", "scene_delete", "area_save", "area_delete", "locate_light", "get_library"].map((s) => [s, {}])),
     },
     config: { unit_system: { temperature: "°C" }, time_zone: "UTC", language: "en", components: [] },
@@ -268,6 +276,12 @@ export function makeHass(query) {
     connection,
     callService(domain, service, data) {
       calls.push({ domain, service, data });
+      if (domain === "hue_plus" && service === "set_motion_area" && data.enabled === true) {
+        const area = resources.motion_areas.areas.filter((x) => x.id === data.area)[0];
+        if (area) area.health = "healthy";
+      }
+      if (domain === "hue_plus" && service === "create_motion_area")
+        resources.motion_areas.areas.push({ id: "ma-" + (resources.motion_areas.areas.length + 1), name: data.name, group: { rid: data.group, rtype: "room" }, participants: [], services: [], health: "not_running", enabled: true });
       // The few states a click should visibly change, so a control can be checked.
       const id = data && data.entity_id;
       const target = typeof id === "string" ? states[id] : null;
