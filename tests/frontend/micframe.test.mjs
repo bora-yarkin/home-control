@@ -1,5 +1,5 @@
 // SPDX-License-Identifier: GPL-3.0-or-later
-// mic-frame.html: the page on the https address that records for a dashboard on plain http. It must answer only to a page on a
+// mic_frame.html: the page on the https address that records for a dashboard on plain http. It must answer only to a page on a
 // private network address or on its own host, and it must send the audio to the page that asked, never to any origin.
 // Run: node --test tests/frontend
 import assert from "node:assert/strict";
@@ -7,7 +7,7 @@ import { readFileSync } from "node:fs";
 import test from "node:test";
 import vm from "node:vm";
 
-const html = readFileSync(new URL("../../custom_components/home_control/frontend/mic-frame.html", import.meta.url), "utf8");
+const html = readFileSync(new URL("../../custom_components/home_control/mic_frame.html", import.meta.url), "utf8");
 const script = /<script>([\s\S]*)<\/script>/.exec(html)[1];
 
 function frame(host = "ha.example.net") {

@@ -37,7 +37,7 @@ Only a `sensor` can tell ringing from answered; the others ring until they stop,
 
 Both are accepted only as an `/api/` path with no `..`; an address anywhere else is ignored. The profile's own `ix.listen` (a path) overrides `listen_path`.
 
-Where the page itself is on plain `http` (other than localhost: a browser refuses `getUserMedia` there and no page can change that), the microphone is taken from a hidden frame of Home Assistant's own `https` address (its external URL, `mic-frame.html`), which records and passes the audio back to the page; only a page on a private network address or on that host is answered. Without an external `https` URL, or when the browser refuses the microphone, it says that talking needs https; listening, answering and unlocking work on http.
+Where the page itself is on plain `http` (other than localhost: a browser refuses `getUserMedia` there and no page can change that), the microphone is taken from a hidden frame of Home Assistant's own `https` address (its external URL, `mic_frame.html`, served by `micframe.py` with its own headers because Home Assistant adds `X-Frame-Options: SAMEORIGIN` to everything else), which records and passes the audio back to the page; only a page on a private network address or on that host is answered. Without an external `https` URL, or when the browser refuses the microphone, it says that talking needs https; listening, answering and unlocking work on http.
 
 ## The authors of the audio paths
 

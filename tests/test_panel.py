@@ -90,3 +90,16 @@ async def test_the_settings_form_saves_what_is_typed_and_refuses_a_bad_or_taken_
     assert done["type"] == "create_entry" and done["data"]["title"] == "House"
     await hass.async_block_till_done()
     assert hass.data[DATA_PANELS]["house"].sidebar_title == "House" and hass.data[DATA_PANELS]["house"].require_admin is True
+
+
+async def test_the_microphone_page_can_be_framed_by_an_http_dashboard_and_runs_only_its_own_script(hass, hass_client_no_auth):
+    await _setup(hass)
+    client = await hass_client_no_auth()
+    response = await client.get("/home_control_mic_frame")
+    assert response.status == 200
+    # Home Assistant's header middleware adds this to every response; the page's own response is already sent when it runs.
+    assert "X-Frame-Options" not in response.headers
+    policy = response.headers["Content-Security-Policy"]
+    assert "frame-ancestors http: https:" in policy and "default-src 'none'" in policy and "script-src 'sha256-" in policy
+    assert response.headers["Permissions-Policy"] == "microphone=(self)"
+    assert "getUserMedia" in await response.text()

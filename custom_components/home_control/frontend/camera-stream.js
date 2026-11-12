@@ -239,9 +239,9 @@ function start(video,id){
  stop ends everything and always releases the microphone. Whether a camera takes audio is read from its answer: it must be willing to receive. */
 
 /* A page on plain http cannot have a microphone, but a frame of this Home Assistant's own https address can: it records and passes the
- audio back (mic-frame.html), and this makes a MediaStream of it that the callers use like a microphone's. Closing a track of that stream
+ audio back (the mic frame page), and this makes a MediaStream of it that the callers use like a microphone's. Closing a track of that stream
  closes the frame. */
-var MIC_FRAME_PATH="/home_control_static/mic-frame.html";
+var MIC_FRAME_PATH="/home_control_mic_frame";
 function secureMicrophone(origin){
  return new Promise(function(resolve,reject){
   var Ctx=window.AudioContext||window.webkitAudioContext;
