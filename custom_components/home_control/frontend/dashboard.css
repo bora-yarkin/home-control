@@ -599,6 +599,8 @@ body.pinhdr:not(.editing) .wrap::before{content:"";position:fixed;top:0;left:0;r
 .lw-pin{position:absolute;width:10.7cqw;height:10.7cqw;margin:-12.9cqw 0 0 -5.35cqw;display:flex;align-items:center;justify-content:center;color:#fff;pointer-events:none}
 .lw-pin::before{content:"";position:absolute;inset:0;background:var(--pc,rgba(8,10,14,.9));border-radius:50% 50% 50% 0;transform:rotate(-45deg);box-shadow:0 4px 14px rgba(0,0,0,.35)}
 .lw-num{position:relative;font-size:5.2cqw;font-weight:700;line-height:1}
+/* the picked light's icon in the drop of the marker it is in */
+.lw-pick{display:contents}
 .lw-pin svg{position:relative;width:5.8cqw;height:5.8cqw;fill:none;stroke:currentColor;stroke-width:1.7;stroke-linecap:round;stroke-linejoin:round}
 .lw-pin.act{z-index:3}
 .lw-pin .lw-lbl{position:absolute;left:50%;bottom:100%;transform:translateX(-50%);margin-bottom:8px;white-space:nowrap;font-size:var(--fs-s,12px);background:rgba(8,10,14,.9);color:#fff;padding:3px 9px;border-radius:12px;opacity:0;transition:opacity .15s}

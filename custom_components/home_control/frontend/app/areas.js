@@ -723,6 +723,7 @@ function eaLightInfo(info, lm) {
       }
     );
   info.appendChild(sep(dev ? dev.name : entName(lm.id), dev ? dev.icon : "light"));
+  if (eaIsBar(lm.id)) eaOrientRows(info, lm);
   rows.forEach(function (f) {
     f.after = redraw;
     info.appendChild(eaSlider(lm, f));
@@ -739,6 +740,44 @@ function eaLightInfo(info, lm) {
       },
     })
   );
+}
+
+/* How a bar stands, as three choices (the Hue app's "Orientation setup"): lying flat or standing up, parallel or perpendicular to the wall the speakers stand at (the back wall), its first
+ zone (the cord) at the left or the right. They set its direction (a) and tilt (p); the sliders below fine-tune them. */
+function eaOrientOf(l) {
+  var a = ((((l.a || 0) % 360) + 360) % 360) * (Math.PI / 180),
+    across = Math.abs(Math.sin(a)) > Math.abs(Math.cos(a));
+  return { up: Math.abs(l.p || 0) >= 45, across: across, right: across ? Math.sin(a) < 0 : Math.cos(a) < 0 };
+}
+
+function eaOrientSet(l, o) {
+  l.p = o.up ? 90 : 0;
+  l.a = o.across ? (o.right ? 270 : 90) : o.right ? 180 : 0;
+}
+
+function eaOrientRows(info, lm) {
+  [
+    ["up", "lying_flat", "standing_up"],
+    ["across", "parallel", "perpendicular"],
+    ["right", "cord_at_left", "cord_at_right"],
+  ].forEach(function (c) {
+    info.appendChild(
+      seg(
+        [
+          [false, _T(c[1])],
+          [true, _T(c[2])],
+        ],
+        eaOrientOf(lm)[c[0]],
+        function (v) {
+          var o = eaOrientOf(lm);
+          o[c[0]] = v;
+          eaOrientSet(lm, o);
+          eaDrawLight(lm.id);
+          eaInfo();
+        }
+      )
+    );
+  });
 }
 
 /* What can be set for the picked thing: its width and depth. */

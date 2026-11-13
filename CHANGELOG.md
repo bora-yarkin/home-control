@@ -4,6 +4,14 @@ Format: [Keep a Changelog](https://keepachangelog.com/). Versions follow [semant
 
 ## [Unreleased]
 
+## [0.10.0] - 2026-11-14
+
+### Changed
+- Light panel: tapping the tile of a light whose marker stands for several lights (lights that look the same and were joined, or a group that is not separated) no longer separates it. The marker is picked for that light: its drop shows the light's icon instead of the number, and brightness, colour, white and effects act on that light alone. Dragging the marker takes that light out and leaves the others together; tapping it again opens the group's circle as before.
+
+### Added
+- Area editor: a light made of zones (a bar) gets three choices above its direction and tilt sliders: lying flat or standing up, parallel or perpendicular to the back wall, cord at the left or the right.
+
 ## [0.9.10] - 2026-11-11
 
 - Door call: the door's sound is requested again a few times after Answer, because the station may not report the call yet; the "nothing to listen to" message shows only after the last try.
