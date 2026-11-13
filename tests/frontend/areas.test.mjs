@@ -95,3 +95,17 @@ test("the editor offers the page, and the page is registered", () => {
   assert.match(readFileSync(new URL("areas.js", APP), "utf8"), /showPopup\("area-lights", true\)/);
   assert.match(readFileSync(new URL("popups.js", APP), "utf8"), /k === "area-lights"[\s\S]{0,120}build: eaMorePage/);
 });
+
+test("a bar's orientation choices set its direction and tilt, and read back as chosen", () => {
+  const p = page();
+  for (const up of [false, true])
+    for (const across of [false, true])
+      for (const right of [false, true]) {
+        const bar = { a: 33, p: 12 };
+        p.eaOrientSet(bar, { up, across, right });
+        assert.deepEqual(plain(p.eaOrientOf(bar)), { up, across, right });
+      }
+  const flat = { a: 0, p: 0 };
+  p.eaOrientSet(flat, { up: true, across: true, right: false });
+  assert.deepEqual(plain(flat), { a: 90, p: 90 });
+});

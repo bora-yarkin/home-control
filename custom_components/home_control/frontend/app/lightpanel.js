@@ -79,6 +79,15 @@ function lpVisible(S) {
   return list;
 }
 
+/* The marker that shows a light now: the light's own, or the group (or lights joined by hand) it is in. */
+function lpShownOf(S, n) {
+  return (
+    lpVisible(S).filter(function (m) {
+      return m === n || lpLeaves(m).indexOf(n) >= 0 || (m.virtual && m.kids.some(function (k) { return lpLeaves(k).indexOf(n) >= 0; }));
+    })[0] || null
+  );
+}
+
 /* What is shown: the whole, or, where a node was separated, the nodes under it. */
 function lpFrontier(n, ex) {
   if (!(n.kids && ex[n.key])) return [n];
@@ -283,6 +292,23 @@ function lpMarker(n, showName) {
   return m;
 }
 
+/* The drop of a marker shows the number of lights it stands for, or, while one of them is picked, that light's icon. */
+function lpPinPick(m, n) {
+  var num = m.pin.querySelector(".lw-num"),
+    ico = m.pin.querySelector(".lw-pick");
+  if (!num) return;
+  if (n && (!ico || ico.dataset.key !== n.key)) {
+    if (ico) ico.remove();
+    ico = mk("span", "lw-pick", svg(n.icon || "light"));
+    ico.dataset.key = n.key;
+    m.pin.insertBefore(ico, num);
+    num.style.display = "none";
+  } else if (!n && ico) {
+    ico.remove();
+    num.style.display = "";
+  }
+}
+
 function lpPlace(m, x, y) {
   m.x = x;
   m.y = y;
@@ -454,6 +480,7 @@ function lpCircle(S, mode) {
       m.on = on;
       m.pin.classList.toggle("act", on);
       m.dot.classList.toggle("picked", on);
+      lpPinPick(m, on && S.focus && S.focus.v === m.n ? S.focus.n : null);
       m.pin.classList.toggle("off", !lit);
       m.dot.classList.toggle("off", !lit);
       /* A light that is off is a dot in the colour it was. */
@@ -711,6 +738,7 @@ function lpCircle(S, mode) {
       return;
     }
     wasSel = S.sel === cur.n.key || (!S.sel && marks.length === 1 && !cur.inBub);
+    if (S.focus && cur.n === S.focus.v) S.focus.keep = true;
     S.select(cur.n.key);
     cur.pin.classList.add("press");
     cur.dot.classList.add("press");
@@ -726,6 +754,20 @@ function lpCircle(S, mode) {
         cur.pin.classList.add("press");
         cur.dot.classList.add("press");
       }
+    }
+    if (!cur.inBub && S.focus && cur.n === S.focus.v) {
+      /* The group's marker was picked for one of its lights (its tile was tapped): dragging it takes that light out, and the others stay together. */
+      var pk = S.focus.n.key,
+        pg = S.focus.v,
+        pn = S.focus.n;
+      S.focus = null;
+      S.detach(pg, pn);
+      cur = marks.filter(function (m) {
+        return m.n.key === pk;
+      })[0];
+      if (!cur) return;
+      cur.pin.classList.add("press");
+      cur.dot.classList.add("press");
     }
     if (cur.inBub) {
       /* Dragging a light at all takes it out of the group at once, the circle closes, and the light goes where the finger goes. */
@@ -932,7 +974,12 @@ function lpState(root, both) {
     S.flyFrom = null;
     if (S.bsl) S.bsl.refresh();
   };
+  /* A light picked inside a marker that stands for several (S.focus = {v: the marker's node, n: the light}): the marker stays whole, shows the light's icon, and what is set acts on
+     the light alone, as the Hue app does it. Any other choice ends it. */
+  S.focus = null;
   S.select = function (key) {
+    if (S.focus && !(S.focus.keep && key === S.focus.v.key)) S.focus = null;
+    if (S.focus) S.focus.keep = false;
     S.sel = key;
     S.subs.forEach(function (s) {
       s.sel();
@@ -941,10 +988,17 @@ function lpState(root, both) {
   };
   /* What brightness, temperatures and the like act on: the selected marker, or the whole. */
   S.target = function () {
+    if (S.focus && S.sel === S.focus.v.key) return S.focus.n;
     return (S.sel && lpFindIn(S, S.sel)) || root;
   };
   /* A tile was tapped: the light is selected, and its marker is shown (the groups above it are separated where needed, and lights joined by hand are taken apart). */
   S.reveal = function (n) {
+    /* A light whose marker stands for several (lights that look the same, or a group not separated) is picked inside it: nothing is separated until that marker is dragged. */
+    var shown = lpShownOf(S, n);
+    if (shown && shown !== n && lpCount(shown) > 1 && !S.maker) {
+      S.focus = { v: shown, n: n, keep: true };
+      return S.select(shown.key);
+    }
     /* A light that was joined to others by hand leaves them first. */
     for (var q = n; q; q = q.parent) {
       var v = S.joined.filter(function (x) {
@@ -1741,6 +1795,10 @@ function lpTileColours(n) {
 
 /* Whether a tile is part of what is selected: the tile itself, the group it belongs to, or one of its zones. */
 function lpTileSel(S, n) {
+  if (S.focus && S.sel === S.focus.v.key) {
+    for (var q = S.focus.n; q; q = q.parent) if (q === n) return true;
+    return false;
+  }
   var sel = S.sel ? lpFindIn(S, S.sel) : S.root;
   if (!sel) return false;
   for (var p = sel; p; p = p.parent) if (p === n) return true;
