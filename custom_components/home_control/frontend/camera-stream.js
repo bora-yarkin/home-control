@@ -266,7 +266,10 @@ function secureMicrophone(origin){
   function onMessage(ev){
    if(ev.origin!==origin||ev.source!==frame.contentWindow||!ev.data)return;
    var m=ev.data;
-   if(m.t==="ready"&&!done){
+   if(m.t==="ack"){
+    /* The frame is there and says whether it may record: a browser that refuses says so here, not by silence. */
+    if(m.media===false||m.allowed===false)fail(m.media===false?"NotSupportedError":"NotAllowedError");
+   }else if(m.t==="ready"&&!done){
     done=true;
     var stream=dest.stream;
     stream.getTracks().forEach(function(t){var stop=t.stop.bind(t);t.stop=function(){stop();release()}});

@@ -35,6 +35,7 @@ function frame(host = "ha.example.net") {
   const context = {
     window,
     location: { hostname: host },
+    document: {},
     navigator: { mediaDevices: { getUserMedia: async () => stream } },
     URL,
     Float32Array,
@@ -50,7 +51,7 @@ test("only a dashboard on this host or a private network address is answered", a
     const { posted, send } = frame();
     send(origin, { cmd: "start" });
     await new Promise((resolve) => setImmediate(resolve));
-    assert.deepEqual(posted.map((p) => [p.message.t, p.origin]), [["ready", origin]], origin);
+    assert.deepEqual(posted.map((p) => [p.message.t, p.origin]), [["ack", origin], ["ready", origin]], origin);
   }
   for (const origin of ["http://evil.example.com", "http://192.169.0.1", "http://172.32.0.1", "http://homeassistant.local.evil.com", "null"]) {
     const { posted, send } = frame();
@@ -74,6 +75,7 @@ test("a refused microphone is reported to the asker with the browser's error nam
   const context = {
     window: { parent, addEventListener: (type, fn) => (listeners[type] = fn) },
     location: { hostname: "ha.example.net" },
+    document: {},
     navigator: { mediaDevices: { getUserMedia: async () => Promise.reject(Object.assign(new Error("denied"), { name: "NotAllowedError" })) } },
     URL,
   };
@@ -81,5 +83,6 @@ test("a refused microphone is reported to the asker with the browser's error nam
   vm.runInContext(script, context);
   listeners.message({ origin: "http://homeassistant.local:8123", data: { cmd: "start" }, source: parent });
   await new Promise((resolve) => setImmediate(resolve));
-  assert.equal(JSON.stringify(posted), JSON.stringify([{ message: { t: "error", name: "NotAllowedError" }, origin: "http://homeassistant.local:8123" }]));
+  assert.deepEqual(posted.map((p) => p.message.t), ["ack", "error"]);
+  assert.equal(posted[1].message.name, "NotAllowedError");
 });

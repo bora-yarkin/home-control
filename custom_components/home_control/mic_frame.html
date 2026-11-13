@@ -34,6 +34,14 @@
 
   function start() {
     if (mic) return;
+    var policy = document.permissionsPolicy || document.featurePolicy;
+    say({
+      t: "ack",
+      secure: window.isSecureContext,
+      media: !!navigator.mediaDevices,
+      allowed: policy && policy.allowsFeature ? policy.allowsFeature("microphone") : null,
+    });
+    if (!navigator.mediaDevices) return say({ t: "error", name: "NotSupportedError" });
     navigator.mediaDevices.getUserMedia({ audio: { echoCancellation: true, noiseSuppression: true, autoGainControl: true } }).then(function (stream) {
       mic = stream;
       var Context = window.AudioContext || window.webkitAudioContext;

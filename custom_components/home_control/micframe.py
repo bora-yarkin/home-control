@@ -17,7 +17,7 @@ import re
 from pathlib import Path
 
 from aiohttp import web
-from homeassistant.components.http import HomeAssistantView
+from homeassistant.components.http import KEY_HASS, HomeAssistantView
 
 URL_MIC_FRAME = "/home_control_mic_frame"
 _PAGE = Path(__file__).parent / "mic_frame.html"
@@ -37,22 +37,20 @@ class MicFrameView(HomeAssistantView):
     name = "home_control:mic_frame"
     requires_auth = False
 
-    def __init__(self, page: bytes, policy: str) -> None:
-        self._page, self._policy = page, policy
-
     async def get(self, request: web.Request) -> web.StreamResponse:
+        page, policy = await request.app[KEY_HASS].async_add_executor_job(load_page)
         response = web.StreamResponse(
             headers={
                 "Content-Type": "text/html; charset=utf-8",
                 "Cache-Control": "no-store",
-                "Content-Security-Policy": self._policy,
+                "Content-Security-Policy": policy,
                 "Permissions-Policy": "microphone=(self)",
                 "Referrer-Policy": "no-referrer",
                 "X-Content-Type-Options": "nosniff",
             }
         )
-        response.content_length = len(self._page)
+        response.content_length = len(page)
         await response.prepare(request)
-        await response.write(self._page)
+        await response.write(page)
         await response.write_eof()
         return response

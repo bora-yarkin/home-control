@@ -34,7 +34,7 @@ from .images import URL_IMAGES, RemoteImageDeleteView, RemoteImageUploadView
 from .live import services as live_services
 from .live import setup as live_setup
 from .live import websocket as live_websocket
-from .micframe import MicFrameView, load_page
+from .micframe import MicFrameView
 
 FRONTEND = Path(__file__).parent / "frontend"
 STATIC_REGISTERED = f"{DOMAIN}_static_registered"
@@ -59,7 +59,7 @@ async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
         )
         hass.http.register_view(RemoteImageUploadView(folder))
         hass.http.register_view(RemoteImageDeleteView(folder))
-        hass.http.register_view(MicFrameView(*await hass.async_add_executor_job(load_page)))
+        hass.http.register_view(MicFrameView())
         hass.data[STATIC_REGISTERED] = True
     version = await hass.async_add_executor_job(_dashboard_version)
     await panel_custom.async_register_panel(
