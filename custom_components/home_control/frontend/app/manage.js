@@ -165,6 +165,8 @@ function newDevBoot() {
       regLoad(false).then(function () {
         newDevBadge();
         batsAutoAdd();
+        /* What a notification rule watches follows the devices, the batteries and the remotes Home Assistant has now; this reads each automation and writes only one that differs. */
+        notifyReconcileSoon();
       });
   }, 120000);
 }

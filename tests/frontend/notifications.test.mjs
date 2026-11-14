@@ -271,3 +271,23 @@ test("the notification of a door call opens the dashboard when it is tapped; oth
   const other = load({ devices: [], rules: rules() }).sandbox.watchPayload({ ...watch, e: "sensor.washer" });
   assert.equal(other.actions[0].data.data, undefined);
 });
+
+test("switching a rule from a chosen list to all devices puts the devices that were not chosen into the automation at once", async () => {
+  const options = { devices: [camera("camera.door"), camera("camera.garage"), light("light.hall")], rules: rules({ offline: on({ scope: "custom", ents: ["camera.garage"] }) }) };
+  const { sandbox, saved } = load(options);
+  await sandbox.syncNotify("offline");
+  assert.deepEqual(JSON.parse(JSON.stringify(saved[0][1].triggers[0].entity_id)), ["camera.garage"]);
+  sandbox.nrule("offline").scope = "all";
+  await sandbox.syncNotify("offline");
+  assert.deepEqual(JSON.parse(JSON.stringify(saved[1][1].triggers[0].entity_id)), ["camera.door", "camera.garage", "light.hall"]);
+});
+
+test("switching the battery rule back to all tracked batteries puts the batteries that were not chosen into the automation at once", async () => {
+  const options = { ...remote, home, bats: [D1, D2], devices: [], rules: rules({ batt: on({ scope: "custom", devs: [D2] }) }) };
+  const { sandbox, saved } = load(options);
+  await sandbox.syncNotify("batt");
+  assert.deepEqual(saved[0][1].triggers.length, 1);
+  sandbox.nrule("batt").scope = "default";
+  await sandbox.syncNotify("batt");
+  assert.deepEqual(JSON.parse(JSON.stringify(saved[1][1].triggers.map((t) => t.entity_id))), [["sensor.desk_remote_battery"], ["binary_sensor.window_battery_low"]]);
+});
