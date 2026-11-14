@@ -467,7 +467,7 @@ function glancePage(b, id) {
     b.appendChild(
       pill("battery", _T("battery_sensors"), {
         sub: function () {
-          return cntS(UI.bats.length, _T("sensor"), _T("sensors_2"));
+          return cntS(UI.bats.length, _T("device_2"), _T("devices"));
         },
         tap: function () {
           showPopup("manage-bats", true);

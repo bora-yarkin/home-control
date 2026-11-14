@@ -9,6 +9,13 @@ function state(entity_id, value, attributes = {}) {
   return [entity_id, { entity_id, state: String(value), attributes, last_changed: now, last_updated: now, context: {} }];
 }
 
+/* Devices that have a battery (invented): Home Assistant's device ids are 32 hex digits, which the dashboard checks. */
+const BATTERY_DEVICES = [
+  ["1".repeat(32), "BILRESA remote", "Desk Remote", "living"],
+  ["2".repeat(32), "Window sensor", null, null],
+  ["3".repeat(32), "Door sensor with a long name that needs two lines", null, "living"],
+];
+
 function reg(entity_id, platform, unique_id, device_id, extra = {}) {
   return { entity_id, platform, unique_id, device_id, area_id: null, disabled_by: null, entity_category: null, ...extra };
 }
@@ -67,6 +74,12 @@ export function makeHass(query) {
     state("scene.living_room_reading", "unknown", { friendly_name: "Living room Reading", name: "Reading", is_dynamic: false, group_name: "Living room" }),
     state("select.living_room_scene", "Reading", { friendly_name: "Scene", options: ["Arctic aurora", "Reading"] }),
     // Home Control's own integration plays live scenes for every light; its sensor lists what is running.
+    state("binary_sensor.desk_remote_reachable", "on", { friendly_name: "Desk Remote Reachable", device_class: "connectivity" }),
+    state("binary_sensor.window_remote_reachable", "off", { friendly_name: "Window Remote Reachable", device_class: "connectivity" }),
+    state("sensor.desk_remote_battery", "80", { friendly_name: "Desk Remote Battery", device_class: "battery", unit_of_measurement: "%" }),
+    state("binary_sensor.desk_remote_battery_low", "off", { friendly_name: "Desk Remote Battery low", device_class: "battery" }),
+    state("sensor.window_sensor_battery", "12", { friendly_name: "Window sensor Battery", device_class: "battery", unit_of_measurement: "%" }),
+    state("binary_sensor.door_sensor_battery_low", "on", { friendly_name: "Door sensor Battery low", device_class: "battery" }),
     state("sensor.home_control_live_scenes", "0", { friendly_name: "Live scenes", sessions: {}, saved_scenes: 0, saved_areas: 0 }),
     ...(withSync
       ? [
@@ -103,6 +116,12 @@ export function makeHass(query) {
     reg("light.shelf_strip", "hue_plus", "light-2", "dev-strip"),
     reg("light.ceiling_plain", "other", "plain-1", "dev-plain"),
     reg("sensor.home_control_live_scenes", "home_control", "entry1_live_scenes", "dev-home-control"),
+    reg("binary_sensor.desk_remote_reachable", "fast_matter_switch", "fast_matter_switch-reachable-1", BATTERY_DEVICES[0][0], { entity_category: "diagnostic" }),
+    reg("binary_sensor.window_remote_reachable", "fast_matter_switch", "fast_matter_switch-reachable-2", BATTERY_DEVICES[1][0], { entity_category: "diagnostic" }),
+    reg("sensor.desk_remote_battery", "test", "bat-1", BATTERY_DEVICES[0][0], { entity_category: "diagnostic" }),
+    reg("binary_sensor.desk_remote_battery_low", "test", "bat-1-low", BATTERY_DEVICES[0][0], { entity_category: "diagnostic" }),
+    reg("sensor.window_sensor_battery", "test", "bat-2", BATTERY_DEVICES[1][0], { entity_category: "diagnostic" }),
+    reg("binary_sensor.door_sensor_battery_low", "test", "bat-3", BATTERY_DEVICES[2][0], { entity_category: "diagnostic" }),
     reg("light.living_room", "hue_plus", "group-1", "dev-living-group", { area_id: "living" }),
     reg("light.gradient_tube", "hue_plus", "light-3", "dev-tube", { area_id: "living" }),
     ...manyKelvin.map((_, i) => reg(`light.many_${i + 1}`, "other", `many-${i + 1}`, `dev-many-${i + 1}`, { area_id: "living" })),
@@ -152,6 +171,7 @@ export function makeHass(query) {
     ["dev-lamp", "Desk lamp"], ["dev-strip", "Shelf strip"], ["dev-plain", "Ceiling (not Hue)"],
     ["dev-bridge", "Hue Bridge"], ["dev-living-group", "Living room"], ["dev-tube", "Gradient tube"], ["dev-spotify", "Hue Spotify sync"], ["dev-box", "Living room box"], ["dev-tv", "Living TV"], ["dev-door", "Door station"],
   ].map(([id, name]) => ({ id, name, area_id: null, manufacturer: "Invented", model: "Test" }));
+  devices.push(...BATTERY_DEVICES.map(([id, name, byUser, area]) => ({ id, name, name_by_user: byUser, area_id: area, manufacturer: "Invented", model: "Test" })));
 
   const stored = { user: {}, system: {} };
   const calls = [];

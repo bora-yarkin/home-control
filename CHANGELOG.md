@@ -4,6 +4,11 @@ Format: [Keep a Changelog](https://keepachangelog.com/). Versions follow [semant
 
 ## [Unreleased]
 
+### Changed
+- **Batteries are devices.** The Batteries popup, Settings, Batteries and the low-battery notification follow devices, not sensors: a device used to appear twice when it had a percentage sensor and a low flag. Each row says `Area · Device` (the name may take two lines), the battery percentage and a status (OK or Low). Devices with a battery that Home Assistant gains later are tracked, unless taken off the list; a device that was deleted and added again (a new device to Home Assistant) joins and its old self leaves, and the low-battery notification is brought to the new list. Settings, Batteries adds a device from a list of the devices that have a battery. The list from before (sensors) is not carried over: the popup starts empty, and a notification rule that chose sensors becomes "all tracked batteries".
+- The low-battery notification names the device as `Area · Device`, watches a device by its percentage (or by its low flag when it has none, never both), and can be limited to chosen devices.
+- **Remotes in the device-offline notification.** Fast Matter switch's Reachable sensors (the BILRESA remotes and other sleepy Matter devices) are watched by the same rule, on their own time: off for 15 minutes to 4 hours (30 minutes by default), apart from the time of the other devices. The toggle and the time are on the Device offline page; the message says `Area · Device is offline`.
+
 ## [0.10.0] - 2026-11-14
 
 ### Changed

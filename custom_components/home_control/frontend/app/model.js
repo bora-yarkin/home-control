@@ -333,7 +333,7 @@ function cleanUI(u) {
     batsOff: Array.isArray(u.batsOff)
       ? u.batsOff
           .filter(function (x) {
-            return typeof x === "string" && ENTRE.test(x);
+            return typeof x === "string" && DEVRE.test(x);
           })
           .slice(0, 200)
       : [],
@@ -435,9 +435,9 @@ function cleanUI(u) {
     });
     o.stat[rid] = out;
   });
+  /* Tracked batteries are devices (app/batteries.js). A list from before that, of [name, entity] pairs, is not carried over. */
   (Array.isArray(u.bats) ? u.bats : []).slice(0, 30).forEach(function (b) {
-    if (Array.isArray(b) && ok(b[0], 40) && typeof b[1] === "string" && ENTRE.test(b[1]))
-      o.bats.push([b[0], b[1]]);
+    if (typeof b === "string" && DEVRE.test(b) && o.bats.indexOf(b) < 0) o.bats.push(b);
   });
   var lv = u.layout && u.layout.v,
     cur = lv >= 3 ? { home: u.layout.home, rooms: u.layout.rooms || {} } : migrateLayout(u, ids);
@@ -657,10 +657,8 @@ function applyUI() {
       if (d.id && !OWNALL[d.id]) OWNALL[d.id] = r.id;
     });
   });
-  /* Battery sensors of a hidden room are left out like the room's devices. */
-  BATLIST = (UI.bats || []).filter(function (x) {
-    return ISADMIN || modeOf(x[1]).mode !== "hide";
-  });
+  /* The batteries tracked; those of a hidden room are left out where others see them (batVisible). */
+  BATLIST = (UI.bats || []).slice();
   UI.rooms.forEach(function (r) {
     if (r.hide || roomHidden(r.id)) return;
     UIROOM[r.id] = r;

@@ -6,17 +6,24 @@ import { readFileSync } from "node:fs";
 import test from "node:test";
 import vm from "node:vm";
 
-const SOURCE = readFileSync(new URL("../../custom_components/home_control/frontend/app/notifications.js", import.meta.url), "utf8");
+const APP = "../../custom_components/home_control/frontend/app/";
+const SOURCE = readFileSync(new URL(APP + "notifications.js", import.meta.url), "utf8");
+const BATTERIES = readFileSync(new URL(APP + "batteries.js", import.meta.url), "utf8");
 
 /* The page's globals that notifications.js uses. `devices` are the dashboard's devices, `live` the automations in Home Assistant. */
-function load({ devices, bats = [], rules, live = {}, getError = {}, rings = [] }) {
+function load({ devices, bats = [], rules, live = {}, getError = {}, rings = [], states = {}, entities = {}, home = {} }) {
   const saved = [];
   const sandbox = {
     _T: (key) => key,
     ISADMIN: true,
     STORE_READY: true,
     OFFLINE: false,
-    H: () => ({ services: { notify: { mobile_app_phone: {} } } }),
+    H: () => ({ services: { notify: { mobile_app_phone: {} } }, states, entities, devices: home.devices || {}, areas: home.areas || {} }),
+    A: (id) => (states[id] || {}).attributes || {},
+    V_: (id) => (states[id] || {}).state ?? "",
+    modeOf: () => ({ mode: "show" }),
+    batLow: () => 20,
+    BATLIST: bats,
     ENTRE: /^[a-z_]+\.[a-z0-9_]+$/,
     dom: (id) => id.split(".")[0],
     UI: { bats },
@@ -44,14 +51,15 @@ function load({ devices, bats = [], rules, live = {}, getError = {}, rings = [] 
     },
   };
   vm.createContext(sandbox);
+  vm.runInContext(BATTERIES, sandbox);
   vm.runInContext(SOURCE, sandbox);
   return { sandbox, saved };
 }
 
-const on = (extra) => ({ on: true, targets: ["mobile_app_phone"], ...extra });
+const on = (extra) => ({ on: true, targets: ["mobile_app_phone"], remotes: true, remMins: 30, ...extra });
 const rules = (extra = {}) => ({
-  batt: { on: false, targets: [], thr: 20, ents: [], scope: "default" },
-  offline: { on: false, targets: [], mins: 5, ents: [], scope: "default" },
+  batt: { on: false, targets: [], thr: 20, devs: [], scope: "default" },
+  offline: { on: false, targets: [], mins: 5, ents: [], scope: "default", remotes: true, remMins: 30 },
   vacuum: { on: false, targets: [] },
   ...extra,
 });
@@ -86,14 +94,114 @@ test("an automation that already watches the right entities is not written again
   assert.deepEqual(saved, []);
 });
 
-test("a tracked battery sensor that is new is put into the low battery automation", async () => {
-  const before = { devices: [], bats: [["Door", "sensor.door_battery"]], rules: rules({ batt: on() }) };
+/* Two devices: a remote with a percentage and a low flag (both are battery sensors of one device), and a sensor with only a low flag. */
+const D1 = "a".repeat(32);
+const D2 = "b".repeat(32);
+const D3 = "c".repeat(32);
+const home = {
+  devices: { [D1]: { name: "BILRESA remote", name_by_user: "Desk Remote", area_id: "study" }, [D2]: { name: "Window sensor", area_id: null }, [D3]: { name: "Door sensor", area_id: "hall" } },
+  areas: { study: { name: "Study" }, hall: { name: "Hall" } },
+};
+const battery = (id, device, state, extra = {}) => ({
+  entity: { device_id: device, ...extra.entity },
+  state: { state, attributes: { device_class: "battery", friendly_name: id, ...extra.attributes } },
+});
+function registry(list) {
+  const entities = {};
+  const states = {};
+  for (const [id, device, state, extra] of list) {
+    const b = battery(id, device, state, extra);
+    entities[id] = b.entity;
+    states[id] = b.state;
+  }
+  return { entities, states };
+}
+const remote = registry([
+  ["sensor.desk_remote_battery", D1, "80"],
+  ["binary_sensor.desk_remote_battery_low", D1, "off"],
+  ["binary_sensor.window_battery_low", D2, "off"],
+]);
+
+test("a tracked device that is new is put into the low battery automation", async () => {
+  const before = { ...remote, home, bats: [D1], devices: [], rules: rules({ batt: on() }) };
   const live = { dashboard_n_batt: built(before, "batt") };
-  const { sandbox, saved } = load({ ...before, bats: [...before.bats, ["Window", "sensor.window_battery"]], live });
+  const { sandbox, saved } = load({ ...before, bats: [D1, D2], live });
   sandbox.notifyReconcile();
   await settle();
   assert.equal(saved.length, 1);
-  assert.deepEqual([...saved[0][1].triggers[0].entity_id].sort(), ["sensor.door_battery", "sensor.window_battery"]);
+  assert.deepEqual(JSON.parse(JSON.stringify(saved[0][1].triggers.map((t) => [t.trigger, [...t.entity_id]]))), [
+    ["numeric_state", ["sensor.desk_remote_battery"]],
+    ["state", ["binary_sensor.window_battery_low"]],
+  ]);
+});
+
+test("a device with a percentage is watched by it and not also by its low flag; one with only a flag by the flag", () => {
+  const p = built({ ...remote, home, bats: [D1, D2], devices: [], rules: rules({ batt: on({ thr: 20 }) }) }, "batt");
+  assert.deepEqual(p.triggers, [
+    { trigger: "numeric_state", entity_id: ["sensor.desk_remote_battery"], below: 20 },
+    { trigger: "state", entity_id: ["binary_sensor.window_battery_low"], to: "on" },
+  ]);
+  assert.match(p.actions[0].data.message, /area_name\(e\)/);
+  assert.match(p.actions[0].data.message, /binary_sensor/);
+  const onlyFlag = built({ ...remote, home, bats: [D2], devices: [], rules: rules({ batt: on() }) }, "batt");
+  assert.deepEqual(onlyFlag.triggers.map((t) => t.trigger), ["state"]);
+});
+
+test("a chosen set of batteries is what the automation watches, and a device that is gone is left out", () => {
+  const chosen = rules({ batt: on({ scope: "custom", devs: [D2, "d".repeat(32)] }) });
+  const p = built({ ...remote, home, bats: [D1, D2], devices: [], rules: chosen }, "batt");
+  assert.deepEqual(p.triggers, [{ trigger: "state", entity_id: ["binary_sensor.window_battery_low"], to: "on" }]);
+});
+
+test("a rule saved before batteries were devices becomes the default one: its sensor choice is not carried over", () => {
+  const { sandbox } = load({ devices: [], rules: rules() });
+  const old = JSON.parse(JSON.stringify(sandbox.cleanNotify({ rules: { batt: { on: true, targets: ["mobile_app_phone"], scope: "custom", ents: ["sensor.old_battery"] } } })));
+  assert.equal(old.rules.batt.scope, "default");
+  assert.deepEqual(old.rules.batt.devs, []);
+  assert.equal(old.rules.batt.ents, undefined);
+  const chosen = JSON.parse(JSON.stringify(sandbox.cleanNotify({ rules: { batt: { scope: "custom", devs: [D1, "not a device", D1] } } })));
+  assert.deepEqual([chosen.rules.batt.scope, chosen.rules.batt.devs], ["custom", [D1]]);
+});
+
+const sensors = (...ids) => ({
+  entities: Object.fromEntries(ids.map((id) => [id, { platform: "fast_matter_switch", device_id: D1 }])),
+  states: Object.fromEntries(ids.map((id) => [id, { state: "on", attributes: { device_class: "connectivity" } }])),
+});
+
+test("the remotes are watched on their own time: off for as long as the remote setting says, apart from the other devices", () => {
+  const r = sensors("binary_sensor.desk_remote_reachable", "binary_sensor.door_remote_reachable");
+  const p = built({ ...r, home, devices: [camera("camera.door")], rules: rules({ offline: on({ mins: 10, remMins: 120 }) }) }, "offline");
+  assert.deepEqual(p.triggers, [
+    { trigger: "state", entity_id: ["camera.door"], to: "unavailable", for: { minutes: 10 } },
+    { trigger: "state", entity_id: ["binary_sensor.desk_remote_reachable", "binary_sensor.door_remote_reachable"], to: "off", for: { minutes: 120 } },
+  ]);
+  assert.match(p.actions[0].data.message, /is offline/);
+  assert.match(p.actions[0].data.message, /device_attr\(e, 'name_by_user'\)/);
+});
+
+test("with the remotes switched off, or none found, the automation has no remote trigger; only remotes can still make one", () => {
+  const r = sensors("binary_sensor.desk_remote_reachable");
+  const off = built({ ...r, home, devices: [camera("camera.door")], rules: rules({ offline: on({ remotes: false }) }) }, "offline");
+  assert.deepEqual(off.triggers.map((t) => t.to), ["unavailable"]);
+  const none = built({ home, devices: [camera("camera.door")], rules: rules({ offline: on() }) }, "offline");
+  assert.deepEqual(none.triggers.map((t) => t.to), ["unavailable"]);
+  const onlyRemotes = built({ ...r, home, devices: [], rules: rules({ offline: on() }) }, "offline");
+  assert.deepEqual(onlyRemotes.triggers.map((t) => t.to), ["off"]);
+});
+
+test("a remote that appears after the rule was saved is put into the automation, and the remote time is kept from the saved rule", async () => {
+  const before = { ...sensors("binary_sensor.old_remote_reachable"), home, devices: [], rules: rules({ offline: on({ remMins: 60 }) }) };
+  const live = { dashboard_n_offline: built(before, "offline") };
+  const now = { ...sensors("binary_sensor.old_remote_reachable", "binary_sensor.new_remote_reachable"), home, devices: [], rules: before.rules, live };
+  const { sandbox, saved } = load(now);
+  sandbox.notifyReconcile();
+  await settle();
+  assert.equal(saved.length, 1);
+  assert.deepEqual(JSON.parse(JSON.stringify(saved[0][1].triggers[0].entity_id)), ["binary_sensor.new_remote_reachable", "binary_sensor.old_remote_reachable"]);
+  assert.equal(saved[0][1].triggers[0].for.minutes, 60);
+  const { sandbox: fresh } = load({ devices: [], rules: rules() });
+  const clean = JSON.parse(JSON.stringify(fresh.cleanNotify({ rules: { offline: { remMins: 7, remotes: false } } })));
+  assert.deepEqual([clean.rules.offline.remMins, clean.rules.offline.remotes], [30, false]);
 });
 
 test("a chosen list stays what was chosen when other devices appear", async () => {
@@ -127,18 +235,6 @@ test("a rule that is switched off, a non-admin and an offline page write nothing
   away.sandbox.notifyReconcile();
   await settle();
   assert.deepEqual([off.saved, guest.saved, away.saved], [[], [], []]);
-});
-
-test("a battery that only says low (a binary sensor) triggers when it turns on, a percentage below the limit", () => {
-  const options = { devices: [], bats: [["Door", "sensor.door_battery"], ["Window", "binary_sensor.window_battery_low"]], rules: rules({ batt: on({ thr: 20, ents: [], scope: "default" }) }) };
-  const p = built(options, "batt");
-  assert.deepEqual(p.triggers, [
-    { trigger: "numeric_state", entity_id: ["sensor.door_battery"], below: 20 },
-    { trigger: "state", entity_id: ["binary_sensor.window_battery_low"], to: "on" },
-  ]);
-  assert.match(p.actions[0].data.message, /binary_sensor/);
-  const onlyFlags = built({ ...options, bats: [options.bats[1]] }, "batt");
-  assert.deepEqual(onlyFlags.triggers.map((t) => t.trigger), ["state"]);
 });
 
 test("an alert for any entity is kept when it names an entity, a state and recipients, and builds a state trigger and one message per recipient", () => {
