@@ -1165,10 +1165,9 @@ function secGlance() {
       _T("batteries"),
       function () {
         return editing()
-          ? cntS(UI.bats.length, _T("sensor"), _T("sensors_2"))
+          ? cntS(UI.bats.length, _T("device_2"), _T("devices"))
           : BATLIST.filter(function (x) {
-              var r = batReading(x[1]);
-              return r && r.low;
+              return batInfo(x).low === true;
             }).length +
               " " +
               _T("below") +

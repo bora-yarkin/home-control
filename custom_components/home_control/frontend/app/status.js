@@ -122,24 +122,15 @@ function homeStatus() {
 /* ---- status, pins, alerts, quick actions, search, display ---- */
 var BATLIST = [];
 
-/* A tracked battery is low when its percentage is under the limit in Settings, or when a battery binary sensor reports on (those only say low or fine). Null when it has no reading. */
-function batReading(id) {
-  if (dom(id) === "binary_sensor") {
-    var s = V_(id);
-    return s === "on" ? { low: true, text: _T("battery_is_low") } : s === "off" ? { low: false, text: _T("battery_is_ok") } : null;
-  }
-  var v = Number(V_(id));
-  return isFinite(v) && v >= 0 ? { low: v < batLow(), text: Math.round(v) + "%" } : null;
-}
-
 /* alerts */
 /* Lights, fans and players that have been on longer than the "left on" limit in Settings, longest first. */
 function alertList() {
   var out = [],
-    low = [];
-  BATLIST.forEach(function (x) {
-    var r = batReading(x[1]);
-    if (r && r.low) low.push(x[0] + " " + r.text);
+    low = [],
+    index = batIndex();
+  BATLIST.forEach(function (d) {
+    var i = batInfo(d, index);
+    if (i.low === true && batVisible(d, index)) low.push(i.name + " " + (i.pct === null ? _T("battery_low") : i.pct + "%"));
   });
   if (alertOn("battery") && low.length)
     out.push([
@@ -453,63 +444,3 @@ function chipEdit(b, i) {
   redrawBox(box, draw);
 }
 
-/* batteries */
-function batsPage(b) {
-  var box = mk("div");
-  b.appendChild(box);
-  function draw() {
-    var hint = mk("div", "hint");
-    hint.textContent = _T("battery_sensors_checked_for_the_low_");
-    box.appendChild(hint);
-    UI.bats.forEach(function (x, i) {
-      box.appendChild(
-        pill("battery", x[0], {
-          sub: function () {
-            return x[1];
-          },
-          val: function () {
-            var r = batReading(x[1]);
-            return r ? r.text : entVal(x[1]);
-          },
-          tap: function () {
-            confirmDlg(_T("stop_tracking") + x[0] + "”?", function () {
-              UI.bats.splice(i, 1);
-              UI.batsOff = (UI.batsOff || []).filter(function (o) {
-                return o !== x[1];
-              }).concat([x[1]]).slice(-200);
-              uiChanged();
-              redrawBox(box, draw);
-            });
-          },
-        })
-      );
-    });
-    box.appendChild(
-      pill("plus", _T("add_battery_sensor"), {
-        tap: function () {
-          pickEntity(
-            _T("choose_a_battery_sensor"),
-            ["sensor"],
-            ["battery"],
-            function (id) {
-              UI.bats.push([
-                (A(id).friendly_name || id).replace(/\s*battery\s*$/i, "").slice(0, 40),
-                id,
-              ]);
-              UI.batsOff = (UI.batsOff || []).filter(function (o) {
-                return o !== id;
-              });
-              uiChanged();
-            },
-            function (id) {
-              return UI.bats.some(function (x) {
-                return x[1] === id;
-              });
-            }
-          );
-        },
-      })
-    );
-  }
-  redrawBox(box, draw);
-}

@@ -19,6 +19,8 @@ var NRULES = {
   },
 };
 
+var REMOTE_MINS = [15, 30, 60, 120, 240];
+
 function cleanNotify(n) {
   var o = { rules: {} };
   Object.keys(NRULES).forEach(function (k) {
@@ -28,8 +30,11 @@ function cleanNotify(n) {
       if (typeof x === "string" && /^[a-z0-9_]{1,60}$/.test(x)) c.targets.push(x);
     });
     if (k === "batt") c.thr = [10, 15, 20, 30].indexOf(r.thr) >= 0 ? r.thr : 20;
-    if (k === "offline") c.mins = [5, 10, 15, 30, 60].indexOf(r.mins) >= 0 ? r.mins : 5;
-    if (k === "offline" || k === "batt") {
+    if (k === "offline") {
+      c.mins = [5, 10, 15, 30, 60].indexOf(r.mins) >= 0 ? r.mins : 5;
+      /* The remotes (sleepy Matter devices) are watched on their own time: they sleep between presses, so a few minutes of silence says nothing. */
+      c.remotes = r.remotes !== false;
+      c.remMins = REMOTE_MINS.indexOf(r.remMins) >= 0 ? r.remMins : 30;
       c.ents = [];
       (Array.isArray(r.ents) ? r.ents : []).slice(0, 150).forEach(function (x) {
         if (typeof x === "string" && ENTRE.test(x)) c.ents.push(x);
@@ -40,6 +45,14 @@ function cleanNotify(n) {
           : c.ents.length
             ? "custom"
             : "default";
+    }
+    if (k === "batt") {
+      /* The batteries to watch are devices (app/batteries.js); a choice made on sensors before that is not carried over. */
+      c.devs = [];
+      (Array.isArray(r.devs) ? r.devs : []).slice(0, 30).forEach(function (x) {
+        if (typeof x === "string" && DEVRE.test(x) && c.devs.indexOf(x) < 0) c.devs.push(x);
+      });
+      c.scope = r.scope === "custom" && Array.isArray(r.devs) ? "custom" : "default";
     }
     o.rules[k] = c;
   });
@@ -318,29 +331,40 @@ function offlineDefault() {
     });
 }
 
+/* The name of the device behind the entity that triggered, as the dashboard names it: "Area · Device" (the entity's own name when it has no device). */
+var NOTIFY_NAME =
+  "{% set e = trigger.entity_id %}{% set a = area_name(e) %}{% set d = device_attr(e, 'name_by_user') or device_attr(e, 'name') or trigger.to_state.attributes.friendly_name %}{{ (a ~ ' · ' ~ d) if a else d }}";
+
+/* The Reachable sensors of the sleepy Matter devices (Fast Matter switch): on while a remote answers its ping. */
+function remoteSensors() {
+  var h = H();
+  return Object.keys(h.states || {})
+    .filter(function (id) {
+      var e = h.entities && h.entities[id];
+      return dom(id) === "binary_sensor" && e && e.platform === "fast_matter_switch" && A(id).device_class === "connectivity";
+    })
+    .sort();
+}
+
 function notifyPayload(k) {
   var r = nrule(k),
     trigs = [],
     msg = "",
     ents;
   if (k === "batt") {
-    ents =
-      r.scope === "custom"
-        ? r.ents
-        : UI.bats.map(function (x) {
-            return x[1];
-          });
-    /* A percentage sensor triggers below the limit; a battery binary sensor triggers when it reports low (on). */
-    var pct = ents.filter(function (id) {
-        return dom(id) !== "binary_sensor";
-      }),
-      flags = ents.filter(function (id) {
-        return dom(id) === "binary_sensor";
-      });
+    /* A device with a percentage is watched by it, one with only a low flag by the flag: never both, so one battery is one message. */
+    var index = batIndex(),
+      pct = [],
+      flags = [];
+    (r.scope === "custom" ? r.devs : UI.bats).forEach(function (d) {
+      var p = index[d];
+      if (!p) return;
+      if (p.pct) pct.push(p.pct);
+      else if (p.flag) flags.push(p.flag);
+    });
     if (pct.length) trigs.push({ trigger: "numeric_state", entity_id: pct, below: r.thr });
     if (flags.length) trigs.push({ trigger: "state", entity_id: flags, to: "on" });
-    msg =
-      "{{ trigger.to_state.attributes.friendly_name }} battery is {{ 'low' if trigger.to_state.domain == 'binary_sensor' else 'at ' ~ trigger.to_state.state ~ '%' }}";
+    msg = NOTIFY_NAME + " battery is {{ 'low' if trigger.to_state.domain == 'binary_sensor' else 'at ' ~ trigger.to_state.state ~ '%' }}";
   } else if (k === "offline") {
     ents = offlineList(r);
     if (ents.length)
@@ -350,7 +374,15 @@ function notifyPayload(k) {
         to: "unavailable",
         "for": { minutes: r.mins || 5 },
       });
-    msg = "{{ trigger.to_state.attributes.friendly_name }} is offline";
+    var remotes = r.remotes ? remoteSensors() : [];
+    if (remotes.length)
+      trigs.push({
+        trigger: "state",
+        entity_id: remotes,
+        to: "off",
+        "for": { minutes: r.remMins || 30 },
+      });
+    msg = NOTIFY_NAME + " is offline";
   } else {
     ents = devsOf("vacuum").map(function (d) {
       return d.id;
@@ -605,7 +637,7 @@ function nruleEdit(b, k) {
         )
       );
     if (k === "batt") {
-      box.appendChild(sep(_T("sensors_to_watch"), "battery"));
+      box.appendChild(sep(_T("batteries_to_watch"), "battery"));
       box.appendChild(
         seg(
           [
@@ -615,72 +647,36 @@ function nruleEdit(b, k) {
           r.scope,
           function (v) {
             r.scope = v;
-            if (v === "custom" && !r.ents.length)
-              r.ents = UI.bats.map(function (x) {
-                return x[1];
-              });
+            if (v === "custom" && !r.devs.length) r.devs = UI.bats.slice();
             save();
             redrawBox(box, draw);
           }
         )
       );
       var hb = mk("div", "hint");
-      hb.textContent =
-        r.scope === "custom"
-          ? _T("tick_the_battery_sensors_to_watch_yo")
-          : _T("every_battery_sensor_on_the_batterie");
+      hb.textContent = r.scope === "custom" ? _T("tick_the_batteries_to_watch") : _T("every_device_on_the_batteries_list_is");
       box.appendChild(hb);
       if (r.scope === "custom") {
-        var shown = {};
-        UI.bats.forEach(function (x) {
-          shown[x[1]] = 1;
+        var index = batIndex();
+        UI.bats.forEach(function (d) {
           box.appendChild(
-            pill("battery", x[0], {
+            pill("battery", batName(d), {
               on: function () {
-                return r.ents.indexOf(x[1]) >= 0;
+                return r.devs.indexOf(d) >= 0;
               },
               sub: function () {
-                return entVal(x[1]);
+                var i = batInfo(d, index);
+                return (i.pct === null ? "–" : i.pct + "%") + " · " + batStatusText(i.low);
               },
               tap: function () {
-                var i = r.ents.indexOf(x[1]);
-                if (i >= 0) r.ents.splice(i, 1);
-                else r.ents.push(x[1]);
+                var i = r.devs.indexOf(d);
+                if (i >= 0) r.devs.splice(i, 1);
+                else r.devs.push(d);
                 save();
               },
             })
           );
         });
-        r.ents.forEach(function (id) {
-          if (shown[id]) return;
-          box.appendChild(
-            pill("battery", A(id).friendly_name || id, {
-              on: function () {
-                return r.ents.indexOf(id) >= 0;
-              },
-              sub: function () {
-                return id;
-              },
-              tap: function () {
-                var i = r.ents.indexOf(id);
-                if (i >= 0) r.ents.splice(i, 1);
-                else r.ents.push(id);
-                save();
-                redrawBox(box, draw);
-              },
-            })
-          );
-        });
-        box.appendChild(
-          pill("plus", _T("add_another_battery_sensor"), {
-            tap: function () {
-              pickEntity(_T("choose_a_battery_sensor"), ["sensor", "binary_sensor"], ["battery"], function (id) {
-                if (r.ents.indexOf(id) < 0) r.ents.push(id);
-                save();
-              });
-            },
-          })
-        );
       }
     }
     if (k === "offline") {
@@ -702,6 +698,46 @@ function nruleEdit(b, k) {
           }
         )
       );
+      /* The remotes have their own time, apart from the other devices. */
+      box.appendChild(sep(_T("remotes"), "tune"));
+      box.appendChild(
+        pill("check", _T("watch_the_remotes"), {
+          on: function () {
+            return r.remotes;
+          },
+          sub: function () {
+            var n = remoteSensors().length;
+            return n ? cntS(n, _T("remote_1"), _T("remotes_n")) : _T("no_remote_found");
+          },
+          tap: function () {
+            r.remotes = !r.remotes;
+            save();
+            redrawBox(box, draw);
+          },
+        })
+      );
+      if (r.remotes) {
+        box.appendChild(
+          seg(
+            [
+              ["15", "15 min"],
+              ["30", "30 min"],
+              ["60", "1 h"],
+              ["120", "2 h"],
+              ["240", "4 h"],
+            ],
+            String(r.remMins),
+            function (v) {
+              r.remMins = +v;
+              save();
+              redrawBox(box, draw);
+            }
+          )
+        );
+        var hr = mk("div", "hint");
+        hr.textContent = _T("a_remote_sleeps_between_presses_so_it_");
+        box.appendChild(hr);
+      }
     }
     box.appendChild(sep(_T("recipients_2"), "person"));
     var ts = notifyTargets();

@@ -887,3 +887,11 @@ body.pinhdr:not(.editing) .wrap::before{content:"";position:fixed;top:0;left:0;r
 .hm .hm-gear svg{width:20px;height:20px}
 .hm .hm-time{flex:1;min-height:44px;padding:8px 12px;border-radius:var(--r-row);border:1px solid var(--f-line2);background:var(--f-raise);color:var(--ink);font:inherit;font-size:var(--fs-l);font-variant-numeric:tabular-nums}
 .hm .hm-time:focus-visible{outline:2px solid var(--acc);outline-offset:1px}
+
+/* Batteries: a device, its percentage and its status; the name may take two lines */
+.bat .nm{white-space:normal;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical}
+.bat .vl{display:none}
+.bat .bp{flex:none;min-width:44px;text-align:right;font-size:var(--fs-m);font-variant-numeric:tabular-nums}
+.bat .bs{flex:none;min-width:44px;text-align:center;font-size:var(--fs-s);padding:3px 9px;border-radius:11px;background:rgba(255,255,255,.1);color:var(--ink2)}
+.bat .bs.ok{background:rgba(110,200,140,.18);color:#9be0b0}
+.bat .bs.low{background:rgba(255,120,100,.2);color:#ffab9c}

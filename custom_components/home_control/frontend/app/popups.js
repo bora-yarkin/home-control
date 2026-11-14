@@ -689,43 +689,8 @@ function popupDefBase(key) {
         });
       },
     };
-  if (k === "g-batteries")
-    return {
-      title: _T("batteries"),
-      icon: "battery",
-      build: function (b) {
-        BATLIST.forEach(function (x) {
-          if (dom(x[1]) === "binary_sensor") {
-            /* A battery flag has no percentage: it says low or fine. */
-            b.appendChild(
-              pill("battery", x[0], {
-                val: function () {
-                  var r = batReading(x[1]);
-                  return r ? r.text : "";
-                },
-              })
-            );
-            return;
-          }
-          b.appendChild(
-            sliderRow({
-              icon: "battery",
-              name: x[0],
-              min: 0,
-              max: 100,
-              step: 1,
-              readonly: true,
-              get: function () {
-                return V_(x[1]);
-              },
-              fmt: function (v) {
-                return v + "%";
-              },
-            })
-          );
-        });
-      },
-    };
+  if (k === "g-batteries") return { title: _T("batteries"), icon: "battery", build: batsPopup };
+  if (k === "pick-bat") return { title: _T("add_battery_device"), icon: "battery", build: batPickPage };
   if (k === "g-tvs") return { title: _T("media"), icon: "tv", build: mediaHub };
   if (k === "g-robot") {
     var gv0 = devsOf("vacuum")[0];
