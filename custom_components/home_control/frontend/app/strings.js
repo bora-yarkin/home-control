@@ -699,6 +699,7 @@ var EN = {
   "7_days_2": " · 7 days ",
   "loading": "Loading…",
   "no_cameras_yet": "No cameras yet",
+  "not_saved_no_connection": "Not saved: no connection to Home Assistant. It is saved when the connection is back",
   "couldn_t_save_only_admins_can_change":
     "Couldn’t save. Only admins can change presets and scenes.",
   "turn_the_light_on_to_save_its_colour": "Turn the light on to save its colour",

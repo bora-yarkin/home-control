@@ -20,18 +20,54 @@ window.refresh = function () {};
 
 var APP_FAILED = [];
 
-/* A file that did not load leaves the application half there, so it is not started (app/main.js checks APP_FAILED); the page says what is missing and offers to try again. */
+/* A file that did not load leaves the application half there, so it is not started (app/main.js checks APP_FAILED). A page that only lost a request
+ on a weak connection loads again by itself, three times, each a little later (the count is kept for this tab and cleared when the page is drawn);
+ after that the page says what is missing and offers to try again. */
+var LOAD_RETRY_MS = [1000, 3000, 8000],
+  LOAD_RETRY_KEY = "dashboard_load_retries",
+  loadRetryScheduled = false;
+
+function clearLoadRetries() {
+  try {
+    sessionStorage.removeItem(LOAD_RETRY_KEY);
+  } catch (e) {}
+}
+
+/* True when a reload is now on its way. Without session storage there is no count to keep, so there is no automatic try. */
+function scheduleLoadRetry() {
+  if (loadRetryScheduled) return true;
+  var tried;
+  try {
+    tried = Number(sessionStorage.getItem(LOAD_RETRY_KEY) || 0);
+    if (!(tried < LOAD_RETRY_MS.length)) return false;
+    sessionStorage.setItem(LOAD_RETRY_KEY, String(tried + 1));
+  } catch (e) {
+    return false;
+  }
+  loadRetryScheduled = true;
+  setTimeout(function () {
+    location.reload();
+  }, LOAD_RETRY_MS[tried]);
+  return true;
+}
+
 function showLoadFailure() {
   var body = document.getElementById("body");
   if (!body) return;
   body.textContent = "";
   var box = document.createElement("div");
   box.className = "sec-h";
+  if (scheduleLoadRetry()) {
+    box.textContent = "The dashboard could not load every file. Trying again.";
+    body.appendChild(box);
+    return;
+  }
   box.textContent = "The dashboard could not load: " + APP_FAILED.join(", ") + ".";
   var again = document.createElement("button");
   again.type = "button";
   again.textContent = "Try again";
   again.onclick = function () {
+    clearLoadRetries();
     location.reload();
   };
   body.appendChild(box);

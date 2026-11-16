@@ -7,8 +7,8 @@ Home Assistant. Anything that Home Assistant does well (automations, helpers, gr
 
 | File | What it is |
 | --- | --- |
-| `dashboard-panel.js` | The panel element Home Assistant loads. Reads `version.json`, requests every file at once, runs them in order, passes `hass` on. |
-| `ha-adapter.js` | The only code that talks to Home Assistant. No other file sends a websocket message, calls a REST path or reads the connection; everything else calls `window.HA`. |
+| `dashboard-panel.js` | The panel element Home Assistant loads. Reads `version.json` (asked again up to three times when a request is lost), requests every file at once, runs them in order, passes `hass` on. The registries start loading as soon as the adapter has run, while the application's files run; the application waits for them itself. |
+| `ha-adapter.js` | The only code that talks to Home Assistant. No other file sends a websocket message, calls a REST path or reads the connection; everything else calls `window.HA`. It loads the four registries, keeps them current (a changed entity is fetched by itself, the small registries are loaded again), keeps the copy of them for the next visit (see *Copies on this device*) and decides what to do when a page comes back after being away. |
 | `camera-stream.js` | Live camera playback: WebRTC, then HLS, with black-picture and stall recovery (`HA.camera`), push to talk to a camera (`CameraTalk`) and the microphone sent to a door call (`IntercomTalk`). |
 | `dashboard-app.js` | The entry of the application. It runs the files below, in the order of `files` in `version.json`. |
 | `app/*.js` | The application, split by feature (`lights.js`, `vacuum.js`, `editor.js`, ...). They share one global scope and run in the order of `files` in `version.json`; the first line of each file says what it holds. `app/main.js` is last and starts the app. They reach Home Assistant only through `window.HA` and integration specifics only through `window.Integrations`. |
@@ -37,6 +37,21 @@ To add a file, put it in `app/` and add it to `files` in `version.json` (a test 
 `dashboard-panel.js` is requested by Home Assistant itself with the `?v=` from `panel_custom` in `configuration.yaml`.
 Only a change to this one file needs that number raised (and a Home Assistant restart).
 
+## Copies on this device (decision D-21)
+
+Two copies of the last visit are kept in the browser's local storage, under the user id, so that a page is drawn at once and the real data replaces them in place:
+
+| Key | What | Written | Not used when |
+| --- | --- | --- | --- |
+| `home_control_registry_v1` (`ha-adapter.js`) | the registries as the page reads them, and what the plus integrations replace | once the four registries have come from Home Assistant, then a few seconds after the last change | another user, another version, more than 30 days old, not readable, no signed-in user |
+| `home_control_layout_v1` (`app/store.js`) | the saved dashboard | when the real one is read, and after each save that succeeded | another user, not a dashboard (`v` is not 1), no signed-in user |
+
+Nothing is saved on top of a copy: `storeSave` waits until the real saved dashboard has been read (`STORE_NET`), and a save that failed because the connection was down (`HA.isTransportError`) is made again when it is back. The first layout of a new dashboard is built only from registries Home Assistant has answered (`HA.registriesLoaded()`), never from the copy. A browser that refuses storage starts as before. `db_prefs` (the person's choices) is the same kind of copy and was there before.
+
+## When a page comes back
+
+The adapter reads the connection's own state (`connection.connected`), not Home Assistant's copy `hass.connected`, which is updated a moment after the connection says "ready". A page that was hidden for a minute or more remakes its connection at once (Home Assistant closes the connection of a page that does not answer its pings, every 55 seconds); a shorter absence asks a ping first and remakes the connection when none is answered within two seconds.
+
 ## What it needs from Home Assistant
 
 A plus integration can declare in `home_control.json` that its entities replace another integration's (`replaces`; Hue Plus: `["hue"]`). `ha-adapter.js` then leaves an entity of the replaced integration out of the registry it hands to the panel when an enabled entity of the plus integration with the same domain and unique id stands in for it (`withoutReplaced`); one it has no entity for stays. This holds whether the plus integration hid and renamed the original entities or left them alone and ended its own in `_plus`. Home Control tells the adapter what each integration replaces (`home_control/plugins`); if it cannot, nothing is left out.
@@ -51,6 +66,7 @@ From the `hass` object that Home Assistant gives a custom panel: `states`, `serv
 Websocket commands:
 
 - `config/entity_registry/list`, `config/device_registry/list`, `config/area_registry/list`, `config/floor_registry/list`
+- `config/entity_registry/get_entries` (`entity_ids`; answers an object with the entry, or `null` for an entity that no longer exists): a changed entity is read with it instead of loading the whole entity registry again. An event that does not name its entity, a failed answer and a burst of more than 200 entities are answered with a full load, and so is every reconnect (the events of that time were missed).
 - events `entity_registry_updated`, `device_registry_updated`, `area_registry_updated`, `floor_registry_updated`
 - `frontend/get_user_data`, `frontend/set_user_data`, `frontend/get_system_data`, `frontend/set_system_data`, `frontend/subscribe_system_data` (dashboard changes made by anyone arrive as they happen and are applied to the open page in place; nothing reloads or rebuilds the page)
 - `history/history_during_period`, `logbook/get_events`, `recorder/statistics_during_period`

@@ -176,7 +176,7 @@ function batsPrune() {
    is a new device, so it joins here and the old one leaves; the notification is brought to the new list. */
 function batsAutoAdd() {
   var h = H();
-  if (!h || !ISADMIN || !STORE_READY || !REG || !UI.newSince) return;
+  if (!h || !ISADMIN || !STORE_READY || !REG || !UI.newSince || !dataIsReal()) return;
   var have = {},
     off = UI.batsOff || [],
     changed = batsPrune();

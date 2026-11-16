@@ -442,6 +442,10 @@ var NRECON = 0;
 
 function notifyReconcile() {
   if (!ISADMIN || !STORE_READY || !H() || OFFLINE) return;
+  if (!dataIsReal()) {
+    notifyReconcileSoon();
+    return;
+  }
   Object.keys(NRULES).forEach(function (k) {
     var p = nrule(k).on ? notifyPayload(k) : null;
     if (!p) return;

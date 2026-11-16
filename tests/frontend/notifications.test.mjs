@@ -11,12 +11,13 @@ const SOURCE = readFileSync(new URL(APP + "notifications.js", import.meta.url), 
 const BATTERIES = readFileSync(new URL(APP + "batteries.js", import.meta.url), "utf8");
 
 /* The page's globals that notifications.js uses. `devices` are the dashboard's devices, `live` the automations in Home Assistant. */
-function load({ devices, bats = [], rules, live = {}, getError = {}, rings = [], states = {}, entities = {}, home = {} }) {
+function load({ devices, bats = [], rules, live = {}, getError = {}, rings = [], states = {}, entities = {}, home = {}, real = true }) {
   const saved = [];
   const sandbox = {
     _T: (key) => key,
     ISADMIN: true,
     STORE_READY: true,
+    dataIsReal: () => real,
     OFFLINE: false,
     H: () => ({ services: { notify: { mobile_app_phone: {} } }, states, entities, devices: home.devices || {}, areas: home.areas || {} }),
     A: (id) => (states[id] || {}).attributes || {},
@@ -92,6 +93,18 @@ test("an automation that already watches the right entities is not written again
   sandbox.notifyReconcile();
   await settle();
   assert.deepEqual(saved, []);
+});
+
+test("while the registries or the dashboard are only the copies of the last visit nothing is written to Home Assistant; it is tried again soon", async () => {
+  const before = { devices: [camera("camera.door")], rules: rules({ offline: on({ scope: "default" }) }) };
+  const live = { dashboard_n_offline: built(before, "offline") };
+  const { sandbox, saved } = load({ ...before, devices: [camera("camera.door"), camera("camera.garage")], live, real: false });
+  const waits = [];
+  sandbox.setTimeout = (fn, ms) => waits.push(ms);
+  sandbox.notifyReconcile();
+  await settle();
+  assert.deepEqual(saved, [], "no automation is read or written on stale data");
+  assert.deepEqual(waits, [3000], "and it is asked again in three seconds");
 });
 
 /* Two devices: a remote with a percentage and a low flag (both are battery sensors of one device), and a sensor with only a low flag. */

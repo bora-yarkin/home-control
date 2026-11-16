@@ -39,8 +39,10 @@ function start() {
       body.appendChild(mk("div", "sec-h", _T("still_waiting_for_the_saved_dashboard")));
     }
   }, 15000);
-  Promise.all([initTheme(), initStore()]).then(function () {
+  /* The saved dashboard, the person's choices and the registries are all asked for now and together; the page is drawn when the last is in. */
+  Promise.all([initTheme(), initStore(), HA.ready()]).then(function () {
     clearTimeout(waiting);
+    clearLoadRetries();
     boot();
   });
 }

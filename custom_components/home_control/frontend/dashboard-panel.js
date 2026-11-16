@@ -11,12 +11,26 @@ const MARKUP = `<main><div class="wrap">
 const SCRIPTS = ["ha-adapter.js", "camera-stream.js", "dashboard-app.js"];
 
 /* The version, and the application's files in the order they run. */
-async function currentRelease() {
+async function readRelease() {
   const res = await fetch(new URL("version.json?t=" + Date.now(), BASE), { cache: "no-store" });
   if (!res.ok) throw new Error("version.json answered " + res.status);
   const release = await res.json();
   if (!Array.isArray(release.files)) throw new Error("version.json lists no files");
   return { version: String(release.version), files: release.files };
+}
+
+/* A request lost on a weak connection is asked again, a little later each time, before the panel gives up. Nothing has run yet at this point, so asking again is safe. */
+const RELEASE_RETRY_MS = [500, 1500, 4000];
+
+async function currentRelease() {
+  for (let attempt = 0; ; attempt++) {
+    try {
+      return await readRelease();
+    } catch (e) {
+      if (attempt >= RELEASE_RETRY_MS.length) throw e;
+      await new Promise((resolve) => setTimeout(resolve, RELEASE_RETRY_MS[attempt]));
+    }
+  }
 }
 
 /* Asks for a script now and keeps it for the script element that runs it later. */
@@ -59,6 +73,17 @@ class DashboardPanel extends HTMLElement {
     this._start();
   }
 
+  /* Says what failed and offers to start again; the page is reloaded, because files that did run cannot be run twice. */
+  _showFailure(error) {
+    const body = document.getElementById("body") || this;
+    body.textContent = "Dashboard could not start: " + error.message + " ";
+    const again = document.createElement("button");
+    again.type = "button";
+    again.textContent = "Try again";
+    again.onclick = () => location.reload();
+    body.appendChild(again);
+  }
+
   async _start() {
     if (this._started || !this._hass) return;
     this._started = true;
@@ -79,14 +104,13 @@ class DashboardPanel extends HTMLElement {
       this.innerHTML = MARKUP;
 
       await load("script", { src: asset(SCRIPTS[0]) });
+      /* Attaching starts loading the registries; the application's files run meanwhile, and the application waits for the registries itself before it draws. */
       window.HA.attach(this._hass);
-      await window.HA.ready();
       for (const name of SCRIPTS.slice(1)) await load("script", { src: asset(name) });
       window.HA.onUpdate(() => window.refresh());
       window.refresh();
     } catch (e) {
-      const body = document.getElementById("body");
-      if (body) body.textContent = "Dashboard could not start: " + e.message;
+      this._showFailure(e);
       console.error("[dashboard]", e);
     }
   }

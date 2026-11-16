@@ -69,13 +69,29 @@ function withoutReplaced(rows){
  });
 }
 
+/* The enabled entities as the panel reads them, before a plus integration's replacements are left out. Kept so that a changed entity can be put in
+ without asking for the whole registry again (it is the large one: every entity of the home). */
+var known={};
+
+function setEntities(picked){
+ var out={};
+ withoutReplaced(Object.keys(picked).map(function(id){return picked[id]})).forEach(function(r){out[r.entity_id]=r});
+ registry.entities=out;
+}
+
+/* One registry's loads and updates run one after the other, so that an old answer never lands over a newer one. */
+function inOrder(src,task){
+ src.queue=(src.queue||Promise.resolve()).catch(function(){}).then(task);
+ return src.queue;
+}
+
 function loadRegistry(src,attempt){
- return ws({type:src.list}).then(function(rows){
-  return src.key==="entities"?loadReplaces().then(function(){return withoutReplaced(rows)}):rows;
- }).then(function(rows){
-  var out={};
-  (rows||[]).forEach(function(r){var v=src.pick(r);if(v)out[src.id(r)]=v});
-  registry[src.key]=out;
+ return Promise.all([ws({type:src.list}),src.key==="entities"?loadReplaces():null]).then(function(answer){
+  var picked={};
+  (answer[0]||[]).forEach(function(r){var v=src.pick(r);if(v)picked[src.id(r)]=v});
+  if(src.key==="entities"){known=picked;setEntities(picked)}
+  else registry[src.key]=picked;
+  cacheSoon();
   schedule();
  },function(err){
   var wait=RETRY_MS[Math.min(attempt,RETRY_MS.length-1)];
@@ -84,13 +100,78 @@ function loadRegistry(src,attempt){
  });
 }
 
-/* Registry commands change rarely, so a burst of events is answered with one reload. */
+/* Registry commands change rarely, so a burst of events is answered with one update. A small registry is loaded again whole. */
 function watchRegistry(src){
  var timer=0;
  hass.connection.subscribeEvents(function(){
   clearTimeout(timer);
-  timer=setTimeout(function(){loadRegistry(src,0)},400);
+  timer=setTimeout(function(){inOrder(src,function(){return loadRegistry(src,0)})},400);
  },src.event);
+}
+
+/* The entity registry is large, so a change is answered by asking for the entities the events named. An entity that the answer no longer has was
+ removed or renamed. An event that does not name its entity, a failed answer and a burst of more than MAX_FETCH entities are answered with a full load. */
+var MAX_FETCH=200;
+function watchEntities(src){
+ var timer=0,dirty={ids:{},full:false};
+ function flush(){
+  var ids=Object.keys(dirty.ids),full=dirty.full;
+  dirty={ids:{},full:false};
+  if(full||!ids.length||ids.length>MAX_FETCH)return loadRegistry(src,0);
+  return ws({type:"config/entity_registry/get_entries",entity_ids:ids}).then(function(rows){
+   ids.forEach(function(id){
+    var v=rows&&rows[id]?src.pick(rows[id]):null;
+    if(v)known[id]=v;else delete known[id];
+   });
+   setEntities(known);
+   cacheSoon();
+   schedule();
+  },function(){return loadRegistry(src,0)});
+ }
+ hass.connection.subscribeEvents(function(ev){
+  var d=ev&&ev.data;
+  if(d&&typeof d.entity_id==="string"){
+   dirty.ids[d.entity_id]=1;
+   if(typeof d.old_entity_id==="string")dirty.ids[d.old_entity_id]=1;
+  }else dirty.full=true;
+  clearTimeout(timer);
+  timer=setTimeout(function(){inOrder(src,flush)},400);
+ },src.event);
+}
+
+/* ---- the last registries, kept on this device ----
+ The registries of the last visit are drawn from at once while the real ones are asked for. They are this person's copy: kept under their user id,
+ written only after all four registries came from Home Assistant, and ignored when the browser refuses storage or the copy is old or from another user. */
+var CACHE_KEY="home_control_registry_v1",CACHE_MAX_AGE_MS=30*24*3600*1000,cacheTimer=0;
+
+function cacheOwner(){return hass&&hass.user&&typeof hass.user.id==="string"?hass.user.id:null}
+
+function readCache(){
+ var owner=cacheOwner();
+ if(!owner)return null;
+ try{
+  var c=JSON.parse(localStorage.getItem(CACHE_KEY));
+  var plain=function(o){return o&&typeof o==="object"&&!Array.isArray(o)};
+  if(!c||c.v!==1||c.user!==owner||!(Date.now()-c.at<CACHE_MAX_AGE_MS))return null;
+  if(![c.entities,c.devices,c.areas,c.floors,c.replaces].every(plain))return null;
+  return c;
+ }catch(e){return null}
+}
+
+function cacheNow(){
+ clearTimeout(cacheTimer);
+ var owner=cacheOwner();
+ if(!owner)return;
+ try{
+  localStorage.setItem(CACHE_KEY,JSON.stringify({v:1,user:owner,at:Date.now(),entities:known,devices:registry.devices,areas:registry.areas,floors:registry.floors,replaces:REPLACES}));
+ }catch(e){}
+}
+
+/* Later changes are written a few seconds after the last one, so a burst is one write. */
+function cacheSoon(){
+ if(!registriesLoaded)return;
+ clearTimeout(cacheTimer);
+ cacheTimer=setTimeout(cacheNow,3000);
 }
 
 var ready=null,registriesLoaded=false;
@@ -98,16 +179,36 @@ var ready=null,registriesLoaded=false;
 function start(){
  facade=buildFacade();
  watchWake();
- var loaded=Promise.all(SOURCES.map(function(src){return loadRegistry(src,0)})).then(function(){
+ var cached=readCache();
+ if(cached){
+  try{
+   REPLACES=cached.replaces;
+   known=cached.entities;
+   setEntities(known);
+   registry.devices=cached.devices;
+   registry.areas=cached.areas;
+   registry.floors=cached.floors;
+  }catch(e){
+   /* A copy that cannot be read is not used. */
+   cached=null;
+   REPLACES={};
+   known={};
+   registry={entities:{},devices:{},areas:{},floors:{}};
+  }
+ }
+ var loaded=Promise.all(SOURCES.map(function(src){return inOrder(src,function(){return loadRegistry(src,0)})})).then(function(){
   registriesLoaded=true;
+  /* The first complete load is kept at once: a page that is closed within seconds still leaves a copy for the next visit. */
+  cacheNow();
   schedule();
-  SOURCES.forEach(watchRegistry);
-  /* After a dropped and restored connection the registries may have changed. */
-  hass.connection.addEventListener("ready",function(){SOURCES.forEach(function(src){loadRegistry(src,0)})});
+  SOURCES.forEach(function(src){if(src.key==="entities")watchEntities(src);else watchRegistry(src)});
+  /* After a dropped and restored connection the registries may have changed, and the events of that time were missed. */
+  hass.connection.addEventListener("ready",function(){SOURCES.forEach(function(src){inOrder(src,function(){return loadRegistry(src,0)})})});
  });
- /* The panel starts once the registries are in, or after a short wait; the lists then fill in by themselves.
-  Anything built from the registries and saved (the first layout) waits for registriesLoaded(). */
- ready=Promise.race([loaded,new Promise(function(res){setTimeout(res,8000)})]);
+ /* The panel starts once the registries are in, or after a short wait; the lists then fill in by themselves. With the last visit's registries in hand
+  it does not wait at all. Anything built from the registries and saved (the first layout) waits for registriesLoaded(), which is true only once Home
+  Assistant has answered. */
+ ready=cached?Promise.resolve():Promise.race([loaded,new Promise(function(res){setTimeout(res,8000)})]);
 }
 
 /* ---- what the panel reads ---- */
@@ -121,7 +222,7 @@ function buildFacade(){
   get config(){return hass.config},
   get user(){return hass.user},
   get locale(){return hass.locale},
-  get connected(){return hass.connected},
+  get connected(){return isConnected()},
   get entities(){return registry.entities},
   get devices(){return registry.devices},
   get areas(){return registry.areas},
@@ -131,6 +232,17 @@ function buildFacade(){
 }
 
 /* ---- websocket ---- */
+
+/* Whether the connection is up, as the connection itself says. Home Assistant's `hass.connected` is a copy that it updates after the connection has
+ said "ready", so a page that asks at that moment is told "down" for a connection that is already back. */
+function isConnected(){
+ var c=hass&&hass.connection;
+ return c&&typeof c.connected==="boolean"?c.connected:hass.connected;
+}
+
+/* A command that failed because the connection was down or lost, as against one Home Assistant answered with a refusal. Home Assistant's errors carry a
+ text code ("unauthorized", "not_found"); a lost connection comes with a number or none. */
+function isTransportError(err){return !(err&&typeof err.code==="string")}
 
 function ws(msg){return hass.connection.sendMessagePromise(msg)}
 function subscribe(msg,callback){return hass.connection.subscribeMessage(callback,msg)}
@@ -143,21 +255,38 @@ function onConnection(lost,back){
 }
 
 /* Home Assistant can hand the panel a new connection object (after a sign-in renewal, for instance); the handlers follow it, so a "back" is never missed on the old one. */
-var connHandlers=[],connBound=null;
+var connHandlers=[];
 function bindConnection(){
  var c=hass&&hass.connection;
- if(!c||c===connBound||!connHandlers.length)return;
- connBound=c;
- connHandlers.forEach(function(x){c.addEventListener("disconnected",x.lost);c.addEventListener("ready",x.back)});
+ if(!c)return;
+ /* Each handler is attached once to each connection it has not been attached to, whenever it was added: a handler added after another one is bound too. */
+ connHandlers.forEach(function(x){
+  if(x.bound===c)return;
+  x.bound=c;
+  c.addEventListener("disconnected",x.lost);
+  c.addEventListener("ready",x.back);
+ });
 }
 
 /* A phone that wakes up often finds its connection dead before the browser has noticed (it can take many seconds), and the page shows old states meanwhile. When the page comes back, Home Assistant is asked a ping: no answer within WAKE_MS and the connection is closed and made again at once, instead of waiting for the browser to give up on it. Either way the page is drawn again now. A connection that is already down is being remade by Home Assistant. */
 var WAKE_MS = 2000,
   waking = false;
+/* A page that was away for AWAY_MS or more is not asked. Home Assistant pings every 55 seconds and closes the connection of a page that does not
+ answer (its websocket's heartbeat), and a phone suspends the page, so by then the connection is most likely gone and the ping would only wait out
+ its two seconds. The connection is remade at once. */
+var AWAY_MS = 60000,
+  hiddenAt = 0;
 function wake(){
  var c=hass&&hass.connection;
  schedule();
- if(!c||waking||document.hidden||!c.connected)return;
+ if(document.hidden)return;
+ var away=hiddenAt?Date.now()-hiddenAt:0;
+ hiddenAt=0;
+ if(!c||waking||!c.connected)return;
+ if(away>=AWAY_MS){
+  c.reconnect(true);
+  return;
+ }
  waking=true;
  var done=false;
  function finish(dead){
@@ -172,6 +301,9 @@ function wake(){
  c.ping().then(function(){finish(false)},function(){finish(false)});
 }
 function watchWake(){
+ function away(){if(document.hidden&&!hiddenAt)hiddenAt=Date.now()}
+ document.addEventListener("visibilitychange",away);
+ window.addEventListener("pagehide",away);
  document.addEventListener("visibilitychange",wake);
  window.addEventListener("pageshow",wake);
  window.addEventListener("focus",wake);
@@ -277,6 +409,7 @@ window.HA={
  registriesLoaded:function(){return registriesLoaded},
  hass:function(){return hass?facade:null},
  onConnection:onConnection,
+ isTransportError:isTransportError,
  data:data,
  history:function(params){return withType("history/history_during_period",params)},
  logbook:function(params){return withType("logbook/get_events",params)},

@@ -14,7 +14,7 @@ const dev = (n) => String(n).padStart(32, "0").replace(/0/g, "a").slice(0, 31) +
 const [D1, D2, D3] = [dev(1), dev(2), dev(3)];
 
 /* `entities`: [entity id, device id, state, extra]. Every entity is a battery sensor unless `extra.cls` says otherwise. */
-function run({ entities = [], devices = {}, areas = {}, bats = [], batsOff = [], isAdmin = true, since = SINCE, low = 20 }) {
+function run({ entities = [], devices = {}, areas = {}, bats = [], batsOff = [], isAdmin = true, since = SINCE, low = 20, real = true }) {
   const states = {};
   const registry = {};
   const reg = [];
@@ -34,6 +34,7 @@ function run({ entities = [], devices = {}, areas = {}, bats = [], batsOff = [],
     dom: (id) => id.split(".")[0],
     ISADMIN: isAdmin,
     STORE_READY: true,
+    dataIsReal: () => real,
     REG: reg,
     UI: { bats: [...bats], batsOff, newSince: since },
     BATLIST: [],
@@ -158,4 +159,17 @@ test("a device Home Assistant no longer has is taken off the list, but nothing i
   const loading = run({ devices: {}, areas, bats: [D1, D3] });
   assert.equal(loading.sandbox.batsPrune(), false);
   assert.deepEqual(loading.bats(), [D1, D3]);
+});
+
+test("nothing joins or leaves the list while the dashboard or the registries are only the copies of the last visit", () => {
+  const r = run({
+    entities: [["sensor.new_battery", D2, "80"]],
+    devices: { [D2]: { name: "New remote" } },
+    bats: [D1],
+    real: false,
+  });
+  r.sandbox.batsAutoAdd();
+  assert.deepEqual(r.bats(), [D1], "the new device is not added and the old one (not in this copy of the registry) is not taken off");
+  assert.equal(r.changes(), 0);
+  assert.equal(r.reconciles(), 0);
 });
