@@ -4,6 +4,13 @@ Format: [Keep a Changelog](https://keepachangelog.com/). Versions follow [semant
 
 ## [Unreleased]
 
+### Changed
+- Door call: the door's sound is played through Web Audio (started inside the tap that answers) instead of a media element, which a phone's browser dropped after about a second because the stream never ends. On an iPhone the page keeps a media session going so the ring/silent switch does not mute the door's sound, and uses the play-and-record audio session so the microphone keeps working.
+- Talking from a dashboard on plain http (the phone app on a local address): the microphone is taken from a hidden frame of Home Assistant's own https address (`mic_frame.html`, served by its own view because Home Assistant forbids framing everywhere else), which records and passes the audio back; only a page on a private network address or on that host is answered. Needs an https external URL.
+
+### Removed
+- The Assist popup the dashboard opened where a page has no microphone.
+
 ## [0.11.0] - 2026-11-14
 
 ### Changed
