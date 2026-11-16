@@ -13,10 +13,9 @@ const core = read("app/core.js");
 /* From the offline state to the end of connCheck: what decides whether the page is offline. */
 const offline = core.slice(core.indexOf("var OFFLINE = false,"), core.indexOf("function entIds(data)"));
 
-function page() {
+function page({ early = false } = {}) {
   const elements = {};
   const timers = [];
-  const listeners = {};
   const toasts = [];
   let now = 0;
   const body = { classList: { toggle() {} }, appendChild: (el) => (elements[el.id] = el) };
@@ -49,27 +48,40 @@ function page() {
   vm.runInContext(offline, sandbox);
 
   /* Home Assistant's `hass`: `connected` is its copy, brought up to date only when the test says so. */
-  const connection = {
-    connected: true,
-    sendMessagePromise: async () => [],
-    subscribeEvents() {},
-    addEventListener: (name, fn) => (listeners[name] ||= []).push(fn),
+  const makeConnection = () => {
+    const listeners = {};
+    return {
+      listeners,
+      connected: true,
+      sendMessagePromise: async () => [],
+      subscribeEvents() {},
+      addEventListener: (name, fn) => (listeners[name] ||= []).push(fn),
+    };
   };
-  const hass = { states: {}, services: {}, connection, connected: true };
+  const hass = { states: {}, services: {}, connection: makeConnection(), connected: true };
   sandbox.HA.attach(hass);
+  /* The store registers its own handler before the page is drawn (app/store.js, initStore), the offline logic after it (offlineInit). */
+  if (early) sandbox.HA.onConnection(() => {}, () => {});
   sandbox.offlineInit();
   return {
     sandbox,
     elements,
     hass,
-    connection,
-    fire: (name) => (listeners[name] || []).forEach((fn) => fn()),
+    get connection() {
+      return hass.connection;
+    },
+    /* Home Assistant hands the panel a new connection object (after a sign-in renewal, say). */
+    renew() {
+      hass.connection = makeConnection();
+      sandbox.HA.attach(hass);
+    },
+    fire: (name) => (hass.connection.listeners[name] || []).forEach((fn) => fn()),
     advance: (ms) => {
       now += ms;
       for (const t of timers.splice(0)) if (t.at <= now) t.fn();
     },
     drop() {
-      connection.connected = false;
+      hass.connection.connected = false;
       this.fire("disconnected");
       hass.connected = false;
     },
@@ -124,4 +136,26 @@ test("a connection that really is still down is not taken for up", () => {
   p.fire("ready"); /* a stray event with the connection itself still down */
   p.sandbox.connCheck();
   assert.equal(p.sandbox.OFFLINE, true);
+});
+
+test("a handler registered before the offline logic does not keep the offline logic from hearing the connection", () => {
+  const p = page({ early: true });
+  p.drop();
+  assert.equal(p.sandbox.OFFLINE, true);
+  p.connection.connected = true;
+  p.fire("ready");
+  assert.equal(p.sandbox.OFFLINE, false, "told at once, not left to the three-second check");
+});
+
+test("handlers follow a new connection object, each attached once", () => {
+  const p = page({ early: true });
+  p.renew();
+  p.renew(); /* attaching again with the same connection adds nothing */
+  const heard = { disconnected: p.connection.listeners.disconnected.length, ready: p.connection.listeners.ready.length };
+  assert.deepEqual(heard, { disconnected: 2, ready: 2 }, "the store's handler and the offline logic's, once each");
+  p.drop();
+  assert.equal(p.sandbox.OFFLINE, true);
+  p.connection.connected = true;
+  p.fire("ready");
+  assert.equal(p.sandbox.OFFLINE, false);
 });

@@ -255,12 +255,17 @@ function onConnection(lost,back){
 }
 
 /* Home Assistant can hand the panel a new connection object (after a sign-in renewal, for instance); the handlers follow it, so a "back" is never missed on the old one. */
-var connHandlers=[],connBound=null;
+var connHandlers=[];
 function bindConnection(){
  var c=hass&&hass.connection;
- if(!c||c===connBound||!connHandlers.length)return;
- connBound=c;
- connHandlers.forEach(function(x){c.addEventListener("disconnected",x.lost);c.addEventListener("ready",x.back)});
+ if(!c)return;
+ /* Each handler is attached once to each connection it has not been attached to, whenever it was added: a handler added after another one is bound too. */
+ connHandlers.forEach(function(x){
+  if(x.bound===c)return;
+  x.bound=c;
+  c.addEventListener("disconnected",x.lost);
+  c.addEventListener("ready",x.back);
+ });
 }
 
 /* A phone that wakes up often finds its connection dead before the browser has noticed (it can take many seconds), and the page shows old states meanwhile. When the page comes back, Home Assistant is asked a ping: no answer within WAKE_MS and the connection is closed and made again at once, instead of waiting for the browser to give up on it. Either way the page is drawn again now. A connection that is already down is being remade by Home Assistant. */
