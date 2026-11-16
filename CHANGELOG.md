@@ -4,6 +4,21 @@ Format: [Keep a Changelog](https://keepachangelog.com/). Versions follow [semant
 
 ## [Unreleased]
 
+## [0.13.0] - 2026-11-16
+
+### Fixed
+- Appliance (the generic oven, washer, dryer, dishwasher): Start stayed greyed out ("not available right now") for a button that had never been pressed, because a button reads `unknown` until its first press; and it hid the real reason (remote start off). Start is now reachable unless the button is unavailable, and the permission is checked first.
+- Appliance: the list row showed the time left by matching English words in the state ("done", "none" and "inactive" counted as running; "preheating" and "washing" did not). A program is now under way when time is left or progress is between 0 and 100, whatever the appliance calls its state.
+- Vacuum extras: the map of a camera or image entity (`/api/camera_proxy/...`) was never shown because only `https://` and `/local/` pictures were accepted; Start, Pause and Dock are dimmed and do nothing when the vacuum cannot do them; a reading bound under care values or modes is not also a chip in the header.
+- Appliances and remotes made in the same millisecond got the same key and the layout dropped one.
+- The entity picker for an appliance lists the entities of the devices already chosen first, and the editor says when a chosen entity no longer exists.
+
+### Changed
+- The appliance popups are made for the kind of appliance, and a device with many entities is a few groups, not a column of rows. An oven opens with a dial for its temperature (the temperature now as a dot on it, the state and the time left under the number); a washer, a dryer and a dishwasher with a ring that fills as the cycle goes (time left in the middle while it runs, the state when it does not); any other appliance with readings and a progress bar. Under it, in this order: a chip for an open door (a shut door says nothing), the Start button (Stop while a program runs), the settings as a grid of tiles (program, temperature, duration with minus and plus, five minutes a tap), and everything else the person added behind one line, "Details · N", where what can be set is a tile and what can only be read is one list. A door reads Open or Closed, in Home Assistant's own words when it has them. New slot: current temperature. A switch bound as Start or Stop is turned on or off, not toggled. The editor lists every slot in the order the type needs.
+- The vacuum's modes and options are a grid of tiles and its care values one list of readings; the map of a vacuum belongs in its popup: a camera on the same device as a vacuum (or chosen as its map) is no longer a camera tile on a page, nor offered when adding a device, and the vacuum's popup shows it without any setup.
+- A vacuum without a map integration offers suction (the fan speeds the vacuum lists).
+- A remote's button can be set to ask first, for a door or a gate.
+
 ## [0.12.0] - 2026-11-16
 
 ### Fixed

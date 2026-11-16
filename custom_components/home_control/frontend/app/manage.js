@@ -555,7 +555,7 @@ function candidates(doms, roomId, q) {
       .split(/\s+/)
       .filter(Boolean);
   Object.keys(h.states).forEach(function (id) {
-    if (have[id]) return;
+    if (have[id] || isVacuumMap(id)) return;
     if (!any && doms.indexOf(pluginDeviceKind(id) ? pluginDeviceKind(id).search : dom(id)) < 0)
       return;
     var e = h.entities && h.entities[id];

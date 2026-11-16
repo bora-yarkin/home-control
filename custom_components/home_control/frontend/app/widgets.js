@@ -880,6 +880,11 @@ function svOk(id) {
   return s && s !== "unavailable" && s !== "unknown";
 }
 
+/* The key of a device made on this dashboard (an appliance, a remote): different even for two made in the same millisecond. */
+function newKey(prefix) {
+  return prefix + Date.now().toString(36).slice(-5) + Math.random().toString(36).slice(2, 7);
+}
+
 function imgOk(u) {
   return (
     typeof u === "string" &&
@@ -938,8 +943,9 @@ var BUILD = "3.82",
 
 /* entity picker */
 /* 'taken' (optional) says which entities are already used and are left out of the list. */
-function pickEntity(title, doms, cls, cb, taken) {
-  PICK = { title: title, doms: doms, cls: cls || null, cb: cb, taken: taken || null, q: "" };
+/* `near` is a list of entities already chosen for the same thing: the entities of their Home Assistant devices are listed first. */
+function pickEntity(title, doms, cls, cb, taken, near) {
+  PICK = { title: title, doms: doms, cls: cls || null, cb: cb, taken: taken || null, near: near || null, q: "" };
   showPopup("pick-ent", true);
 }
 
@@ -957,6 +963,16 @@ function pickBuild(b) {
   w.appendChild(inp);
   b.appendChild(w);
   b.appendChild(box);
+  /* The devices of the entities in `near`. */
+  var nearDevices = {};
+  (P.near || []).forEach(function (id) {
+    var e = h.entities && h.entities[id];
+    if (e && e.device_id) nearDevices[e.device_id] = true;
+  });
+  function isNear(id) {
+    var e = h.entities && h.entities[id];
+    return !!(e && e.device_id && nearDevices[e.device_id]);
+  }
   function list() {
     redrawBox(box, function () {
       var tk = norm(P.q).trim().split(/\s+/).filter(Boolean),
@@ -975,10 +991,10 @@ function pickBuild(b) {
           })
         )
           return;
-        out.push({ id: id, name: nm });
+        out.push({ id: id, name: nm, near: isNear(id) });
       });
       out.sort(function (a, c) {
-        return a.name.localeCompare(c.name);
+        return (c.near ? 1 : 0) - (a.near ? 1 : 0) || a.name.localeCompare(c.name);
       });
       if (!out.length) box.appendChild(pill("info", _T("nothing_found"), {}));
       out.slice(0, 40).forEach(function (c) {

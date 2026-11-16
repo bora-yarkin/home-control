@@ -1,5 +1,10 @@
 /* What a device can have next to its own entity, bound by the administrator with the entity selector and shown only when bound: a vacuum's map, room buttons, modes and upkeep values (`vx`), a camera's intercom (answer, reject, unlock, a call indicator: `ix`) and push to talk (`talk`), and a light's scenes taken from another entity (`sx`). Nothing here knows a brand. */
 
+/* A map is the picture of a camera or an image entity (`/api/camera_proxy/...?token=...`, `/api/image_proxy/...`) or any picture the dashboard accepts elsewhere. */
+function mapPicOk(u) {
+  return imgOk(u) || (typeof u === "string" && u.length <= 300 && /^\/api\/(camera_proxy|image_proxy)\/[a-z0-9_.]+(\?token=[A-Za-z0-9._-]+)?$/i.test(u));
+}
+
 /* The kinds of entity each place accepts. */
 var DSLOT = {
   "vx.map": ["camera", "image"],
@@ -139,9 +144,9 @@ function dlistPage(b, key) {
 /* The vacuum's own extras under its normal popup: the map picture (nothing is drawn over it), the room buttons, the modes and the upkeep values. */
 function vacProfile(b, id) {
   var d = UIDEV[id],
-    vx = d && d.vx;
-  if (!vx) return;
-  var me = vx.map && H().states[vx.map] ? vx.map : null;
+    vx = (d && d.vx) || {},
+    map = vacuumMapOf(id);
+  var me = map && H().states[map] ? map : null;
   if (me) {
     var box = mk("div", "rb-map pane"),
       img = mk("img"),
@@ -152,7 +157,7 @@ function vacProfile(b, id) {
     b.appendChild(box);
     function paint() {
       var u = A(me).entity_picture || "";
-      if (u && u !== last && imgOk(u)) {
+      if (u && u !== last && mapPicOk(u)) {
         last = u;
         img.src = u;
       }
@@ -182,15 +187,25 @@ function vacProfile(b, id) {
     });
     b.appendChild(grid);
   }
+  /* Modes and options: what can be set is a grid of tiles; care values and history are readings, one line each. */
   [["modes", "tune"], ["care", "wrench"]].forEach(function (g) {
     var ids = (vx[g[0]] || []).filter(function (e) {
       return H().states[e];
     });
     if (!ids.length) return;
     b.appendChild(sep(_T(DSLOT_LABEL["vx." + g[0]]), g[1]));
-    ids.forEach(function (e) {
-      b.appendChild(apRowOf(e, A(e).friendly_name || e, g[1]));
-    });
+    entityGroups(
+      b,
+      ids,
+      function (e) {
+        return A(e).friendly_name || e;
+      },
+      function (e) {
+        return function () {
+          return apStateText(e);
+        };
+      }
+    );
   });
 }
 

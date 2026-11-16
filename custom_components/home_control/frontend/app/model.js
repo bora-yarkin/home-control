@@ -70,7 +70,8 @@ function seedUI() {
       var kind = DOMKIND[dom(id)];
       if (
         !inArea(a.area_id, id) ||
-        ["light", "switch", "fan", "climate", "media", "vacuum", "camera"].indexOf(kind) < 0
+        ["light", "switch", "fan", "climate", "media", "vacuum", "camera"].indexOf(kind) < 0 ||
+        (kind === "camera" && isVacuumMap(id))
       )
         return;
       var nm = A(id).friendly_name || id;
@@ -171,12 +172,14 @@ function cleanRemote(r) {
     if (!x || typeof x.e !== "string" || !ENTRE.test(x.e)) return;
     if (["script", "button", "input_button", "scene", "switch"].indexOf(x.e.split(".")[0]) < 0) return;
     var s = typeof x.s === "number" ? Math.round(x.s) : 1;
-    out.btns.push({
+    var btn = {
       e: x.e,
       i: iconOk(x.i) ? x.i : "info",
       l: typeof x.l === "string" ? x.l.slice(0, 24) : "",
       s: Math.max(1, Math.min(cols, 2, s)),
-    });
+    };
+    if (x.q) btn.q = 1;
+    out.btns.push(btn);
   });
   return out;
 }
@@ -191,6 +194,7 @@ function cleanAppliance(a) {
       start: ["button", "input_button", "script", "switch", "input_boolean"],
       stop: ["button", "input_button", "script", "switch", "input_boolean"],
       progress: ["sensor", "number", "input_number"],
+      current: ["sensor", "number", "input_number"],
       remaining: ["sensor", "input_datetime"],
       door: ["binary_sensor", "sensor"],
       permission: ["binary_sensor", "switch", "input_boolean"],
@@ -207,6 +211,30 @@ function cleanAppliance(a) {
       out.extra.push({ e: x.e, l: typeof x.l === "string" ? x.l.slice(0, 30) : "" });
   });
   return out;
+}
+
+/* The map of a vacuum belongs in that vacuum's popup, not on a page: a camera that is bound as a vacuum's map (app/profiles.js), or that sits on the same Home Assistant device as a vacuum
+   (how Roborock, Dreame and Xiaomi add a vacuum's map), is a map and not a camera of the house. */
+function vacuumMapOf(vacuumId) {
+  var h = H(),
+    d = UIDEV[vacuumId];
+  if (d && d.vx && d.vx.map) return d.vx.map;
+  var e = h.entities && h.entities[vacuumId];
+  if (!e || !e.device_id) return null;
+  return (
+    Object.keys(h.states).filter(function (id) {
+      var c = h.entities[id];
+      return id.indexOf("camera.") === 0 && c && c.device_id === e.device_id;
+    })[0] || null
+  );
+}
+
+function isVacuumMap(id) {
+  if (id.indexOf("camera.") !== 0) return false;
+  var h = H();
+  return Object.keys(h.states).some(function (v) {
+    return v.indexOf("vacuum.") === 0 && vacuumMapOf(v) === id;
+  });
 }
 
 function cleanDev(d) {

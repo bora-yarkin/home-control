@@ -102,3 +102,40 @@ test("a picture of a remote keeps only an upload of the integration or a file un
   assert.equal(m.cleanRemote({ img: { u: "/local/rasta/remote.png?v=3", hs: [] } }).img.u, "/local/rasta/remote.png?v=3");
   assert.equal("v" in m.cleanRemote({ v: "i", btns: [] }), false, "the picture layout needs a picture");
 });
+
+test("a button set to ask first asks, runs only when the answer is yes, and a plain button never asks", () => {
+  const calls = [];
+  const asked = [];
+  let answer = null;
+  const states = { "button.garage": { state: "unknown" }, "script.lights": { state: "off" } };
+  const context = vm.createContext({
+    H: () => ({ states }),
+    A: (id) => (id === "button.garage" ? { friendly_name: "Garage door" } : {}),
+    dom: (id) => id.split(".")[0],
+    call: (d, s, data) => calls.push([d, s, plain(data)]),
+    toast() {},
+    confirmDlg: (text, fn) => {
+      asked.push(text);
+      answer = fn;
+    },
+    _T: (k) => k,
+    UI: { devs: {}, layout: {} },
+    allSectionLists: () => [],
+  });
+  vm.runInContext(readFileSync(new URL("remote.js", APP), "utf8"), context);
+  context.remotePress({ e: "button.garage", q: 1 });
+  assert.deepEqual(calls, [], "nothing runs before the answer");
+  assert.deepEqual(asked, ["Garage door?"]);
+  answer();
+  assert.deepEqual(calls, [["button", "press", { entity_id: "button.garage" }]]);
+  context.remotePress({ e: "script.lights" });
+  assert.equal(asked.length, 1);
+  assert.equal(calls.length, 2);
+  context.remotePress({ e: "button.garage", q: 1, l: "Open the gate" });
+  assert.equal(asked[1], "Open the gate?", "a label names it");
+});
+
+test("a remote keeps a button's ask-first choice and drops it when it is off", () => {
+  const r = plain(model().cleanRemote({ btns: [{ e: "button.a", q: 1 }, { e: "button.b", q: 0 }, { e: "button.c" }] }));
+  assert.deepEqual(r.btns.map((b) => b.q), [1, undefined, undefined]);
+});
