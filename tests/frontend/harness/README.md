@@ -11,7 +11,7 @@ Sealed: `mock-hass.js` answers every websocket command from invented data (fake 
 dashboard settings in memory only. Every service call is recorded in `window.__calls` and changes nothing except the few states
 `mock-hass.js` updates itself, so a click can be checked afterwards (`__calls.map(c => c.domain + "." + c.service)`).
 
-Query options: `?sync=0` leaves out the Hue Plus entities, `?box=0` the sync box, `?user=guest` makes the user a non-administrator.
+Query options: `?sync=0` leaves out the Hue Plus entities, `?box=0` the sync box, `?user=guest` makes the user a non-administrator, `?latency=150` delays every websocket answer by 150 ms (to see a slow start; the second visit draws from the copies kept on the device, see *Copies on this device* in `custom_components/home_control/frontend/README.md`).
 `?door=ringing`, `?door=call`, `?door=security-ringing` and `?door=security-call` open the door call popup (a door station with a camera picture, or a guard desk with only the audio-wave picture and nothing to unlock). The pictures (`door-cam.svg`, `audio-wave.svg`) are stand-ins.
 
 ## Checking the spacing

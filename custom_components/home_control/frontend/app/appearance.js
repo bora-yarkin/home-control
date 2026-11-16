@@ -77,19 +77,23 @@ function initTheme() {
       if (PREFS.theme === "auto") applyTheme();
     });
   } catch (e) {}
-  mergePrefs(deviceGet("db_prefs", null));
+  var device = deviceGet("db_prefs", null);
+  mergePrefs(device);
   applyTheme();
-  /* This person's choices as saved in Home Assistant (this device's copy is already in). Resolves once they are in, or when they cannot be read, and the device's copy stands. */
-  return HA.data
+  /* This person's choices as saved in Home Assistant (this device's copy is already in). When this device has a copy the page does not wait for them: they are taken over when they arrive.
+     With no copy (the first visit) the page waits until they are in, or cannot be read. */
+  var saved = HA.data
     .get("user", "dashboard_prefs")
     .then(function (v) {
       if (v) {
         mergePrefs(v);
-        savePrefsLocal();
         applyTheme();
       }
+      /* Kept even when Home Assistant has nothing saved, so the next visit knows this device has read them and does not wait. */
+      savePrefsLocal();
     })
     .catch(function () {});
+  return device ? Promise.resolve() : saved;
 }
 
 /* The page the dashboard opens on: the one chosen in Start on, unless the address names a page. Once, when the page is first drawn. */

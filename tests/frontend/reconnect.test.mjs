@@ -9,7 +9,8 @@ import vm from "node:vm";
 const source = readFileSync(new URL("../../custom_components/home_control/frontend/ha-adapter.js", import.meta.url), "utf8");
 
 /* The adapter on a pretend page. `pingAnswers` decides what a ping does: "ok", "refused" or "silence" (the connection is dead). */
-function page({ pingAnswers = "ok", connected = true } = {}) {
+function page({ pingAnswers = "ok", connected = true, hassConnected } = {}) {
+  let now = 1_000_000;
   const handlers = {};
   const frames = [];
   const timers = [];
@@ -23,6 +24,7 @@ function page({ pingAnswers = "ok", connected = true } = {}) {
       if (timers[id - 1]) timers[id - 1].fn = null;
     },
     console,
+    Date: { now: () => now },
   };
   vm.createContext(sandbox);
   vm.runInContext(source, sandbox);
@@ -39,16 +41,19 @@ function page({ pingAnswers = "ok", connected = true } = {}) {
     },
     reconnect(force) {
       this.reconnects.push(force);
+      this.connected = false; /* the old socket is closed at once; the library opens a new one */
     },
   };
-  sandbox.window.HA.attach({ states: {}, services: {}, connection });
+  sandbox.window.HA.attach({ states: {}, services: {}, connection, connected: hassConnected });
   const drawn = { count: 0 };
   sandbox.window.HA.onUpdate(() => drawn.count++);
   const draw = () => frames.splice(0).forEach((fn) => fn());
   draw();
   const fire = (name) => (handlers[name] || []).forEach((fn) => fn());
   const wakeTimer = () => timers.filter((t) => t.fn && t.ms === 2000)[0];
-  return { connection, fire, drawn, draw, wakeTimer, doc };
+  const HA = sandbox.window.HA;
+  const later = (ms) => (now += ms);
+  return { connection, fire, drawn, draw, wakeTimer, doc, HA, later };
 }
 
 const settle = () => new Promise((resolve) => setImmediate(resolve));
@@ -96,4 +101,70 @@ test("several wake-up events at once ask one ping; a hidden page or a connection
   const down = page({ connected: false });
   down.fire("focus");
   assert.equal(down.connection.pings, 0, "Home Assistant is remaking it already");
+});
+
+/* A page that was away: it comes back to a connection a phone has most likely lost. */
+const away = (p, ms) => {
+  p.doc.hidden = true;
+  p.fire("visibilitychange");
+  p.later(ms);
+  p.doc.hidden = false;
+};
+
+test("a page that was away a minute or more remakes the connection at once and does not wait for a ping", async () => {
+  const p = page({ pingAnswers: "silence" });
+  away(p, 60_000);
+  p.fire("visibilitychange");
+  p.fire("focus");
+  await settle();
+  assert.deepEqual(p.connection.reconnects, [true], "once, however many wake-up events come");
+  assert.equal(p.connection.pings, 0);
+  assert.equal(p.wakeTimer(), undefined);
+});
+
+test("a page that was away a short time asks a ping first, as before", async () => {
+  const p = page();
+  away(p, 59_000);
+  p.fire("visibilitychange");
+  await settle();
+  assert.equal(p.connection.pings, 1);
+  assert.deepEqual(p.connection.reconnects, []);
+});
+
+test("how long the page was away is counted once: the next wake-up is not taken for a long absence", async () => {
+  const p = page();
+  away(p, 120_000);
+  p.fire("focus");
+  assert.deepEqual(p.connection.reconnects, [true]);
+  p.later(5_000);
+  p.connection.connected = true; /* the new connection is up */
+  p.fire("focus");
+  await settle();
+  assert.deepEqual(p.connection.reconnects, [true], "no second reconnect");
+  assert.equal(p.connection.pings, 1, "an ordinary wake-up asks a ping");
+});
+
+test("a page that comes back while Home Assistant is already remaking the connection leaves it alone", async () => {
+  const p = page({ connected: false });
+  away(p, 300_000);
+  p.fire("visibilitychange");
+  assert.deepEqual(p.connection.reconnects, []);
+  assert.equal(p.connection.pings, 0);
+});
+
+test("the panel reads whether it is connected from the connection, not from Home Assistant's copy that is updated a moment after", () => {
+  /* The connection says "ready" and the copy still says false: the panel must not take the connection for down. */
+  const p = page({ connected: true, hassConnected: false });
+  assert.equal(p.HA.hass().connected, true);
+  p.connection.connected = false;
+  assert.equal(p.HA.hass().connected, false);
+});
+
+test("a connection that does not say falls back to Home Assistant's copy", () => {
+  const p = page({ hassConnected: false });
+  p.connection.connected = undefined;
+  assert.equal(p.HA.hass().connected, false);
+  const q = page({ hassConnected: true });
+  q.connection.connected = undefined;
+  assert.equal(q.HA.hass().connected, true);
 });

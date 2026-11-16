@@ -9,7 +9,8 @@
 <body>
 <!-- Loads the real panel with a pretend Home Assistant (mock-hass.js). Nothing is written anywhere: see README.md. -->
 <script type="module">
-import "/custom_components/home_control/frontend/dashboard-panel.js";
+// The panel is asked for fresh each time, so a change to it is the one the page runs (a real Home Assistant asks for it with the version number).
+await import("/custom_components/home_control/frontend/dashboard-panel.js?t=" + Date.now());
 import { makeHass } from "./mock-hass.js";
 import { auditSpacing } from "./audit.js";
 window.auditSpacing = auditSpacing;

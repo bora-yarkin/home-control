@@ -4,7 +4,14 @@ Format: [Keep a Changelog](https://keepachangelog.com/). Versions follow [semant
 
 ## [Unreleased]
 
+### Fixed
+- A page whose connection came back stayed "offline" for about three more seconds, with its "connection lost" banner, and refused commands meanwhile. The panel read Home Assistant's copy of the connection state at the moment the connection said it was ready, and that copy is updated a moment later; it now reads the connection itself.
+- A save of the dashboard that failed because the connection was down said "only administrators can change" and was lost. It now says it is not saved, keeps the change and saves it when the connection is back.
+- A start that lost a request (a weak connection) ended in a message with no way on. `version.json` is asked for again, a lost file of the application reloads the page up to three times, and after that there is a button.
+
 ### Changed
+- Start and recovery are faster: the registries, the plugins, the saved dashboard and the person's choices are asked for together (three round trips became one), a changed entity is fetched by itself instead of loading the whole entity registry again, and a page that was away a minute or more remakes its connection at once instead of waiting two seconds for a ping.
+- The last visit's registries and saved dashboard are kept on the device (under the user id) and the page is drawn from them at once; the real ones replace them in place. Nothing is saved over a copy: a save waits until the real saved dashboard has been read (decision D-21).
 - Door call: the door's sound is played through Web Audio (started inside the tap that answers) instead of a media element, which a phone's browser dropped after about a second because the stream never ends. On an iPhone the page keeps a media session going so the ring/silent switch does not mute the door's sound, and uses the play-and-record audio session so the microphone keeps working.
 - Talking from a dashboard on plain http (the phone app on a local address): the microphone is taken from a hidden frame of Home Assistant's own https address (`mic_frame.html`, served by its own view because Home Assistant forbids framing everywhere else), which records and passes the audio back; only a page on a private network address or on that host is answered. Needs an https external URL.
 

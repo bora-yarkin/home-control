@@ -9,6 +9,13 @@ var STORE_SCOPE = "system",
   STORE_SAVED = 0,
   ISADMIN = false;
 
+/* STORE_NET: the saved dashboard has been read from Home Assistant at least once (a copy kept on this device does not count). Until then a save is held,
+ because it would write that older copy over what another device saved since. STORE_UNSAVED: the last save failed because the connection was down. */
+var STORE_NET = false,
+  STORE_HELD = false,
+  STORE_UNSAVED = false,
+  LAYOUT_CACHE = "home_control_layout_v1";
+
 var QAICONS = [
   "scene",
   "moon",
@@ -456,6 +463,10 @@ function seedStore() {
 
 function storeSave() {
   if (!H()) return;
+  if (!STORE_NET) {
+    STORE_HELD = true;
+    return;
+  }
   STORE.ui = UI;
   STORE.pins = legacyPins();
   var prevJ = STORE_JSON;
@@ -477,9 +488,50 @@ function storeSave() {
     if (prevJ) bkAdd(prevJ, false);
   }
   STORE_SAVED = Date.now();
-  HA.data.set(STORE_SCOPE, STORE_KEY, STORE).catch(function () {
-    toast(_T("couldn_t_save_only_admins_can_change"));
-  });
+  HA.data
+    .set(STORE_SCOPE, STORE_KEY, STORE)
+    .then(function () {
+      STORE_UNSAVED = false;
+      layoutCacheWrite();
+    })
+    .catch(function (e) {
+      /* A lost connection is not a refusal: the change is kept and saved when the connection is back (see initStore). */
+      if (HA.isTransportError(e)) {
+        STORE_UNSAVED = true;
+        toast(_T("not_saved_no_connection"));
+        return;
+      }
+      toast(_T("couldn_t_save_only_admins_can_change"));
+    });
+}
+
+/* True once the saved dashboard and the registries have both come from Home Assistant, not only the copies of the last visit. What changes Home
+   Assistant or the dashboard by itself (the notification automations, the room-off scripts, the batteries that join the list) works only from these:
+   a copy that is older than what another device did would make it undo that. */
+function dataIsReal() {
+  return STORE_NET && HA.registriesLoaded();
+}
+
+/* ---- the last saved dashboard, kept on this device ----
+ The page is first drawn from it while the real one is asked for. It is this person's copy (under their user id); the real one replaces it in place as
+ soon as it arrives, the way a change saved on another device does. */
+function layoutCacheOwner() {
+  try {
+    return H().user.id || null;
+  } catch (e) {
+    return null;
+  }
+}
+
+function layoutCacheRead() {
+  var c = deviceGet(LAYOUT_CACHE, null),
+    owner = layoutCacheOwner();
+  return owner && c && c.user === owner && c.store && typeof c.store === "object" && c.store.v === 1 ? c.store : null;
+}
+
+function layoutCacheWrite() {
+  var owner = layoutCacheOwner();
+  if (owner) deviceSet(LAYOUT_CACHE, { user: owner, store: STORE });
 }
 
 function storeGet(key) {
@@ -497,15 +549,15 @@ function storeLoad() {
     })
     .then(storeTake)
     .catch(function () {
-      /* Until the saved layout is in nothing can be drawn, so it is asked for again. */
-      if (!STORE_READY) setTimeout(storeLoad, 2000);
+      /* Until the saved layout is in nothing can be drawn, and until the real one is in nothing can be saved, so it is asked for again. */
+      if (!STORE_NET) setTimeout(storeLoad, 2000);
     });
 }
 
 /* Takes over saved data that differs from what is open and brings the open page up to date in place. */
 var STORE_WAIT = 0;
 
-function storeTake(v) {
+function storeTake(v, fromCache) {
   /* The first layout is built from the Home Assistant registries. Until all of them are in, nothing is generated or saved. */
   if (!HA.registriesLoaded() && !(v && typeof v === "object" && v.ui)) {
     clearTimeout(STORE_WAIT);
@@ -514,6 +566,7 @@ function storeTake(v) {
     }, 1500);
     return;
   }
+  if (!fromCache) STORE_NET = true;
   var prevUI = JSON.stringify(UI) + JSON.stringify(STORE.access),
     had = !!(v && typeof v === "object"),
     force = !had,
@@ -547,6 +600,13 @@ function storeTake(v) {
   if (ISADMIN && !STORE.access && !SEEDACC) {
     SEEDACC = 1;
     seedAccess();
+  }
+  if (fromCache) return;
+  layoutCacheWrite();
+  /* What was held back while only the copy on this device was in is saved now, on top of what Home Assistant had. */
+  if (STORE_HELD) {
+    STORE_HELD = false;
+    storeSave();
   }
 }
 
@@ -586,7 +646,20 @@ function initStore() {
   } catch (e) {
     ISADMIN = false;
   }
+  /* The page is drawn from the copy of the last visit when there is one; the real dashboard is asked for at once and replaces it. */
+  var cached = layoutCacheRead();
+  if (cached) storeTake(cached, true);
   storeLoad();
+  /* A save that failed because the connection was down is made again when it is back. It goes first: for the seconds after a save, what Home Assistant
+     sends about the dashboard waits, so the connection's own report of the stored dashboard does not undo the change. */
+  HA.onConnection(
+    function () {},
+    function () {
+      if (!STORE_UNSAVED || !STORE_NET) return;
+      STORE_UNSAVED = false;
+      storeSave();
+    }
+  );
   /* If Home Assistant refuses the subscription, the data is read again every minute instead. */
   try {
     HA.data.subscribe(STORE_SCOPE, STORE_KEY, storeEvent).catch(function () {

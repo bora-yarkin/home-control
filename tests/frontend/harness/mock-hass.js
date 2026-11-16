@@ -281,6 +281,13 @@ export function makeHass(query) {
     },
   };
 
+  // `?latency=150` makes every websocket answer arrive 150 ms late, the way a phone on a slow connection gets them.
+  const latency = Number(query.get("latency")) || 0;
+  if (latency) {
+    const answer = connection.sendMessagePromise;
+    connection.sendMessagePromise = (msg) => new Promise((resolve, reject) => setTimeout(() => answer(msg).then(resolve, reject), latency));
+  }
+
   const hass = {
     states,
     services: {

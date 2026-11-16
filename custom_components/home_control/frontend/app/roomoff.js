@@ -88,6 +88,10 @@ function roomOffWatch(p) {
 /* Brings Home Assistant's scripts to what the dashboard's rooms hold now: reads each first and writes only what differs, makes one that is missing, and removes the dashboard's script of a room that is gone or has nothing left to switch off (only one that carries the dashboard's mark). */
 function roomOffReconcile() {
   if (!ISADMIN || !STORE_READY || !H() || OFFLINE) return;
+  if (!dataIsReal()) {
+    roomOffReconcileSoon();
+    return;
+  }
   var want = {};
   roomOffRooms().forEach(function (r) {
     var p = roomOffScript(r);
