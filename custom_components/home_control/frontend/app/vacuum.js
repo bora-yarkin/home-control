@@ -537,9 +537,11 @@ function robotCard(b) {
 /* A robot vacuum's top row is its battery with the readings it reports (cleaning area and time), in the same tiles as every other reading. */
 function vacSummary(b, id) {
   var inf = devInfo(id, { battery: true }),
+    /* What the person bound under modes or care values is shown there, not a second time here. */
+    bound = ((UIDEV[id] && UIDEV[id].vx && (UIDEV[id].vx.care || []).concat(UIDEV[id].vx.modes || [])) || []),
     nums = inf.read
       .filter(function (e) {
-        return dom(e) === "sensor";
+        return dom(e) === "sensor" && bound.indexOf(e) < 0;
       })
       .slice(0, 5),
     items = [
@@ -1003,33 +1005,52 @@ function vacGeneric(b, id) {
       },
     })
   );
-  var tr = mk("div", "rrow");
-  tr.appendChild(
-    rbtn(
-      "play",
-      function () {
-        call("vacuum", "start", { entity_id: id });
-      },
-      _T("start")
-    )
-  );
-  tr.appendChild(
-    rbtn(
-      "pause",
-      function () {
-        call("vacuum", "pause", { entity_id: id });
-      },
-      _T("pause")
-    )
-  );
-  tr.appendChild(
-    rbtn(
-      "home",
-      function () {
-        call("vacuum", "return_to_base", { entity_id: id });
-      },
-      _T("dock")
-    )
-  );
+  var can = { start: true, pause: true, dock: true },
+    tr = mk("div", "rrow"),
+    start = rbtn("play", function () {
+      if (can.start) call("vacuum", "start", { entity_id: id });
+    }, _T("start")),
+    pause = rbtn("pause", function () {
+      if (can.pause) call("vacuum", "pause", { entity_id: id });
+    }, _T("pause")),
+    dock = rbtn("home", function () {
+      if (can.dock) call("vacuum", "return_to_base", { entity_id: id });
+    }, _T("dock"));
+  [start, pause, dock].forEach(function (x) {
+    tr.appendChild(x);
+  });
+  /* What the vacuum can do now: Pause only while it cleans, Start unless it already cleans, Dock unless it is docked or on its way. */
+  function paint() {
+    var st = V_(id),
+      gone = !svOk(id);
+    can.start = !(gone || st === "cleaning");
+    can.pause = !gone && st === "cleaning";
+    can.dock = !(gone || st === "docked" || st === "returning");
+    start.classList.toggle("na", !can.start);
+    pause.classList.toggle("na", !can.pause);
+    dock.classList.toggle("na", !can.dock);
+  }
+  paint();
+  reg(paint);
   b.appendChild(tr);
+  var speeds = A(id).fan_speed_list;
+  if (Array.isArray(speeds) && speeds.length) {
+    var g = mk("div", "grid3");
+    g.appendChild(
+      selectTile(
+        _T("vac_fan_speed"),
+        function () {
+          return A(id).fan_speed_list || [];
+        },
+        function () {
+          return A(id).fan_speed;
+        },
+        function (v) {
+          call("vacuum", "set_fan_speed", { entity_id: id, fan_speed: v });
+        },
+        "fan"
+      )
+    );
+    b.appendChild(g);
+  }
 }

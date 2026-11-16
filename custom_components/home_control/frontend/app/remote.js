@@ -30,7 +30,7 @@ function remoteFind(rid) {
 function remoteNew() {
   return {
     id: "",
-    rid: "rm" + Date.now().toString(36).slice(-7),
+    rid: newKey("rm"),
     name: _T("remote"),
     icon: "media",
     kind: "remote",
@@ -52,8 +52,12 @@ function remotePress(b) {
     toast(_T("rm_not_available_right_now"));
     return;
   }
-  /* A command that fails says so (callRaw shows the error); a command that goes through says nothing. */
-  call(a[0], a[1], { entity_id: b.e });
+  /* A command that fails says so (callRaw shows the error); a command that goes through says nothing. A button set to ask first (a garage door) asks before it runs. */
+  function run() {
+    call(a[0], a[1], { entity_id: b.e });
+  }
+  if (b.q) confirmDlg((b.l || A(b.e).friendly_name || b.e) + "?", run);
+  else run();
 }
 
 function remoteRow(d) {
@@ -454,6 +458,22 @@ function remoteBtnPage(b, key) {
       },
       24
     )
+  );
+  box.appendChild(
+    pill("alert", _T("rm_ask_first"), {
+      on: function () {
+        return !!x.q;
+      },
+      sub: function () {
+        return _T("rm_ask_first_sub");
+      },
+      tap: function () {
+        if (x.q) delete x.q;
+        else x.q = 1;
+        save();
+        redrawBox(box, draw);
+      },
+    })
   );
   var widths = [[1, _T("rm_one_column")]];
   if (d.rm.cols >= 2) widths.push([2, _T("rm_two_columns")]);

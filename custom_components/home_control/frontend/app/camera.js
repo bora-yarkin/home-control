@@ -253,7 +253,7 @@ function camPad(id) {
 
 function cameraList() {
   var cams = devsOf().filter(function (d) {
-      return d.kind === "camera" && d.id && (ISADMIN || modeOf(d.id, d.room).mode !== "hide");
+      return d.kind === "camera" && d.id && !isVacuumMap(d.id) && (ISADMIN || modeOf(d.id, d.room).mode !== "hide");
     }),
     list = [];
   if (!cams.length) {

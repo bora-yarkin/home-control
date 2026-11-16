@@ -10,5 +10,5 @@ Nothing here can be checked from a computer. Go through it on a phone and note w
 6. Camera: live view starts; mute; full screen; leaving the page stops the stream.
 7. Push to talk (only for a camera with it switched on): the first press asks for the microphone; holding talks, releasing stops; leaving the page or locking the phone while held stops it; a camera that does not take audio says so.
 8. Intercom: answer and reject appear only while it rings; unlock asks to confirm and opens only the chosen door.
-9. Appliance: Start is disabled with a reason when remote start is off; the time left counts down.
+9. Appliance: Start is disabled with the reason when remote start is off, and works on a button that was never pressed; Start becomes Stop while a program runs; the time left counts down and the progress bar follows.
 10. Alerts: a test notification arrives on the phone.

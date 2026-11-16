@@ -1,6 +1,8 @@
 /* A pretend Home Assistant for the panel: states, registries, services and the websocket commands the adapter uses.
    All names and ids are invented. Nothing leaves the page; saved settings live in memory. */
 
+import { kitStates, kitEntities, kitDevices, kitReact } from "./kit.js";
+
 const BRIDGE = "bridgeuid00000000000000000000000000";
 const BOX = "boxuid0000000000000000000000000000";
 
@@ -43,6 +45,7 @@ function importEffects(content) {
 export function makeHass(query) {
   const withSync = query.get("sync") !== "0";
   const withBox = query.get("box") !== "0";
+  const withKit = query.get("kit") === "1";
   // ?many=1: nine white lights of one room at different temperatures, for the wheel that opens a group as a circle of its lights.
   const manyKelvin = query.get("many") === "1" ? [2403, 2702, 3558, 2403, 2702, 3558, 2403, 2702, 3558] : [];
   const states = Object.fromEntries([
@@ -99,6 +102,7 @@ export function makeHass(query) {
           state("sensor.bridge_tv_area", "inactive", { friendly_name: "TV area", type: "screen", end_state: "last_state", area_id: "area-1", lights: [] }),
         ]
       : []),
+    ...(withKit ? kitStates() : []),
     ...(withBox
       ? [
           state("switch.living_room_box_sync", "on", { friendly_name: "Living room box" }),
@@ -156,6 +160,7 @@ export function makeHass(query) {
           reg("sensor.bridge_tv_area", "hue_plus", `${BRIDGE}_area_area-1`, "dev-bridge"),
         ]
       : []),
+    ...(withKit ? kitEntities(reg) : []),
     ...(withBox
       ? [
           reg("switch.living_room_box_sync", "hue_plus", `${BOX}_syncbox_sync`, "dev-box"),
@@ -171,6 +176,7 @@ export function makeHass(query) {
     ["dev-lamp", "Desk lamp"], ["dev-strip", "Shelf strip"], ["dev-plain", "Ceiling (not Hue)"],
     ["dev-bridge", "Hue Bridge"], ["dev-living-group", "Living room"], ["dev-tube", "Gradient tube"], ["dev-spotify", "Hue Spotify sync"], ["dev-box", "Living room box"], ["dev-tv", "Living TV"], ["dev-door", "Door station"],
   ].map(([id, name]) => ({ id, name, area_id: null, manufacturer: "Invented", model: "Test" }));
+  if (withKit) devices.push(...kitDevices);
   devices.push(...BATTERY_DEVICES.map(([id, name, byUser, area]) => ({ id, name, name_by_user: byUser, area_id: area, manufacturer: "Invented", model: "Test" })));
 
   const stored = { user: {}, system: {} };
@@ -325,6 +331,7 @@ export function makeHass(query) {
         setTimeout(set(service === "unlock" ? "unlocked" : "locked"), 400);
         if (service === "unlock") setTimeout(set("locked"), 7000);
       }
+      kitReact(states, domain, service, id, (e, v, a = {}) => (states[e] = { ...states[e], state: String(v), attributes: { ...states[e].attributes, ...a } }));
       if (target && domain === "media_player" && service === "select_source") target.attributes = { ...target.attributes, source: data.source };
       // `?lag=300` makes each light answer a light command 300 ms after the one before it, the way separate integrations do.
       const lag = Number(new URLSearchParams(location.search).get("lag"));
