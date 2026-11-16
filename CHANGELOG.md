@@ -4,6 +4,8 @@ Format: [Keep a Changelog](https://keepachangelog.com/). Versions follow [semant
 
 ## [Unreleased]
 
+## [0.12.0] - 2026-11-16
+
 ### Fixed
 - A page whose connection came back stayed "offline" for about three more seconds, with its "connection lost" banner, and refused commands meanwhile. The panel read Home Assistant's copy of the connection state at the moment the connection said it was ready, and that copy is updated a moment later; it now reads the connection itself.
 - A save of the dashboard that failed because the connection was down said "only administrators can change" and was lost. It now says it is not saved, keeps the change and saves it when the connection is back.
