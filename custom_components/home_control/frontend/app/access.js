@@ -138,7 +138,7 @@ function gate(ids, proceed) {
     return false;
   }
   if (need) {
-    if (document.querySelector(".dlg")) return false;
+    if (document.querySelector(".asheet")) return false;
     confirmDlg(need.msg || defaultMsg(need), function () {
       keys.forEach(function (k) {
         APPROVED[k] = 1;

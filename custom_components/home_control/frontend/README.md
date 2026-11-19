@@ -146,3 +146,9 @@ A round power button sits first in the header's group of buttons (before search 
 
 The dashboard also keeps one script per room in Home Assistant, `script.home_control_<room id>_off` (the room id is the one in the dashboard's layout, for example `r_living_room`), built from the same list, so an automation, a physical button or a voice assistant can run it. An administrator's dashboard writes the scripts when it starts and 3 seconds after any layout change: it reads each script first and writes only what differs, creates a missing one, and removes the script of a room that is gone or empty, but only one whose description carries the dashboard's mark (`home_control_room_off`). Edit the room's devices in the dashboard, not the script: changes made to the script are overwritten.
 
+## Popups and questions
+
+- **Questions and short entries are one bottom sheet** (`bottomSheet`, `askSheet`, `confirmDlg` in `app/widgets.js`): "Are you sure", "Unsaved changes" and the TV's keyboard slide up from the bottom, with the choices as full-width buttons and Cancel last. Nothing opens in the middle of the screen; there is no dialog style for it. `confirmDlg(text, fn, label)`: a `label` (Delete, Remove) names the button for what it does and shows it as a risk.
+- **Two ways to save, and only two.** A popup that edits one thing as a whole (a scene, an area, a light in a scene, a new group, the group's settings, the add checklist) changes a draft: a checkmark next to the close button saves it, and closing with changes asks Save or Discard changes (`guardUnsaved` in `app/scenenew.js`). Settings of a device or a section change at once and say Saved with Undo.
+- Opening one popup from another stacks it (a back arrow); a popup opened over another and closed returns to it (`LAYERS`).
+

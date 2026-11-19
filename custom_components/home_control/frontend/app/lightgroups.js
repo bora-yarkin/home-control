@@ -247,7 +247,7 @@ function lgForm(b, o) {
                 CURRENT = null;
                 closeSheet();
               }, failed);
-            });
+            }, _T("delete"));
           },
         })
       );

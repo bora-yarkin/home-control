@@ -210,20 +210,11 @@ function touchpad(remote, keys, onHold) {
 }
 
 function kbDlg(sendText) {
-  var bg = mk("div", "scrim");
-  bg.style.zIndex = 69;
-  var d = mk(
-    "div",
-    "dlg pane",
-    "<textarea rows='3' enterkeyhint='send' placeholder='" +
-      _T("type_to_send_to_the_tv") +
-      "'></textarea><div class='rrow'></div>"
-  );
-  var ta = d.querySelector("textarea");
-  function close() {
-    bg.remove();
-    d.remove();
-  }
+  var ta = mk("textarea");
+  ta.rows = 3;
+  ta.setAttribute("enterkeyhint", "send");
+  ta.placeholder = _T("type_to_send_to_the_tv");
+  var closeIt = null;
   /* Text is sent only on Send: live per-keystroke sending left half-typed text on the TV when the dialog closed mid-typing. */
   function submit() {
     var v = ta.value;
@@ -232,7 +223,7 @@ function kbDlg(sendText) {
       return;
     }
     sendText(v);
-    close();
+    closeIt();
   }
   ta.addEventListener("keydown", function (e) {
     if (e.key === "Enter" && !e.shiftKey && !e.isComposing) {
@@ -240,24 +231,30 @@ function kbDlg(sendText) {
       submit();
     }
   });
-  var row = d.querySelector(".rrow");
-  row.style.gridTemplateColumns = "1fr 1fr";
-  var cl = mk("div", "rbtn pane", _T("close"));
-  cl.addEventListener("click", close);
-  row.appendChild(cl);
-  var ok = mk("div", "rbtn pane", _T("send_btn"));
-  ok.addEventListener("click", submit);
-  row.appendChild(ok);
   /* A stray tap outside must not throw away typed text. */
-  bg.addEventListener("click", function () {
-    if (!ta.value) close();
-  });
-  document.body.appendChild(bg);
-  document.body.appendChild(d);
-  requestAnimationFrame(function () {
-    bg.classList.add("in");
+  closeIt = bottomSheet(
+    function (box, close) {
+      var wrap = mk("div", "as-t");
+      wrap.appendChild(ta);
+      box.appendChild(wrap);
+      var send = mk("div", "as-b");
+      send.setAttribute("role", "button");
+      send.textContent = _T("send_btn");
+      send.addEventListener("click", submit);
+      var no = mk("div", "as-b cancel");
+      no.setAttribute("role", "button");
+      no.textContent = _T("cancel");
+      no.addEventListener("click", close);
+      box.appendChild(send);
+      box.appendChild(no);
+    },
+    function () {
+      return !!ta.value;
+    }
+  );
+  setTimeout(function () {
     ta.focus();
-  });
+  }, 380);
 }
 
 /* The apps and inputs a TV can switch to: the source list of its media player. */

@@ -1,5 +1,5 @@
 *{box-sizing:border-box;-webkit-tap-highlight-color:transparent}
-html,body,main,.sheet,.dlg{-webkit-user-select:none;user-select:none;-webkit-touch-callout:none}
+html,body,main,.sheet,.asheet{-webkit-user-select:none;user-select:none;-webkit-touch-callout:none}
 textarea,input{-webkit-user-select:text;user-select:text;-webkit-touch-callout:default}
 .rbtn,.touch,.key,.pill,.tile,.sel,.room,.opt,.rb-chip{-webkit-user-select:none;user-select:none;-webkit-touch-callout:none;touch-action:manipulation}
 .rbtn.hold,.touch{touch-action:none}
@@ -57,7 +57,7 @@ main{position:fixed;inset:0;z-index:1;overflow-y:auto;touch-action:pan-y;padding
 .menu{position:fixed;z-index:60;padding:6px;max-height:300px;overflow-y:auto;transform-origin:var(--ox,50%) 0;animation:menuIn .24s cubic-bezier(.2,.9,.3,1) both}
 .menu.pane{overflow-y:auto;overscroll-behavior:contain}
 .menu.up{transform-origin:var(--ox,50%) 100%;animation-name:menuInUp}
-.menu.pane,.dlg.pane{position:fixed}
+.menu.pane{position:fixed}
 .menu.out{animation:menuOut .16s ease-in both}
 .menu.up.out{animation-name:menuOutUp}
 @keyframes menuIn{from{opacity:0;clip-path:inset(0 0 100% 0 round var(--r-row));transform:translateY(-6px)}
@@ -210,10 +210,8 @@ svg.open .key{opacity:0}
 .ptzar.on{opacity:1}
 .ptzar svg{width:32px;height:32px;fill:none;stroke:currentColor;stroke-width:2;stroke-linecap:round;stroke-linejoin:round}
 .ptz{display:grid;grid-template-columns:repeat(3,1fr);gap:var(--sp)}
-.dlg{position:fixed;left:50%;top:50%;transform:translate(-50%,-50%);z-index:70;width:min(380px,88%);border-radius:var(--r-xl);padding:22px;text-align:center}
-.dlg p{margin:0 0 18px;font-size:var(--fs-l)}
-.dlg textarea{width:100%;border-radius:var(--r-m);padding:12px 14px;background:rgba(0,0,0,.3);border:1px solid rgba(255,255,255,.22);color:var(--ink);font:inherit;resize:none;margin-bottom:14px;outline:none}
-.dlg .rrow{grid-template-columns:1fr 1fr;margin:0}
+.asheet textarea{width:100%;border-radius:var(--r-m);padding:12px 14px;background:rgba(0,0,0,.3);border:1px solid rgba(255,255,255,.22);color:var(--ink);font:inherit;resize:none;margin-bottom:14px;outline:none}
+.as-b.danger{color:#ff9b8a}
 .rb-sec .rb-chip{margin-left:auto;margin-right:10px}
 .room .rb-g{position:absolute;top:5px;right:5px;width:22px;height:22px;border-radius:50%;display:flex;align-items:center;justify-content:center;color:var(--ink2);background:color-mix(in srgb,var(--ink) 10%,transparent)}
 .room .rb-g svg{width:13px;height:13px;fill:none;stroke:currentColor;stroke-width:1.8;stroke-linecap:round}
@@ -608,7 +606,7 @@ body.light{--ckfg:#fff;--f-bg:#eef0f3;--f-card:#fff;--f-raise:#f3f5f8;--f-line:#
 .sec-h svg,.sep svg{color:var(--ink2)}
 /* The dock is a rounded square, so its items and the moving selector follow its corners (dock radius minus its padding). */
 .dock .di,.dock .dp{border-radius:var(--r-s)}
-.dlg,.menu,.toast,.offline{background:var(--f-raise)!important;color:var(--ink);border:1px solid var(--f-line)}
+.menu,.toast,.offline{background:var(--f-raise)!important;color:var(--ink);border:1px solid var(--f-line)}
 .edtool.pane{background:var(--f-card)!important}
 /* Settings rows: switches for things that are on or off, a chevron for rows that open something. The popups of the Settings pages carry the class stg. */
 .swt,.stg .pill.tg::after{flex:none;width:44px;height:26px;margin-left:8px;border-radius:13px;box-sizing:border-box;background:rgba(255,255,255,.2) radial-gradient(circle,#fff 9.5px,transparent 10.5px) no-repeat 2px center/22px 22px;border:1px solid rgba(255,255,255,.3);transition:background-color .2s,background-position .2s,border-color .2s;background-color:var(--f-line2);border-color:var(--f-line2)}

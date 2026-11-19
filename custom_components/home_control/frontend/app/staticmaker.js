@@ -273,7 +273,7 @@ function sceneEditor(b) {
       box.appendChild(
         pill("trash", _T("delete_scene"), {
           tap: function () {
-            confirmDlg(_T("delete") + d.name + "”?", staticDelete);
+            confirmDlg(_T("delete") + d.name + "”?", staticDelete, _T("delete"));
           },
         })
       );

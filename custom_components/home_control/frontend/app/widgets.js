@@ -567,41 +567,12 @@ function actionPill(icon, name, fn, confirmText) {
   });
 }
 
-function confirmDlg(text, fn) {
-  var bg = mk("div", "scrim");
-  bg.style.zIndex = 69;
-  var d = mk("div", "dlg pane");
-  d.innerHTML = "<p></p><div class='rrow'></div>";
-  d.querySelector("p").textContent = text;
-  function close() {
-    bg.remove();
-    d.remove();
-  }
-  var row = d.querySelector(".rrow");
-  var no = mk("div", "rbtn pane", _T("cancel")),
-    yes = mk("div", "rbtn pane", _T("confirm"));
-  yes.style.background = "linear-gradient(180deg,rgba(255,196,130,.62),rgba(150,92,44,.66))";
-  no.addEventListener("click", close);
-  yes.addEventListener("click", function () {
-    close();
-    fn();
-  });
-  bg.addEventListener("click", close);
-  row.appendChild(no);
-  row.appendChild(yes);
-  document.body.appendChild(bg);
-  document.body.appendChild(d);
-  requestAnimationFrame(function () {
-    bg.classList.add("in");
-  });
-}
-
-/* A question that slides up from the bottom and stays there, as in the Hue app: a line of text, the choices (each a function), and Cancel last. */
-function askSheet(text, choices) {
+/* Every question and every short entry is one sheet that slides up from the bottom and stays there, as in the Hue app: "Are you sure", "Unsaved changes", the TV's keyboard. Nothing
+   opens in the middle of the screen. `build(box, close)` fills the sheet and gets the function that closes it; `keep()` (optional) says whether a tap outside must not close it. */
+function bottomSheet(build, keep) {
   var bg = mk("div", "scrim blur"),
     box = mk("div", "asheet pane");
   bg.style.zIndex = 70;
-  box.appendChild(mk("div", "as-t")).textContent = text;
   function close() {
     bg.classList.remove("in");
     box.classList.remove("in");
@@ -610,19 +581,10 @@ function askSheet(text, choices) {
       box.remove();
     }, 340);
   }
-  choices
-    .concat([{ label: _T("cancel"), cancel: true }])
-    .forEach(function (c) {
-      var r = mk("div", "as-b" + (c.cancel ? " cancel" : ""));
-      r.setAttribute("role", "button");
-      r.textContent = c.label;
-      r.addEventListener("click", function () {
-        close();
-        if (c.fn) c.fn();
-      });
-      box.appendChild(r);
-    });
-  bg.addEventListener("click", close);
+  build(box, close);
+  bg.addEventListener("click", function () {
+    if (!(keep && keep())) close();
+  });
   document.body.appendChild(bg);
   document.body.appendChild(box);
   requestAnimationFrame(function () {
@@ -631,6 +593,31 @@ function askSheet(text, choices) {
       box.classList.add("in");
     });
   });
+  return close;
+}
+
+/* A question: a line of text, then the choices (each a full-width button); Cancel is always last. */
+function askSheet(text, choices) {
+  return bottomSheet(function (box, close) {
+    box.appendChild(mk("div", "as-t")).textContent = text;
+    choices
+      .concat([{ label: _T("cancel"), cancel: true }])
+      .forEach(function (c) {
+        var r = mk("div", "as-b" + (c.cancel ? " cancel" : "") + (c.danger ? " danger" : ""));
+        r.setAttribute("role", "button");
+        r.textContent = c.label;
+        r.addEventListener("click", function () {
+          close();
+          if (c.fn) c.fn();
+        });
+        box.appendChild(r);
+      });
+  });
+}
+
+/* "Are you sure": the text, Confirm, Cancel. `label` names the button for what it does (Delete, Remove). */
+function confirmDlg(text, fn, label) {
+  return askSheet(text, [{ label: label || _T("confirm"), fn: fn, danger: !!label }]);
 }
 
 function rbtn(icon, fn, label, hold) {
