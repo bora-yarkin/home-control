@@ -4,6 +4,10 @@ Format: [Keep a Changelog](https://keepachangelog.com/). Versions follow [semant
 
 ## [Unreleased]
 
+### Changed
+- **Exporting and importing a page is done with files.** Page settings, *Export and import*: *Export this page* saves a `.json` file (named after the page and the time) with its sections, the scenes they list and their areas; *Import a page from a file* reads one, checks it (not a page, empty, broken, too large each say so), and asks at the bottom with what is in it ("Replace this page with the page in the file “Kitchen”? 5 sections, 2 scenes to add, 1 area to add. A backup of the dashboard is kept first.") before it replaces anything. It was a button that copied text to the clipboard and a box to paste it back into.
+- The same two helpers (save a file, read a file) are used by the dashboard backup and the effects file; the effects example is downloaded as a file instead of being copied. An icon of your own is chosen as an SVG file (read, checked for a 24 by 24 drawing of paths and kept under the file's name) instead of typing a name and pasting path data. A wall photo address is entered one at a time and checked when entered, instead of a box of lines.
+
 ### Fixed
 - The zones of a light strip were still offered as lights in the add popup (and in the list of new devices). A strip's main light lists only some of its zones (three of five), so the zones it did not list were missed. A zone is now also known by its unique id: a light whose unique id is another light's followed by `_zone_` and a number.
 

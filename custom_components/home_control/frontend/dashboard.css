@@ -90,7 +90,7 @@ to{opacity:0;clip-path:inset(100% 0 0 0 round var(--r-row));transform:translateY
 .sheet.layer{z-index:43}
 .asheet.pane{position:fixed;left:50%;bottom:calc(12px + var(--sab,0px));width:min(560px,calc(100% - 24px));transform:translate(-50%,calc(100% + 40px));transition:transform .32s cubic-bezier(.2,.9,.3,1);z-index:71;border-radius:22px;overflow:hidden}
 .asheet.in{transform:translate(-50%,0)}
-.as-t{padding:18px 16px 16px;text-align:center;color:var(--ink2);font-size:15px}
+.as-t{white-space:pre-line;padding:18px 16px 16px;text-align:center;color:var(--ink2);font-size:15px}
 .as-b{padding:20px 16px;text-align:center;font-size:18px;font-weight:600;border-top:1px solid var(--f-line2);cursor:pointer}
 .as-b:active{background:rgba(255,255,255,.07)}
 .as-b.cancel{font-size:14px;letter-spacing:.04em;text-transform:uppercase}
@@ -325,7 +325,6 @@ to{background-position:-200% 0}
 .sheet>div:last-child>*:nth-child(n+8){animation-delay:.21s}
 .skl i{background-image:linear-gradient(100deg,transparent 30%,rgba(255,255,255,.12) 50%,transparent 70%);background-size:200% 100%;animation:shim 1.4s linear infinite}
 }
-.ta{width:100%;box-sizing:border-box;min-height:130px;border-radius:var(--r-m);padding:12px 14px;background:rgba(255,255,255,.08);border:1px solid rgba(255,255,255,.3);color:var(--ink);font:12px/1.35 ui-monospace,Menlo,monospace;-webkit-user-select:text;user-select:text;margin:0 0 10px;resize:vertical}
 .ro{pointer-events:none;opacity:.66;filter:saturate(.6)}
 .chv{display:flex;align-items:center;margin-left:4px;opacity:.75}
 .chv svg{width:18px;height:18px;fill:none;stroke:currentColor;stroke-width:1.8;stroke-linecap:round;stroke-linejoin:round;transition:transform .2s}

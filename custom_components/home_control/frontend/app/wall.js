@@ -69,27 +69,28 @@ function wallPhotosPage(b) {
         })
       );
     });
-    box.appendChild(sep(_T("or_add_addresses"), "edit"));
-    var ta = mk("textarea", "ta");
-    ta.setAttribute("spellcheck", "false");
-    ta.placeholder = "https://… or /local/photo.jpg";
-    box.appendChild(ta);
+    box.appendChild(sep(_T("or_add_an_address"), "edit"));
+    /* One address at a time, checked when it is entered: only an https address or a /local/ file is a picture the wall may show. */
     box.appendChild(
-      pill("check", _T("add_these_addresses"), {
-        tap: function () {
-          var lines = ta.value
-            .split("\n")
-            .map(function (s) {
-              return s.trim();
-            })
-            .filter(Boolean);
-          if (!lines.length) return;
-          var c = cleanCfg({ wallPhotos: lines });
-          if (c.wallPhotos.length !== lines.length)
-            toast(_T("some_lines_were_skipped_only_https_a"));
+      textRow(
+        "edit",
+        "https://… or /local/photo.jpg",
+        "",
+        function (v) {
+          if (!v) return;
+          if (photos().length >= 16) {
+            toast(_T("up_to_16_photos"));
+            return;
+          }
+          var c = cleanCfg({ wallPhotos: [v] });
+          if (!c.wallPhotos.length) {
+            toast(_T("use_an_https_or_local_address"));
+            return;
+          }
           setPhotos(photos().concat(c.wallPhotos));
         },
-      })
+        300
+      )
     );
   }
   redrawBox(box, draw);

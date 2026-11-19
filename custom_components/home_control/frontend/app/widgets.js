@@ -567,6 +567,65 @@ function actionPill(icon, name, fn, confirmText) {
   });
 }
 
+/* Files, for every export and import: one place that saves a text file on this device and one that asks for a file and reads it as text, so each can say what went wrong. */
+function fileStamp() {
+  var d = new Date(),
+    p = function (n) {
+      return ("0" + n).slice(-2);
+    };
+  return d.getFullYear() + p(d.getMonth() + 1) + p(d.getDate()) + "-" + p(d.getHours()) + p(d.getMinutes());
+}
+
+/* A name that is safe in a file name: letters and digits, dashes between them. */
+function fileSlug(text, fallback) {
+  var t = String(text || "")
+    .toLowerCase()
+    .replace(/\u0131/g, "i")
+    .normalize("NFKD")
+    .replace(/[\u0300-\u036f]/g, "")
+    .replace(/[^a-z0-9]+/g, "-")
+    .replace(/^-+|-+$/g, "")
+    .slice(0, 40);
+  return t || fallback || "file";
+}
+
+function downloadText(name, text, type) {
+  var blob = new Blob([text], { type: type || "application/json" }),
+    a = document.createElement("a");
+  a.href = URL.createObjectURL(blob);
+  a.download = name;
+  document.body.appendChild(a);
+  a.click();
+  setTimeout(function () {
+    a.remove();
+    URL.revokeObjectURL(a.href);
+  }, 1000);
+}
+
+/* Asks for a file and gives its text to `onText`. `o.accept` (".json,application/json"), `o.maxBytes` (a file larger than that is refused, with a message). */
+function pickTextFile(o, onText) {
+  var fi = document.createElement("input");
+  fi.type = "file";
+  fi.accept = o.accept || ".json,application/json";
+  fi.addEventListener("change", function () {
+    var f = fi.files && fi.files[0];
+    if (!f) return;
+    if (f.size > (o.maxBytes || 5 * 1024 * 1024)) {
+      toast(_T("that_file_is_too_large"));
+      return;
+    }
+    var rd = new FileReader();
+    rd.onload = function () {
+      onText(String(rd.result), f.name);
+    };
+    rd.onerror = function () {
+      toast(_T("couldn_t_read_that_file"));
+    };
+    rd.readAsText(f);
+  });
+  fi.click();
+}
+
 /* Every question and every short entry is one sheet that slides up from the bottom and stays there, as in the Hue app: "Are you sure", "Unsaved changes", the TV's keyboard. Nothing
    opens in the middle of the screen. `build(box, close)` fills the sheet and gets the function that closes it; `keep()` (optional) says whether a tap outside must not close it. */
 function bottomSheet(build, keep) {
