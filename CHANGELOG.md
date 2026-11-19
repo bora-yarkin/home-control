@@ -4,6 +4,8 @@ Format: [Keep a Changelog](https://keepachangelog.com/). Versions follow [semant
 
 ## [Unreleased]
 
+## [0.14.0] - 2026-11-19
+
 ### Added
 - **Light groups.** On the lights list of an add popup the first entry, *Light group*, turns the lights you check into one group. The checkmark opens a *New light group* form (name, icon, the lights, hide its lights in Home Assistant, on when any or all are on); **nothing is made in Home Assistant until that form is saved with a name**, because the name chooses the light's entity id (a group named "Reading corner" is `light.reading_corner`). Saving makes Home Assistant's own Group helper (Settings, Devices and services, Helpers) through its configuration flow and puts the group on the page instead of its lights. The same form, with a checkmark that saves, is the settings of a group that exists (from the settings of any light that is a group): the name, lights and options are changed through the helper when it is saved, closing with changes asks, and Delete group (after a confirmation) deletes the helper; its lights stay. Renaming a group changes its name, not its entity id. A group not made by the helper (a Hue room) can be renamed and given an icon, but its lights cannot be changed here.
 
