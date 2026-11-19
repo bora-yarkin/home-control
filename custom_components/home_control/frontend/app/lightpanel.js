@@ -489,7 +489,7 @@ function lpCircle(S, mode) {
       var on = S.sel === m.n.key || (!S.sel && marks.length === 1),
         lit = countOn(m.n.cmd) > 0 || (m.forced && Date.now() - m.forced < 3000);
       /* The drop opens when the marker becomes the selected one and closes when it stops being it. */
-      if (m.on !== undefined && m.on !== on && !m.inBub && lit) lpPinAnim(m, on, 0);
+      if (m.on !== undefined && m.on !== on && lit) lpPinAnim(m, on, 0);
       m.on = on;
       m.pin.classList.toggle("act", on);
       m.dot.classList.toggle("picked", on);
@@ -547,6 +547,7 @@ function lpCircle(S, mode) {
     b.m.pin.style.visibility = b.m.dot.style.visibility = "";
     /* The circle and its lights are gone in a single frame, as in the Hue app; the group's drop grows back where it was. */
     b.el.remove();
+    b.chips.remove();
     if (!fast) lpPinAnim(b.m, true, 0);
   }
   function openBubble(m) {
@@ -561,7 +562,8 @@ function lpCircle(S, mode) {
       kids = lpOpenKids(m.n).filter(function (k) {
         return lpCap(k, mode).length;
       });
-    var el = mk("div", "lw-bub");
+    var el = mk("div", "lw-bub"),
+      chips = mk("div", "lw-chips");
     el.style.cssText =
       "left:" + (cx - rho) + "px;top:" + (cy - rho) + "px;width:" + 2 * rho + "px;height:" + 2 * rho + "px;";
     circ.appendChild(el);
@@ -576,12 +578,13 @@ function lpCircle(S, mode) {
       x.pin.classList.add("bubm");
       x.dot.classList.add("bubm");
       lpPlace(x, cx + rho * Math.cos(ang[i]), cy + rho * Math.sin(ang[i]));
-      circ.appendChild(x.dot);
-      circ.appendChild(x.pin);
+      chips.appendChild(x.dot);
+      chips.appendChild(x.pin);
       return x;
     });
+    circ.appendChild(chips);
     m.pin.style.visibility = m.dot.style.visibility = "hidden";
-    bub = { m: m, n: m.n, el: el, cx: cx, cy: cy, rho: rho, mem: mem };
+    bub = { m: m, n: m.n, el: el, chips: chips, cx: cx, cy: cy, rho: rho, mem: mem };
     S.select(m.n.key);
   }
   /* The markers are made again whenever a group is separated or joined. */
@@ -635,23 +638,7 @@ function lpCircle(S, mode) {
       : [];
     if (fresh.length) slideOut(fresh, from);
     paintSel();
-    var fly = S.flyFrom;
-    if (fly) {
-      /* The light tapped in the circle flies from where it was in the circle to its place on the wheel, its drop opening on the way. */
-      marks.forEach(function (m) {
-        if (m.n.key !== fly.key) return;
-        var to = [m.x, m.y];
-        lpPlace(m, fly.x, fly.y);
-        lpPinAnim(m, true, 50);
-        void circ.offsetWidth;
-        circ.classList.add("lw-fly");
-        lpPlace(m, to[0], to[1]);
-        setTimeout(function () {
-          circ.classList.remove("lw-fly");
-        }, 400);
-      });
-    }
-    var popKeys = fly ? null : S.popNow;
+    var popKeys = S.popNow;
     if (popKeys) {
       if (from) lpRing(circ, from[0], from[1]);
       marks.forEach(function (m) {
@@ -816,15 +803,8 @@ function lpCircle(S, mode) {
       return;
     }
     if (cur && cur.inBub) {
-      /* A tap on a light of the circle closes it: the lights are separate on the wheel and the one tapped is selected. */
-      if (!moved && bub) {
-        var g = bub.n,
-          kid = cur.n;
-        closeBubble(true);
-        S.pop = [kid.key];
-        S.flyFrom = { key: kid.key, x: cur.x, y: cur.y };
-        S.detach(g, kid, true);
-      }
+      /* A tap on a light of the circle only picks it: its drop opens above it and bounces, and the circle stays as it is. Lights are separated by dragging them out. */
+      if (!moved && bub) lpPinAnim(cur, true, 0);
       return;
     }
     if (moved && cur && marks.length > 1) mergeNear(cur);
@@ -950,7 +930,7 @@ function lpState(root, both) {
     };
   };
   /* A light was dragged out of its group's circle: it is on its own, the rest of the group stays together. */
-  S.detach = function (g, kid, apart) {
+  S.detach = function (g, kid) {
     var gone = lpLeaves(kid),
       rest = lpOpenKids(g).filter(function (k) {
         return gone.indexOf(k) < 0;
@@ -967,7 +947,7 @@ function lpState(root, both) {
       });
       g.kids.forEach(open);
     } else open(g);
-    if (!apart && rest.length > 1) S.joined.push(S.makeVirtual(rest, rest[0].icon));
+    if (rest.length > 1) S.joined.push(S.makeVirtual(rest, rest[0].icon));
     /* No slide and no pop: the light is under the finger already and follows it. */
     S.sel = kid.key;
     S.rebuild();
@@ -979,7 +959,6 @@ function lpState(root, both) {
       s.build();
     });
     S.popNow = null;
-    S.flyFrom = null;
     if (S.bsl) S.bsl.refresh();
   };
   /* A light picked inside a marker that stands for several (S.focus = {v: the marker's node, n: the light}): the marker stays whole, shows the light's icon, and what is set acts on
