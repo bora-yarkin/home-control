@@ -176,10 +176,25 @@ function kwizPage(b, key) {
     b.appendChild(mk("div", "hint")).textContent = _T("nothing_to_set_up");
     return;
   }
+  b.appendChild(devPreview(d));
   var box = mk("div");
   b.appendChild(box);
   function draw() {
     redrawBox(box, function () {
+      /* What can be done in one tap comes first: link what Home Assistant says belongs to the device. */
+      box.appendChild(
+        pill("search", _T("find_automatically"), {
+          sub: function () {
+            return cntS((d.links || []).length, _T("linked_entity"), _T("linked_entities_2"));
+          },
+          tap: function () {
+            var n = kAuto(d);
+            uiChanged();
+            toast(n ? _T("linked") + n : _T("nothing_new_found"));
+            draw();
+          },
+        })
+      );
       var t = kind === "tv" ? kTier(d) : null;
       if (t) {
         box.appendChild(
@@ -226,16 +241,6 @@ function kwizPage(b, key) {
           })
         );
       });
-      box.appendChild(
-        pill("search", _T("find_automatically"), {
-          tap: function () {
-            var n = kAuto(d);
-            uiChanged();
-            toast(n ? _T("linked") + n : _T("nothing_new_found"));
-            draw();
-          },
-        })
-      );
     });
   }
   d.setup = 1;

@@ -788,6 +788,50 @@ function roomDetails(b, rid) {
   redrawBox(box, draw);
 }
 
+/* The tab last used in a device popup, by kind of device, for as long as the page is open. */
+var DEVTAB = {};
+
+/* A few icons that fit the kind of device (and its name), shown before the whole list: a tap sets one. */
+var KINDICONS = {
+  light: ["light", "lamp", "floor", "ceiling", "strip", "bed", "lights"],
+  switch: ["plug", "power", "light", "fan", "printer"],
+  fan: ["fan", "purifier"],
+  climate: ["ac", "thermo", "fan"],
+  media: ["tv", "speaker", "media", "apple"],
+  vacuum: ["vac", "broom"],
+  camera: ["cam", "cctv", "camoff"],
+  lock: ["lock", "padlock"],
+  appliance: ["plug", "drop", "power"],
+  remote: ["media", "tv", "play", "power"],
+  sensor: ["thermo", "drop", "motion", "walk", "battery"],
+  number: ["tune", "bright", "volup"],
+  select: ["tune", "apps", "media"],
+  button: ["play", "power", "restart"],
+  cover: ["swap", "up", "down"],
+};
+
+/* The device as it will look on the page: the top of every popup that edits one, so a change to its name or icon is seen at once. It cannot be tapped. */
+function devPreview(d) {
+  var box = mk("div", "dprev"),
+    row = pill(d.icon || "plug", d.name, {
+      sub: function () {
+        return (KINDLAB[d.kind] || "") + (d.id ? " · " + (V_(d.id) ? entVal(d.id) : d.id) : "");
+      },
+    });
+  box.setAttribute("aria-hidden", "true");
+  box.appendChild(row);
+  if (row.refresh) row.refresh();
+  return box;
+}
+
+function iconSuggestions(d) {
+  var list = (KINDICONS[d.kind] || []).slice();
+  if (d.icon && list.indexOf(d.icon) < 0 && iconOk(d.icon)) list.unshift(d.icon);
+  return list.filter(function (n) {
+    return iconOk(n);
+  }).slice(0, 8);
+}
+
 function devManage(b, key) {
   var p = key.split(":"),
     rid = p[0],
@@ -795,42 +839,123 @@ function devManage(b, key) {
     list = devList(rid),
     d = list[i];
   if (!d) return;
-  b.appendChild(
-    textRow(
-      "edit",
-      _T("device_name"),
-      d.name,
-      function (v) {
-        if (v) {
-          d.name = v;
-          uiChanged();
-        }
-      },
-      40
-    )
-  );
-  b.appendChild(
-    iconPick(DEVICONS, d.icon, function (n) {
-      d.icon = n;
-      uiChanged();
-    })
-  );
-  var box = mk("div");
+  /* The popup: the device as it will look on the page, tabs for what can be changed, and the tab's content. Every change is made at once (with Undo), in every tab. */
+  var preview = mk("div"),
+    tabsBox = mk("div"),
+    box = mk("div"),
+    cur = DEVTAB[d.kind] || "look";
+  b.appendChild(preview);
+  b.appendChild(tabsBox);
   b.appendChild(box);
-  function draw() {
-    box.appendChild(
-      entRow(_T("type"), function () {
-        return KINDLAB[d.kind];
+  function drawPreview() {
+    preview.innerHTML = "";
+    preview.appendChild(devPreview(d));
+  }
+  function hasOptions() {
+    return ["light", "media", "climate", "vacuum", "camera", "appliance", "remote", "lock"].indexOf(d.kind) >= 0 || !!devSetupKind(d);
+  }
+  function drawTabs() {
+    var tabs = [["look", _T("dp_look")]];
+    if (hasOptions()) tabs.push(["options", _T("dp_options")]);
+    tabs.push(["place", _T("dp_placement")], ["more", _T("dp_more")]);
+    if (!tabs.some(function (t) { return t[0] === cur; })) cur = "look";
+    tabsBox.innerHTML = "";
+    tabsBox.appendChild(
+      seg(tabs, cur, function (v) {
+        cur = DEVTAB[d.kind] = v;
+        drawTabs();
+        redrawBox(box, draw);
       })
     );
-    if (d.id)
+  }
+  drawPreview();
+  drawTabs();
+  /* A name is offered in shorter and plainer forms: the entity's name without the room in front of it. */
+  function nameChoices() {
+    var full = (d.id && A(d.id).friendly_name) || d.name,
+      area = d.id ? areaName(d.id) : "",
+      out = [];
+    function add(n) {
+      n = (n || "").trim();
+      if (n && n !== d.name && n.length <= 40 && out.indexOf(n) < 0) out.push(n);
+    }
+    add(full);
+    if (area && full.toLowerCase().indexOf(area.toLowerCase() + " ") === 0) add(full.slice(area.length + 1).replace(/^./, function (c) { return c.toUpperCase(); }));
+    return out.slice(0, 3);
+  }
+  function draw() {
+    if (cur === "look") {
       box.appendChild(
-        entRow(_T("entity"), function () {
-          return d.id;
+        textRow(
+          "edit",
+          _T("device_name"),
+          d.name,
+          function (v) {
+            if (v) {
+              d.name = v;
+              uiChanged();
+              drawPreview();
+              redrawBox(box, draw);
+            }
+          },
+          40
+        )
+      );
+      var nc = nameChoices();
+      if (nc.length) {
+        var nrow = mk("div", "pre");
+        nc.forEach(function (n) {
+          var c = mk("div", "rbtn pane keepc");
+          c.textContent = n;
+          c.addEventListener("click", function () {
+            d.name = n;
+            uiChanged();
+            drawPreview();
+            redrawBox(box, draw);
+          });
+          nrow.appendChild(c);
+        });
+        box.appendChild(nrow);
+      }
+      var sug = iconSuggestions(d),
+        irow = mk("div", "pre ico");
+      sug.forEach(function (n) {
+        var c = mk("div", "rnd pane" + (d.icon === n ? " act" : ""), svg(n));
+        c.setAttribute("role", "button");
+        c.setAttribute("aria-label", iconLabel(n));
+        c.title = iconLabel(n);
+        c.addEventListener("click", function () {
+          d.icon = n;
+          uiChanged();
+          drawPreview();
+          redrawBox(box, draw);
+        });
+        irow.appendChild(c);
+      });
+      if (sug.length) box.appendChild(irow);
+      box.appendChild(
+        iconPick(DEVICONS, d.icon, function (n) {
+          d.icon = n;
+          uiChanged();
+          drawPreview();
         })
       );
-    profileSettings(box, d, key);
-    if (d.kind === "appliance")
+    }
+    if (cur === "more") {
+      box.appendChild(
+        entRow(_T("type"), function () {
+          return KINDLAB[d.kind];
+        })
+      );
+      if (d.id)
+        box.appendChild(
+          entRow(_T("entity"), function () {
+            return d.id;
+          })
+        );
+    }
+    if (cur === "options") profileSettings(box, d, key);
+    if (cur === "options" && d.kind === "appliance")
       box.appendChild(
         pill("tune", _T("ap_set_up"), {
           tap: function () {
@@ -838,7 +963,7 @@ function devManage(b, key) {
           },
         })
       );
-    if (d.kind === "remote")
+    if (cur === "options" && d.kind === "remote")
       box.appendChild(
         pill("media", _T("rm_edit_buttons"), {
           tap: function () {
@@ -847,7 +972,7 @@ function devManage(b, key) {
           },
         })
       );
-    if (d.kind === "light" && d.id && lgMembers(d.id).length)
+    if (cur === "options" && d.kind === "light" && d.id && lgMembers(d.id).length)
       box.appendChild(
         pill("lights", _T("lg_group_settings"), {
           sub: function () {
@@ -858,7 +983,7 @@ function devManage(b, key) {
           },
         })
       );
-    if (d.kind === "climate" && d.id)
+    if (cur === "options" && d.kind === "climate" && d.id)
       box.appendChild(
         pill("thermo", _T("thermostat_dial"), {
           on: function () {
@@ -874,7 +999,7 @@ function devManage(b, key) {
           },
         })
       );
-    if (d.kind === "vacuum" && d.id && vacMapEnt(d.id)) {
+    if (cur === "options" && d.kind === "vacuum" && d.id && vacMapEnt(d.id)) {
       var mp = (d.map = d.map || {}),
         mset = function (k, v) {
           if (v === undefined || v === "") delete mp[k];
@@ -1028,7 +1153,7 @@ function devManage(b, key) {
         );
       }
     }
-    if (d.kind === "media" && d.id)
+    if (cur === "options" && d.kind === "media" && d.id)
       box.appendChild(
         dropRow(
           _T("now_playing"),
@@ -1049,7 +1174,7 @@ function devManage(b, key) {
           }
         )
       );
-    if (d.kind === "light" && d.id) {
+    if (cur === "options" && d.kind === "light" && d.id) {
       if (lightRaw(d.id).color && lightRaw(d.id).white)
         box.appendChild(
           pill("palette", _T("separate_colour_and_white"), {
@@ -1171,7 +1296,7 @@ function devManage(b, key) {
         );
       }
     }
-    if (devSetupKind(d))
+    if (cur === "options" && devSetupKind(d))
       box.appendChild(
         pill("tune", _T("set_up_this_device"), {
           sub: function () {
@@ -1182,14 +1307,8 @@ function devManage(b, key) {
           },
         })
       );
-    box.appendChild(
-      pill("swap", _T("move_to_another_section"), {
-        tap: function () {
-          showPopup("manage-move:" + key, true);
-        },
-      })
-    );
-    if (d.id && advList(d.id).length)
+    if (cur === "place") devMove(box, key);
+    if (cur === "more" && d.id && advList(d.id).length)
       box.appendChild(
         pill("tune", _T("advanced_settings_button"), {
           on: function () {
@@ -1205,7 +1324,7 @@ function devManage(b, key) {
           },
         })
       );
-    if (d.kind === "lock")
+    if (cur === "options" && d.kind === "lock")
       box.appendChild(
         pill("right", _T("unlock_with_a_slider"), {
           on: function () {
@@ -1221,7 +1340,8 @@ function devManage(b, key) {
           },
         })
       );
-    box.appendChild(
+    if (cur === "place")
+      box.appendChild(
       pill("lock", _T("hide_in_the_app"), {
         on: function () {
           return !!d.hide;
@@ -1236,7 +1356,8 @@ function devManage(b, key) {
         },
       })
     );
-    box.appendChild(
+    if (cur === "place")
+      box.appendChild(
       pill("trash", _T("remove_from_the_room"), {
         tap: function () {
           confirmDlg(

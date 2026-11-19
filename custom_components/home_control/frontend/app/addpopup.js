@@ -6,10 +6,20 @@ function addCandidate(rid, c) {
   var kind = DOMKIND[dom(c.id)] || "sensor",
     d = { id: c.id, name: c.name, icon: defIcon(kind, c.name, c.id), kind: kind };
   if (kind === "media" && d.icon === "tv") d.sub = 1;
-  devList(rid).push(d);
-  var setupKind = devSetupKind(d),
+  var at = placeDevice(rid, d),
+    setupKind = devSetupKind(d),
     found = setupKind ? kAuto(d) : 0;
-  return { d: d, wizard: !!(setupKind && (found || devSetupAlways(setupKind))) };
+  return { d: d, at: at, wizard: !!(setupKind && (found || devSetupAlways(setupKind))) };
+}
+
+/* Puts a device where the popup was opened: in the section it was opened from, or, from the page's own Add, in the first section of the device's kind. Gives where it went. */
+function placeDevice(rid, d) {
+  if (rid.charAt(0) === "~") {
+    var list = devList(rid);
+    list.push(d);
+    return { rid: rid, i: list.length - 1 };
+  }
+  return addDevToPage(rid, d);
 }
 
 function devAdd(b, rid) {
@@ -182,7 +192,7 @@ function devAdd(b, rid) {
       var wizard = null;
       rest.forEach(function (c) {
         var r = addCandidate(rid, c);
-        if (r.wizard) wizard = { d: r.d, i: devList(rid).length - 1 };
+        if (r.wizard) wizard = r.at;
       });
       if (rest.length) {
         uiChanged();
@@ -193,7 +203,7 @@ function devAdd(b, rid) {
     if (!st.group) {
       var wiz = addRest();
       POPGUARD = null;
-      if (wiz) showPopup("kwiz:" + rid + ":" + wiz.i, false);
+      if (wiz) showPopup("kwiz:" + wiz.rid + ":" + wiz.i, false);
       else leave();
       return true;
     }

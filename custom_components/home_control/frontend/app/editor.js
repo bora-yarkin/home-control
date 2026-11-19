@@ -49,9 +49,11 @@ function edMark(el, open, hidden) {
   return el;
 }
 
-function edAdd(label, fn, icon) {
+/* `soft`: the add row of a section that lists devices; it is shown only while the section is empty, the page's Add and the + in the section's heading do the rest. */
+function edAdd(label, fn, icon, soft) {
   var p = pill(icon || "plus", label, { tap: fn });
   p.classList.add("ed-add", "edok");
+  if (soft) p.classList.add("ed-add-soft");
   return p;
 }
 
@@ -333,13 +335,18 @@ function edToolbar() {
   u.classList.add("et-undo");
   u.classList.toggle("dis", !EDHIST.length);
   t.appendChild(u);
+  /* On a room the page's Add opens the checklist of everything that can be added; the device goes to the first section of its kind (one is made when there is none). */
   t.appendChild(
     rbtn(
       "plus",
       function () {
-        edAddSection(edScope());
+        if (VIEW === "home") edAddSection(edScope());
+        else {
+          ADDPRE = null;
+          showPopup("manage-add:" + VIEW, true);
+        }
       },
-      _T("add_section")
+      VIEW === "home" ? _T("add_section") : _T("add")
     )
   );
   t.appendChild(
@@ -348,7 +355,7 @@ function edToolbar() {
       function () {
         showPopup("ed-order:" + VIEW, true);
       },
-      _T("reorder_sections")
+      _T("dp_sections")
     )
   );
   t.appendChild(
@@ -611,6 +618,13 @@ function mkHint(t) {
 function secOrderPage(b, key) {
   var sc = key === "home" ? "home" : "room:" + key,
     box = mk("div");
+  b.appendChild(
+    pill("plus", _T("add_section"), {
+      tap: function () {
+        edAddSection(sc);
+      },
+    })
+  );
   b.appendChild(box);
   function colMap() {
     var out = {};
@@ -828,6 +842,19 @@ function editDecorate(sc, s) {
     setSecOrder(sc, secOrder(sc));
     uiChanged();
   });
+  var kindNow = ent() && ent().k,
+    ty = SECTYPES[kindNow] || {};
+  if (ty.add) {
+    var pl = mk("div", "rnd pane sm", svg("plus"));
+    pl.tabIndex = 0;
+    pl.setAttribute("role", "button");
+    pl.setAttribute("aria-label", widgetAddLabel(kindNow));
+    pl.title = widgetAddLabel(kindNow);
+    pl.addEventListener("click", function () {
+      widgetAdd("~" + scopeId + "~" + s.id, kindNow);
+    });
+    tb.appendChild(pl);
+  }
   tb.appendChild(cg);
   tb.appendChild(ey);
   /* The toolbar goes in the section heading, wherever the section keeps it (a section that rebuilds its content calls _attach again). */
@@ -868,6 +895,7 @@ function addDevToPage(room, d) {
     arr.push(s);
   }
   (s.devs = s.devs || []).push(d);
+  return { rid: "~" + room + "~" + s.id, i: s.devs.length - 1 };
 }
 
 function allSectionLists() {

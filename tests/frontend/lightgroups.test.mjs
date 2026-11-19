@@ -133,7 +133,7 @@ test("only a light made by the group helper has a helper behind it", async () =>
 });
 
 /* app/lightgroups.js and app/addpopup.js on a pretend page; pills are recorded, so a tap can be made on a row by its name. */
-function dashboard({ create, lights = ["Desk lamp", "Shelf strip", "Ceiling"] } = {}) {
+function dashboard({ create, lights = ["Desk lamp", "Shelf strip", "Ceiling"], rid = "~r~lights" } = {}) {
   const calls = { toasts: [], popups: [], created: [], guard: null };
   const states = {};
   const names = { "light.desk": "Desk lamp", "light.shelf": "Shelf strip", "light.ceiling": "Ceiling", "light.existing": "Light group" };
@@ -165,6 +165,10 @@ function dashboard({ create, lights = ["Desk lamp", "Shelf strip", "Ceiling"] } 
     devSetupAlways: () => false,
     kAuto: () => 0,
     devList: () => section.devs,
+    addDevToPage: (room, d) => {
+      calls.pagePlaced = (calls.pagePlaced || []).concat([[room, d.id]]);
+      return { rid: "~" + room + "~lights", i: 0 };
+    },
     allSectionLists: () => [[section]],
     UI: { devs: {}, layout: {} },
     uiChanged() {},
@@ -180,7 +184,7 @@ function dashboard({ create, lights = ["Desk lamp", "Shelf strip", "Ceiling"] } 
   vm.runInContext(read("app/lightgroups.js"), sandbox);
   vm.runInContext(read("app/addpopup.js"), sandbox);
   const b = el();
-  sandbox.devAdd(b, "~r~lights");
+  sandbox.devAdd(b, rid);
   const tap = (name) => pills.filter((p) => p.name === name).pop().o.tap();
   return { sandbox, calls, tap, section, pills, save: () => calls.guard.save(() => calls.toasts.push("left")) };
 }
@@ -243,4 +247,18 @@ test("a light that is not a group has no helper; the group's lights come from Ho
   assert.equal(sandbox.lgDevices("light.g").length, 1);
   sandbox.lgDropDevices("light.g");
   assert.deepEqual(d.section.devs.map((x) => x.id), ["light.other"]);
+});
+
+test("from the page's own Add the checked devices go to the first section of their kind, and a group goes the same way", async () => {
+  const d = dashboard({ rid: "r_living", create: () => Promise.resolve({ entry_id: "e1", entity_id: "light.g" }) });
+  d.tap("Desk lamp");
+  d.save();
+  assert.deepEqual(plain(d.calls.pagePlaced), [["r_living", "light.desk"]], "placed by kind, not into a list of its own");
+  assert.deepEqual(d.section.devs, [], "no section was named");
+  const g = dashboard({ rid: "r_living", create: () => Promise.resolve({ entry_id: "e1", entity_id: "light.g" }) });
+  g.tap("Light group");
+  g.tap("Desk lamp");
+  g.tap("Ceiling");
+  await g.save();
+  assert.deepEqual(plain(g.calls.pagePlaced), [["r_living", "light.g"]]);
 });

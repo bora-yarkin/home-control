@@ -55,7 +55,7 @@ function lgDropDevices(entity) {
 function lgCreate(rid, lights) {
   var name = lgFreeName(_T("lg_light_group"));
   return HA.lightGroups.create(name, lights, { hide_members: true, all: false }).then(function (made) {
-    devList(rid).push({ id: made.entity_id, name: name, icon: "lights", kind: "light" });
+    placeDevice(rid, { id: made.entity_id, name: name, icon: "lights", kind: "light" });
     uiChanged();
     return made.entity_id;
   });
@@ -64,9 +64,41 @@ function lgCreate(rid, lights) {
 /* The group's settings. Name and icon belong to the dashboard's device and to the helper; the lights, hiding them and when the group counts as on belong to the helper. Every change
    is made at once; the lights are changed through the helper's options, which reloads the group. */
 function lgPage(b, entity) {
-  var st = { entry: undefined, opts: null, busy: false },
+  var st = { entry: undefined, opts: null, busy: false, tab: "look" },
+    preview = mk("div", "dprev"),
+    tabsBox = mk("div"),
     box = mk("div");
+  preview.setAttribute("aria-hidden", "true");
+  b.appendChild(preview);
+  b.appendChild(tabsBox);
   b.appendChild(box);
+  function drawShell() {
+    var dev = lgDevices(entity)[0],
+      row = pill((dev && dev.icon) || "lights", nameNow(), {
+        sub: function () {
+          return cntS(lgMembers(entity).length, _T("light"), _T("lights"));
+        },
+      });
+    preview.innerHTML = "";
+    preview.appendChild(row);
+    if (row.refresh) row.refresh();
+    tabsBox.innerHTML = "";
+    tabsBox.appendChild(
+      seg(
+        [
+          ["look", _T("dp_look")],
+          ["lights", _T("lg_lights")],
+          ["behaviour", _T("lg_behaviour")],
+        ],
+        st.tab,
+        function (v) {
+          st.tab = v;
+          drawShell();
+          draw();
+        }
+      )
+    );
+  }
   function failed(err) {
     st.busy = false;
     toast((err && err.message) || _T("lg_could_not_change"));
@@ -89,6 +121,7 @@ function lgPage(b, entity) {
   }
   function draw() {
     redrawBox(box, function () {
+      if (st.tab === "look") {
       box.appendChild(
         textRow(
           "edit",
@@ -100,28 +133,50 @@ function lgPage(b, entity) {
               d.name = v;
             });
             uiChanged();
+            drawShell();
             if (st.entry) HA.lightGroups.rename(entity, st.entry, v).catch(failed);
           },
           40
         )
       );
       var dev = lgDevices(entity)[0];
-      if (dev)
+      if (dev) {
+        var irow = mk("div", "pre ico");
+        ["lights", "light", "lamp", "floor", "ceiling", "strip", "bed"].filter(iconOk).forEach(function (n) {
+          var c = mk("div", "rnd pane" + (dev.icon === n ? " act" : ""), svg(n));
+          c.setAttribute("role", "button");
+          c.setAttribute("aria-label", iconLabel(n));
+          c.title = iconLabel(n);
+          c.addEventListener("click", function () {
+            lgDevices(entity).forEach(function (d) {
+              d.icon = n;
+            });
+            uiChanged();
+            drawShell();
+            draw();
+          });
+          irow.appendChild(c);
+        });
+        box.appendChild(irow);
         box.appendChild(
           iconPick(DEVICONS, dev.icon, function (n) {
             lgDevices(entity).forEach(function (d) {
               d.icon = n;
             });
             uiChanged();
+            drawShell();
           })
         );
+      }
+      return;
+      }
       var lights = st.opts ? st.opts.entities : lgMembers(entity);
-      box.appendChild(sep(_T("lg_lights") + " · " + lights.length, "lights"));
+      if (st.tab === "lights") box.appendChild(sep(_T("lg_lights") + " · " + lights.length, "lights"));
       if (st.entry === undefined) {
         box.appendChild(pill("info", _T("lg_reading"), {}));
         return;
       }
-      lights.forEach(function (id) {
+      if (st.tab === "lights") lights.forEach(function (id) {
         box.appendChild(
           pill("light", A(id).friendly_name || id, {
             sub: function () {
@@ -151,6 +206,7 @@ function lgPage(b, entity) {
         box.appendChild(note);
         return;
       }
+      if (st.tab === "lights")
       box.appendChild(
         pill("plus", _T("lg_add_a_light"), {
           tap: function () {
@@ -168,7 +224,7 @@ function lgPage(b, entity) {
           },
         })
       );
-      box.appendChild(sep(_T("lg_behaviour"), "tune"));
+      if (st.tab === "lights") return;
       box.appendChild(
         pill("eyeoff", _T("lg_hide_lights"), {
           on: function () {
@@ -215,6 +271,7 @@ function lgPage(b, entity) {
       );
     });
   }
+  drawShell();
   draw();
   HA.lightGroups.entryOf(entity).then(function (entry) {
     st.entry = entry;

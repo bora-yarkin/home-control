@@ -544,9 +544,14 @@ function customSection(s) {
       edReorder(s.devs, src, f, t);
       uiChanged();
     });
-    add = edAdd(widgetAddLabel(k), function () {
-      widgetAdd(lk, k);
-    });
+    add = edAdd(
+      widgetAddLabel(k),
+      function () {
+        widgetAdd(lk, k);
+      },
+      null,
+      rows.length > 0
+    );
   }
   if (!rows.length && !ed) return null;
   /* Lights master: one light at the top that controls every light of the section; off unless the section turns it on. */
@@ -644,9 +649,14 @@ function cameraSection(s) {
       uiChanged();
     });
     items.push(
-      edAdd(widgetAddLabel("camera"), function () {
-        widgetAdd(lk, "camera");
-      })
+      edAdd(
+        widgetAddLabel("camera"),
+        function () {
+          widgetAdd(lk, "camera");
+        },
+        null,
+        cams.length > 0
+      )
     );
   }
   return section(secName(s), secIcon(s), items);
@@ -894,10 +904,14 @@ function chartSection(s) {
           return _T("add_one_or_more_sensors_to_draw_a_ch");
         },
       }),
-      edAdd(_T("add_device"), function () {
-        ADDPRE = "sensors";
-        showPopup("manage-add:" + lk, true);
-      }),
+      edAdd(
+        _T("add_device"),
+        function () {
+          ADDPRE = "sensors";
+          showPopup("manage-add:" + lk, true);
+        },
+        null
+      ),
     ]);
   }
   var card = mk("div", "chartc pane"),
