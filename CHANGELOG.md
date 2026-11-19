@@ -4,6 +4,12 @@ Format: [Keep a Changelog](https://keepachangelog.com/). Versions follow [semant
 
 ## [Unreleased]
 
+### Changed
+- **The circle of separated lights opens and closes like the Hue app.** Measured from a 60 frames a second recording of the app, frame by frame: the circle grows from the middle in 11 frames with a slight overshoot, its lights pop in together 6 frames after it starts (each from a dot to a little over full size and back), and it closes in a single frame, after which the count drop of the group grows back with a bounce. The lights no longer appear one after the other. The drop of a selected light (the teardrop on the wheel) uses the same measured pop.
+- **A light without an icon of its own takes the icon of its group** on the wheel and in the row of lights, so the lights of a group with a custom icon no longer show the plain bulb.
+- **The row of lights shows every light, always.** Groups are their lights, a light made of zones is one tile (its zone colours as a gradient). The row no longer changes when lights are joined or separated on the wheel, and tapping a tile only shows the drop of that light on the wheel: nothing is separated until the drop is dragged, and then only that light is. The lights are in alphabetical order.
+- **The lights master in the page editor.** It is shown while a page is edited (it was hidden) and opens its own settings: its name, whether it changes the whole room (both moved from the section's settings, where one row now leads to them), and the order of the lights, which can be dragged and set back to alphabetical.
+
 ## [0.15.1] - 2026-11-19
 
 ### Changed

@@ -1,5 +1,11 @@
 /* The light panel: the one control of every light popup (a light, a light group, the lights master of a section), laid out like the Hue app. A colour circle and a white circle (and an Effects page) that slide under small icon tabs at the bottom left, a brightness button at the bottom right that opens a slider, and a row of tiles with the lights. One marker for each light or group sits on the circles; a light that is off is a dot where it was. Tap a group's marker to open its lights in a circle of their own, drop one marker on another to join them. Every marker is a dot; the selected one also has a drop above it in the colour of its light, with the number of lights it stands for (the icon when it is one light). */
 
+/* Whether a light has an icon of its own: one the owner chose for it on the dashboard, not the plain bulb every light starts with. A light without one takes the icon of the group it is in. */
+function lpOwnIcon(id) {
+  var nm = LNAME[id];
+  return !!(nm && nm[1] && nm[1] !== "light");
+}
+
 /* The things the panel controls form a tree: the whole (a light, a group, or all the lights of a section), and under a group the lights it is made of. 'cmd' is what a command is sent to (a group is commanded as one), 'kids' what a press and hold separates it into. */
 function lpNodeOf(id, icon) {
   var nm = LNAME[id] || [A(id).friendly_name || id, "light"],
@@ -15,7 +21,7 @@ function lpNodeOf(id, icon) {
     };
   if (members.length)
     n.kids = members.map(function (m, i) {
-      var k = lpNodeOf(m, n.zones ? n.icon : null);
+      var k = lpNodeOf(m, n.zones || !lpOwnIcon(m) ? n.icon : null);
       if (n.zones) {
         var word = A(id).zone_label || _T("zone");
         k.name = word.charAt(0).toUpperCase() + word.slice(1) + " " + (i + 1);
@@ -29,7 +35,7 @@ function lpNodeOf(id, icon) {
 /* All the lights of a section as one: its lights and groups are the first level below. */
 function lpMasterNode(sid, ids) {
   var units = lightUnits(ids),
-    n = { key: "m:" + sid, name: LMASTER_NAME[sid] || _T("all_lights"), icon: "lights", cmd: units, kids: null, parent: null, zones: false };
+    n = { key: "m:" + sid, name: LMASTER_NAME[sid] || _T("all_lights"), icon: "lights", cmd: units, kids: null, parent: null, zones: false, order: LMASTER_ORDER[sid] || null };
   n.kids = units.map(function (u) {
     var k = lpNodeOf(u, null);
     k.parent = n;
@@ -380,18 +386,25 @@ function lpBlendPath(S, marks, R) {
   return d;
 }
 
-/* The drop of a marker opening and closing, copied from the Hue app frame by frame. Opening: it starts small and pale on the dot, swells to about 1.2 times its size in 70 ms and settles. Closing: it fades into the dot within 3 frames, and the dot shrinks to under half its size and bounces back. Played once by the browser's animation engine, so nothing else that changes the marker restarts it. */
+/* The drop of a marker opening and closing, copied from the Hue app frame by frame (a 60 frames a second recording of the app, 2026-11-20). Opening: the drop is there at once as a small circle on the dot, is almost full size one frame later, swells to about 1.2 times its size over the next five frames and settles in four more, a bit over 160 ms in all, growing from its tip. The same drop is what appears when a circle of separated lights is closed. Closing: it fades into the dot within 3 frames, and the dot shrinks to under half its size and bounces back. Played once by the browser's animation engine, so nothing else that changes the marker restarts it. */
 function lpPinAnim(m, opening, delay) {
   if (!m.pin.animate || (window.matchMedia && matchMedia("(prefers-reduced-motion:reduce)").matches)) return;
   if (opening)
     m.pin.animate(
       [
-        { scale: 0.5, opacity: 0.3, offset: 0 },
-        { scale: 1.19, opacity: 0.8, offset: 0.35 },
-        { scale: 1.04, opacity: 1, offset: 0.65 },
+        { scale: 0.26, opacity: 0.6, offset: 0 },
+        { scale: 0.85, opacity: 1, offset: 0.1 },
+        { scale: 0.88, offset: 0.2 },
+        { scale: 1.15, offset: 0.3 },
+        { scale: 1.2, offset: 0.4 },
+        { scale: 1.17, offset: 0.5 },
+        { scale: 1.07, offset: 0.6 },
+        { scale: 1, offset: 0.7 },
+        { scale: 0.99, offset: 0.8 },
+        { scale: 1.02, offset: 0.9 },
         { scale: 1, opacity: 1, offset: 1 },
       ],
-      { duration: 200, delay: delay || 0, easing: "ease-out", fill: "backwards" }
+      { duration: 167, delay: delay || 0, easing: "linear", fill: "backwards" }
     );
   else {
     m.pin.animate(
@@ -532,13 +545,9 @@ function lpCircle(S, mode) {
       x.dot.remove();
     });
     b.m.pin.style.visibility = b.m.dot.style.visibility = "";
-    if (fast) b.el.remove();
-    else {
-      b.el.classList.add("closing");
-      setTimeout(function () {
-        b.el.remove();
-      }, 180);
-    }
+    /* The circle and its lights are gone in a single frame, as in the Hue app; the group's drop grows back where it was. */
+    b.el.remove();
+    if (!fast) lpPinAnim(b.m, true, 0);
   }
   function openBubble(m) {
     closeBubble(true);
@@ -566,7 +575,6 @@ function lpCircle(S, mode) {
       x.inBub = true;
       x.pin.classList.add("bubm");
       x.dot.classList.add("bubm");
-      x.pin.style.animationDelay = 105 + i * 17 + "ms";
       lpPlace(x, cx + rho * Math.cos(ang[i]), cy + rho * Math.sin(ang[i]));
       circ.appendChild(x.dot);
       circ.appendChild(x.pin);
@@ -1754,17 +1762,25 @@ function lpFxColourPopup(b, name) {
   requestAnimationFrame(shape);
 }
 
-/* The lights under the circle, like in the Hue app: a tile for each light (a group of a master popup is one tile, a light made of zones is one tile), with its icon, its name and a switch, in a row that scrolls sideways. A tile is the colour the light shows, or its zone colours. Tapping a tile selects it, and shows its marker on the circle; its switch turns it on or off. */
+/* The lights under the circle, like in the Hue app: a tile for every light (a light made of zones is one tile), with its icon, its name and a switch, in a row that scrolls sideways. The row does not depend on what is joined or separated on the circle: groups are always shown as the lights they are made of. A tile is the colour the light shows, or its zone colours. Tapping a tile selects it and shows its pin on the circle; its switch turns it on or off. */
 function lpTrayNodes(S) {
-  var list = [];
-  /* Lights joined by hand keep their own tiles; a light made of zones is one tile. */
-  lpVisible(S).forEach(function (v) {
-    (v.virtual ? v.kids : [v]).forEach(function (n) {
-      var t = n.parent && n.parent.zones ? n.parent : n;
-      if (list.indexOf(t) < 0) list.push(t);
-    });
+  var list = S.maker ? lpVisible(S).slice() : lpLeaves(S.root);
+  return lpSortLights(list, S.root.order);
+}
+
+/* The lights in the order of the tile row: the order the owner set for the section's lights master (a light that is not in it goes last), else by name. */
+function lpSortLights(list, order) {
+  var byName = function (x, y) {
+    return x.name.localeCompare(y.name, undefined, { numeric: true, sensitivity: "base" });
+  };
+  if (!order || !order.length) return list.slice().sort(byName);
+  var at = function (n) {
+    var i = order.indexOf(n.key);
+    return i < 0 ? order.length : i;
+  };
+  return list.slice().sort(function (x, y) {
+    return at(x) - at(y) || byName(x, y);
   });
-  return list;
 }
 
 /* The effect that a tile's lights play, if any (a light made of zones plays it on the Hue light behind it). */

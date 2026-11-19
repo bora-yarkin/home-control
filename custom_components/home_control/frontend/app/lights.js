@@ -564,6 +564,8 @@ var LMASTER = {};
 var LMASTER_NAME = {};
 /* Sections whose lights master changes the whole room (every light) instead of only the lights that are on. */
 var LMASTER_ALL = {};
+/* The order the owner gave the lights of a section's lights master, by section (entity ids); absent when they are shown by name. */
+var LMASTER_ORDER = {};
 
 /* The lights a master slider changes: the ones that are on, or all of them when none is. */
 function lightTargets(ids, all) {
@@ -598,10 +600,11 @@ function lightsMasterToggle(ids) {
   if (plain.length) call("light", "turn_on", { entity_id: plain });
 }
 
-function lightsMasterRow(sid, ids, wheel, name, all) {
+function lightsMasterRow(sid, ids, wheel, name, all, order) {
   LMASTER[sid] = ids;
   LMASTER_NAME[sid] = name || "";
   LMASTER_ALL[sid] = !!all;
+  LMASTER_ORDER[sid] = order || null;
   LWHEEL["m:" + sid] = wheel;
   var r = sliderRow({
     icon: "lights",
@@ -646,6 +649,76 @@ function lightsMasterRow(sid, ids, wheel, name, all) {
   tint();
   r.style.gridColumn = "1 / -1";
   return r;
+}
+
+/* The settings of a section's lights master, opened from the page editor ("scope:section", as for a section): its name, whether it changes the whole room, and the order of the lights in its row. */
+function lightsMasterSettings(b, key) {
+  var p = key.split(":"),
+    sec = secById(p[0], p[1]);
+  if (!sec) return;
+  var box = mk("div");
+  b.appendChild(box);
+  function lightIds() {
+    return (sec.devs || [])
+      .filter(function (d) {
+        return d.id && d.kind === "light";
+      })
+      .map(function (d) {
+        return d.id;
+      });
+  }
+  /* The lights as the row shows them now: by name, or in the owner's order. */
+  function shown() {
+    var node = lpMasterNode(sec.id, lightIds());
+    return lpSortLights(lpLeaves(node), sec.mo || null);
+  }
+  function draw() {
+    box.innerHTML = "";
+    box.appendChild(
+      textRow("edit", _T("all_lights"), sec.mn || "", function (v) {
+        if (v) sec.mn = v.slice(0, 40);
+        else delete sec.mn;
+        uiChanged();
+      }, 40)
+    );
+    box.appendChild(
+      flagPill("lights", _T("master_changes_the_whole_room"), sec, "mall", function (on) {
+        return on ? _T("every_light_of_the_section_even_those_") : _T("only_the_lights_that_are_on_or_all_if_none_is");
+      })
+    );
+    box.appendChild(sep(_T("order_of_the_lights"), "drag"));
+    box.appendChild(hintRow(sec.mo ? _T("drag_a_light_to_move_it_the_row_follows_this_order") : _T("the_lights_are_in_alphabetical_order_drag_one_to_set_your_own")));
+    var nodes = shown(),
+      rows = nodes.map(function (n) {
+        var r = pill(n.icon || "light", n.name, {
+          sub: function () {
+            return n.key;
+          },
+        });
+        box.appendChild(r);
+        return r;
+      });
+    makeSortable(box, rows, function (from, to) {
+      var keys = nodes.map(function (n) {
+        return n.key;
+      });
+      keys.splice(to, 0, keys.splice(from, 1)[0]);
+      sec.mo = keys;
+      uiChanged();
+      setTimeout(draw, 250);
+    });
+    if (sec.mo)
+      box.appendChild(
+        pill("restart", _T("back_to_alphabetical_order"), {
+          tap: function () {
+            delete sec.mo;
+            uiChanged();
+            draw();
+          },
+        })
+      );
+  }
+  draw();
 }
 
 /* The popup of a light or a light group: the light panel (app/lightpanel.js). */

@@ -554,8 +554,8 @@ function customSection(s) {
     );
   }
   if (!rows.length && !ed) return null;
-  /* Lights master: one light at the top that controls every light of the section; off unless the section turns it on. */
-  if (k === "lights" && s.master && !ed) {
+  /* Lights master: one light at the top that controls every light of the section; off unless the section turns it on. While the page is edited it opens its settings. */
+  if (k === "lights" && s.master) {
     var mids = src
       .filter(function (d) {
         return d.id && d.kind === "light";
@@ -563,7 +563,14 @@ function customSection(s) {
       .map(function (d) {
         return d.id;
       });
-    if (mids.length > 1) rows.unshift(lightsMasterRow(s.id, mids, !s.nowheel, s.mn, s.mall));
+    if (mids.length > 1) {
+      var mr = lightsMasterRow(s.id, mids, !s.nowheel, s.mn, s.mall, s.mo);
+      rows.unshift(
+        edMark(mr, function () {
+          showPopup("lmaster-edit:" + secKey() + ":" + s.id, true);
+        })
+      );
+    }
   }
   var body = rows;
   if (k === "read") {

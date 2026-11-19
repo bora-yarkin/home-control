@@ -1045,34 +1045,14 @@ function secEditor(b, key) {
       );
     if (k === "lights" && e.master)
       box.appendChild(
-        pill("lights", _T("master_changes_the_whole_room"), {
-          on: function () {
-            return !!e.mall;
-          },
+        pill("edit", _T("lights_master_settings"), {
           sub: function () {
-            return e.mall ? _T("every_light_of_the_section_even_those_") : _T("only_the_lights_that_are_on_or_all_if_none_is");
+            return _T("name_whole_room_and_the_order_of_the_lights");
           },
           tap: function () {
-            if (e.mall) delete e.mall;
-            else e.mall = 1;
-            save();
-            redrawBox(box, draw);
+            showPopup("lmaster-edit:" + key, true);
           },
         })
-      );
-    if (k === "lights" && e.master)
-      box.appendChild(
-        textRow(
-          "edit",
-          _T("all_lights"),
-          e.mn || "",
-          function (v) {
-            if (v) e.mn = v.slice(0, 40);
-            else delete e.mn;
-            save();
-          },
-          40
-        )
       );
     if (k === "lights")
       box.appendChild(
