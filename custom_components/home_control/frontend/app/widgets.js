@@ -602,7 +602,7 @@ function downloadText(name, text, type) {
   }, 1000);
 }
 
-/* Asks for a file and gives its text to `onText`. `o.accept` (".json,application/json"), `o.maxBytes` (a file larger than that is refused, with a message). */
+/* Asks for a file and gives its text to `onText` (or the file itself when `o.asFile` is set, for a picture). `o.accept` (".json,application/json"), `o.maxBytes` (a file larger than that is refused, with a message). */
 function pickTextFile(o, onText) {
   var fi = document.createElement("input");
   fi.type = "file";
@@ -612,6 +612,10 @@ function pickTextFile(o, onText) {
     if (!f) return;
     if (f.size > (o.maxBytes || 5 * 1024 * 1024)) {
       toast(_T("that_file_is_too_large"));
+      return;
+    }
+    if (o.asFile) {
+      onText(f, f.name);
       return;
     }
     var rd = new FileReader();

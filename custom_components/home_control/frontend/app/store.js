@@ -394,6 +394,7 @@ function cleanCfg(c, legacy) {
     partsLow: 15,
     alertOff: [],
     wallPhotos: [],
+    wallOff: [],
   };
   if (c && typeof c === "object") {
     if (typeof c.autobackup === "boolean") o.autobackup = c.autobackup;
@@ -427,15 +428,28 @@ function cleanCfg(c, legacy) {
       });
     if ([3, 5, 10, 20].indexOf(c.backupKeep) >= 0) o.backupKeep = c.backupKeep;
     if ([1, 6, 24].indexOf(c.backupEvery) >= 0) o.backupEvery = c.backupEvery;
-    if (Array.isArray(c.wallPhotos))
-      c.wallPhotos.slice(0, 16).forEach(function (u) {
+    /* The photos of the wall screen, and which of them are switched off (kept in the gallery, not shown): `wallOff` lists positions in `wallPhotos`; a photo that is dropped as
+       invalid takes its place in that list with it. */
+    if (Array.isArray(c.wallPhotos)) {
+      var moved = {};
+      c.wallPhotos.slice(0, 16).forEach(function (u, i) {
         if (
           typeof u === "string" &&
           ((u.length <= 300 && /^(https:\/\/|\/local\/)/.test(u)) ||
             (u.length <= 180000 && /^data:image\/jpeg;base64,[A-Za-z0-9+\/=]+$/.test(u)))
-        )
+        ) {
+          moved[i] = o.wallPhotos.length;
           o.wallPhotos.push(u);
+        }
       });
+      if (Array.isArray(c.wallOff))
+        c.wallOff.forEach(function (i) {
+          if (typeof i === "number" && i in moved && o.wallOff.indexOf(moved[i]) < 0) o.wallOff.push(moved[i]);
+        });
+      o.wallOff.sort(function (a, b) {
+        return a - b;
+      });
+    }
   }
   return o;
 }
