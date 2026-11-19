@@ -61,10 +61,6 @@ function ixListening() {
   return !!IXA.audio;
 }
 
-function ixTalking() {
-  return !!IXA.talker;
-}
-
 function ixListenStop() {
   var a = IXA.audio;
   IXA.audio = null;

@@ -1,4 +1,4 @@
-/* Which popup opens for which key, the popup sheet (drag to close, show, close), and the device popup entry. */
+/* Which popup opens for which key (the POPUP_DEFS table), the popup sheet (drag to close, show, close), and the device popup entry. */
 
 /* The main entity behind a device popup, for its Advanced settings entry. Vacuum and purifier have their own curated settings. */
 function popupEntity(key) {
@@ -35,19 +35,10 @@ function popupDef(key) {
   return d;
 }
 
-function popupDefBase(key) {
-  var p = key.split(":"),
-    k = p[0],
-    id = p.slice(1).join(":");
-  if (PLUGIN_PAGES[k])
-    return {
-      title: typeof PLUGIN_PAGES[k][0] === "function" ? PLUGIN_PAGES[k][0](id) : _T(PLUGIN_PAGES[k][0]),
-      icon: PLUGIN_PAGES[k][1],
-      build: function (b) {
-        PLUGIN_PAGES[k][2](b, id);
-      },
-    };
-  if (k === "adv")
+/* What each popup is made of, by the part of the key before its first colon ("light:light.desk" is "light"): a function of the rest of the key that gives { title, icon, build(body) }.
+   A popup is added here and opened with showPopup(key). The keys of plugins are in PLUGIN_PAGES and are looked at first. */
+var POPUP_DEFS = {
+  "adv": function (id) {
     return {
       title: (UIDEV[id] && UIDEV[id].name ? UIDEV[id].name + " · " : "") + _T("advanced"),
       icon: "tune",
@@ -55,7 +46,8 @@ function popupDefBase(key) {
         advPopup(b, id);
       },
     };
-  if (k === "call")
+  },
+  "call": function (id) {
     return {
       title: (UIDEV[id] && UIDEV[id].name) || _T("dc_door_call"),
       icon: "bell",
@@ -63,7 +55,8 @@ function popupDefBase(key) {
         callPopup(b, id);
       },
     };
-  if (k === "kwiz")
+  },
+  "kwiz": function (id) {
     return {
       title: (devAt(id) && devAt(id).name ? devAt(id).name + " · " : "") + _T("device_setup"),
       icon: "tune",
@@ -71,7 +64,8 @@ function popupDefBase(key) {
         kwizPage(b, id);
       },
     };
-  if (k === "kpick")
+  },
+  "kpick": function (id) {
     return {
       title: _T("choose_an_entity"),
       icon: "search",
@@ -79,7 +73,8 @@ function popupDefBase(key) {
         kpickPage(b, id);
       },
     };
-  if (k === "pick-pin")
+  },
+  "pick-pin": function (id) {
     return {
       title: _T("add_to_pinned"),
       icon: "pin",
@@ -87,7 +82,8 @@ function popupDefBase(key) {
         pinPick(b, id);
       },
     };
-  if (k === "pick-scene")
+  },
+  "pick-scene": function (id) {
     return {
       title: _T("scenes_in_this_section"),
       icon: "scene",
@@ -95,11 +91,20 @@ function popupDefBase(key) {
         scnPick(b, id);
       },
     };
-  if (k === "light-edit") return lightEditDef();
-  if (k === "lights-edit") return lightsEditDef();
-  if (k === "settings") return { title: _T("settings"), icon: "cog", build: settingsRoot };
-  if (k === "stg-wall") return { title: _T("wall_mode"), icon: "tv", build: wallSettings };
-  if (k === "ed-order")
+  },
+  "light-edit": function (id) {
+    return lightEditDef();
+  },
+  "lights-edit": function (id) {
+    return lightsEditDef();
+  },
+  "settings": function (id) {
+    return { title: _T("settings"), icon: "cog", build: settingsRoot };
+  },
+  "stg-wall": function (id) {
+    return { title: _T("wall_mode"), icon: "tv", build: wallSettings };
+  },
+  "ed-order": function (id) {
     return {
       title: _T("reorder_sections"),
       icon: "drag",
@@ -107,7 +112,8 @@ function popupDefBase(key) {
         secOrderPage(b, id);
       },
     };
-  if (k === "edit-page")
+  },
+  "edit-page": function (id) {
     return {
       title: _T("page_settings"),
       icon: "tune",
@@ -115,9 +121,11 @@ function popupDefBase(key) {
         editPageSettings(b, id);
       },
     };
-  if (k === "appearance")
+  },
+  "appearance": function (id) {
     return { title: _T("appearance"), icon: "palette", build: appearancePage };
-  if (k === "alarm")
+  },
+  "alarm": function (id) {
     return {
       title: entName(id),
       icon: "lock",
@@ -125,8 +133,11 @@ function popupDefBase(key) {
         alarmPopup(b, id);
       },
     };
-  if (k === "cam-add") return { title: _T("add_a_camera"), icon: "cam", build: camAddPage };
-  if (k === "manage-glance") {
+  },
+  "cam-add": function (id) {
+    return { title: _T("add_a_camera"), icon: "cam", build: camAddPage };
+  },
+  "manage-glance": function (id) {
     var gt = glanceCfg().c.filter(function (x) {
       return x.id === id;
     })[0];
@@ -137,8 +148,8 @@ function popupDefBase(key) {
         glancePage(b, id);
       },
     };
-  }
-  if (k === "g-custom") {
+  },
+  "g-custom": function (id) {
     var gc = glanceCfg().c.filter(function (x) {
       return x.id === id;
     })[0];
@@ -149,12 +160,14 @@ function popupDefBase(key) {
         glCustomPage(b, id);
       },
     };
-  }
-  if (k === "manage-autobackup")
+  },
+  "manage-autobackup": function (id) {
     return { title: _T("automatic_backups"), icon: "sd", build: bkAutoPage };
-  if (k === "manage-wallphotos")
+  },
+  "manage-wallphotos": function (id) {
     return { title: _T("screensaver_photos"), icon: "media", build: wallPhotosPage };
-  if (k === "lscene") {
+  },
+  "lscene": function (id) {
     var ls = sceneById(id);
     return {
       title: ls ? ls.name : _T("scenes"),
@@ -163,9 +176,11 @@ function popupDefBase(key) {
         liveScenePopup(b, id);
       },
     };
-  }
-  if (k === "live-edit") return liveMakerDef();
-  if (k === "scene-new")
+  },
+  "live-edit": function (id) {
+    return liveMakerDef();
+  },
+  "scene-new": function (id) {
     return {
       title: _T("what_kind_of_scene"),
       icon: "scene",
@@ -173,7 +188,8 @@ function popupDefBase(key) {
         sceneNewPage(b, id);
       },
     };
-  if (k === "scene-areas")
+  },
+  "scene-areas": function (id) {
     return {
       title: _T("choose_an_area"),
       icon: "target",
@@ -181,7 +197,8 @@ function popupDefBase(key) {
         sceneAreasPage(b, id);
       },
     };
-  if (k === "live-import") {
+  },
+  "live-import": function (id) {
     var src = liveImportSource(id);
     return {
       title: src ? _T(src.title) : _T("scenes"),
@@ -190,8 +207,8 @@ function popupDefBase(key) {
         liveImportPage(b, id);
       },
     };
-  }
-  if (k === "areas")
+  },
+  "areas": function (id) {
     return {
       title: (TITLES[id] ? TITLES[id] + " · " : "") + _T("areas"),
       icon: "target",
@@ -199,19 +216,22 @@ function popupDefBase(key) {
         eaManager(b, id);
       },
     };
-  if (k === "area-lights")
+  },
+  "area-lights": function (id) {
     return {
       title: _T("add_a_light"),
       icon: "light",
       build: eaMorePage,
     };
-  if (k === "area-edit")
+  },
+  "area-edit": function (id) {
     return {
       title: EAD && !EAD.isNew ? _T("edit_area") : _T("new_area"),
       icon: "target",
       build: eaEditor,
     };
-  if (k === "lfxs")
+  },
+  "lfxs": function (id) {
     return {
       title: _T("effect_settings"),
       icon: "sparkle",
@@ -219,7 +239,8 @@ function popupDefBase(key) {
         lpFxSettingsPopup(b, id);
       },
     };
-  if (k === "lfxc")
+  },
+  "lfxc": function (id) {
     return {
       title: _T("colour_lights"),
       icon: "palette",
@@ -227,7 +248,8 @@ function popupDefBase(key) {
         lpFxColourPopup(b, id);
       },
     };
-  if (k === "lmkmode")
+  },
+  "lmkmode": function (id) {
     return {
       title: _T("mode"),
       icon: "palette",
@@ -235,7 +257,8 @@ function popupDefBase(key) {
         liveMakerModePopup(b);
       },
     };
-  if (k === "lstyle") {
+  },
+  "lstyle": function (id) {
     var style = pluginStyle(id);
     return {
       title: _T("style"),
@@ -244,8 +267,8 @@ function popupDefBase(key) {
         if (style) style.popup(b, id);
       },
     };
-  }
-  if (k === "roomoff")
+  },
+  "roomoff": function (id) {
     return {
       title: _T("everything_off"),
       icon: "power",
@@ -253,7 +276,8 @@ function popupDefBase(key) {
         roomOffPage(b, id);
       },
     };
-  if (k === "lmaster")
+  },
+  "lmaster": function (id) {
     return {
       title: LMASTER_NAME[id] || _T("lights_master"),
       icon: "lights",
@@ -261,7 +285,8 @@ function popupDefBase(key) {
         lightsMasterPopup(b, id);
       },
     };
-  if (k === "light") {
+  },
+  "light": function (id) {
     var n = LNAME[id] || [A(id).friendly_name || _T("light"), "light"];
     return {
       title: n[0],
@@ -270,8 +295,8 @@ function popupDefBase(key) {
         lightPopup(b, id);
       },
     };
-  }
-  if (k === "ac") {
+  },
+  "ac": function (id) {
     return {
       title: (UIDEV[id] || {}).name || _T("air_conditioner"),
       icon: "ac",
@@ -280,8 +305,8 @@ function popupDefBase(key) {
         acSelects(b, id);
       },
     };
-  }
-  if (k === "fan") {
+  },
+  "fan": function (id) {
     var dv = UIDEV[id] || {};
     return {
       title: dv.name || A(id).friendly_name || _T("standing_fan"),
@@ -296,8 +321,8 @@ function popupDefBase(key) {
         }
       },
     };
-  }
-  if (k === "media" || k === "gmedia") {
+  },
+  "media": function (id) {
     var gm = UIDEV[id] || {};
     return {
       title: gm.name || A(id).friendly_name || _T("media"),
@@ -306,8 +331,8 @@ function popupDefBase(key) {
         mediaPopup(b, id);
       },
     };
-  }
-  if (k === "dtime")
+  },
+  "dtime": function (id) {
     return {
       title: A(id).friendly_name || id,
       icon: "clock",
@@ -315,7 +340,8 @@ function popupDefBase(key) {
         datetimePage(b, id);
       },
     };
-  if (k === "sw") {
+  },
+  "sw": function (id) {
     var sd = UIDEV[id] || {};
     return {
       title: sd.name || A(id).friendly_name || _T("power"),
@@ -324,8 +350,8 @@ function popupDefBase(key) {
         swPopup(b, id);
       },
     };
-  }
-  if (k === "dev") {
+  },
+  "dev": function (id) {
     var dd = UIDEV[id] || {};
     return {
       title: dd.name || A(id).friendly_name || id,
@@ -334,8 +360,8 @@ function popupDefBase(key) {
         devPopup(b, id);
       },
     };
-  }
-  if (k === "vac" || k === "gvac") {
+  },
+  "vac": function (id) {
     var gv = UIDEV[id] || {};
     return {
       title: gv.name || _T("vacuum"),
@@ -344,9 +370,8 @@ function popupDefBase(key) {
         vacPopup(b, id);
       },
     };
-  }
-
-  if (k === "presets-all")
+  },
+  "presets-all": function (id) {
     return {
       title: _T("all_saved"),
       icon: "palette",
@@ -354,7 +379,8 @@ function popupDefBase(key) {
         savedAllPage(b, id);
       },
     };
-  if (k === "scene-edit")
+  },
+  "scene-edit": function (id) {
     return {
       title:
         SCD && SCD.room === "home"
@@ -367,23 +393,45 @@ function popupDefBase(key) {
       icon: "scene",
       build: sceneEditor,
     };
-  if (k === "scene-pick") return { title: _T("add_device"), icon: "plus", build: scenePick };
-  if (k === "stg-areas") return { title: _T("areas"), icon: "target", build: stgAreas };
-  if (k === "stg-effects") return { title: _T("effects"), icon: "sparkle", build: fxSettings };
-  if (k === "fx-problems") return { title: _T("problems_in_the_file"), icon: "info", build: fxProblemsPage };
-  if (k === "stg-dev") return { title: _T("devices_2"), icon: "plug", build: stgDevices };
-  if (k === "manage-new") return { title: _T("new_devices"), icon: "plus", build: newDevPage };
-  if (k === "manage-new1")
+  },
+  "scene-pick": function (id) {
+    return { title: _T("add_device"), icon: "plus", build: scenePick };
+  },
+  "stg-areas": function (id) {
+    return { title: _T("areas"), icon: "target", build: stgAreas };
+  },
+  "stg-effects": function (id) {
+    return { title: _T("effects"), icon: "sparkle", build: fxSettings };
+  },
+  "fx-problems": function (id) {
+    return { title: _T("problems_in_the_file"), icon: "info", build: fxProblemsPage };
+  },
+  "stg-dev": function (id) {
+    return { title: _T("devices_2"), icon: "plug", build: stgDevices };
+  },
+  "manage-new": function (id) {
+    return { title: _T("new_devices"), icon: "plus", build: newDevPage };
+  },
+  "manage-new1": function (id) {
     return {
       title: NEWPICK ? A(NEWPICK).friendly_name || NEWPICK : _T("device"),
       icon: "plug",
       build: newDevOne,
     };
-  if (k === "stg-access") return { title: _T("users_and_access"), icon: "lock", build: accessRoot };
-  if (k === "stg-data") return { title: _T("backup_and_about"), icon: "sd", build: stgData };
-  if (k === "stg-hist") return { title: _T("history"), icon: "clock", build: historyPage };
-  if (k === "stg-notify") return { title: _T("notifications"), icon: "bell", build: notifyPage };
-  if (k === "manage-nrule")
+  },
+  "stg-access": function (id) {
+    return { title: _T("users_and_access"), icon: "lock", build: accessRoot };
+  },
+  "stg-data": function (id) {
+    return { title: _T("backup_and_about"), icon: "sd", build: stgData };
+  },
+  "stg-hist": function (id) {
+    return { title: _T("history"), icon: "clock", build: historyPage };
+  },
+  "stg-notify": function (id) {
+    return { title: _T("notifications"), icon: "bell", build: notifyPage };
+  },
+  "manage-nrule": function (id) {
     return {
       title: NRULES[id] ? NRULES[id].title : _T("notification"),
       icon: "bell",
@@ -391,9 +439,14 @@ function popupDefBase(key) {
         nruleEdit(b, id);
       },
     };
-  if (k === "manage-nwatch") return { title: _T("nw_alerts_for_any_entity"), icon: "bell", build: function (b) { watchEdit(b, id); } };
-  if (k === "manage-log") return { title: _T("change_log"), icon: "restart", build: logPage };
-  if (k === "manage-details") {
+  },
+  "manage-nwatch": function (id) {
+    return { title: _T("nw_alerts_for_any_entity"), icon: "bell", build: function (b) { watchEdit(b, id); } };
+  },
+  "manage-log": function (id) {
+    return { title: _T("change_log"), icon: "restart", build: logPage };
+  },
+  "manage-details": function (id) {
     var md2 = roomById(id);
     return {
       title: md2 ? md2.name : _T("room"),
@@ -402,10 +455,11 @@ function popupDefBase(key) {
         roomDetails(b, id);
       },
     };
-  }
-  if (k === "pick-ent")
+  },
+  "pick-ent": function (id) {
     return { title: PICK ? PICK.title : _T("choose"), icon: "search", build: pickBuild };
-  if (k === "manage-stat-tile")
+  },
+  "manage-stat-tile": function (id) {
     return {
       title: _T("status_tile"),
       icon: "thermo",
@@ -413,7 +467,8 @@ function popupDefBase(key) {
         statTile(b, id);
       },
     };
-  if (k === "manage-chip")
+  },
+  "manage-chip": function (id) {
     return {
       title: _T("climate_tile"),
       icon: "thermo",
@@ -421,13 +476,20 @@ function popupDefBase(key) {
         chipEdit(b, +id);
       },
     };
-  if (k === "manage-bats") return { title: _T("batteries"), icon: "battery", build: batsPage };
-  if (k === "manage-backup")
+  },
+  "manage-bats": function (id) {
+    return { title: _T("batteries"), icon: "battery", build: batsPage };
+  },
+  "manage-backup": function (id) {
     return { title: _T("backup_and_restore"), icon: "sd", build: backupPage };
-  if (k === "manage-check") return { title: _T("layout_check"), icon: "tune", build: checkPage };
-  if (k === "manage-about")
+  },
+  "manage-check": function (id) {
+    return { title: _T("layout_check"), icon: "tune", build: checkPage };
+  },
+  "manage-about": function (id) {
     return { title: _T("about_and_diagnostics"), icon: "info", build: aboutPage };
-  if (k === "manage-sec") {
+  },
+  "manage-sec": function (id) {
     return {
       title: _T("section"),
       icon: "tune",
@@ -435,8 +497,8 @@ function popupDefBase(key) {
         secEditor(b, id);
       },
     };
-  }
-  if (k === "manage-room-access") {
+  },
+  "manage-room-access": function (id) {
     var rr = roomById(id);
     return {
       title: _T("access") + (rr ? rr.name : _T("room")),
@@ -445,10 +507,11 @@ function popupDefBase(key) {
         roomAccessList(b, id);
       },
     };
-  }
-  if (k === "manage-access")
+  },
+  "manage-access": function (id) {
     return { title: _T("users_and_access"), icon: "lock", build: accessRoot };
-  if (k === "access-user")
+  },
+  "access-user": function (id) {
     return {
       title: accName(id),
       icon: "person",
@@ -456,7 +519,8 @@ function popupDefBase(key) {
         accessUser(b, id);
       },
     };
-  if (k === "access-room") {
+  },
+  "access-room": function (id) {
     var ar = id.split(":");
     return {
       title: (roomById(ar[1]) || { name: _T("room") }).name + " · " + accName(ar[0]),
@@ -465,11 +529,11 @@ function popupDefBase(key) {
         accessRoom(b, id);
       },
     };
-  }
-  if (k === "manage-names") {
+  },
+  "manage-names": function (id) {
     return { title: _T("names_and_header"), icon: "edit", build: namesPage };
-  }
-  if (k === "sec-cond")
+  },
+  "sec-cond": function (id) {
     return {
       title: _T("condition"),
       icon: "check",
@@ -477,7 +541,8 @@ function popupDefBase(key) {
         secCondPage(b, id);
       },
     };
-  if (k === "rb-room") {
+  },
+  "rb-room": function (id) {
     var rr = rbRooms().filter(function (x) {
       return x.id === id;
     })[0];
@@ -488,8 +553,8 @@ function popupDefBase(key) {
         rbRoomPage(b, id);
       },
     };
-  }
-  if (k === "sec-link")
+  },
+  "sec-link": function (id) {
     return {
       title: _T("link_a_section"),
       icon: "swap",
@@ -497,7 +562,8 @@ function popupDefBase(key) {
         secLinkPage(b, id);
       },
     };
-  if (k === "sec-types")
+  },
+  "sec-types": function (id) {
     return {
       title: _T("add_section"),
       icon: "plus",
@@ -505,7 +571,8 @@ function popupDefBase(key) {
         secTypesPage(b, id);
       },
     };
-  if (k === "sec-type")
+  },
+  "sec-type": function (id) {
     return {
       title: _T("section_type"),
       icon: "tune",
@@ -513,7 +580,8 @@ function popupDefBase(key) {
         secTypePage(b, id);
       },
     };
-  if (k === "manage-header") {
+  },
+  "manage-header": function (id) {
     var hr = roomById(id);
     return {
       title: hr ? hr.name : _T("room"),
@@ -522,8 +590,8 @@ function popupDefBase(key) {
         roomHeaderPage(b, id);
       },
     };
-  }
-  if (k === "manage-hitem")
+  },
+  "manage-hitem": function (id) {
     return {
       title: _T("header_item"),
       icon: "tune",
@@ -531,7 +599,8 @@ function popupDefBase(key) {
         hitemPage(b, +id);
       },
     };
-  if (k === "lgnew")
+  },
+  "lgnew": function (id) {
     return {
       title: _T("lg_new_group"),
       icon: "lights",
@@ -539,7 +608,8 @@ function popupDefBase(key) {
         lgNewPage(b);
       },
     };
-  if (k === "lgroup")
+  },
+  "lgroup": function (id) {
     return {
       title: (lgDevices(id)[0] || {}).name || A(id).friendly_name || _T("lg_light_group"),
       icon: (lgDevices(id)[0] || {}).icon || "lights",
@@ -547,7 +617,8 @@ function popupDefBase(key) {
         lgPage(b, id);
       },
     };
-  if (k === "manage-dev") {
+  },
+  "manage-dev": function (id) {
     var md = devAt(id);
     return {
       title: md ? md.name : _T("device"),
@@ -556,8 +627,8 @@ function popupDefBase(key) {
         devManage(b, id);
       },
     };
-  }
-  if (k === "remote") {
+  },
+  "remote": function (id) {
     var rmd = remoteFind(id);
     return {
       title: rmd ? rmd.name : _T("remote"),
@@ -566,8 +637,8 @@ function popupDefBase(key) {
         remotePage(b, id);
       },
     };
-  }
-  if (k === "appliance") {
+  },
+  "appliance": function (id) {
     var apd = apFind(id);
     return {
       title: apd ? apd.name : _T("ap_appliance"),
@@ -576,8 +647,8 @@ function popupDefBase(key) {
         apPage(b, id);
       },
     };
-  }
-  if (k === "ap-edit")
+  },
+  "ap-edit": function (id) {
     return {
       title: _T("ap_set_up"),
       icon: "tune",
@@ -585,7 +656,8 @@ function popupDefBase(key) {
         apEditPage(b, id);
       },
     };
-  if (k === "ap-slot")
+  },
+  "ap-slot": function (id) {
     return {
       title: _T(AP_SLOTS[id.split(":")[1]] ? AP_SLOTS[id.split(":")[1]].l : "ap_appliance"),
       icon: "plug",
@@ -593,7 +665,8 @@ function popupDefBase(key) {
         apSlotPage(b, id);
       },
     };
-  if (k === "ap-extra")
+  },
+  "ap-extra": function (id) {
     return {
       title: _T("ap_add_a_row"),
       icon: "tune",
@@ -601,7 +674,8 @@ function popupDefBase(key) {
         apExtraPage(b, id);
       },
     };
-  if (k === "dslot")
+  },
+  "dslot": function (id) {
     return {
       title: _T(DSLOT_LABEL[id.slice(id.lastIndexOf(":") + 1)] || "px_map"),
       icon: "tune",
@@ -609,7 +683,8 @@ function popupDefBase(key) {
         dslotPage(b, id);
       },
     };
-  if (k === "dlist")
+  },
+  "dlist": function (id) {
     return {
       title: _T(DSLOT_LABEL[id.slice(id.lastIndexOf(":") + 1)] || "px_map"),
       icon: "tune",
@@ -617,7 +692,8 @@ function popupDefBase(key) {
         dlistPage(b, id);
       },
     };
-  if (k === "remote-btn")
+  },
+  "remote-btn": function (id) {
     return {
       title: _T("rm_button"),
       icon: "plus",
@@ -625,7 +701,8 @@ function popupDefBase(key) {
         remoteBtnPage(b, id);
       },
     };
-  if (k === "manage-move")
+  },
+  "manage-move": function (id) {
     return {
       title: _T("move_to_room"),
       icon: "swap",
@@ -633,7 +710,8 @@ function popupDefBase(key) {
         devMove(b, id);
       },
     };
-  if (k === "manage-add") {
+  },
+  "manage-add": function (id) {
     var ma = roomById(id),
       mp = id.charAt(0) === "~" ? id.split("~") : null,
       me =
@@ -650,9 +728,11 @@ function popupDefBase(key) {
         devAdd(b, id);
       },
     };
-  }
-  if (k === "search") return { title: _T("search"), icon: "search", build: searchPopup };
-  if (k === "g-lights")
+  },
+  "search": function (id) {
+    return { title: _T("search"), icon: "search", build: searchPopup };
+  },
+  "g-lights": function (id) {
     return {
       title: _T("lights"),
       icon: "lights",
@@ -675,7 +755,8 @@ function popupDefBase(key) {
         });
       },
     };
-  if (k === "g-acs")
+  },
+  "g-acs": function (id) {
     return {
       title: _T("air_conditioners"),
       icon: "ac",
@@ -689,7 +770,8 @@ function popupDefBase(key) {
         });
       },
     };
-  if (k === "g-fans")
+  },
+  "g-fans": function (id) {
     return {
       title: _T("standing_fans"),
       icon: "fan",
@@ -705,10 +787,17 @@ function popupDefBase(key) {
         });
       },
     };
-  if (k === "g-batteries") return { title: _T("batteries"), icon: "battery", build: batsPopup };
-  if (k === "pick-bat") return { title: _T("add_battery_device"), icon: "battery", build: batPickPage };
-  if (k === "g-tvs") return { title: _T("media"), icon: "tv", build: mediaHub };
-  if (k === "g-robot") {
+  },
+  "g-batteries": function (id) {
+    return { title: _T("batteries"), icon: "battery", build: batsPopup };
+  },
+  "pick-bat": function (id) {
+    return { title: _T("add_battery_device"), icon: "battery", build: batPickPage };
+  },
+  "g-tvs": function (id) {
+    return { title: _T("media"), icon: "tv", build: mediaHub };
+  },
+  "g-robot": function (id) {
     var gv0 = devsOf("vacuum")[0];
     return {
       title: _T("robot_vacuum"),
@@ -717,8 +806,25 @@ function popupDefBase(key) {
         if (gv0) vacPopup(b, gv0.id);
       },
     };
-  }
-  return { title: "", icon: "info", build: function () {} };
+  },
+};
+POPUP_DEFS["gmedia"] = POPUP_DEFS["media"];
+POPUP_DEFS["gvac"] = POPUP_DEFS["vac"];
+
+function popupDefBase(key) {
+  var p = key.split(":"),
+    k = p[0],
+    id = p.slice(1).join(":");
+  if (PLUGIN_PAGES[k])
+    return {
+      title: typeof PLUGIN_PAGES[k][0] === "function" ? PLUGIN_PAGES[k][0](id) : _T(PLUGIN_PAGES[k][0]),
+      icon: PLUGIN_PAGES[k][1],
+      build: function (b) {
+        PLUGIN_PAGES[k][2](b, id);
+      },
+    };
+  var make = Object.prototype.hasOwnProperty.call(POPUP_DEFS, k) ? POPUP_DEFS[k] : null;
+  return make ? make(id) : { title: "", icon: "info", build: function () {} };
 }
 
 function sheetDrag(sh) {
