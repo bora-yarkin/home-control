@@ -878,7 +878,7 @@ function showPopup(key, push, layer) {
   }
   var sh = mk(
     "div",
-    "sheet" + (key === "settings" || STACK.indexOf("settings") >= 0 ? " stg" : "") + (LAYERS.length ? " layer" : "")
+    "sheet" + (key === "settings" || STACK.indexOf("settings") >= 0 ? " stg" : "") + (LAYERS.length ? " layer" : "") + (/^(manage-dev|manage-add|lgroup):/.test(key) ? " tall" : "")
   );
   document.body.appendChild(sh);
   sheetDrag(sh);

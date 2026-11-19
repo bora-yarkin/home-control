@@ -566,9 +566,16 @@ function areaName(id) {
   return a && h.areas && h.areas[a] ? h.areas[a].name : "";
 }
 
+/* A light that stands for other lights: a group made in Home Assistant (it lists its lights), or a Hue room or zone (which lists Hue lights and may list no entities). */
+function isLightGroup(id) {
+  var a = A(id);
+  return dom(id) === "light" && (!!a.is_hue_group || (Array.isArray(a.entity_id) && a.entity_id.length > 0));
+}
+
 function candidates(doms, roomId, q, areaId) {
   var h = H(),
     have = pageDevIds(roomId),
+    zones = zoneLightIds(h.states),
     out = [],
     any = doms[0] === "*",
     tk = norm(q || "")
@@ -576,7 +583,8 @@ function candidates(doms, roomId, q, areaId) {
       .split(/\s+/)
       .filter(Boolean);
   Object.keys(h.states).forEach(function (id) {
-    if (have[id] || isVacuumMap(id)) return;
+    /* A zone of a light is controlled from the popup of that light, so it is not offered as a light of its own. */
+    if (have[id] || isVacuumMap(id) || zones[id]) return;
     if (!any && doms.indexOf(pluginDeviceKind(id) ? pluginDeviceKind(id).search : dom(id)) < 0)
       return;
     var e = h.entities && h.entities[id];
@@ -590,7 +598,7 @@ function candidates(doms, roomId, q, areaId) {
       })
     )
       return;
-    out.push({ id: id, name: nm, area: areaName(id), group: dom(id) === "light" && Array.isArray(A(id).entity_id) && A(id).entity_id.length > 0 });
+    out.push({ id: id, name: nm, area: areaName(id), group: isLightGroup(id) });
   });
   out.sort(function (a, b) {
     return a.name.localeCompare(b.name);

@@ -225,7 +225,7 @@ test("with Light group checked the lights become one group, made first, and its 
   });
   d.tap("Light group");
   d.tap("Desk lamp");
-  d.tap("Ceiling");
+  d.tap("Ceiling · lg_group");
   const done = d.save();
   assert.ok(done.then, "the save waits for the helper");
   assert.equal(await done, true);
@@ -267,7 +267,7 @@ test("from the page's own Add the checked devices go to the first section of the
   const g = dashboard({ rid: "r_living", create: () => Promise.resolve({ entry_id: "e1", entity_id: "light.g" }) });
   g.tap("Light group");
   g.tap("Desk lamp");
-  g.tap("Ceiling");
+  g.tap("Ceiling · lg_group");
   await g.save();
   assert.deepEqual(plain(g.calls.pagePlaced), [["r_living", "light.g"]]);
 });
@@ -287,10 +287,11 @@ test("the type and the area are dropdowns: the type chooses what is listed, the 
   assert.equal(type.fmt("0"), "Lights");
 });
 
-test("a light that is already a group says so in its second line, and a choice made under one area stays checked under another", () => {
+test("a light that is already a group says so in its name, and a choice made under one area stays checked under another", () => {
   const d = dashboard({ create: () => Promise.reject(new Error("no")) });
-  const ceiling = d.pills.filter((p) => p.name === "Ceiling").pop();
-  assert.equal(ceiling.o.sub(), "Ceiling · lg_group");
+  const ceiling = d.pills.filter((p) => p.name === "Ceiling · lg_group").pop();
+  assert.ok(ceiling, "the group's name carries the word");
+  assert.equal(ceiling.o.sub(), "light.ceiling", "and the second line is the usual one");
   const desk = d.pills.filter((p) => p.name === "Desk lamp").pop();
   assert.match(desk.o.sub(), /light\.desk/);
   d.tap("Desk lamp");
@@ -298,4 +299,41 @@ test("a light that is already a group says so in its second line, and a choice m
   assert.equal(d.calls.guard.dirty(), true, "the check is kept when the list changes");
   assert.equal(d.save(), true);
   assert.deepEqual(d.section.devs.map((x) => x.id), ["light.desk"]);
+});
+
+
+test("the list offers lights that stand for others as groups (a Hue room lists no entities but is one), and no zone of a light", () => {
+  const states = {
+    "light.plain": { attributes: { friendly_name: "Plain" } },
+    "light.ha_group": { attributes: { friendly_name: "HA group", entity_id: ["light.plain"] } },
+    "light.bathroom": { attributes: { friendly_name: "Bathroom", is_hue_group: true, entity_id: [], hue_type: "room" } },
+    "light.strip": { attributes: { friendly_name: "Strip", zone_colors: [[1, 1]], entity_id: ["light.strip_zone_1", "light.strip_zone_2"] } },
+    "light.strip_zone_1": { attributes: { friendly_name: "Strip zone 1" } },
+    "light.strip_zone_2": { attributes: { friendly_name: "Strip zone 2" } },
+    "light.hue_sync": { attributes: { friendly_name: "Not a group", entity_id: [] } },
+  };
+  const src = read("app/manage.js");
+  const code = src.slice(src.indexOf("/* A light that stands for other lights"), src.indexOf("function defIcon"));
+  const zoneSrc = read("app/model.js");
+  const zoneCode = zoneSrc.slice(zoneSrc.indexOf("function zoneLightIds"), zoneSrc.indexOf("function seedUI"));
+  const sandbox = vm.createContext({
+    H: () => ({ states, entities: {} }),
+    A: (id) => states[id].attributes,
+    dom: (id) => id.split(".")[0],
+    pageDevIds: () => ({}),
+    isVacuumMap: () => false,
+    pluginDeviceKind: () => null,
+    areaName: () => "",
+    areaIdOf: () => "",
+    norm: (t) => String(t).toLowerCase(),
+    Object, Array,
+  });
+  vm.runInContext(zoneCode + "\n" + code, sandbox);
+  const found = plain(sandbox.candidates(["light"], "~r~lights", "", ""));
+  assert.deepEqual(found.map((c) => c.id).sort(), ["light.bathroom", "light.ha_group", "light.hue_sync", "light.plain", "light.strip"], "the zones are not there");
+  const group = (id) => found.filter((c) => c.id === id)[0].group;
+  assert.equal(group("light.bathroom"), true);
+  assert.equal(group("light.ha_group"), true);
+  assert.equal(group("light.plain"), false);
+  assert.equal(group("light.hue_sync"), false, "a light that lists no lights is not a group");
 });

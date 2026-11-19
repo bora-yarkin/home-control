@@ -55,6 +55,7 @@ main{position:fixed;inset:0;z-index:1;overflow-y:auto;touch-action:pan-y;padding
 .sel .sb{font-size:var(--fs-s);color:var(--ink2);display:block;margin-top:1px}
 .sel .chev svg{width:18px;height:18px;fill:none;stroke:currentColor;stroke-width:1.8;stroke-linecap:round;stroke-linejoin:round}
 .menu{position:fixed;z-index:60;padding:6px;max-height:300px;overflow-y:auto;transform-origin:var(--ox,50%) 0;animation:menuIn .24s cubic-bezier(.2,.9,.3,1) both}
+.menu.pane{overflow-y:auto;overscroll-behavior:contain}
 .menu.up{transform-origin:var(--ox,50%) 100%;animation-name:menuInUp}
 .menu.pane,.dlg.pane{position:fixed}
 .menu.out{animation:menuOut .16s ease-in both}
@@ -105,6 +106,9 @@ to{opacity:0;clip-path:inset(100% 0 0 0 round var(--r-row));transform:translateY
 @keyframes tabin{from{opacity:0;transform:translateY(8px)}to{opacity:1;transform:none}}
 .tabin>*{animation:tabin .26s cubic-bezier(.2,.9,.3,1) both}
 @media(prefers-reduced-motion:reduce){.tabin>*{animation:none}}
+.sheet.tall{height:90vh}
+body.lg .sheet.tall{height:calc(90vh / 1.12)}
+.sepline{height:1px;background:var(--edge);margin:var(--sp) 4px;opacity:.7}
 .dprev{margin-bottom:var(--sp);pointer-events:none}
 .dprev>.pill{margin:0}
 .pre.ico{gap:var(--sp)}

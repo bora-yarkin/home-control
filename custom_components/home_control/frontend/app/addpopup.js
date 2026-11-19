@@ -111,6 +111,7 @@ function devAdd(b, rid) {
           },
         });
         box.appendChild(g);
+        box.appendChild(mk("div", "sepline"));
       }
       if (!items.length)
         box.appendChild(
@@ -122,12 +123,12 @@ function devAdd(b, rid) {
         );
       shown.forEach(function (c) {
         var kind = DOMKIND[dom(c.id)] || "sensor",
-          row = pill(defIcon(kind, c.name, c.id), c.name, {
+          row = pill(defIcon(kind, c.name, c.id), c.group ? c.name + " · " + _T("lg_group") : c.name, {
             check: function () {
               return !!picked[c.id];
             },
             sub: function () {
-              return c.group ? c.name + " · " + _T("lg_group") : (c.area ? c.area + " · " : "") + c.id;
+              return (c.area ? c.area + " · " : "") + c.id;
             },
             tap: function () {
               toggle(c);
@@ -193,9 +194,12 @@ function devAdd(b, rid) {
   areaTile.classList.add("selrow");
   typeTile.refresh();
   areaTile.refresh();
+  var filters = mk("div", "ap-grid");
+  filters.appendChild(typeTile);
+  filters.appendChild(areaTile);
   b.appendChild(w);
-  b.appendChild(typeTile);
-  b.appendChild(areaTile);
+  b.appendChild(filters);
+  b.appendChild(mk("div", "sepline"));
   b.appendChild(count);
   b.appendChild(box);
   drawCount();
