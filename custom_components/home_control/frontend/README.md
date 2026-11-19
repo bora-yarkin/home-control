@@ -25,6 +25,26 @@ Home Assistant. Anything that Home Assistant does well (automations, helpers, gr
 | `vendor/hls.min.js` | hls.js 1.5.13, loaded only when HLS is needed. Same bytes as cdnjs (`sha512-bqtMkEqGSOPPb8qbYSd9gHwR7C5mgmN+Z5Uaquvhana/U9H3zppGvlLV9HOdM7eYHF/GzzhS1lOGzCMhUvYcjQ==`, source map comment removed). |
 | `version.json` | `{"version": N, "files": [...]}`. Raise N after changing any other file. `files` lists the files `dashboard-app.js` runs, in order; the panel requests them all together with the stylesheet while the registries load. |
 
+## Building blocks: change one place, every popup follows
+
+Popups are made of a few shared pieces. A popup that needs one of these uses it and does not make its own; a change to the piece changes every popup that has it. Search these names before writing a new element.
+
+| Piece (file) | Makes |
+| --- | --- |
+| `POPUP_DEFS` (`popups.js`) | Which popup opens for which key: one entry per popup, a function of the key's id that gives `{ title, icon, build(body) }`. A new popup is a new entry, opened with `showPopup(key)`. Keys of plugins are in `PLUGIN_PAGES`. |
+| `pill`, `sel`/`selectTile`, `seg`, `sep`, `hintRow`, `rbtn` (`widgets.js`) | The row (icon, name, line under it, value, check or switch), the dropdown tile and its menu, the segmented choice, the heading line, the grey explanation, the round button. |
+| `flagPill`, `segField`, `iconChoices` (`widgets.js`) | A row that switches one yes/no setting of an object, a segmented choice with its explanation, a row of round icon buttons. |
+| `numberTile`, `toggleTile`, `pressTile`, `settingTile`, `readingsList`, `entityGroups`, `foldBlock` (`controls.js`) | Any entity as a compact tile or reading: the way to show many entities without a column of rows. |
+| `bottomSheet`, `askSheet`, `confirmDlg` (`widgets.js`) | Every question: at the bottom of the screen, the same sheet everywhere. |
+| `guardUnsaved` (`scenenew.js`) | The one rule for a form that saves: the checkmark, and Save / Discard when it is closed with changes. |
+| `redrawBox`, `swapContent` (`manage.js`) | Draw a popup's content again, with or without the slide. |
+| `iconPick` (`icons.js`), `textRow` (`manage.js`), `dropRow` (`appearance.js`), `entRow` (`devices.js`), `pickEntity` (`widgets.js`) | The icon list, the name field, a dropdown row, a read-only line, the entity picker. |
+| `devManage` and the `dev*Tab` functions (`manage.js`) | A device's settings: one function for each tab (Look, Options, Placement, More) and one for each kind's options. A new kind's options are one more function called from `devOptionsTab`. |
+
+The light popup (`lightpanel.js`) is a design of its own (the `lp-*` rules) and is changed on its own.
+
+To see that a change left every popup as it was, the test harness (`tests/frontend/harness`, see its README) measures them: `auditSurfaces` for radius, padding, alignment and overlaps, `snapshotSurfaces` to compare the markup of two versions of the code.
+
 ## Updating
 
 1. Edit the file(s).

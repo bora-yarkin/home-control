@@ -22,3 +22,12 @@ look at the result, not only at a picture: a picture does not show a row that is
 
 The big gap the audit reports in the area editor (between the hint and the next row) is the drawing of the room, which is not a row; the rows around it
 are what is measured. A page with one row has nothing to compare, and a page where no row is found is reported as not measured.
+
+## Layout audit and snapshots (`layout.js`)
+
+`await prepareKit()` puts an oven, a washer, a remote, a vacuum with extras and wall photos on the living room page. `standardSurfaces()` lists every page, popup, device tab, dropdown and question worth looking at.
+
+- `await auditSurfaces(standardSurfaces())` opens each and reports radius (round controls round, rows at the row radius), padding, left and right alignment of rows, equal tile heights, cut-off text, overflow and overlapping controls. An empty list for a surface means nothing was found.
+- `await snapshotSurfaces(list)` gives a hash of each surface's markup. Run it before and after a change that should not alter any popup (a refactor); the same hashes mean the popups are the same.
+
+The preview pane does not run transitions while it is hidden, so both measure the finished layout, not the motion. Run long lists in the background and poll: the browser tool stops a script after 45 seconds.

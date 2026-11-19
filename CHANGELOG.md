@@ -4,6 +4,9 @@ Format: [Keep a Changelog](https://keepachangelog.com/). Versions follow [semant
 
 ## [Unreleased]
 
+### Changed
+- Code only, nothing to see: the popups are a table of definitions (`POPUP_DEFS`) instead of a 680-line chain of conditions; the settings of a device, the light group form and the add popup are built by one function for each part instead of one function each; the one-line explanation, the yes/no row, the labelled choice and the row of icon buttons are shared pieces (`hintRow`, `flagPill`, `segField`, `iconChoices`) used everywhere they were written out; 31 unused texts and one unused function are removed. The markup of the device popups is identical to before (compared tab by tab). The light popup was not touched. The frontend README has a table of the shared pieces and the harness README describes the layout audit.
+
 ## [0.15.0] - 2026-11-19
 
 ### Changed
