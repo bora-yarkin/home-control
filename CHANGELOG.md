@@ -4,12 +4,15 @@ Format: [Keep a Changelog](https://keepachangelog.com/). Versions follow [semant
 
 ## [Unreleased]
 
+## [0.15.0] - 2026-11-19
+
 ### Changed
 - **Screensaver photos are a gallery.** Settings, Wall mode, Screensaver photos: *Upload a photo* (it is used at once), then every photo as a tile with a check that says whether the wall screen uses it. A photo can stay in the gallery without being used, so a tap on a tile switches it on or off and the trash button (after a question at the bottom) removes it. The heading counts the photos in use, and the settings line says "5 photos · 3 in use". Photos can still be added by address, one at a time, checked as they are entered. Which photos are off is saved with the list (`wallOff`).
 - **Exporting and importing a page is done with files.** Page settings, *Export and import*: *Export this page* saves a `.json` file (named after the page and the time) with its sections, the scenes they list and their areas; *Import a page from a file* reads one, checks it (not a page, empty, broken, too large each say so), and asks at the bottom with what is in it ("Replace this page with the page in the file “Kitchen”? 5 sections, 2 scenes to add, 1 area to add. A backup of the dashboard is kept first.") before it replaces anything. It was a button that copied text to the clipboard and a box to paste it back into.
 - The same two helpers (save a file, read a file) are used by the dashboard backup and the effects file; the effects example is downloaded as a file instead of being copied. An icon of your own is chosen as an SVG file (read, checked for a 24 by 24 drawing of paths and kept under the file's name) instead of typing a name and pasting path data. A wall photo address is entered one at a time and checked when entered, instead of a box of lines.
 
 ### Fixed
+- The icon rows of a popup (the icon choices of a device, a light group) were 4px inset from the other rows; they line up. Every page, popup, device tab, dropdown and question was measured at phone and tablet width, dark and light, for corner radius, padding, alignment, equal tile heights, cut-off text and overlaps (a test-harness tool, `tests/frontend/harness/layout.js`); nothing else was off.
 - The zones of a light strip were still offered as lights in the add popup (and in the list of new devices). A strip's main light lists only some of its zones (three of five), so the zones it did not list were missed. A zone is now also known by its unique id: a light whose unique id is another light's followed by `_zone_` and a number.
 
 ## [0.14.0] - 2026-11-19
