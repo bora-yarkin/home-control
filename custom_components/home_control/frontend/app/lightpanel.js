@@ -204,11 +204,11 @@ function lpSpot(mode, ref, R, krange, i, count) {
   }
   var kv = ref ? lpKelvin(ref) : null,
     y = kv ? Math.max(0, Math.min(2 * R, ((kv - krange[0]) / (krange[1] - krange[0])) * 2 * R)) : R;
-  return [R + (many ? (i - (count - 1) / 2) * 0.22 * R : 0), y];
+  return [R, y];
 }
 
-/* Markers that would sit on top of each other (lights with the same colour) are moved a little apart, so each can be seen and picked. */
-function lpApart(pts, R) {
+/* Markers that would sit on top of each other (lights with the same colour) are moved a little apart, so each can be seen and picked; on the white wheel, where a light's place across means nothing, they are moved sideways. */
+function lpApart(pts, R, sideways) {
   var gap = 46;
   for (var round = 0; round < 12; round++) {
     var again = false;
@@ -220,8 +220,8 @@ function lpApart(pts, R) {
         if (d >= gap) continue;
         if (d < 0.5) {
           var an = (2 * Math.PI * j) / pts.length;
-          dx = Math.sin(an);
-          dy = -Math.cos(an);
+          dx = sideways ? 1 : Math.sin(an);
+          dy = sideways ? 0 : -Math.cos(an);
           d = 1;
         }
         var push = (gap - d) / 2;
@@ -327,7 +327,7 @@ function lpReach(circ, e, m) {
   var r = circ.getBoundingClientRect(),
     dx = e.clientX - r.left - m.x,
     dy = e.clientY - r.top - m.y;
-  if (!m.pin.classList.contains("act") || m.pin.classList.contains("off")) return Math.hypot(dx, dy);
+  if (!m.pin.classList.contains("act")) return Math.hypot(dx, dy);
   return Math.min(Math.hypot(dx, dy), Math.hypot(dx, dy + r.width * 0.077));
 }
 
@@ -428,28 +428,6 @@ function lpPinAnim(m, opening, delay) {
   }
 }
 
-/* A short pop on a marker (it appears bigger, then settles), and a ring that spreads from a point of the circle: shown when a group is separated, lights are joined, or a light that was off comes on. */
-function lpPop(m) {
-  [m.pin, m.dot].forEach(function (x) {
-    x.classList.remove("pop");
-    void x.offsetWidth;
-    x.classList.add("pop");
-    setTimeout(function () {
-      x.classList.remove("pop");
-    }, 480);
-  });
-}
-
-function lpRing(circ, x, y) {
-  var r = mk("div", "lw-ring");
-  r.style.left = x + "px";
-  r.style.top = y + "px";
-  circ.appendChild(r);
-  setTimeout(function () {
-    r.remove();
-  }, 600);
-}
-
 /* The circle for one kind: markers for the lights shown, the nearest one follows the finger. A tap away from every marker deselects. A tap on a group selects it (its drop shows the count), a second tap opens its lights in a circle of their own, a tap on a light selects it; dropping one on another joins them. A light that is off is a dot at its last colour or temperature; dragging it turns it on. While dragging a white temperature its value shows above the marker. */
 function lpCircle(S, mode) {
   var circ = mk("div", "lw-c " + (mode === "color" ? "col" : "wht")),
@@ -467,6 +445,8 @@ function lpCircle(S, mode) {
     cur = null,
     sx = 0,
     sy = 0,
+    // where lights that were just joined stay until Home Assistant reports them there: { x, y, rgb, key, until }
+    hold = null,
     // whether the marker under the finger was already selected when it went down
     wasSel = false,
     // a press away from every marker: nothing happens until the finger drags, then the nearest marker follows
@@ -489,19 +469,19 @@ function lpCircle(S, mode) {
       var on = S.sel === m.n.key || (!S.sel && marks.length === 1),
         lit = countOn(m.n.cmd) > 0 || (m.forced && Date.now() - m.forced < 3000);
       /* The drop opens when the marker becomes the selected one and closes when it stops being it. */
-      if (m.on !== undefined && m.on !== on && lit) lpPinAnim(m, on, 0);
+      if (m.on !== undefined && m.on !== on) lpPinAnim(m, on, 0);
       m.on = on;
       m.pin.classList.toggle("act", on);
       m.dot.classList.toggle("picked", on);
       lpPinPick(m, on && S.focus && S.focus.v === m.n ? S.focus.n : null);
       m.pin.classList.toggle("off", !lit);
       m.dot.classList.toggle("off", !lit);
-      /* A light that is off is a dot in the colour it was. */
+      /* A light that is off has a black dot and, when selected, a black drop; dragging it turns it on. */
       var r = ref(m.n),
         hs = isColor && r ? lpHs(r) : null,
-        k = !isColor && r ? lpKelvin(r) : null;
-      lpPaintMark(m, hs ? hsv2rgb(hs[0], hs[1]) : k ? kelvinRgb(k) : r && isOn(r) ? avgLight([r]) : null);
-      if (m.lit === false && lit) lpPop(m);
+        k = !isColor && r ? lpKelvin(r) : null,
+        held = hold && hold.key === m.n.key ? hold.rgb : null;
+      lpPaintMark(m, !lit ? null : held || (hs ? hsv2rgb(hs[0], hs[1]) : k ? kelvinRgb(k) : r && isOn(r) ? avgLight([r]) : null));
       m.lit = lit;
     });
   }
@@ -511,9 +491,12 @@ function lpCircle(S, mode) {
       pts = marks.map(function (m, i) {
         return lpSpot(mode, ref(m.n), R, krange, i, marks.length);
       });
-    if (marks.length > 1) lpApart(pts, R);
+    if (marks.length > 1) lpApart(pts, R, !isColor);
+    if (hold && Date.now() > hold.until) hold = null;
+    if (hold && !hold.key) hold.key = S.sel;
     marks.forEach(function (m, i) {
-      lpPlace(m, pts[i][0], pts[i][1]);
+      if (hold && hold.key === m.n.key) lpPlace(m, hold.x, hold.y);
+      else lpPlace(m, pts[i][0], pts[i][1]);
     });
     drawLines();
     paintSel();
@@ -638,15 +621,11 @@ function lpCircle(S, mode) {
       : [];
     if (fresh.length) slideOut(fresh, from);
     paintSel();
-    var popKeys = S.popNow;
-    if (popKeys) {
-      if (from) lpRing(circ, from[0], from[1]);
+    /* Markers that were just joined, separated or revealed: their drop grows where it is, as in the Hue app. */
+    if (S.popNow)
       marks.forEach(function (m) {
-        if (popKeys.indexOf(m.n.key) < 0) return;
-        lpPop(m);
-        if (!from) lpRing(circ, m.x, m.y);
+        if (S.popNow.indexOf(m.n.key) >= 0) lpPinAnim(m, true, 0);
       });
-    }
   }
 
   /* sending: at most one command every 150 ms for a marker, and the last position always arrives */
@@ -699,8 +678,17 @@ function lpCircle(S, mode) {
       return x !== m && Math.hypot(x.x - m.x, x.y - m.y) <= 26;
     })[0];
     if (!t) return;
-    var r = circ.getBoundingClientRect();
-    lpPush(m.n, mode, finger({ clientX: r.left + t.x, clientY: r.top + t.y }).data);
+    var r = circ.getBoundingClientRect(),
+      data = finger({ clientX: r.left + t.x, clientY: r.top + t.y }).data;
+    lpPush(m.n, mode, data);
+    /* The joined lights stay where they were dropped, in the colour of the spot, until the lights report it themselves (a few seconds at most); they used to start in the middle and move. */
+    hold = {
+      x: t.x,
+      y: t.y,
+      key: null,
+      until: Date.now() + 3000,
+      rgb: data.hs_color ? hsv2rgb(data.hs_color[0], data.hs_color[1]) : data.color_temp_kelvin ? kelvinRgb(data.color_temp_kelvin) : null,
+    };
     S.join(m.n, t.n);
   }
 

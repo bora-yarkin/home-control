@@ -795,9 +795,9 @@ body.pinhdr:not(.editing) .wrap::before{content:"";position:fixed;top:0;left:0;r
 .lw-pin{transform-origin:50% 120%}
 .lw-pin.press{scale:.86}
 .lw-dot.press{scale:.82}
-.lw-pin.off,.lw-pin:not(.act){opacity:0;scale:.6;pointer-events:none}
-.lw-pin.bubm:not(.off){opacity:1;scale:1}
-.lw-dot.picked:not(.off),.lw-dot.bubm:not(.off){opacity:0}
+.lw-pin:not(.act){opacity:0;scale:.6;pointer-events:none}
+.lw-pin.bubm{opacity:1;scale:1}
+.lw-dot.picked:not(.off),.lw-dot.bubm{opacity:0}
 .lw-pin.bubm:not(.act){width:13.2cqw;height:13.2cqw;margin:-6.6cqw 0 0 -6.6cqw}
 .lw-pin.bubm:not(.act) svg{width:6.6cqw;height:6.6cqw}
 .lw-pin.bubm:not(.act)::before{border-radius:50%;transform:none}
@@ -807,13 +807,7 @@ body.pinhdr:not(.editing) .wrap::before{content:"";position:fixed;top:0;left:0;r
 .lw-c>.lw-chips{position:absolute;inset:0;z-index:2;pointer-events:none}
 .lw-dot.bubm,.lw-pin.bubm{z-index:auto}
 .lw-dot.off{border-color:rgba(255,255,255,.9);box-shadow:0 0 0 2px rgba(0,0,0,.35),0 2px 8px rgba(0,0,0,.4)}
-.lw-pin.pop{animation:lw-pop .46s cubic-bezier(.2,1.3,.4,1)}
-.lw-dot.pop{animation:lw-dotpop .46s cubic-bezier(.2,1.3,.4,1)}
-@keyframes lw-pop{0%{scale:.4;opacity:0}55%{scale:1.16;opacity:1}100%{scale:1;opacity:1}}
-@keyframes lw-dotpop{0%{scale:.4}55%{scale:1.35}100%{scale:1}}
-.lw-ring{position:absolute;width:26px;height:26px;margin:-13px 0 0 -13px;border-radius:50%;border:2px solid rgba(255,255,255,.9);pointer-events:none;animation:lw-ring .6s ease-out forwards}
-@keyframes lw-ring{from{scale:.6;opacity:.9}to{scale:3.4;opacity:0}}
-@media(prefers-reduced-motion:reduce){.lw-pin.pop,.lw-dot.pop,.lw-ring{animation:none}.lp-bri-sl,.lp-bri-fill,.lp-track,.lp-bri-ico{transition:none}}
+@media(prefers-reduced-motion:reduce){.lp-bri-sl,.lp-bri-fill,.lp-track,.lp-bri-ico{transition:none}}
 .lw-bub{position:absolute;border-radius:50%;box-sizing:border-box;border:2px solid #fff;background:rgba(70,68,66,.66);box-shadow:0 10px 30px rgba(0,0,0,.45);pointer-events:none;animation:lw-bub .183s linear}
 /* The circle of separated lights, measured from the Hue app (60 frames a second): it grows from the middle with a slight overshoot, 11 frames. Its lights pop in 6 frames after it starts, all together, each from a dot to a little over full size and back, 10 frames. */
 @keyframes lw-bub{0%{transform:scale(.12)}9%{transform:scale(.35)}18%{transform:scale(.58)}27%{transform:scale(.75)}36%{transform:scale(.87)}45%{transform:scale(.95)}54%{transform:scale(.99)}63%{transform:scale(1.01)}72%{transform:scale(1.03)}81%{transform:scale(1.03)}90%{transform:scale(1.01)}100%{transform:scale(1)}}
