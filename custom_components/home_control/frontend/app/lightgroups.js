@@ -44,285 +44,300 @@ var LGNEW = null;
 
 /* The group form. o.mode "new": nothing exists yet; o: { rid, lights }. o.mode "edit": the group `o.entity` exists. Everything is changed in a draft; the checkmark (or Save on closing)
    makes the changes: a new group is made in Home Assistant under the name given, so its entity id follows that name; an existing group's name, lights and options are changed through
-   its helper. A name is needed to save a new group. */
+   its helper. A name is needed to save a new group.
+   The form's state `f` is shared by the functions below: { isNew, entity, o, st (tab, the helper's config entry, loaded, saving), draft, first (the draft as it was), box, drawShell(), redraw() }. */
 function lgForm(b, o) {
   var isNew = o.mode === "new",
     entity = o.entity,
     dev = isNew ? null : lgDevices(entity)[0],
-    st = { tab: "look", entry: isNew ? null : undefined, loaded: isNew, saving: false },
-    draft = {
-      name: isNew ? "" : (dev && dev.name) || A(entity).friendly_name || entity,
-      icon: (dev && dev.icon) || "lights",
-      lights: isNew ? o.lights.slice() : lgMembers(entity),
-      hide: true,
-      all: false,
-    },
-    first = JSON.stringify(draft),
     preview = mk("div", "dprev"),
     tabsBox = mk("div"),
-    box = mk("div");
-  b.appendChild(preview);
-  b.appendChild(tabsBox);
-  b.appendChild(box);
-  function snap() {
-    return JSON.stringify(draft);
-  }
-  function failed(err) {
-    st.saving = false;
-    toast((err && err.message) || _T("lg_could_not_change"));
-  }
-  function drawShell() {
+    f = {
+      isNew: isNew,
+      entity: entity,
+      o: o,
+      st: { tab: "look", entry: isNew ? null : undefined, loaded: isNew, saving: false },
+      draft: {
+        name: isNew ? "" : (dev && dev.name) || A(entity).friendly_name || entity,
+        icon: (dev && dev.icon) || "lights",
+        lights: isNew ? o.lights.slice() : lgMembers(entity),
+        hide: true,
+        all: false,
+      },
+      box: mk("div"),
+    };
+  f.first = JSON.stringify(f.draft);
+  /* The group as it will look, and the tabs. */
+  f.drawShell = function () {
     preview.innerHTML = "";
     preview.setAttribute("aria-hidden", "true");
-    var row = pill(draft.icon || "lights", draft.name || _T("lg_new_group"), {
+    var row = pill(f.draft.icon || "lights", f.draft.name || _T("lg_new_group"), {
       sub: function () {
-        return cntS(draft.lights.length, _T("light"), _T("lights"));
+        return cntS(f.draft.lights.length, _T("light"), _T("lights"));
       },
     });
     preview.appendChild(row);
     if (row.refresh) row.refresh();
     tabsBox.innerHTML = "";
     tabsBox.appendChild(
-      seg(
-        [
-          ["look", _T("dp_look")],
-          ["lights", _T("lg_lights")],
-          ["behaviour", _T("lg_behaviour")],
-        ],
-        st.tab,
-        function (v) {
-          st.tab = v;
-          drawShell();
-          swapContent(box, content);
-        }
-      )
+      seg([["look", _T("dp_look")], ["lights", _T("lg_lights")], ["behaviour", _T("lg_behaviour")]], f.st.tab, function (v) {
+        f.st.tab = v;
+        f.drawShell();
+        swapContent(f.box, content);
+      })
+    );
+  };
+  f.redraw = function () {
+    redrawBox(f.box, content);
+  };
+  function content() {
+    if (f.st.tab === "look") return lgLookTab(f);
+    if (f.st.entry === undefined) {
+      f.box.appendChild(pill("info", _T("lg_reading"), {}));
+      return;
+    }
+    if (f.st.tab === "lights") lgLightsTab(f);
+    else lgBehaviourTab(f);
+  }
+  b.appendChild(preview);
+  b.appendChild(tabsBox);
+  b.appendChild(f.box);
+  guardUnsaved({
+    dirty: function () {
+      return f.st.loaded && JSON.stringify(f.draft) !== f.first;
+    },
+    save: function (leave) {
+      return lgSave(f, leave);
+    },
+  });
+  f.drawShell();
+  f.redraw();
+  if (!isNew) lgLoad(f);
+}
+
+/* Whether the group's lights can be changed here: a new group, or one that is a helper (a group of Hue's own cannot be). */
+function lgChangeable(f) {
+  return f.isNew || !!f.st.entry;
+}
+
+function lgFailed(f, err) {
+  f.st.saving = false;
+  toast((err && err.message) || _T("lg_could_not_change"));
+}
+
+/* Look: the name, the icons that fit a light, then the whole icon list. */
+function lgLookTab(f) {
+  var d = f.draft;
+  f.box.appendChild(
+    textRow("edit", f.isNew ? _T("lg_name_of_the_group") : _T("device_name"), d.name, function (v) {
+      d.name = v.slice(0, 40);
+      f.drawShell();
+    }, 40)
+  );
+  if (f.isNew) f.box.appendChild(hintRow(_T("lg_name_hint")));
+  f.box.appendChild(
+    iconChoices(["lights", "light", "lamp", "floor", "ceiling", "strip", "bed"].filter(iconOk), d.icon, function (n) {
+      d.icon = n;
+      f.drawShell();
+      f.redraw();
+    })
+  );
+  f.box.appendChild(
+    iconPick(DEVICONS, d.icon, function (n) {
+      d.icon = n;
+      f.drawShell();
+    })
+  );
+}
+
+/* Lights: the lights of the group (a tap takes one out, never the last), and one more can be added. */
+function lgLightsTab(f) {
+  var d = f.draft,
+    can = lgChangeable(f);
+  d.lights.forEach(function (id) {
+    f.box.appendChild(
+      pill("light", A(id).friendly_name || id, {
+        sub: function () {
+          return id;
+        },
+        tap: can
+          ? function () {
+              if (d.lights.length < 2) {
+                toast(_T("lg_needs_a_light"));
+                return;
+              }
+              d.lights = d.lights.filter(function (x) {
+                return x !== id;
+              });
+              f.drawShell();
+              f.redraw();
+            }
+          : null,
+      })
+    );
+  });
+  if (!can) {
+    f.box.appendChild(hintRow(_T("lg_not_a_helper")));
+    return;
+  }
+  f.box.appendChild(hintRow(_T("lg_tap_to_take_out")));
+  f.box.appendChild(
+    pill("plus", _T("lg_add_a_light"), {
+      tap: function () {
+        pickEntity(
+          _T("lg_add_a_light"),
+          ["light"],
+          null,
+          function (id) {
+            d.lights = d.lights.concat([id]);
+            f.drawShell();
+            f.redraw();
+          },
+          function (id) {
+            return id === f.entity || d.lights.indexOf(id) >= 0;
+          }
+        );
+      },
+    })
+  );
+}
+
+/* Behaviour: hide the lights in Home Assistant, on when any or all are on, and delete the group. */
+function lgBehaviourTab(f) {
+  var d = f.draft;
+  if (!lgChangeable(f)) f.box.appendChild(hintRow(_T("lg_not_a_helper")));
+  else {
+    f.box.appendChild(
+      pill("eyeoff", _T("lg_hide_lights"), {
+        on: function () {
+          return !!d.hide;
+        },
+        sub: function () {
+          return _T("lg_hide_lights_sub");
+        },
+        tap: function () {
+          d.hide = !d.hide;
+          f.redraw();
+        },
+      })
+    );
+    f.box.appendChild(
+      seg([["any", _T("lg_on_when_any")], ["all", _T("lg_on_when_all")]], d.all ? "all" : "any", function (v) {
+        d.all = v === "all";
+        f.redraw();
+      })
     );
   }
-  function content() {
-    if (st.tab === "look") {
-      box.appendChild(
-        textRow(
-          "edit",
-          isNew ? _T("lg_name_of_the_group") : _T("device_name"),
-          draft.name,
-          function (v) {
-            draft.name = v.slice(0, 40);
-            drawShell();
-          },
-          40
-        )
-      );
-      if (isNew) {
-        box.appendChild(hintRow(_T("lg_name_hint")));
-      }
-      box.appendChild(
-        iconChoices(["lights", "light", "lamp", "floor", "ceiling", "strip", "bed"].filter(iconOk), draft.icon, function (n) {
-          draft.icon = n;
-          drawShell();
-          redrawBox(box, content);
-        })
-      );
-      box.appendChild(
-        iconPick(DEVICONS, draft.icon, function (n) {
-          draft.icon = n;
-          drawShell();
-        })
-      );
-      return;
-    }
-    if (st.entry === undefined) {
-      box.appendChild(pill("info", _T("lg_reading"), {}));
-      return;
-    }
-    var changeable = isNew || !!st.entry;
-    if (st.tab === "lights") {
-      draft.lights.forEach(function (id) {
-        box.appendChild(
-          pill("light", A(id).friendly_name || id, {
-            sub: function () {
-              return id;
-            },
-            tap: changeable
-              ? function () {
-                  if (draft.lights.length < 2) {
-                    toast(_T("lg_needs_a_light"));
-                    return;
-                  }
-                  draft.lights = draft.lights.filter(function (x) {
-                    return x !== id;
-                  });
-                  drawShell();
-                  redrawBox(box, content);
-                }
-              : null,
-          })
-        );
-      });
-      if (!changeable) {
-        box.appendChild(hintRow(_T("lg_not_a_helper")));
-        return;
-      }
-      box.appendChild(hintRow(_T("lg_tap_to_take_out")));
-      box.appendChild(
-        pill("plus", _T("lg_add_a_light"), {
-          tap: function () {
-            pickEntity(
-              _T("lg_add_a_light"),
-              ["light"],
-              null,
-              function (id) {
-                draft.lights = draft.lights.concat([id]);
-                drawShell();
-                redrawBox(box, content);
-              },
-              function (id) {
-                return id === entity || draft.lights.indexOf(id) >= 0;
-              }
-            );
-          },
-        })
-      );
-      return;
-    }
-    if (!changeable) {
-      box.appendChild(hintRow(_T("lg_not_a_helper")));
-    } else {
-      box.appendChild(
-        pill("eyeoff", _T("lg_hide_lights"), {
-          on: function () {
-            return !!draft.hide;
-          },
-          sub: function () {
-            return _T("lg_hide_lights_sub");
-          },
-          tap: function () {
-            draft.hide = !draft.hide;
-            redrawBox(box, content);
-          },
-        })
-      );
-      box.appendChild(
-        seg(
-          [
-            ["any", _T("lg_on_when_any")],
-            ["all", _T("lg_on_when_all")],
-          ],
-          draft.all ? "all" : "any",
-          function (v) {
-            draft.all = v === "all";
-            redrawBox(box, content);
-          }
-        )
-      );
-    }
-    if (!isNew && st.entry)
-      box.appendChild(
-        pill("trash", _T("lg_delete"), {
-          sub: function () {
-            return _T("lg_delete_sub");
-          },
-          tap: function () {
-            confirmDlg(_T("lg_delete_q") + draft.name + "?", function () {
-              HA.lightGroups.remove(st.entry).then(function () {
-                lgDropDevices(entity);
+  if (!f.isNew && f.st.entry)
+    f.box.appendChild(
+      pill("trash", _T("lg_delete"), {
+        sub: function () {
+          return _T("lg_delete_sub");
+        },
+        tap: function () {
+          confirmDlg(
+            _T("lg_delete_q") + d.name + "?",
+            function () {
+              HA.lightGroups.remove(f.st.entry).then(function () {
+                lgDropDevices(f.entity);
                 uiChanged();
                 toast(_T("lg_deleted"));
                 POPGUARD = null;
                 STACK = [];
                 CURRENT = null;
                 closeSheet();
-              }, failed);
-            }, _T("delete"));
-          },
-        })
-      );
+              }, function (err) {
+                lgFailed(f, err);
+              });
+            },
+            _T("delete")
+          );
+        },
+      })
+    );
+}
+
+/* Makes the changes. A new group: the helper is made now, with this name, and the group goes where the add popup was opened. An existing one: its helper is changed (name, lights,
+   options), and the dashboard's device follows. Gives false at once when nothing can be done yet, else a promise of whether it worked. */
+function lgSave(f, leave) {
+  var d = f.draft,
+    name = d.name.trim();
+  if (!name) {
+    toast(_T("lg_give_a_name"));
+    return false;
   }
-  /* Makes the changes. A new group: the helper is made now, with this name, and the group goes where the add popup was opened. An existing one: its helper is changed (name, lights,
-     options), and the dashboard's device follows. Gives false at once when nothing can be done yet, else a promise of whether it worked. */
-  function save(leave) {
-    var name = draft.name.trim();
-    if (!name) {
-      toast(_T("lg_give_a_name"));
+  if (f.st.saving || (!f.isNew && !f.st.loaded)) return false;
+  f.st.saving = true;
+  var work = Promise.resolve();
+  if (f.isNew) {
+    toast(_T("lg_making"));
+    work = HA.lightGroups.create(name, d.lights, { hide_members: !!d.hide, all: !!d.all }).then(function (made) {
+      placeDevice(f.o.rid, { id: made.entity_id, name: name, icon: d.icon, kind: "light" });
+      uiChanged();
+    });
+  } else {
+    var before = JSON.parse(f.first);
+    if (f.st.entry) {
+      if (name !== before.name)
+        work = work.then(function () {
+          return HA.lightGroups.rename(f.entity, f.st.entry, name);
+        });
+      if (JSON.stringify(d.lights) !== JSON.stringify(before.lights) || d.hide !== before.hide || d.all !== before.all)
+        work = work.then(function () {
+          return HA.lightGroups.update(f.st.entry, { entities: d.lights, hide_members: !!d.hide, all: !!d.all });
+        });
+    }
+    work = work.then(function () {
+      lgDevices(f.entity).forEach(function (dev) {
+        dev.name = name;
+        dev.icon = d.icon;
+      });
+      uiChanged();
+    });
+  }
+  return work.then(
+    function () {
+      f.st.saving = false;
+      POPGUARD = null;
+      leave();
+      return true;
+    },
+    function (err) {
+      lgFailed(f, err);
       return false;
     }
-    if (st.saving || (!isNew && !st.loaded)) return false;
-    st.saving = true;
-    var work = Promise.resolve();
-    if (isNew) {
-      toast(_T("lg_making"));
-      work = HA.lightGroups.create(name, draft.lights, { hide_members: !!draft.hide, all: !!draft.all }).then(function (made) {
-        placeDevice(o.rid, { id: made.entity_id, name: name, icon: draft.icon, kind: "light" });
-        uiChanged();
-      });
-    } else {
-      var before = JSON.parse(first);
-      if (st.entry) {
-        if (name !== before.name)
-          work = work.then(function () {
-            return HA.lightGroups.rename(entity, st.entry, name);
-          });
-        if (JSON.stringify(draft.lights) !== JSON.stringify(before.lights) || draft.hide !== before.hide || draft.all !== before.all)
-          work = work.then(function () {
-            return HA.lightGroups.update(st.entry, { entities: draft.lights, hide_members: !!draft.hide, all: !!draft.all });
-          });
+  );
+}
+
+/* Reads the helper of an existing group: its lights and options replace the draft's, and that is what "unchanged" means from then on. */
+function lgLoad(f) {
+  HA.lightGroups
+    .entryOf(f.entity)
+    .then(function (entry) {
+      f.st.entry = entry;
+      if (!entry) {
+        f.st.loaded = true;
+        f.first = JSON.stringify(f.draft);
+        f.drawShell();
+        f.redraw();
+        return null;
       }
-      work = work.then(function () {
-        lgDevices(entity).forEach(function (d) {
-          d.name = name;
-          d.icon = draft.icon;
-        });
-        uiChanged();
+      return HA.lightGroups.options(entry).then(function (opts) {
+        f.draft.lights = opts.entities.slice();
+        f.draft.hide = !!opts.hide_members;
+        f.draft.all = !!opts.all;
+        f.st.loaded = true;
+        f.first = JSON.stringify(f.draft);
+        f.drawShell();
+        f.redraw();
       });
-    }
-    return work.then(
-      function () {
-        st.saving = false;
-        POPGUARD = null;
-        leave();
-        return true;
-      },
-      function (err) {
-        failed(err);
-        return false;
-      }
-    );
-  }
-  guardUnsaved({
-    dirty: function () {
-      return st.loaded && snap() !== first;
-    },
-    save: save,
-  });
-  drawShell();
-  redrawBox(box, content);
-  if (!isNew)
-    HA.lightGroups
-      .entryOf(entity)
-      .then(function (entry) {
-        st.entry = entry;
-        if (!entry) {
-          st.loaded = true;
-          first = snap();
-          drawShell();
-          redrawBox(box, content);
-          return null;
-        }
-        return HA.lightGroups.options(entry).then(function (opts) {
-          draft.lights = opts.entities.slice();
-          draft.hide = !!opts.hide_members;
-          draft.all = !!opts.all;
-          st.loaded = true;
-          first = snap();
-          drawShell();
-          redrawBox(box, content);
-        });
-      })
-      .catch(function (err) {
-        st.entry = null;
-        st.loaded = true;
-        failed(err);
-        redrawBox(box, content);
-      });
+    })
+    .catch(function (err) {
+      f.st.entry = null;
+      f.st.loaded = true;
+      lgFailed(f, err);
+      f.redraw();
+    });
 }
 
 function lgPage(b, entity) {
