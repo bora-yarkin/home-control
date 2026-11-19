@@ -28,7 +28,7 @@ var KINDS = [
 /* The starting layout when nothing is saved yet: one room per Home Assistant area with its controllable devices,
  temperature and humidity tiles, and every battery sensor tracked. Built from Home Assistant, so it fits any home. */
 /* The lights that are the zones of another light (a gradient tube is one light with a light for each of its colour zones). They are not put on a page by themselves: the main light controls its zones, and one can still be added by hand. */
-function zoneLightIds(states) {
+function zoneLightIds(states, entities) {
   var out = {};
   Object.keys(states).forEach(function (id) {
     var a = states[id].attributes || {};
@@ -37,6 +37,18 @@ function zoneLightIds(states) {
         if (m !== id) out[m] = 1;
       });
   });
+  /* A light's zones are also found by their unique ids: a light whose unique id is another light's unique id followed by _zone_ and a number is a zone of it. The parent lists
+     only some of its zones when a strip has more than it reports (a strip of five zones that lists three). */
+  if (entities) {
+    var byUid = {};
+    Object.keys(entities).forEach(function (id) {
+      if (id.indexOf("light.") === 0 && entities[id].unique_id) byUid[entities[id].unique_id] = id;
+    });
+    Object.keys(entities).forEach(function (id) {
+      var m = id.indexOf("light.") === 0 && entities[id].unique_id && /^(.+)_zone_\d+$/.exec(entities[id].unique_id);
+      if (m && byUid[m[1]] && byUid[m[1]] !== id) out[id] = 1;
+    });
+  }
   return out;
 }
 
@@ -48,7 +60,7 @@ function seedUI() {
     chips = [],
     bats = [],
     all = Object.keys(h.states),
-    zones = zoneLightIds(h.states),
+    zones = zoneLightIds(h.states, h.entities),
     ids = all.filter(function (id) {
       var e = h.entities[id];
       return !zones[id] && !(e && (e.entity_category || e.hidden || e.disabled_by));

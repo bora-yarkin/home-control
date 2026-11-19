@@ -4,6 +4,9 @@ Format: [Keep a Changelog](https://keepachangelog.com/). Versions follow [semant
 
 ## [Unreleased]
 
+### Fixed
+- The zones of a light strip were still offered as lights in the add popup (and in the list of new devices). A strip's main light lists only some of its zones (three of five), so the zones it did not list were missed. A zone is now also known by its unique id: a light whose unique id is another light's followed by `_zone_` and a number.
+
 ## [0.14.0] - 2026-11-19
 
 ### Added
