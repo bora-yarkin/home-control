@@ -379,7 +379,7 @@ to{background-position:-200% 0}
 .qa.editing{border-style:dashed}
 .sec-h .rnd{order:1;margin-left:8px}
 /* presets, scene editor */
-.pre{display:flex;flex-wrap:wrap;gap:14px 10px;margin:2px 4px 12px;align-items:flex-start}
+.pre{display:flex;flex-wrap:wrap;gap:14px 10px;margin:2px 0 12px;align-items:flex-start}
 .swc{display:flex;flex-direction:column;align-items:center;gap:4px;position:relative;width:46px;cursor:pointer;touch-action:manipulation;user-select:none}
 .swc.act .sw{outline:2px solid var(--aE);outline-offset:2px}
 .swc .cap{font-size:var(--fs-xs);color:var(--ink2);line-height:1;min-height:11px;white-space:nowrap}
