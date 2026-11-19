@@ -94,7 +94,7 @@ function lgPage(b, entity) {
         function (v) {
           st.tab = v;
           drawShell();
-          draw();
+          swapContent(box, content);
         }
       )
     );
@@ -119,8 +119,8 @@ function lgPage(b, entity) {
       draw();
     }, failed);
   }
-  function draw() {
-    redrawBox(box, function () {
+  function content() {
+    (function () {
       if (st.tab === "look") {
       box.appendChild(
         textRow(
@@ -269,7 +269,10 @@ function lgPage(b, entity) {
           },
         })
       );
-    });
+    })();
+  }
+  function draw() {
+    redrawBox(box, content);
   }
   drawShell();
   draw();

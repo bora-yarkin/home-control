@@ -102,6 +102,9 @@ to{opacity:0;clip-path:inset(100% 0 0 0 round var(--r-row));transform:translateY
 .rrow{display:grid;grid-template-columns:repeat(3,1fr);gap:var(--sp)}
 .rbtn{min-height:54px;display:flex;align-items:center;justify-content:center;gap:6px;cursor:pointer;user-select:none;font-size:var(--fs-m)}
 .ed-add-soft{display:none}
+@keyframes tabin{from{opacity:0;transform:translateY(8px)}to{opacity:1;transform:none}}
+.tabin>*{animation:tabin .26s cubic-bezier(.2,.9,.3,1) both}
+@media(prefers-reduced-motion:reduce){.tabin>*{animation:none}}
 .dprev{margin-bottom:var(--sp);pointer-events:none}
 .dprev>.pill{margin:0}
 .pre.ico{gap:var(--sp)}
@@ -397,8 +400,8 @@ body.editing .sec>.sec-h{margin-top:10px}
 .idd-panel{margin:6px 0 12px;border-radius:var(--r-m);padding:10px}
 .idd-list{max-height:340px;overflow-y:auto;margin-top:6px;overscroll-behavior:contain}
 .idd-row{display:flex;align-items:center;gap:12px;padding:5px 8px;border-radius:var(--r-s);cursor:pointer}
-.idd-row:hover,.idd-row.sel{background:rgba(255,255,255,.1)}
-body.light .idd-row:hover,body.light .idd-row.sel{background:rgba(20,24,31,.07)}
+.idd-row:hover,.idd-row.on{background:rgba(255,255,255,.1)}
+body.light .idd-row:hover,body.light .idd-row.on{background:rgba(20,24,31,.07)}
 .idd-n{font-size:var(--fs-m);text-transform:capitalize}
 .idd-foot{margin-top:8px;border-top:1px solid var(--edge);padding-top:8px}
 .idd-add{font-size:var(--fs-m);color:var(--aE);cursor:pointer;padding:4px 6px}

@@ -394,6 +394,19 @@ function cleanUI(u) {
         var x = {};
         if (typeof c.b === "number" && c.b >= 1 && c.b <= 100) x.b = Math.round(c.b);
         if (typeof c.k === "number" && c.k >= 2000 && c.k <= 6500) x.k = Math.round(c.k);
+        /* A saved state made in the light popup: brightness, a colour temperature or a hue and saturation, an effect. */
+        if (c.c && typeof c.c === "object") {
+          var sv = {},
+            col = c.c.col;
+          if (typeof c.c.bri === "number" && c.c.bri >= 1 && c.c.bri <= 100) sv.bri = Math.round(c.c.bri);
+          if (col && typeof col === "object") {
+            if (typeof col.k === "number" && col.k >= 1000 && col.k <= 10000) sv.col = { k: Math.round(col.k) };
+            else if (typeof col.h === "number" && typeof col.s === "number" && col.h >= 0 && col.h <= 360 && col.s >= 0 && col.s <= 100)
+              sv.col = { h: Math.round(col.h), s: Math.round(col.s) };
+          }
+          if (typeof c.c.fx === "string" && c.c.fx.length <= 60) sv.fx = c.c.fx;
+          if (Object.keys(sv).length) x.c = sv;
+        }
         if (Object.keys(x).length) o.on[id] = x;
       });
   if (u.caps && typeof u.caps === "object")

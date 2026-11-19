@@ -506,6 +506,27 @@ function uiChanged() {
   roomOffReconcileSoon();
 }
 
+/* Changes what a box shows with a slide: its height moves to the new content's and the content comes in, so a popup's tabs do not jump. */
+function swapContent(box, draw) {
+  var h0 = box.offsetHeight;
+  box.style.overflow = "hidden";
+  box.style.height = h0 + "px";
+  redrawBox(box, draw);
+  var h1 = box.scrollHeight;
+  box.classList.remove("tabin");
+  void box.offsetWidth;
+  box.classList.add("tabin");
+  requestAnimationFrame(function () {
+    box.style.transition = "height .26s cubic-bezier(.2,.9,.3,1)";
+    box.style.height = h1 + "px";
+  });
+  setTimeout(function () {
+    box.style.transition = "";
+    box.style.height = "";
+    box.style.overflow = "";
+  }, 300);
+}
+
 function redrawBox(box, draw) {
   var prev = CUR;
   SLIVE.length = 0;
@@ -545,7 +566,7 @@ function areaName(id) {
   return a && h.areas && h.areas[a] ? h.areas[a].name : "";
 }
 
-function candidates(doms, roomId, q) {
+function candidates(doms, roomId, q, areaId) {
   var h = H(),
     have = pageDevIds(roomId),
     out = [],
@@ -560,6 +581,7 @@ function candidates(doms, roomId, q) {
       return;
     var e = h.entities && h.entities[id];
     if (e && (e.entity_category || e.hidden)) return;
+    if (areaId && areaIdOf(id) !== areaId) return;
     var nm = A(id).friendly_name || id,
       hay = norm(nm + " " + id + " " + areaName(id));
     if (
@@ -568,7 +590,7 @@ function candidates(doms, roomId, q) {
       })
     )
       return;
-    out.push({ id: id, name: nm, area: areaName(id) });
+    out.push({ id: id, name: nm, area: areaName(id), group: dom(id) === "light" && Array.isArray(A(id).entity_id) && A(id).entity_id.length > 0 });
   });
   out.sort(function (a, b) {
     return a.name.localeCompare(b.name);
@@ -864,7 +886,7 @@ function devManage(b, key) {
       seg(tabs, cur, function (v) {
         cur = DEVTAB[d.kind] = v;
         drawTabs();
-        redrawBox(box, draw);
+        swapContent(box, draw);
       })
     );
   }
@@ -1236,64 +1258,30 @@ function devManage(b, key) {
       var dh = mk("div", "hint");
       dh.textContent = _T("used_when_someone_taps_this_light_on");
       box.appendChild(dh);
-      var lo = function () {
-          return (UI.on && UI.on[d.id]) || {};
-        },
-        setOn = function (k, v) {
-          UI.on = UI.on || {};
-          var o = (UI.on[d.id] = UI.on[d.id] || {});
-          if (v === null) delete o[k];
-          else o[k] = v;
-          if (!Object.keys(o).length) delete UI.on[d.id];
-          uiChanged();
-          redrawBox(box, draw);
-        };
-      if (lightCaps(d.id).bright)
-        box.appendChild(
-          seg(
-            [
-              ["", _T("last_used")],
-              ["25", "25%"],
-              ["50", "50%"],
-              ["75", "75%"],
-              ["100", "100%"],
-            ],
-            lo().b ? String(lo().b) : "",
-            function (v) {
-              setOn("b", v ? +v : null);
-            }
-          )
-        );
-      if (lightCaps(d.id).white) {
-        var ak = A(d.id),
-          kmin = ak.min_color_temp_kelvin || 2000,
-          kmax = ak.max_color_temp_kelvin || 6500;
-        box.appendChild(
-          seg(
-            [
-              ["", _T("last_used")],
-              ["2400", _T("warm")],
-              ["3500", _T("neutral")],
-              ["5000", _T("cool")],
-            ],
-            lo().k && [2400, 3500, 5000].indexOf(lo().k) >= 0 ? String(lo().k) : lo().k ? "x" : "",
-            function (v) {
-              setOn("k", v ? +v : null);
-            }
-          )
-        );
-        box.appendChild(
-          numRow(
-            "palette",
-            _T("exact_colour_in_kelvin") + " (" + kmin + "–" + kmax + ")",
-            lo().k || null,
-            function (v) {
-              setOn("k", v === null ? null : Math.round(Math.max(kmin, Math.min(kmax, v))));
-            },
-            2000,
-            6500
-          )
-        );
+      var onSet = (UI.on && UI.on[d.id]) || {},
+        custom = !!(onSet.c || onSet.b || onSet.k);
+      box.appendChild(
+        seg(
+          [
+            ["last", _T("last_used")],
+            ["custom", _T("custom")],
+          ],
+          custom ? "custom" : "last",
+          function (v) {
+            if (v === "last") {
+              if (UI.on) delete UI.on[d.id];
+              uiChanged();
+              redrawBox(box, draw);
+            } else lightOnCustom(d, function () {
+              redrawBox(box, draw);
+            });
+          }
+        )
+      );
+      if (custom) {
+        var sh = mk("div", "hint");
+        sh.textContent = _T("saved_turn_on_state") + ": " + lightDefaultText(d.id);
+        box.appendChild(sh);
       }
     }
     if (cur === "options" && devSetupKind(d))

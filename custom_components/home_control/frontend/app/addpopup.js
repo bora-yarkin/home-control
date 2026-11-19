@@ -25,10 +25,9 @@ function placeDevice(rid, d) {
 function devAdd(b, rid) {
   var pre = ADDPRE;
   ADDPRE = null;
-  var st = { dom: ADDPRE_IX[pre] || 0, q: "", group: false },
+  var st = { dom: ADDPRE_IX[pre] || 0, q: "", group: false, area: "" },
     picked = {},
     order = [],
-    chips = mk("div", "pre"),
     inp = mk("input", "sq"),
     w = mk("div", "sqw pane", svg("search")),
     count = mk("div", "hint"),
@@ -55,19 +54,6 @@ function devAdd(b, rid) {
       order.push(c.id);
     }
     drawCount();
-  }
-  function drawChips() {
-    chips.innerHTML = "";
-    ADDDOMS.forEach(function (x, i) {
-      var c = mk("div", "rbtn pane keepc" + (i === st.dom ? " act" : ""));
-      c.textContent = x[0];
-      c.addEventListener("click", function () {
-        st.dom = i;
-        drawChips();
-        list();
-      });
-      chips.appendChild(c);
-    });
   }
   function list() {
     redrawBox(box, function () {
@@ -107,7 +93,7 @@ function devAdd(b, rid) {
         });
         return;
       }
-      var items = candidates(ADDDOMS[st.dom][1], rid, st.q),
+      var items = candidates(ADDDOMS[st.dom][1], rid, st.q, st.area),
         shown = items.slice(0, 40);
       /* Lights only: the first entry makes the checked lights one group. */
       if (ADDDOMS[st.dom][1][0] === "light" && ISADMIN) {
@@ -141,7 +127,7 @@ function devAdd(b, rid) {
               return !!picked[c.id];
             },
             sub: function () {
-              return (c.area ? c.area + " · " : "") + c.id;
+              return c.group ? c.name + " · " + _T("lg_group") : (c.area ? c.area + " · " : "") + c.id;
             },
             tap: function () {
               toggle(c);
@@ -161,11 +147,57 @@ function devAdd(b, rid) {
     st.q = inp.value;
     list();
   });
+  /* What to add and where it is: two dropdowns. The area is any area of Home Assistant, all of them to begin with. */
+  var typeTile = selectTile(
+      _T("add_type"),
+      function () {
+        return ADDDOMS.map(function (x, i) {
+          return String(i);
+        });
+      },
+      function () {
+        return String(st.dom);
+      },
+      function (v) {
+        st.dom = +v;
+        typeTile.refresh();
+        list();
+      },
+      "tune",
+      function (v) {
+        return ADDDOMS[+v][0];
+      }
+    ),
+    areaTile = selectTile(
+      _T("add_area"),
+      function () {
+        var ids = Object.keys(H().areas || {}).sort(function (x, y) {
+          return String(H().areas[x].name).localeCompare(H().areas[y].name);
+        });
+        return ["all"].concat(ids);
+      },
+      function () {
+        return st.area || "all";
+      },
+      function (v) {
+        st.area = v === "all" ? "" : v;
+        areaTile.refresh();
+        list();
+      },
+      "home",
+      function (v) {
+        return v === "all" ? _T("all_areas") : (H().areas[v] || {}).name || v;
+      }
+    );
+  typeTile.classList.add("selrow");
+  areaTile.classList.add("selrow");
+  typeTile.refresh();
+  areaTile.refresh();
   b.appendChild(w);
-  b.appendChild(chips);
+  b.appendChild(typeTile);
+  b.appendChild(areaTile);
   b.appendChild(count);
   b.appendChild(box);
-  drawChips();
   drawCount();
   list();
 

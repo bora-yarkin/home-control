@@ -335,18 +335,13 @@ function edToolbar() {
   u.classList.add("et-undo");
   u.classList.toggle("dis", !EDHIST.length);
   t.appendChild(u);
-  /* On a room the page's Add opens the checklist of everything that can be added; the device goes to the first section of its kind (one is made when there is none). */
   t.appendChild(
     rbtn(
       "plus",
       function () {
-        if (VIEW === "home") edAddSection(edScope());
-        else {
-          ADDPRE = null;
-          showPopup("manage-add:" + VIEW, true);
-        }
+        edAddSection(edScope());
       },
-      VIEW === "home" ? _T("add_section") : _T("add")
+      _T("add_section")
     )
   );
   t.appendChild(
@@ -355,7 +350,7 @@ function edToolbar() {
       function () {
         showPopup("ed-order:" + VIEW, true);
       },
-      _T("dp_sections")
+      _T("reorder_sections")
     )
   );
   t.appendChild(
@@ -618,13 +613,6 @@ function mkHint(t) {
 function secOrderPage(b, key) {
   var sc = key === "home" ? "home" : "room:" + key,
     box = mk("div");
-  b.appendChild(
-    pill("plus", _T("add_section"), {
-      tap: function () {
-        edAddSection(sc);
-      },
-    })
-  );
   b.appendChild(box);
   function colMap() {
     var out = {};

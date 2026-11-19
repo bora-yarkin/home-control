@@ -139,10 +139,11 @@ function dashboard({ create, lights = ["Desk lamp", "Shelf strip", "Ceiling"], r
   const names = { "light.desk": "Desk lamp", "light.shelf": "Shelf strip", "light.ceiling": "Ceiling", "light.existing": "Light group" };
   Object.keys(names).forEach((id) => (states[id] = { attributes: { friendly_name: names[id] } }));
   const pills = [];
+  const tiles = [];
   const el = () => ({ children: [], style: {}, classList: { toggle() {}, add() {} }, appendChild(x) { this.children.push(x); return x; }, addEventListener() {}, setAttribute() {}, querySelector: () => el() });
   const section = { id: "lights", k: "lights", devs: [] };
   const sandbox = {
-    H: () => ({ states }),
+    H: () => ({ states, areas: { kitchen: { area_id: "kitchen", name: "Kitchen" }, bath: { area_id: "bath", name: "Bathroom" } } }),
     A: (id) => (states[id] ? states[id].attributes : {}),
     dom: (id) => id.split(".")[0],
     DOMKIND: { light: "light" },
@@ -153,13 +154,21 @@ function dashboard({ create, lights = ["Desk lamp", "Shelf strip", "Ceiling"], r
     _T: (k) => (k === "lg_light_group" ? "Light group" : k),
     mk: () => el(),
     svg: () => "",
+    selectTile: (label, opts, cur, pick, icon, fmt) => {
+      const t = Object.assign(el(), { label, opts, cur, pick, fmt, refresh() {} });
+      tiles.push(t);
+      return t;
+    },
     pill: (icon, name, o) => {
       const p = Object.assign(el(), { name, o, refresh() {} });
       pills.push(p);
       return p;
     },
     redrawBox: (box, fn) => fn(),
-    candidates: () => lights.map((n) => ({ id: Object.keys(names).filter((k) => names[k] === n)[0], name: n, area: "" })),
+    candidates: (doms, rid, q, area) => {
+      calls.candidateArgs = [doms, rid, q, area];
+      return lights.map((n) => ({ id: Object.keys(names).filter((k) => names[k] === n)[0], name: n, area: "", group: n === "Ceiling" }));
+    },
     defIcon: () => "light",
     devSetupKind: () => null,
     devSetupAlways: () => false,
@@ -186,7 +195,7 @@ function dashboard({ create, lights = ["Desk lamp", "Shelf strip", "Ceiling"], r
   const b = el();
   sandbox.devAdd(b, rid);
   const tap = (name) => pills.filter((p) => p.name === name).pop().o.tap();
-  return { sandbox, calls, tap, section, pills, save: () => calls.guard.save(() => calls.toasts.push("left")) };
+  return { sandbox, calls, tap, section, pills, tiles, save: () => calls.guard.save(() => calls.toasts.push("left")) };
 }
 
 test("nothing is checked, nothing is saved, and the popup is not dirty; a check makes it dirty", () => {
@@ -261,4 +270,32 @@ test("from the page's own Add the checked devices go to the first section of the
   g.tap("Ceiling");
   await g.save();
   assert.deepEqual(plain(g.calls.pagePlaced), [["r_living", "light.g"]]);
+});
+
+test("the type and the area are dropdowns: the type chooses what is listed, the area (all of them to begin with) filters the list", () => {
+  const d = dashboard({ create: () => Promise.reject(new Error("no")) });
+  const [type, area] = d.tiles;
+  assert.equal(type.label, "add_type");
+  assert.equal(area.label, "add_area");
+  assert.deepEqual(plain(area.opts()), ["all", "bath", "kitchen"], "all areas first, then the areas by name");
+  assert.equal(area.fmt("all"), "all_areas");
+  assert.equal(area.fmt("bath"), "Bathroom");
+  assert.equal(area.cur(), "all", "all areas to begin with");
+  assert.deepEqual(plain(d.calls.candidateArgs), [["light"], "~r~lights", "", ""]);
+  area.pick("kitchen");
+  assert.equal(d.calls.candidateArgs[3], "kitchen", "the list is asked for that area");
+  assert.equal(type.fmt("0"), "Lights");
+});
+
+test("a light that is already a group says so in its second line, and a choice made under one area stays checked under another", () => {
+  const d = dashboard({ create: () => Promise.reject(new Error("no")) });
+  const ceiling = d.pills.filter((p) => p.name === "Ceiling").pop();
+  assert.equal(ceiling.o.sub(), "Ceiling · lg_group");
+  const desk = d.pills.filter((p) => p.name === "Desk lamp").pop();
+  assert.match(desk.o.sub(), /light\.desk/);
+  d.tap("Desk lamp");
+  d.tiles[1].pick("kitchen");
+  assert.equal(d.calls.guard.dirty(), true, "the check is kept when the list changes");
+  assert.equal(d.save(), true);
+  assert.deepEqual(d.section.devs.map((x) => x.id), ["light.desk"]);
 });
