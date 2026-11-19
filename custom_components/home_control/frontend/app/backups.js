@@ -184,6 +184,8 @@ function pageExportJSON(sc) {
     {
       app: "dashboard-page",
       version: 1,
+      name: sc === "home" ? UI.meta.homeTab || TITLES.home : (UIROOM[sc.slice(5)] || {}).name || "",
+      exported: new Date().toISOString(),
       sections: secs,
       scenes: scenes,
       areas: STORE.eareas.filter(function (a) {
@@ -195,18 +197,22 @@ function pageExportJSON(sc) {
   );
 }
 
-function pageImport(sc, text) {
+/* Saves the page as a file: its sections, the scenes they list and the areas those scenes play on. */
+function pageExportFile(sc) {
+  var rm = sc === "home" ? null : UIROOM[sc.slice(5)];
+  downloadText("dashboard-page-" + fileSlug(rm ? rm.name : "home", "page") + "-" + fileStamp() + ".json", pageExportJSON(sc));
+  toast(_T("page_exported"));
+}
+
+/* A page file read and checked, not yet applied: { name, secs, fresh, newAreas } or { problem }. */
+function pageParse(sc, text) {
   var j;
   try {
     j = JSON.parse(text);
   } catch (e) {
-    toast(_T("that_isn_t_valid_page_text"));
-    return;
+    return { problem: _T("that_isn_t_valid_page_text") };
   }
-  if (!j || j.app !== "dashboard-page" || !Array.isArray(j.sections)) {
-    toast(_T("that_isn_t_a_dashboard_page"));
-    return;
-  }
+  if (!j || j.app !== "dashboard-page" || !Array.isArray(j.sections)) return { problem: _T("that_isn_t_a_dashboard_page") };
   var pk = sc === "home" ? "home" : sc.slice(5),
     map = {},
     fresh = [];
@@ -236,10 +242,7 @@ function pageImport(sc, text) {
     }
   });
   var secs = cleanLayout(j.sections);
-  if (!secs.length) {
-    toast(_T("that_page_has_no_sections"));
-    return;
-  }
+  if (!secs.length) return { problem: _T("that_page_has_no_sections") };
   secs.forEach(function (s) {
     if (s.scn)
       s.scn = s.scn
@@ -255,20 +258,41 @@ function pageImport(sc, text) {
         return true;
       });
   });
-  confirmDlg(_T("replace_this_page_with_the_pasted_on"), function () {
-    STORE.ui = UI;
-    bkAdd(JSON.stringify(STORE), true);
-    fresh.forEach(function (c) {
-      if (STORE.scenes.length < 60) STORE.scenes.push(c);
-    });
-    newAreas.forEach(function (a) {
-      if (STORE.eareas.length < 24) STORE.eareas.push(a);
-    });
-    setSecOrder(sc, secs);
-    devIndex(UI);
-    uiChanged();
-    toast(_T("page_imported"));
-    closeSheet();
+  return { name: typeof j.name === "string" ? j.name.slice(0, 40) : "", secs: secs, fresh: fresh, newAreas: newAreas };
+}
+
+/* Asks for a page file, checks it, says what is in it and replaces the page only on a yes; a backup of the whole dashboard is kept first. */
+function pageImportFile(sc) {
+  pickTextFile({}, function (text) {
+    var plan = pageParse(sc, text);
+    if (plan.problem) {
+      toast(plan.problem);
+      return;
+    }
+    var what =
+      cntS(plan.secs.length, _T("section_lc"), _T("sections_lc")) +
+      ", " +
+      cntS(plan.fresh.length, _T("new_scene_one"), _T("new_scene_many")) +
+      (plan.newAreas.length ? ", " + cntS(plan.newAreas.length, _T("new_area_one"), _T("new_area_many")) : "");
+    confirmDlg(
+      _T("page_import_q") + (plan.name ? " “" + plan.name + "”" : "") + "?\n" + what + ". " + _T("a_backup_is_kept_first"),
+      function () {
+        STORE.ui = UI;
+        bkAdd(JSON.stringify(STORE), true);
+        plan.fresh.forEach(function (c) {
+          if (STORE.scenes.length < 60) STORE.scenes.push(c);
+        });
+        plan.newAreas.forEach(function (a) {
+          if (STORE.eareas.length < 24) STORE.eareas.push(a);
+        });
+        setSecOrder(sc, plan.secs);
+        devIndex(UI);
+        uiChanged();
+        toast(_T("page_imported"));
+        closeSheet();
+      },
+      _T("replace_this_page")
+    );
   });
 }
 
@@ -282,28 +306,7 @@ function exportJSON() {
 }
 
 function downloadBackup() {
-  var blob = new Blob([exportJSON()], { type: "application/json" }),
-    a = document.createElement("a"),
-    d = new Date(),
-    p = function (n) {
-      return ("0" + n).slice(-2);
-    };
-  a.href = URL.createObjectURL(blob);
-  a.download =
-    "dashboard-backup-" +
-    d.getFullYear() +
-    p(d.getMonth() + 1) +
-    p(d.getDate()) +
-    "-" +
-    p(d.getHours()) +
-    p(d.getMinutes()) +
-    ".json";
-  document.body.appendChild(a);
-  a.click();
-  setTimeout(function () {
-    a.remove();
-    URL.revokeObjectURL(a.href);
-  }, 1000);
+  downloadText("dashboard-backup-" + fileStamp() + ".json", exportJSON());
 }
 
 function restoreFrom(text) {
@@ -352,35 +355,15 @@ function backupPage(b) {
     })
   );
   b.appendChild(sep(_T("restore"), "restart"));
-  var fi = mk("input");
-  fi.type = "file";
-  fi.accept = ".json,application/json";
-  fi.style.display = "none";
-  fi.addEventListener("change", function () {
-    var f = fi.files && fi.files[0];
-    fi.value = "";
-    if (!f) return;
-    if (f.size > 5 * 1024 * 1024) {
-      toast(_T("that_file_is_too_large_to_be_a_backu"));
-      return;
-    }
-    var rd = new FileReader();
-    rd.onload = function () {
-      restoreFrom(String(rd.result));
-    };
-    rd.onerror = function () {
-      toast(_T("couldn_t_read_that_file"));
-    };
-    rd.readAsText(f);
-  });
-  b.appendChild(fi);
   b.appendChild(
     pill("check", _T("restore_from_a_file"), {
       sub: function () {
         return _T("choose_a_backup_file_you_saved_earli");
       },
       tap: function () {
-        fi.click();
+        pickTextFile({}, function (text) {
+          restoreFrom(text);
+        });
       },
     })
   );

@@ -13,7 +13,12 @@
 await import("/custom_components/home_control/frontend/dashboard-panel.js?t=" + Date.now());
 import { makeHass } from "./mock-hass.js";
 import { auditSpacing } from "./audit.js";
+import { auditLayout, auditSurfaces, prepareKit, standardSurfaces } from "./layout.js";
 window.auditSpacing = auditSpacing;
+window.auditLayout = auditLayout;
+window.auditSurfaces = auditSurfaces;
+window.prepareKit = prepareKit;
+window.standardSurfaces = standardSurfaces;
 const panel = document.createElement("dashboard-panel");
 document.body.appendChild(panel);
 const hass = makeHass(new URLSearchParams(location.search));

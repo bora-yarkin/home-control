@@ -745,45 +745,24 @@ function editPageSettings(b, key) {
         })
       );
     });
-    box.appendChild(sep(_T("share_this_page"), "sd"));
-    var ta = mk("textarea", "ta");
-    ta.setAttribute("spellcheck", "false");
-    ta.placeholder = _T("paste_a_page_here_to_import_it");
+    box.appendChild(sep(_T("export_and_import"), "sd"));
     box.appendChild(
-      pill("sd", _T("copy_this_page_as_text"), {
+      pill("sd", _T("export_this_page"), {
         sub: function () {
-          return _T("sections_and_the_scenes_they_list");
+          return _T("export_this_page_sub");
         },
         tap: function () {
-          var txt = pageExportJSON(sc);
-          try {
-            navigator.clipboard.writeText(txt).then(
-              function () {
-                toast(_T("copied"));
-              },
-              function () {
-                ta.value = txt;
-                ta.select();
-                toast(_T("select_and_copy_the_text_below"));
-              }
-            );
-          } catch (e) {
-            ta.value = txt;
-            ta.select();
-            toast(_T("select_and_copy_the_text_below"));
-          }
+          pageExportFile(sc);
         },
       })
     );
-    box.appendChild(ta);
     box.appendChild(
-      pill("check", _T("replace_this_page_with_the_text_abov"), {
+      pill("plus", _T("import_a_page"), {
+        sub: function () {
+          return _T("import_a_page_sub");
+        },
         tap: function () {
-          if (!ta.value.trim()) {
-            toast(_T("paste_a_page_first"));
-            return;
-          }
-          pageImport(sc, ta.value);
+          pageImportFile(sc);
         },
       })
     );

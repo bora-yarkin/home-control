@@ -114,7 +114,7 @@ function newDevs(all) {
     since = UI.newSince || 0,
     h = H();
   if (!h) return [];
-  var zones = zoneLightIds(h.states);
+  var zones = zoneLightIds(h.states, h.entities);
   return (REG || [])
     .filter(function (e) {
       return (
@@ -575,7 +575,7 @@ function isLightGroup(id) {
 function candidates(doms, roomId, q, areaId) {
   var h = H(),
     have = pageDevIds(roomId),
-    zones = zoneLightIds(h.states),
+    zones = zoneLightIds(h.states, h.entities),
     out = [],
     any = doms[0] === "*",
     tk = norm(q || "")

@@ -1,95 +1,154 @@
 /* Wall mode: the idle clock or photo screensaver, and wall photos. */
 
+/* The photos the wall screen shows: the gallery's photos that are switched on. */
+function wallActive() {
+  var c = STORE.cfg || {},
+    off = c.wallOff || [];
+  return (c.wallPhotos || []).filter(function (u, i) {
+    return off.indexOf(i) < 0;
+  });
+}
+
+/* The gallery of the wall screen's photos: each photo is a tile with a check that says whether it is used; a photo can be kept in the gallery without being used. New photos are
+   uploaded from this device (or added by address) and are used at once. */
 function wallPhotosPage(b) {
   var box = mk("div");
   b.appendChild(box);
   function photos() {
     return ((STORE.cfg && STORE.cfg.wallPhotos) || []).slice();
   }
-  function setPhotos(a) {
-    STORE.cfg = cleanCfg(Object.assign({}, STORE.cfg, { wallPhotos: a }));
+  function off() {
+    return ((STORE.cfg && STORE.cfg.wallOff) || []).slice();
+  }
+  function setAll(list, offList) {
+    STORE.cfg = cleanCfg(Object.assign({}, STORE.cfg, { wallPhotos: list, wallOff: offList }));
     storeChanged();
     redrawBox(box, draw);
+  }
+  function toggle(i) {
+    var o = off(),
+      at = o.indexOf(i);
+    if (at >= 0) o.splice(at, 1);
+    else o.push(i);
+    setAll(photos(), o);
+  }
+  function remove(i) {
+    var list = photos(),
+      o = off()
+        .filter(function (x) {
+          return x !== i;
+        })
+        .map(function (x) {
+          return x > i ? x - 1 : x;
+        });
+    list.splice(i, 1);
+    setAll(list, o);
+  }
+  function add(u) {
+    if (photos().length >= 16) {
+      toast(_T("up_to_16_photos"));
+      return;
+    }
+    setAll(photos().concat([u]), off());
+  }
+  function tile(u, i) {
+    var used = off().indexOf(i) < 0,
+      t = mk("div", "wg-t pane" + (used ? " on" : " off")),
+      img = mk("img"),
+      ck = mk("span", "wg-ck", svg("check")),
+      x = mk("div", "rnd pane sm wg-x", svg("trash"));
+    img.alt = "";
+    img.draggable = false;
+    img.src = u;
+    t.setAttribute("role", "checkbox");
+    t.setAttribute("aria-checked", used ? "true" : "false");
+    t.setAttribute("aria-label", _T("photo_n") + (i + 1));
+    t.tabIndex = 0;
+    t.appendChild(img);
+    t.appendChild(ck);
+    x.setAttribute("role", "button");
+    x.setAttribute("aria-label", _T("remove_this_photo"));
+    x.tabIndex = 0;
+    x.addEventListener("click", function (e) {
+      e.stopPropagation();
+      confirmDlg(_T("remove_this_photo"), function () {
+        remove(i);
+      }, _T("wg_remove"));
+    });
+    t.appendChild(x);
+    t.addEventListener("click", function () {
+      toggle(i);
+    });
+    t.addEventListener("keydown", function (e) {
+      if (e.target === t && (e.key === " " || e.key === "Enter")) {
+        e.preventDefault();
+        toggle(i);
+      }
+    });
+    return t;
   }
   function draw() {
     var hint = mk("div", "hint");
     hint.textContent = _T("photos_shown_by_wall_mode_when_it_is");
     box.appendChild(hint);
-    var fi = document.createElement("input");
-    fi.type = "file";
-    fi.accept = "image/*";
-    fi.style.display = "none";
-    box.appendChild(fi);
-    fi.addEventListener("change", function () {
-      var f = fi.files && fi.files[0];
-      if (!f) return;
-      if (photos().length >= 16) {
-        toast(_T("up_to_16_photos"));
-        return;
-      }
-      toast(_T("processing"));
-      resizeImage(
-        f,
-        function (u) {
-          if (!u) {
-            toast(_T("that_picture_couldn_t_be_used"));
-            return;
-          }
-          var a = photos();
-          a.push(u);
-          setPhotos(a);
-        },
-        1280,
-        150000
-      );
-    });
     box.appendChild(
-      pill("plus", _T("add_a_photo_from_this_device"), {
+      pill("plus", _T("upload_a_photo"), {
         sub: function () {
           return photos().length + " / 16";
         },
         tap: function () {
-          fi.click();
+          pickTextFile({ accept: "image/*", maxBytes: 30 * 1024 * 1024, asFile: true }, function (f) {
+            toast(_T("processing"));
+            resizeImage(
+              f,
+              function (u) {
+                if (!u) {
+                  toast(_T("that_picture_couldn_t_be_used"));
+                  return;
+                }
+                add(u);
+              },
+              1280,
+              150000
+            );
+          });
         },
       })
     );
-    photos().forEach(function (u, i) {
-      box.appendChild(
-        pill("media", _T("photo_n") + (i + 1), {
-          sub: function () {
-            return /^data:/.test(u) ? _T("uploaded_tap_to_remove") : u;
-          },
-          tap: function () {
-            confirmDlg(_T("remove_this_photo"), function () {
-              var a = photos();
-              a.splice(i, 1);
-              setPhotos(a);
-            });
-          },
-        })
-      );
-    });
-    box.appendChild(sep(_T("or_add_addresses"), "edit"));
-    var ta = mk("textarea", "ta");
-    ta.setAttribute("spellcheck", "false");
-    ta.placeholder = "https://… or /local/photo.jpg";
-    box.appendChild(ta);
+    var n = photos().length;
+    if (n) {
+      box.appendChild(sep(_T("gallery") + " · " + cntS(wallActive().length, _T("in_use_one"), _T("in_use_many")), "media"));
+      var grid = mk("div", "wg");
+      photos().forEach(function (u, i) {
+        grid.appendChild(tile(u, i));
+      });
+      box.appendChild(grid);
+      var tip = mk("div", "hint");
+      tip.textContent = _T("tap_a_photo_to_use_it_or_not");
+      box.appendChild(tip);
+    } else {
+      var none = mk("div", "hint");
+      none.textContent = _T("no_photos_yet");
+      box.appendChild(none);
+    }
+    box.appendChild(sep(_T("or_add_an_address"), "edit"));
+    /* One address at a time, checked when it is entered: only an https address or a /local/ file is a picture the wall may show. */
     box.appendChild(
-      pill("check", _T("add_these_addresses"), {
-        tap: function () {
-          var lines = ta.value
-            .split("\n")
-            .map(function (s) {
-              return s.trim();
-            })
-            .filter(Boolean);
-          if (!lines.length) return;
-          var c = cleanCfg({ wallPhotos: lines });
-          if (c.wallPhotos.length !== lines.length)
-            toast(_T("some_lines_were_skipped_only_https_a"));
-          setPhotos(photos().concat(c.wallPhotos));
+      textRow(
+        "edit",
+        "https://… or /local/photo.jpg",
+        "",
+        function (v) {
+          if (!v) return;
+          var c = cleanCfg({ wallPhotos: [v] });
+          if (!c.wallPhotos.length) {
+            toast(_T("use_an_https_or_local_address"));
+            return;
+          }
+          add(c.wallPhotos[0]);
         },
-      })
+        300
+      )
     );
   }
   redrawBox(box, draw);
@@ -150,8 +209,9 @@ function wallSettings(b) {
         box.appendChild(
           pill("media", _T("screensaver_photos"), {
             sub: function () {
-              var n = ((STORE.cfg && STORE.cfg.wallPhotos) || []).length;
-              return n ? cntS(n, _T("photo"), _T("photos")) : _T("none_yet");
+              var n = ((STORE.cfg && STORE.cfg.wallPhotos) || []).length,
+                u = wallActive().length;
+              return n ? cntS(n, _T("photo"), _T("photos")) + (u < n ? " · " + u + " " + _T("in_use_word") : "") : _T("none_yet");
             },
             tap: function () {
               showPopup("manage-wallphotos", true);
@@ -160,7 +220,7 @@ function wallSettings(b) {
         );
       if (
         PREFS.wallMode === "photo" &&
-        !(STORE.cfg && STORE.cfg.wallPhotos && STORE.cfg.wallPhotos.length)
+        !wallActive().length
       ) {
         var hn = mk("div", "hint");
         hn.textContent = _T("no_photos_are_set_up_yet_so_the_cloc");
@@ -209,7 +269,7 @@ function wallShow() {
       "wall-c",
       "<div class='wall-t'></div><div class='wall-d'></div><div class='wall-w'></div>"
     );
-  var photos = (PREFS.wallMode === "photo" && STORE.cfg && STORE.cfg.wallPhotos) || [],
+  var photos = (PREFS.wallMode === "photo" && wallActive()) || [],
     img = null;
   if (photos.length) {
     img = document.createElement("img");

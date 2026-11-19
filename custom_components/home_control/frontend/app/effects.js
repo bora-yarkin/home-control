@@ -281,19 +281,9 @@ function fxSettings(b) {
             return _T("for_lights_of_any_brand_a_json_file");
           },
           tap: function () {
-            var inp = mk("input");
-            inp.type = "file";
-            inp.accept = ".json,application/json";
-            inp.addEventListener("change", function () {
-              var f = inp.files && inp.files[0];
-              if (!f) return;
-              var r = new FileReader();
-              r.onload = function () {
-                fxImportText(String(r.result), draw);
-              };
-              r.readAsText(f);
+            pickTextFile({}, function (text) {
+              fxImportText(text, draw);
             });
-            inp.click();
           },
         })
       );
@@ -308,13 +298,13 @@ function fxSettings(b) {
         })
       );
       box.appendChild(
-        pill("sd", _T("copy_an_example_file"), {
+        pill("sd", _T("download_an_example_file"), {
           sub: function () {
             return _T("to_start_from_or_to_give_an_ai");
           },
           tap: function () {
-            var text = JSON.stringify(FX_EXAMPLE, null, 2);
-            if (navigator.clipboard && navigator.clipboard.writeText) navigator.clipboard.writeText(text).then(function () { toast(_T("example_copied")); });
+            downloadText("effects-example.json", JSON.stringify(FX_EXAMPLE, null, 2));
+            toast(_T("example_downloaded"));
           },
         })
       );
