@@ -171,9 +171,7 @@ function searchPopup(b) {
   inp.setAttribute("enterkeyhint", "go");
   w.appendChild(inp);
   b.appendChild(w);
-  var hint = mk("div", "hint");
-  hint.textContent = _T("press_enter_to_open_or_run_the_first");
-  b.appendChild(hint);
+  b.appendChild(hintRow(_T("press_enter_to_open_or_run_the_first")));
   var res = mk("div"),
     cur = [];
   b.appendChild(res);

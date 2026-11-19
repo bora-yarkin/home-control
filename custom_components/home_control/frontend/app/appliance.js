@@ -381,9 +381,7 @@ function apPage(b, aid) {
       return apHas(s[k]);
     });
   if (!bound.length && !ap.extra.length) {
-    var h = mk("div", "hint");
-    h.textContent = ISADMIN ? _T("ap_nothing_is_bound_yet_choose_set_up") : _T("ap_nothing_is_bound_yet");
-    b.appendChild(h);
+    b.appendChild(hintRow(ISADMIN ? _T("ap_nothing_is_bound_yet_choose_set_up") : _T("ap_nothing_is_bound_yet")));
   }
   var state = s.state && apHas(s.state),
     left = s.remaining && apHas(s.remaining),

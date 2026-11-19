@@ -721,14 +721,10 @@ function editPageSettings(b, key) {
         }
       )
     );
-    var cn = mk("div", "hint");
-    cn.textContent = _T("on_wide_screens_phones_always_use_on");
-    box.appendChild(cn);
+    box.appendChild(hintRow(_T("on_wide_screens_phones_always_use_on")));
     box.appendChild(sep(_T("hidden_sections"), "lock"));
     if (!hid.length) {
-      var hn = mk("div", "hint");
-      hn.textContent = _T("none_hide_a_section_from_its_setting");
-      box.appendChild(hn);
+      box.appendChild(hintRow(_T("none_hide_a_section_from_its_setting")));
     }
     hid.forEach(function (s) {
       box.appendChild(

@@ -149,9 +149,7 @@ function bkAutoPage(b) {
           });
       })
       .catch(function () {
-        var e = mk("div", "hint");
-        e.textContent = _T("couldn_t_read_the_snapshots");
-        holder.appendChild(e);
+        holder.appendChild(hintRow(_T("couldn_t_read_the_snapshots")));
       });
   }
   redrawBox(box, draw);
@@ -340,9 +338,7 @@ function restoreFrom(text) {
 }
 
 function backupPage(b) {
-  var hint = mk("div", "hint");
-  hint.textContent = _T("a_backup_holds_your_rooms_devices_la");
-  b.appendChild(hint);
+  b.appendChild(hintRow(_T("a_backup_holds_your_rooms_devices_la")));
   b.appendChild(
     pill("sd", _T("download_backup_file"), {
       sub: function () {

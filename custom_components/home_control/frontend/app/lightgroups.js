@@ -113,24 +113,15 @@ function lgForm(b, o) {
         )
       );
       if (isNew) {
-        var nh = mk("div", "hint");
-        nh.textContent = _T("lg_name_hint");
-        box.appendChild(nh);
+        box.appendChild(hintRow(_T("lg_name_hint")));
       }
-      var irow = mk("div", "pre ico");
-      ["lights", "light", "lamp", "floor", "ceiling", "strip", "bed"].filter(iconOk).forEach(function (n) {
-        var c = mk("div", "rnd pane" + (draft.icon === n ? " act" : ""), svg(n));
-        c.setAttribute("role", "button");
-        c.setAttribute("aria-label", iconLabel(n));
-        c.title = iconLabel(n);
-        c.addEventListener("click", function () {
+      box.appendChild(
+        iconChoices(["lights", "light", "lamp", "floor", "ceiling", "strip", "bed"].filter(iconOk), draft.icon, function (n) {
           draft.icon = n;
           drawShell();
           redrawBox(box, content);
-        });
-        irow.appendChild(c);
-      });
-      box.appendChild(irow);
+        })
+      );
       box.appendChild(
         iconPick(DEVICONS, draft.icon, function (n) {
           draft.icon = n;
@@ -168,14 +159,10 @@ function lgForm(b, o) {
         );
       });
       if (!changeable) {
-        var note = mk("div", "hint");
-        note.textContent = _T("lg_not_a_helper");
-        box.appendChild(note);
+        box.appendChild(hintRow(_T("lg_not_a_helper")));
         return;
       }
-      var tip = mk("div", "hint");
-      tip.textContent = _T("lg_tap_to_take_out");
-      box.appendChild(tip);
+      box.appendChild(hintRow(_T("lg_tap_to_take_out")));
       box.appendChild(
         pill("plus", _T("lg_add_a_light"), {
           tap: function () {
@@ -198,9 +185,7 @@ function lgForm(b, o) {
       return;
     }
     if (!changeable) {
-      var note2 = mk("div", "hint");
-      note2.textContent = _T("lg_not_a_helper");
-      box.appendChild(note2);
+      box.appendChild(hintRow(_T("lg_not_a_helper")));
     } else {
       box.appendChild(
         pill("eyeoff", _T("lg_hide_lights"), {

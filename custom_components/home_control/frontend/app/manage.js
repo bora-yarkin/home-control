@@ -279,9 +279,7 @@ function newDevOne(b) {
     })
   );
   if (!sg && !areaName(id)) {
-    var nr = mk("div", "hint");
-    nr.textContent = _T("this_device_is_in_no_room_in_home_assistant_choose");
-    b.appendChild(nr);
+    b.appendChild(hintRow(_T("this_device_is_in_no_room_in_home_assistant_choose")));
   }
   b.appendChild(sep(_T("add_to_a_room"), "home"));
   (sg
@@ -862,31 +860,38 @@ function iconSuggestions(d) {
   }).slice(0, 8);
 }
 
+/* The settings popup of a device on a page: the device as it will look, tabs for what can be changed, and the tab's content. Every change is made at once (with Undo), in every tab.
+   The tabs are built by devLookTab, devOptionsTab, devPlaceTab and devMoreTab; each is given a context `c`: { d: the device, key, list: the list it is in, i: its place, box: the tab's
+   content, redraw(): draws the tab again, preview(): draws the device on top again }. */
 function devManage(b, key) {
   var p = key.split(":"),
-    rid = p[0],
-    i = +p[1],
-    list = devList(rid),
-    d = list[i];
+    list = devList(p[0]),
+    d = list[+p[1]];
   if (!d) return;
-  /* The popup: the device as it will look on the page, tabs for what can be changed, and the tab's content. Every change is made at once (with Undo), in every tab. */
-  var preview = mk("div"),
+  var previewBox = mk("div"),
     tabsBox = mk("div"),
     box = mk("div"),
-    cur = DEVTAB[d.kind] || "look";
-  b.appendChild(preview);
+    cur = DEVTAB[d.kind] || "look",
+    c = {
+      d: d,
+      key: key,
+      list: list,
+      i: +p[1],
+      box: box,
+      redraw: function () {
+        redrawBox(box, draw);
+      },
+      preview: function () {
+        previewBox.innerHTML = "";
+        previewBox.appendChild(devPreview(d));
+      },
+    };
+  b.appendChild(previewBox);
   b.appendChild(tabsBox);
   b.appendChild(box);
-  function drawPreview() {
-    preview.innerHTML = "";
-    preview.appendChild(devPreview(d));
-  }
-  function hasOptions() {
-    return ["light", "media", "climate", "vacuum", "camera", "appliance", "remote", "lock"].indexOf(d.kind) >= 0 || !!devSetupKind(d);
-  }
   function drawTabs() {
     var tabs = [["look", _T("dp_look")]];
-    if (hasOptions()) tabs.push(["options", _T("dp_options")]);
+    if (devHasOptions(d)) tabs.push(["options", _T("dp_options")]);
     tabs.push(["place", _T("dp_placement")], ["more", _T("dp_more")]);
     if (!tabs.some(function (t) { return t[0] === cur; })) cur = "look";
     tabsBox.innerHTML = "";
@@ -898,477 +903,299 @@ function devManage(b, key) {
       })
     );
   }
-  drawPreview();
-  drawTabs();
-  /* A name is offered in shorter and plainer forms: the entity's name without the room in front of it. */
-  function nameChoices() {
-    var full = (d.id && A(d.id).friendly_name) || d.name,
-      area = d.id ? areaName(d.id) : "",
-      out = [];
-    function add(n) {
-      n = (n || "").trim();
-      if (n && n !== d.name && n.length <= 40 && out.indexOf(n) < 0) out.push(n);
-    }
-    add(full);
-    if (area && full.toLowerCase().indexOf(area.toLowerCase() + " ") === 0) add(full.slice(area.length + 1).replace(/^./, function (c) { return c.toUpperCase(); }));
-    return out.slice(0, 3);
-  }
   function draw() {
-    if (cur === "look") {
-      box.appendChild(
-        textRow(
-          "edit",
-          _T("device_name"),
-          d.name,
-          function (v) {
-            if (v) {
-              d.name = v;
-              uiChanged();
-              drawPreview();
-              redrawBox(box, draw);
-            }
-          },
-          40
-        )
-      );
-      var nc = nameChoices();
-      if (nc.length) {
-        var nrow = mk("div", "pre");
-        nc.forEach(function (n) {
-          var c = mk("div", "rbtn pane keepc");
-          c.textContent = n;
-          c.addEventListener("click", function () {
-            d.name = n;
-            uiChanged();
-            drawPreview();
-            redrawBox(box, draw);
-          });
-          nrow.appendChild(c);
-        });
-        box.appendChild(nrow);
-      }
-      var sug = iconSuggestions(d),
-        irow = mk("div", "pre ico");
-      sug.forEach(function (n) {
-        var c = mk("div", "rnd pane" + (d.icon === n ? " act" : ""), svg(n));
-        c.setAttribute("role", "button");
-        c.setAttribute("aria-label", iconLabel(n));
-        c.title = iconLabel(n);
-        c.addEventListener("click", function () {
-          d.icon = n;
-          uiChanged();
-          drawPreview();
-          redrawBox(box, draw);
-        });
-        irow.appendChild(c);
+    if (cur === "look") devLookTab(c);
+    else if (cur === "options") devOptionsTab(c);
+    else if (cur === "place") devPlaceTab(c);
+    else devMoreTab(c);
+  }
+  c.preview();
+  drawTabs();
+  c.redraw();
+}
+
+/* Whether a device has settings of its own kind (the Options tab). */
+function devHasOptions(d) {
+  return ["light", "media", "climate", "vacuum", "camera", "appliance", "remote", "lock"].indexOf(d.kind) >= 0 || !!devSetupKind(d);
+}
+
+/* A name is offered in shorter and plainer forms: the entity's name without the room in front of it. */
+function devNameChoices(d) {
+  var full = (d.id && A(d.id).friendly_name) || d.name,
+    area = d.id ? areaName(d.id) : "",
+    out = [];
+  function add(n) {
+    n = (n || "").trim();
+    if (n && n !== d.name && n.length <= 40 && out.indexOf(n) < 0) out.push(n);
+  }
+  add(full);
+  if (area && full.toLowerCase().indexOf(area.toLowerCase() + " ") === 0) add(full.slice(area.length + 1).replace(/^./, function (ch) { return ch.toUpperCase(); }));
+  return out.slice(0, 3);
+}
+
+/* Look: the name (with shorter names offered), the icons that fit the kind, then the whole icon list. */
+function devLookTab(c) {
+  var d = c.d;
+  function rename(v) {
+    d.name = v;
+    uiChanged();
+    c.preview();
+    c.redraw();
+  }
+  c.box.appendChild(textRow("edit", _T("device_name"), d.name, function (v) { if (v) rename(v); }, 40));
+  var names = devNameChoices(d);
+  if (names.length) {
+    var nrow = mk("div", "pre");
+    names.forEach(function (n) {
+      var t = mk("div", "rbtn pane keepc");
+      t.textContent = n;
+      t.addEventListener("click", function () {
+        rename(n);
       });
-      if (sug.length) box.appendChild(irow);
-      box.appendChild(
-        iconPick(DEVICONS, d.icon, function (n) {
-          d.icon = n;
-          uiChanged();
-          drawPreview();
-        })
-      );
-    }
-    if (cur === "more") {
-      box.appendChild(
-        entRow(_T("type"), function () {
-          return KINDLAB[d.kind];
-        })
-      );
-      if (d.id)
-        box.appendChild(
-          entRow(_T("entity"), function () {
-            return d.id;
-          })
-        );
-    }
-    if (cur === "options") profileSettings(box, d, key);
-    if (cur === "options" && d.kind === "appliance")
-      box.appendChild(
-        pill("tune", _T("ap_set_up"), {
-          tap: function () {
-            showPopup("ap-edit:" + d.aid, true);
-          },
-        })
-      );
-    if (cur === "options" && d.kind === "remote")
-      box.appendChild(
-        pill("media", _T("rm_edit_buttons"), {
-          tap: function () {
-            RM.edit[d.rid] = true;
-            showPopup("remote:" + d.rid, true);
-          },
-        })
-      );
-    if (cur === "options" && d.kind === "light" && d.id && lgMembers(d.id).length)
-      box.appendChild(
-        pill("lights", _T("lg_group_settings"), {
-          sub: function () {
-            return cntS(lgMembers(d.id).length, _T("light"), _T("lights"));
-          },
-          tap: function () {
-            showPopup("lgroup:" + d.id, true);
-          },
-        })
-      );
-    if (cur === "options" && d.kind === "climate" && d.id)
-      box.appendChild(
-        pill("thermo", _T("thermostat_dial"), {
-          on: function () {
-            return !!d.dial;
-          },
-          sub: function () {
-            return _T("a_round_dial_instead_of_the_slider_i");
-          },
-          tap: function () {
-            if (d.dial) delete d.dial;
-            else d.dial = 1;
-            uiChanged();
-          },
-        })
-      );
-    if (cur === "options" && d.kind === "vacuum" && d.id && vacMapEnt(d.id)) {
-      var mp = (d.map = d.map || {}),
-        mset = function (k, v) {
-          if (v === undefined || v === "") delete mp[k];
-          else mp[k] = v;
-          if (!Object.keys(mp).length) delete d.map;
-          uiChanged();
-          redrawBox(box, draw);
-        };
-      box.appendChild(sep(_T("map"), "target"));
-      box.appendChild(
-        pill("palette", _T("minimal_map_style"), {
-          on: function () {
-            return !!mp.m;
-          },
-          sub: function () {
-            return mp.m
-              ? _T("the_map_is_drawn_as_outlines_with_so")
-              : _T("the_map_is_shown_in_the_colours_it_c");
-          },
-          tap: function () {
-            mset("m", mp.m ? undefined : 1);
-          },
-        })
-      );
-      var h1 = mk("div", "hint");
-      h1.textContent = _T("room_names");
-      box.appendChild(h1);
-      box.appendChild(
-        seg(
-          [
-            ["11", _T("small")],
-            ["", _T("medium")],
-            ["16", _T("large")],
-            ["19", _T("extra_large")],
-          ],
-          mp.ls ? String(mp.ls) : "",
-          function (v) {
-            mset("ls", v ? +v : undefined);
-          }
-        )
-      );
-      if (mp.m) {
-        var h2 = mk("div", "hint");
-        h2.textContent = _T("room_fill");
-        box.appendChild(h2);
-        box.appendChild(
-          seg(
-            [
-              ["0", _T("none")],
-              ["30", _T("soft")],
-              ["", _T("medium")],
-              ["130", _T("strong")],
-            ],
-            mp.fa === undefined ? "" : String(mp.fa),
-            function (v) {
-              mset("fa", v === "" ? undefined : +v);
-            }
-          )
-        );
-        var h3 = mk("div", "hint");
-        h3.textContent = _T("fill_colour");
-        box.appendChild(h3);
-        box.appendChild(
-          seg(
-            [
-              ["", _T("each_room_s_own_colour")],
-              ["acc", _T("accent_colour")],
-            ],
-            mp.fc || "",
-            function (v) {
-              mset("fc", v);
-            }
-          )
-        );
-        var h4 = mk("div", "hint");
-        h4.textContent = _T("outline_colour");
-        box.appendChild(h4);
-        box.appendChild(
-          seg(
-            [
-              ["", _T("text_colour")],
-              ["acc", _T("accent_colour")],
-              ["room", _T("room_colour")],
-            ],
-            mp.lc || "",
-            function (v) {
-              mset("lc", v);
-            }
-          )
-        );
+      nrow.appendChild(t);
+    });
+    c.box.appendChild(nrow);
+  }
+  var sug = iconSuggestions(d);
+  if (sug.length)
+    c.box.appendChild(
+      iconChoices(sug, d.icon, function (n) {
+        d.icon = n;
+        uiChanged();
+        c.preview();
+        c.redraw();
+      })
+    );
+  c.box.appendChild(
+    iconPick(DEVICONS, d.icon, function (n) {
+      d.icon = n;
+      uiChanged();
+      c.preview();
+    })
+  );
+}
+
+/* Options: what belongs to the kind of device, in the order of the kinds' own settings, then the set-up of devices that need one. */
+function devOptionsTab(c) {
+  var d = c.d,
+    box = c.box;
+  profileSettings(box, d, c.key);
+  if (d.kind === "appliance")
+    box.appendChild(pill("tune", _T("ap_set_up"), { tap: function () { showPopup("ap-edit:" + d.aid, true); } }));
+  if (d.kind === "remote")
+    box.appendChild(
+      pill("media", _T("rm_edit_buttons"), {
+        tap: function () {
+          RM.edit[d.rid] = true;
+          showPopup("remote:" + d.rid, true);
+        },
+      })
+    );
+  if (d.kind === "light" && d.id && lgMembers(d.id).length)
+    box.appendChild(
+      pill("lights", _T("lg_group_settings"), {
+        sub: function () {
+          return cntS(lgMembers(d.id).length, _T("light"), _T("lights"));
+        },
+        tap: function () {
+          showPopup("lgroup:" + d.id, true);
+        },
+      })
+    );
+  if (d.kind === "climate" && d.id)
+    box.appendChild(flagPill("thermo", _T("thermostat_dial"), d, "dial", function () { return _T("a_round_dial_instead_of_the_slider_i"); }));
+  if (d.kind === "vacuum" && d.id && vacMapEnt(d.id)) devVacuumMapOptions(c);
+  if (d.kind === "media" && d.id) devMediaOptions(c);
+  if (d.kind === "light" && d.id) devLightOptions(c);
+  if (devSetupKind(d))
+    box.appendChild(
+      pill("tune", _T("set_up_this_device"), {
+        sub: function () {
+          return (d.links || []).length ? _T("linked_entities") + ": " + d.links.length : _T("nothing_linked_yet");
+        },
+        tap: function () {
+          showPopup("kwiz:" + c.key, true);
+        },
+      })
+    );
+  if (d.kind === "lock")
+    box.appendChild(
+      flagPill("right", _T("unlock_with_a_slider"), d, "noslide", function (on) {
+        return on ? _T("asks_with_a_slider") : _T("asks_with_confirm");
+      }, true)
+    );
+}
+
+/* How a vacuum's map is drawn. The choices are kept in d.map and the key is dropped when it is back to its default. */
+function devVacuumMapOptions(c) {
+  var d = c.d,
+    box = c.box,
+    mp = (d.map = d.map || {});
+  function mset(k, v) {
+    if (v === undefined || v === "") delete mp[k];
+    else mp[k] = v;
+    if (!Object.keys(mp).length) delete d.map;
+    uiChanged();
+    c.redraw();
+  }
+  function flag(icon, title, key, subOn, subOff) {
+    return pill(icon, title, {
+      on: function () {
+        return !!mp[key];
+      },
+      sub: function () {
+        return mp[key] ? subOn : subOff;
+      },
+      tap: function () {
+        mset(key, mp[key] ? undefined : 1);
+      },
+    });
+  }
+  box.appendChild(sep(_T("map"), "target"));
+  box.appendChild(flag("palette", _T("minimal_map_style"), "m", _T("the_map_is_drawn_as_outlines_with_so"), _T("the_map_is_shown_in_the_colours_it_c")));
+  segField(box, _T("room_names"), [["11", _T("small")], ["", _T("medium")], ["16", _T("large")], ["19", _T("extra_large")]], mp.ls ? String(mp.ls) : "", function (v) {
+    mset("ls", v ? +v : undefined);
+  });
+  if (mp.m) {
+    segField(box, _T("room_fill"), [["0", _T("none")], ["30", _T("soft")], ["", _T("medium")], ["130", _T("strong")]], mp.fa === undefined ? "" : String(mp.fa), function (v) {
+      mset("fa", v === "" ? undefined : +v);
+    });
+    segField(box, _T("fill_colour"), [["", _T("each_room_s_own_colour")], ["acc", _T("accent_colour")]], mp.fc || "", function (v) {
+      mset("fc", v);
+    });
+    segField(box, _T("outline_colour"), [["", _T("text_colour")], ["acc", _T("accent_colour")], ["room", _T("room_colour")]], mp.lc || "", function (v) {
+      mset("lc", v);
+    });
+  }
+  box.appendChild(flag("target", _T("show_the_robot_s_trail"), "tr", _T("the_path_of_the_current_or_last_clea"), _T("no_trail_is_drawn")));
+  box.appendChild(flag("lock", _T("no_go_zones"), "nz", _T("the_robot_s_forbidden_areas_and_virt"), _T("no_go_zones_are_not_drawn")));
+  if (mp.tr) {
+    segField(box, _T("trail_colour"), [["", _T("accent_colour")], ["ink", _T("text_colour")]], mp.tc || "", function (v) {
+      mset("tc", v);
+    });
+    segField(box, _T("trail_thickness"), [["2", _T("thin")], ["", _T("normal")], ["5", _T("thick")]], mp.tw ? String(mp.tw) : "", function (v) {
+      mset("tw", v ? +v : undefined);
+    });
+  }
+}
+
+/* What a media player's card on the page shows while something plays. */
+function devMediaOptions(c) {
+  var d = c.d;
+  c.box.appendChild(
+    dropRow(
+      _T("now_playing"),
+      ["off", "on", "art"],
+      function () {
+        return d.art ? "art" : d.nonp ? "off" : "on";
+      },
+      function (v) {
+        delete d.art;
+        delete d.nonp;
+        if (v === "art") d.art = 1;
+        else if (v === "off") d.nonp = 1;
+        uiChanged();
+      },
+      "media",
+      function (v) {
+        return { off: _T("off"), on: _T("on_2"), art: _T("artwork_card") }[v];
       }
-      box.appendChild(
-        pill("target", _T("show_the_robot_s_trail"), {
-          on: function () {
-            return !!mp.tr;
-          },
-          sub: function () {
-            return mp.tr ? _T("the_path_of_the_current_or_last_clea") : _T("no_trail_is_drawn");
-          },
-          tap: function () {
-            mset("tr", mp.tr ? undefined : 1);
-          },
-        })
-      );
-      box.appendChild(
-        pill("lock", _T("no_go_zones"), {
-          on: function () {
-            return !!mp.nz;
-          },
-          sub: function () {
-            return mp.nz
-              ? _T("the_robot_s_forbidden_areas_and_virt")
-              : _T("no_go_zones_are_not_drawn");
-          },
-          tap: function () {
-            mset("nz", mp.nz ? undefined : 1);
-          },
-        })
-      );
-      if (mp.tr) {
-        var h5 = mk("div", "hint");
-        h5.textContent = _T("trail_colour");
-        box.appendChild(h5);
-        box.appendChild(
-          seg(
-            [
-              ["", _T("accent_colour")],
-              ["ink", _T("text_colour")],
-            ],
-            mp.tc || "",
-            function (v) {
-              mset("tc", v);
-            }
-          )
-        );
-        var h6 = mk("div", "hint");
-        h6.textContent = _T("trail_thickness");
-        box.appendChild(h6);
-        box.appendChild(
-          seg(
-            [
-              ["2", _T("thin")],
-              ["", _T("normal")],
-              ["5", _T("thick")],
-            ],
-            mp.tw ? String(mp.tw) : "",
-            function (v) {
-              mset("tw", v ? +v : undefined);
-            }
-          )
-        );
-      }
-    }
-    if (cur === "options" && d.kind === "media" && d.id)
-      box.appendChild(
-        dropRow(
-          _T("now_playing"),
-          ["off", "on", "art"],
-          function () {
-            return d.art ? "art" : d.nonp ? "off" : "on";
-          },
-          function (v) {
-            delete d.art;
-            delete d.nonp;
-            if (v === "art") d.art = 1;
-            else if (v === "off") d.nonp = 1;
-            uiChanged();
-          },
-          "media",
-          function (v) {
-            return { off: _T("off"), on: _T("on_2"), art: _T("artwork_card") }[v];
-          }
-        )
-      );
-    if (cur === "options" && d.kind === "light" && d.id) {
-      if (lightRaw(d.id).color && lightRaw(d.id).white)
-        box.appendChild(
-          pill("palette", _T("separate_colour_and_white"), {
-            on: function () {
-              return !!d.split;
-            },
-            sub: function () {
-              return d.split
-                ? _T("colour_back_and_white_front_are_sepa")
-                : _T("one_set_of_controls_the_light_follow");
-            },
-            tap: function () {
-              if (d.split) delete d.split;
-              else d.split = 1;
-              uiChanged();
-            },
-          })
-        );
-      box.appendChild(sep(_T("light_features"), "light"));
-      var ch = mk("div", "hint");
-      ch.textContent = _T("hide_controls_this_light_doesn_t_rea");
-      box.appendChild(ch);
-      [
-        ["nb", _T("brightness"), "bright", "bright"],
-        ["nw", _T("white_temperature"), "thermo", "white"],
-        ["nc", _T("colour"), "palette", "color"],
-      ].forEach(function (x) {
-        box.appendChild(
-          pill(x[2], x[1], {
-            on: function () {
-              return lightCaps(d.id)[x[3]];
-            },
-            sub: function () {
-              var raw = lightRaw(d.id)[x[3]],
-                on = !(UI.caps && UI.caps[d.id] && UI.caps[d.id][x[0]]);
-              return (
-                (raw ? _T("reported_by_the_device") : _T("not_reported_by_the_device")) +
-                " · " +
-                (raw && on ? _T("shown") : _T("hidden"))
-              );
-            },
-            tap: function () {
-              if (!lightRaw(d.id)[x[3]]) {
-                toast(_T("the_device_doesn_t_report_this_so_it"));
-                return;
-              }
-              UI.caps = UI.caps || {};
-              var o = (UI.caps[d.id] = UI.caps[d.id] || {});
-              if (o[x[0]]) delete o[x[0]];
-              else o[x[0]] = 1;
-              if (!Object.keys(o).length) delete UI.caps[d.id];
-              uiChanged();
-              refresh();
-            },
-          })
-        );
-      });
-      box.appendChild(sep(_T("when_turned_on_from_the_app"), "power"));
-      var dh = mk("div", "hint");
-      dh.textContent = _T("used_when_someone_taps_this_light_on");
-      box.appendChild(dh);
-      var onSet = (UI.on && UI.on[d.id]) || {},
-        custom = !!(onSet.c || onSet.b || onSet.k);
-      box.appendChild(
-        seg(
-          [
-            ["last", _T("last_used")],
-            ["custom", _T("custom")],
-          ],
-          custom ? "custom" : "last",
-          function (v) {
-            if (v === "last") {
-              if (UI.on) delete UI.on[d.id];
-              uiChanged();
-              redrawBox(box, draw);
-            } else lightOnCustom(d, function () {
-              redrawBox(box, draw);
-            });
-          }
-        )
-      );
-      if (custom) {
-        var sh = mk("div", "hint");
-        sh.textContent = _T("saved_turn_on_state") + ": " + lightDefaultText(d.id);
-        box.appendChild(sh);
-      }
-    }
-    if (cur === "options" && devSetupKind(d))
-      box.appendChild(
-        pill("tune", _T("set_up_this_device"), {
-          sub: function () {
-            return (d.links || []).length ? _T("linked_entities") + ": " + d.links.length : _T("nothing_linked_yet");
-          },
-          tap: function () {
-            showPopup("kwiz:" + key, true);
-          },
-        })
-      );
-    if (cur === "place") devMove(box, key);
-    if (cur === "more" && d.id && advList(d.id).length)
-      box.appendChild(
-        pill("tune", _T("advanced_settings_button"), {
-          on: function () {
-            return !d.noadv;
-          },
-          sub: function () {
-            return d.noadv ? _T("hidden") : _T("shown_at_the_bottom_of_its_popup");
-          },
-          tap: function () {
-            if (d.noadv) delete d.noadv;
-            else d.noadv = 1;
-            uiChanged();
-          },
-        })
-      );
-    if (cur === "options" && d.kind === "lock")
-      box.appendChild(
-        pill("right", _T("unlock_with_a_slider"), {
-          on: function () {
-            return !d.noslide;
-          },
-          sub: function () {
-            return d.noslide ? _T("asks_with_confirm") : _T("asks_with_a_slider");
-          },
-          tap: function () {
-            if (d.noslide) delete d.noslide;
-            else d.noslide = 1;
-            uiChanged();
-          },
-        })
-      );
-    if (cur === "place")
-      box.appendChild(
-      pill("lock", _T("hide_in_the_app"), {
+    )
+  );
+}
+
+/* A light's own settings: separate colour and white, which controls it shows, and what it does when it is turned on from the app. */
+function devLightOptions(c) {
+  var d = c.d,
+    box = c.box;
+  if (lightRaw(d.id).color && lightRaw(d.id).white)
+    box.appendChild(
+      flagPill("palette", _T("separate_colour_and_white"), d, "split", function (on) {
+        return on ? _T("colour_back_and_white_front_are_sepa") : _T("one_set_of_controls_the_light_follow");
+      })
+    );
+  box.appendChild(sep(_T("light_features"), "light"));
+  box.appendChild(hintRow(_T("hide_controls_this_light_doesn_t_rea")));
+  [
+    ["nb", _T("brightness"), "bright", "bright"],
+    ["nw", _T("white_temperature"), "thermo", "white"],
+    ["nc", _T("colour"), "palette", "color"],
+  ].forEach(function (x) {
+    box.appendChild(
+      pill(x[2], x[1], {
         on: function () {
-          return !!d.hide;
+          return lightCaps(d.id)[x[3]];
         },
         sub: function () {
-          return d.hide ? _T("hidden") : _T("visible");
+          var raw = lightRaw(d.id)[x[3]],
+            on = !(UI.caps && UI.caps[d.id] && UI.caps[d.id][x[0]]);
+          return (raw ? _T("reported_by_the_device") : _T("not_reported_by_the_device")) + " · " + (raw && on ? _T("shown") : _T("hidden"));
         },
         tap: function () {
-          d.hide = d.hide ? 0 : 1;
-          if (!d.hide) delete d.hide;
+          if (!lightRaw(d.id)[x[3]]) {
+            toast(_T("the_device_doesn_t_report_this_so_it"));
+            return;
+          }
+          UI.caps = UI.caps || {};
+          var o = (UI.caps[d.id] = UI.caps[d.id] || {});
+          if (o[x[0]]) delete o[x[0]];
+          else o[x[0]] = 1;
+          if (!Object.keys(o).length) delete UI.caps[d.id];
           uiChanged();
+          refresh();
         },
       })
     );
-    if (cur === "place")
-      box.appendChild(
-      pill("trash", _T("remove_from_the_room"), {
-        tap: function () {
-          confirmDlg(
-            _T("remove") + d.name + _T("from_this_room_it_stays_in_home_assi"),
-            function () {
-              list.splice(i, 1);
-              uiChanged();
-              popBack();
-            }
-          );
-        },
-      })
+  });
+  box.appendChild(sep(_T("when_turned_on_from_the_app"), "power"));
+  box.appendChild(hintRow(_T("used_when_someone_taps_this_light_on")));
+  var onSet = (UI.on && UI.on[d.id]) || {},
+    custom = !!(onSet.c || onSet.b || onSet.k);
+  box.appendChild(
+    seg([["last", _T("last_used")], ["custom", _T("custom")]], custom ? "custom" : "last", function (v) {
+      if (v === "last") {
+        if (UI.on) delete UI.on[d.id];
+        uiChanged();
+        c.redraw();
+      } else lightOnCustom(d, c.redraw);
+    })
+  );
+  if (custom) box.appendChild(hintRow(_T("saved_turn_on_state") + ": " + lightDefaultText(d.id)));
+}
+
+/* Placement: move it to another section, hide it in the app, take it off the page. */
+function devPlaceTab(c) {
+  var d = c.d;
+  devMove(c.box, c.key);
+  c.box.appendChild(
+    flagPill("lock", _T("hide_in_the_app"), d, "hide", function (on) {
+      return on ? _T("hidden") : _T("visible");
+    })
+  );
+  c.box.appendChild(
+    pill("trash", _T("remove_from_the_room"), {
+      tap: function () {
+        confirmDlg(_T("remove") + d.name + _T("from_this_room_it_stays_in_home_assi"), function () {
+          c.list.splice(c.i, 1);
+          uiChanged();
+          popBack();
+        });
+      },
+    })
+  );
+}
+
+/* More: what the device is, and whether its popup ends with the Advanced settings button. */
+function devMoreTab(c) {
+  var d = c.d;
+  c.box.appendChild(entRow(_T("type"), function () { return KINDLAB[d.kind]; }));
+  if (d.id) c.box.appendChild(entRow(_T("entity"), function () { return d.id; }));
+  if (d.id && advList(d.id).length)
+    c.box.appendChild(
+      flagPill("tune", _T("advanced_settings_button"), d, "noadv", function (on) {
+        return on ? _T("shown_at_the_bottom_of_its_popup") : _T("hidden");
+      }, true)
     );
-  }
-  redrawBox(box, draw);
 }
 
 function devMove(b, key) {

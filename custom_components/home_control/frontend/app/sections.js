@@ -788,9 +788,7 @@ function chartDraw(box, ds, data, rng, sid) {
   });
   box.innerHTML = "";
   if (!any) {
-    var m = mk("div", "hint");
-    m.textContent = _T("no_numeric_history_for_these_sensors");
-    box.appendChild(m);
+    box.appendChild(hintRow(_T("no_numeric_history_for_these_sensors")));
     return;
   }
   var shared = Object.keys(units).length === 1,
@@ -951,9 +949,7 @@ function chartSection(s) {
   reg(live);
   function load() {
     plot.innerHTML = "";
-    var m = mk("div", "hint");
-    m.textContent = _T("loading");
-    plot.appendChild(m);
+    plot.appendChild(hintRow(_T("loading")));
     var r = rng();
     chartLoad(
       ds.map(function (d) {
@@ -964,9 +960,7 @@ function chartSection(s) {
         if (r !== rng()) return;
         if (!data) {
           plot.innerHTML = "";
-          var e2 = mk("div", "hint");
-          e2.textContent = _T("couldn_t_load_the_history_2");
-          plot.appendChild(e2);
+          plot.appendChild(hintRow(_T("couldn_t_load_the_history_2")));
           return;
         }
         chartDraw(plot, ds, data, r, s.id);

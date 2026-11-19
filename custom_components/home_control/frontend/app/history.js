@@ -579,9 +579,7 @@ function logPage(b) {
   logLoad(function (L) {
     if (!box.isConnected) return;
     redrawBox(box, function () {
-      var hint = mk("div", "hint");
-      hint.textContent = _T("the_last_ten_changes_to_settings_und");
-      box.appendChild(hint);
+      box.appendChild(hintRow(_T("the_last_ten_changes_to_settings_und")));
       if (!L.entries.length)
         box.appendChild(
           pill("info", _T("no_changes_yet"), {

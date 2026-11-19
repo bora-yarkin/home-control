@@ -123,13 +123,9 @@ function wallPhotosPage(b) {
         grid.appendChild(tile(u, i));
       });
       box.appendChild(grid);
-      var tip = mk("div", "hint");
-      tip.textContent = _T("tap_a_photo_to_use_it_or_not");
-      box.appendChild(tip);
+      box.appendChild(hintRow(_T("tap_a_photo_to_use_it_or_not")));
     } else {
-      var none = mk("div", "hint");
-      none.textContent = _T("no_photos_yet");
-      box.appendChild(none);
+      box.appendChild(hintRow(_T("no_photos_yet")));
     }
     box.appendChild(sep(_T("or_add_an_address"), "edit"));
     /* One address at a time, checked when it is entered: only an https address or a /local/ file is a picture the wall may show. */
@@ -222,9 +218,7 @@ function wallSettings(b) {
         PREFS.wallMode === "photo" &&
         !wallActive().length
       ) {
-        var hn = mk("div", "hint");
-        hn.textContent = _T("no_photos_are_set_up_yet_so_the_cloc");
-        box.appendChild(hn);
+        box.appendChild(hintRow(_T("no_photos_are_set_up_yet_so_the_cloc")));
       }
       box.appendChild(
         pill("play", _T("preview_wall_mode"), {

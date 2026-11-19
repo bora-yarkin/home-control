@@ -227,9 +227,7 @@ function remotePicture(box, d, edit, redraw) {
   box.appendChild(wrap);
   if (!edit) return;
   if (!img.hs.length) {
-    var hint = mk("div", "hint");
-    hint.textContent = _T("rm_tap_the_picture_to_add_a_touch_area");
-    box.appendChild(hint);
+    box.appendChild(hintRow(_T("rm_tap_the_picture_to_add_a_touch_area")));
   }
   var h = img.hs[sel];
   if (h) {
@@ -335,9 +333,7 @@ function remotePage(b, rid) {
       return;
     }
     if (edit) {
-      var cl = mk("div", "hint");
-      cl.textContent = _T("rm_columns");
-      box.appendChild(cl);
+      box.appendChild(hintRow(_T("rm_columns")));
       box.appendChild(
         seg(
           [2, 3, 4, 5, 6].map(function (n) {
@@ -395,9 +391,7 @@ function remotePage(b, rid) {
       grid.appendChild(plus);
     }
     if (!rm.btns.length && !edit) {
-      var hint = mk("div", "hint");
-      hint.textContent = ISADMIN ? _T("rm_no_buttons_yet_admin") : _T("rm_no_buttons_yet");
-      box.appendChild(hint);
+      box.appendChild(hintRow(ISADMIN ? _T("rm_no_buttons_yet_admin") : _T("rm_no_buttons_yet")));
     }
     box.appendChild(grid);
   }

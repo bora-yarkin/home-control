@@ -427,9 +427,7 @@ function glancePage(b, id) {
     });
     if (acl.length) {
       b.appendChild(sep(_T("thermostat_dial"), "thermo"));
-      var dh = mk("div", "hint");
-      dh.textContent = _T("a_round_dial_instead_of_the_slider_f");
-      b.appendChild(dh);
+      b.appendChild(hintRow(_T("a_round_dial_instead_of_the_slider_f")));
       acl.forEach(function (d) {
         b.appendChild(
           pill("thermo", d.name, {
@@ -474,7 +472,5 @@ function glancePage(b, id) {
         },
       })
     );
-  var hn = mk("div", "hint");
-  hn.textContent = _T("drag_the_tiles_on_the_page_to_change");
-  b.appendChild(hn);
+  b.appendChild(hintRow(_T("drag_the_tiles_on_the_page_to_change")));
 }

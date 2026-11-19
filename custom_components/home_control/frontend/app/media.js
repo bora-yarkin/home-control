@@ -598,9 +598,7 @@ function gxDevs(key, list) {
 function gxPage(b, key, items) {
   if (!items.length) return;
   b.appendChild(sep(_T("devices_in_this_tile_and_its_popup"), "plug"));
-  var h = mk("div", "hint");
-  h.textContent = _T("turn_off_the_ones_that_do_not_belong");
-  b.appendChild(h);
+  b.appendChild(hintRow(_T("turn_off_the_ones_that_do_not_belong")));
   items.forEach(function (x) {
     b.appendChild(
       pill(x.icon || "plug", x.name, {

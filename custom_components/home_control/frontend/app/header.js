@@ -201,9 +201,7 @@ function hdrPage(box, m) {
     );
     box.appendChild(sep(_T("header_items"), "home"));
     if (m.size === "slim") {
-      var slimHint = mk("div", "hint");
-      slimHint.textContent = _T("slim_header_hides_items");
-      box.appendChild(slimHint);
+      box.appendChild(hintRow(_T("slim_header_hides_items")));
     }
     var rows = [];
     m.hdr.forEach(function (it, i) {
@@ -225,9 +223,7 @@ function hdrPage(box, m) {
       redrawBox(box, draw);
     });
     if (!m.hdr.length) {
-      var hn = mk("div", "hint");
-      hn.textContent = _T("nothing_here_yet_add_weather_who_is_");
-      box.appendChild(hn);
+      box.appendChild(hintRow(_T("nothing_here_yet_add_weather_who_is_")));
     }
     if (m.hdr.length < 4) {
       ["weather", "people", "lights", "entity"].forEach(function (k) {
@@ -421,9 +417,7 @@ function roomHeaderPage(b, rid) {
       },
     })
   );
-  var hn = mk("div", "hint");
-  hn.textContent = _T("the_header_size_greeting_and_items_a");
-  b.appendChild(hn);
+  b.appendChild(hintRow(_T("the_header_size_greeting_and_items_a")));
   var hb = mk("div");
   b.appendChild(hb);
   hdrPage(hb, UI.meta);

@@ -536,9 +536,7 @@ function notifyPage(b) {
       redrawBox(box, draw);
     });
     box.appendChild(sep(_T("worn_parts"), "vac"));
-    var hp = mk("div", "hint");
-    hp.textContent = _T("filters_brushes_ink_and_similar_part");
-    box.appendChild(hp);
+    box.appendChild(hintRow(_T("filters_brushes_ink_and_similar_part")));
     box.appendChild(
       seg(
         [
@@ -657,9 +655,7 @@ function nruleEdit(b, k) {
           }
         )
       );
-      var hb = mk("div", "hint");
-      hb.textContent = r.scope === "custom" ? _T("tick_the_batteries_to_watch") : _T("every_device_on_the_batteries_list_is");
-      box.appendChild(hb);
+      box.appendChild(hintRow(r.scope === "custom" ? _T("tick_the_batteries_to_watch") : _T("every_device_on_the_batteries_list_is")));
       if (r.scope === "custom") {
         var index = batIndex();
         UI.bats.forEach(function (d) {
@@ -738,9 +734,7 @@ function nruleEdit(b, k) {
             }
           )
         );
-        var hr = mk("div", "hint");
-        hr.textContent = _T("a_remote_sleeps_between_presses_so_it_");
-        box.appendChild(hr);
+        box.appendChild(hintRow(_T("a_remote_sleeps_between_presses_so_it_")));
       }
     }
     box.appendChild(sep(_T("recipients_2"), "person"));

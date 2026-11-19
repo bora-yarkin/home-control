@@ -262,9 +262,7 @@ function ruleControls(box, e, save, redraw, key) {
         40
       )
     );
-  var hn = mk("div", "hint");
-  hn.textContent = _T("while_editing_the_section_always_sho");
-  box.appendChild(hn);
+  box.appendChild(hintRow(_T("while_editing_the_section_always_sho")));
   ruleMore(box, e, save, key);
 }
 

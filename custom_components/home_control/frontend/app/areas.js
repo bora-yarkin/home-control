@@ -608,9 +608,7 @@ function eaMorePage(b) {
         );
       });
       if (items.length > shown.length) {
-        var m = mk("div", "hint");
-        m.textContent = items.length - shown.length + _T("more_type_to_narrow_the_list");
-        box.appendChild(m);
+        box.appendChild(hintRow(items.length - shown.length + _T("more_type_to_narrow_the_list")));
       }
     });
   }

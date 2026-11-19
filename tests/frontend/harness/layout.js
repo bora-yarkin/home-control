@@ -309,3 +309,32 @@ export function standardSurfaces({ full = true } = {}) {
   list.push({ label: "confirm", fn: async () => confirmDlg("Delete the group Reading corner?", () => {}, "Delete") }, { label: "unsaved", fn: async () => askSheet("Unsaved changes", [{ label: "Save" }, { label: "Discard changes" }]) }, { label: "keyboard", fn: async () => kbDlg(() => {}) });
   return list;
 }
+
+/* The markup of each surface, for comparing two versions of the code: a change that should not alter what a popup looks like leaves these the same. Ids that change between runs are left out. */
+const hash = (t) => {
+  let h = 0;
+  for (let i = 0; i < t.length; i++) h = (h * 31 + t.charCodeAt(i)) | 0;
+  return t.length + ":" + (h >>> 0).toString(36);
+};
+
+export async function snapshotSurfaces(list, wait = 900) {
+  const out = {};
+  for (const s of list) {
+    const label = s.key || s.page || s.menu || s.label || "?";
+    try {
+      closeSheet();
+      closeMenu(true);
+      await sleep(450);
+      if (s.fn) await s.fn();
+      else if (s.page) go(s.page);
+      else showPopup(s.key, true);
+      await sleep(wait);
+      const root = s.page ? document.getElementById("body") : sheetOf();
+      out[label] = root ? hash(root.outerHTML.replace(/\s(style|id)="[^"]*"/g, "").replace(/class="([^"]*)"/g, (m, c) => 'class="' + c.split(" ").filter((t) => !["in", "open", "tabin"].includes(t)).join(" ") + '"')) : "none";
+    } catch (e) {
+      out[label] = "error: " + e.message;
+    }
+  }
+  closeSheet();
+  return out;
+}

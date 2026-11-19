@@ -287,9 +287,7 @@ function pinPick(b, key) {
     uiChanged();
     refresh();
   }
-  var hint = mk("div", "hint");
-  hint.textContent = _T("tap_to_pin_or_unpin_you_can_pick_sev");
-  box.appendChild(hint);
+  box.appendChild(hintRow(_T("tap_to_pin_or_unpin_you_can_pick_sev")));
   var sc = STORE.scenes.filter(sceneAllowed);
   if (sc.length) box.appendChild(sep(_T("scenes"), "scene"));
   sc.forEach(function (s) {
