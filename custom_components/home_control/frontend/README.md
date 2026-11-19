@@ -76,11 +76,11 @@ Websocket commands:
 - `call_service` with `return_response` (`HA.serviceResponse`; xiaomi_miot only, see below)
 
 REST: `POST` and `DELETE` `config/automation/config/<id>` (notification rules; the same call the automation editor makes) and `config/script/config/<id>` (the room-off scripts, see below),
-`/api/camera_proxy/<entity>?token=` (snapshot behind the live picture).
+`/api/camera_proxy/<entity>?token=` (snapshot behind the live picture), and the configuration flows of the Group helper (`config/config_entries/flow`, `.../options/flow`, `DELETE config/config_entries/entry/<id>`) with the websocket commands `config/entity_registry/get` and `config_entries/update`: administrators make, change, rename and delete a light group (`HA.lightGroups`, used by `app/lightgroups.js` and the add popup `app/addpopup.js`; decision D-22).
 
 What the adapter offers the rest of the panel: `HA.hass()` (a plain-data view of Home Assistant plus `callService`, not the `hass` object itself), `HA.data.get/set`, `HA.history`,
 `HA.logbook`, `HA.statistics`, `HA.users`, `HA.entityRegistry`, `HA.serviceResponse`, `HA.onConnection`, `HA.camera.*`,
-`HA.route`, `HA.automations`.
+`HA.route`, `HA.automations`, `HA.lightGroups`.
 
 Services called: `light`, `switch`, `fan`, `climate`, `cover`, `lock`, `siren`, `vacuum`, `media_player`, `remote`, `scene`,
 `number`, `select`, `button`, `homeassistant.update_entity`.
@@ -145,4 +145,10 @@ and what plays on a light) and the style button of a gradient light are Hue Plus
 A round power button sits first in the header's group of buttons (before search and settings) on every room's page that has something to switch off. It turns off every device on that room's pages (lights, media players, climate, fans, switches; hidden devices are left out; a light group and its lights count once), stops live scenes on those lights, and respects each person's view-only and confirm settings like a scene does.
 
 The dashboard also keeps one script per room in Home Assistant, `script.home_control_<room id>_off` (the room id is the one in the dashboard's layout, for example `r_living_room`), built from the same list, so an automation, a physical button or a voice assistant can run it. An administrator's dashboard writes the scripts when it starts and 3 seconds after any layout change: it reads each script first and writes only what differs, creates a missing one, and removes the script of a room that is gone or empty, but only one whose description carries the dashboard's mark (`home_control_room_off`). Edit the room's devices in the dashboard, not the script: changes made to the script are overwritten.
+
+## Popups and questions
+
+- **Questions and short entries are one bottom sheet** (`bottomSheet`, `askSheet`, `confirmDlg` in `app/widgets.js`): "Are you sure", "Unsaved changes" and the TV's keyboard slide up from the bottom, with the choices as full-width buttons and Cancel last. Nothing opens in the middle of the screen; there is no dialog style for it. `confirmDlg(text, fn, label)`: a `label` (Delete, Remove) names the button for what it does and shows it as a risk.
+- **Two ways to save, and only two.** A popup that edits one thing as a whole (a scene, an area, a light in a scene, a new group, the group's settings, the add checklist) changes a draft: a checkmark next to the close button saves it, and closing with changes asks Save or Discard changes (`guardUnsaved` in `app/scenenew.js`). Settings of a device or a section change at once and say Saved with Undo.
+- Opening one popup from another stacks it (a back arrow); a popup opened over another and closed returns to it (`LAYERS`).
 

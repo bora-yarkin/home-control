@@ -15,7 +15,7 @@ var AMODES = ["allow", "confirm", "view", "hide"],
     hide: _T("hidden"),
   };
 
-var ADMINPOP = /^(kwiz|kpick|manage|pick-|access-|scene-edit|scene-pick|live-|areas|area-edit|lpscene:|stg-|adv:|settings$)/;
+var ADMINPOP = /^(kwiz|kpick|lgroup:|lgnew|manage|pick-|access-|scene-edit|scene-pick|live-|areas|area-edit|lpscene:|stg-|adv:|settings$)/;
 
 function cleanRule(r) {
   if (!r || AMODES.indexOf(r.m) < 0) return null;
@@ -138,7 +138,7 @@ function gate(ids, proceed) {
     return false;
   }
   if (need) {
-    if (document.querySelector(".dlg")) return false;
+    if (document.querySelector(".asheet")) return false;
     confirmDlg(need.msg || defaultMsg(need), function () {
       keys.forEach(function (k) {
         APPROVED[k] = 1;

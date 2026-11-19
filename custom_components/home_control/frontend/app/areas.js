@@ -839,7 +839,7 @@ function eaActions() {
       box.appendChild(
         pill("trash", _T("delete_area"), {
           tap: function () {
-            confirmDlg(_T("delete") + EAD.draft.name + "”?", eaDelete);
+            confirmDlg(_T("delete") + EAD.draft.name + "”?", eaDelete, _T("delete"));
           },
         })
       );

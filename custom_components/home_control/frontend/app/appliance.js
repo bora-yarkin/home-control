@@ -472,7 +472,9 @@ function apBoundText(e) {
 
 /* The editor: the type, then one row for every slot (the ones the type needs first), then free extra rows. */
 function apEditPage(b, aid) {
-  var box = mk("div");
+  var box = mk("div"),
+    ad = apFind(aid);
+  if (ad) b.appendChild(devPreview(ad));
   b.appendChild(box);
   function draw() {
     var d = apFind(aid);

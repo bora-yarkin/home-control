@@ -402,6 +402,95 @@ var scripts={
  remove:function(id){return hass.callApi("DELETE","config/script/config/"+id)}
 };
 
+/* ---- light groups: Home Assistant's "Group" helper of the type light, made and changed through its own configuration flow ---- */
+
+var FLOW="config/config_entries/flow",OPTFLOW="config/config_entries/options/flow";
+
+/* A flow step that did not finish says why, in Home Assistant's words. */
+function flowProblem(step){
+ var e=step&&step.errors,k=e&&Object.keys(e)[0];
+ return new Error(k?e[k]:"The step was not accepted")
+}
+
+/* Runs a flow to its end and gives up (deleting the open flow) when a step is not accepted, so no half-made flow stays open. */
+function runFlow(base,start,steps){
+ var id=null;
+ function abort(err){return(id?hass.callApi("DELETE",base+"/"+id).catch(function(){}):Promise.resolve()).then(function(){throw err})}
+ return hass.callApi("POST",base,start).then(function(first){
+  id=first.flow_id;
+  var chain=Promise.resolve(first);
+  steps.forEach(function(body){
+   chain=chain.then(function(prev){
+    if(prev.type==="abort")throw new Error(prev.reason||"The flow was stopped");
+    return hass.callApi("POST",base+"/"+id,typeof body==="function"?body(prev):body)
+   })
+  });
+  return chain
+ }).then(function(last){
+  if(last.type!=="create_entry")throw flowProblem(last);
+  id=null;
+  return last
+ }).catch(abort)
+}
+
+/* The entity a config entry made: its registry row appears a moment after the entry is created. */
+function entityOfEntry(entryId,tries){
+ return ws({type:"config/entity_registry/list"}).then(function(rows){
+  var r=rows.filter(function(x){return x.config_entry_id===entryId})[0];
+  if(r)return r.entity_id;
+  if(tries<=0)throw new Error("The group was made, but its light did not appear");
+  return new Promise(function(done){setTimeout(done,400)}).then(function(){return entityOfEntry(entryId,tries-1)})
+ })
+}
+
+var lightGroups={
+ /* Makes the helper and gives { entry_id, entity_id } once its light exists. `opts`: hide_members (default true: the members are shown by the group), all (default false: on when any is on). */
+ create:function(name,members,opts){
+  opts=opts||{};
+  return runFlow(FLOW,{handler:"group",show_advanced_options:false},[
+   {next_step_id:"light"},
+   {name:name,entities:members,hide_members:opts.hide_members!==false,all:!!opts.all}
+  ]).then(function(done){
+   var entry=done.result&&done.result.entry_id||done.result;
+   return entityOfEntry(entry,15).then(function(entity){return{entry_id:entry,entity_id:entity}})
+  })
+ },
+ /* The helper behind a light, or null when the light is not a group made with this helper. */
+ entryOf:function(entityId){
+  return ws({type:"config/entity_registry/get",entity_id:entityId}).then(function(r){
+   return r&&r.platform==="group"&&r.config_entry_id?r.config_entry_id:null
+  },function(){return null})
+ },
+ /* What the helper is set to now, read from its own options form: { entities, hide_members, all }. */
+ options:function(entryId){
+  var id=null;
+  return hass.callApi("POST",OPTFLOW,{handler:entryId,show_advanced_options:false}).then(function(form){
+   id=form.flow_id;
+   var cur={entities:[],hide_members:false,all:false};
+   (form.data_schema||[]).forEach(function(f){
+    var v=f.description&&f.description.suggested_value;
+    if(v===undefined)v=f.default;
+    if(f.name in cur&&v!==undefined)cur[f.name]=v
+   });
+   return hass.callApi("DELETE",OPTFLOW+"/"+id).catch(function(){}).then(function(){return cur})
+  })
+ },
+ /* Changes the members and the two options (any of entities, hide_members, all). Home Assistant reloads the group. */
+ update:function(entryId,changes){
+  return lightGroups.options(entryId).then(function(cur){
+   var data={entities:changes.entities||cur.entities,hide_members:changes.hide_members!==undefined?changes.hide_members:cur.hide_members,all:changes.all!==undefined?changes.all:cur.all};
+   return runFlow(OPTFLOW,{handler:entryId,show_advanced_options:false},[data])
+  })
+ },
+ /* The group's name, as the helper's settings in Home Assistant change it: the light's own name and the helper's title. */
+ rename:function(entityId,entryId,name){
+  return ws({type:"config/entity_registry/update",entity_id:entityId,name:name}).then(function(){
+   return entryId?ws({type:"config_entries/update",entry_id:entryId,title:name}).catch(function(){}):null
+  })
+ },
+ remove:function(entryId){return hass.callApi("DELETE","config/config_entries/entry/"+entryId)}
+};
+
 window.HA={
  attach:attach,
  onUpdate:onUpdate,
@@ -432,6 +521,7 @@ window.HA={
  panelPath:panelPath,
  automations:automations,
  scripts:scripts,
- remotePictures:remotePictures
+ remotePictures:remotePictures,
+ lightGroups:lightGroups
 };
 })();

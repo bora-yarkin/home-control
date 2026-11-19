@@ -531,6 +531,22 @@ function popupDefBase(key) {
         hitemPage(b, +id);
       },
     };
+  if (k === "lgnew")
+    return {
+      title: _T("lg_new_group"),
+      icon: "lights",
+      build: function (b) {
+        lgNewPage(b);
+      },
+    };
+  if (k === "lgroup")
+    return {
+      title: (lgDevices(id)[0] || {}).name || A(id).friendly_name || _T("lg_light_group"),
+      icon: (lgDevices(id)[0] || {}).icon || "lights",
+      build: function (b) {
+        lgPage(b, id);
+      },
+    };
   if (k === "manage-dev") {
     var md = devAt(id);
     return {
@@ -870,7 +886,7 @@ function showPopup(key, push, layer) {
   }
   var sh = mk(
     "div",
-    "sheet" + (key === "settings" || STACK.indexOf("settings") >= 0 ? " stg" : "") + (LAYERS.length ? " layer" : "")
+    "sheet" + (key === "settings" || STACK.indexOf("settings") >= 0 ? " stg" : "") + (LAYERS.length ? " layer" : "") + (/^(manage-dev|manage-add|lgroup:|lgnew)/.test(key) ? " tall" : "")
   );
   document.body.appendChild(sh);
   sheetDrag(sh);

@@ -49,9 +49,11 @@ function edMark(el, open, hidden) {
   return el;
 }
 
-function edAdd(label, fn, icon) {
+/* `soft`: the add row of a section that lists devices; it is shown only while the section is empty, the page's Add and the + in the section's heading do the rest. */
+function edAdd(label, fn, icon, soft) {
   var p = pill(icon || "plus", label, { tap: fn });
   p.classList.add("ed-add", "edok");
+  if (soft) p.classList.add("ed-add-soft");
   return p;
 }
 
@@ -828,6 +830,19 @@ function editDecorate(sc, s) {
     setSecOrder(sc, secOrder(sc));
     uiChanged();
   });
+  var kindNow = ent() && ent().k,
+    ty = SECTYPES[kindNow] || {};
+  if (ty.add) {
+    var pl = mk("div", "rnd pane sm", svg("plus"));
+    pl.tabIndex = 0;
+    pl.setAttribute("role", "button");
+    pl.setAttribute("aria-label", widgetAddLabel(kindNow));
+    pl.title = widgetAddLabel(kindNow);
+    pl.addEventListener("click", function () {
+      widgetAdd("~" + scopeId + "~" + s.id, kindNow);
+    });
+    tb.appendChild(pl);
+  }
   tb.appendChild(cg);
   tb.appendChild(ey);
   /* The toolbar goes in the section heading, wherever the section keeps it (a section that rebuilds its content calls _attach again). */
@@ -868,6 +883,7 @@ function addDevToPage(room, d) {
     arr.push(s);
   }
   (s.devs = s.devs || []).push(d);
+  return { rid: "~" + room + "~" + s.id, i: s.devs.length - 1 };
 }
 
 function allSectionLists() {

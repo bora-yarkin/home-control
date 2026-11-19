@@ -6,6 +6,13 @@ function lightDefault(id) {
   if (!o) return null;
   var d = {},
     a = A(id);
+  /* A saved state (made in the light popup): brightness, colour or colour temperature, effect. */
+  if (o.c) {
+    if (o.c.bri) d.brightness_pct = o.c.bri;
+    if (o.c.col) applyPresetData(d, o.c.col, id);
+    if (o.c.fx) d.effect = o.c.fx;
+    return Object.keys(d).length ? d : null;
+  }
   if (o.b) d.brightness_pct = o.b;
   if (o.k && lightCaps(id).white)
     d.color_temp_kelvin = Math.max(
@@ -13,6 +20,57 @@ function lightDefault(id) {
       Math.min(a.max_color_temp_kelvin || 6500, o.k)
     );
   return Object.keys(d).length ? d : null;
+}
+
+/* The saved turn-on state as words: "60 % · 2700 K", "40 % · colour", "effect Candle". */
+function lightDefaultText(id) {
+  var o = (UI && UI.on && UI.on[id]) || {},
+    c = o.c || { bri: o.b, col: o.k ? { k: o.k } : null },
+    out = [];
+  if (c.bri) out.push(c.bri + " %");
+  if (c.col) out.push(c.col.k ? c.col.k + " K" : _T("colour"));
+  if (c.fx) out.push(c.fx);
+  return out.join(" · ") || _T("last_used");
+}
+
+/* "Custom": the light popup opens for the light with its saved turn-on state shown, and the checkmark saves what it then shows. The light is put back as it was afterwards:
+   this is a setting, not a command. */
+function lightOnCustom(d, done) {
+  var before = lightSnapshot([d.id]),
+    saved = lightDefault(d.id);
+  function open() {
+    openLightEditor({
+      id: d.id,
+      name: d.name,
+      icon: d.icon,
+      onTick: function (acts) {
+        var a = acts[0];
+        if (!a || a.on === false) {
+          toast(_T("turn_the_light_on_to_save_its_state"));
+          return;
+        }
+        UI.on = UI.on || {};
+        var c = {};
+        if (a.bri) c.bri = a.bri;
+        if (a.col) c.col = a.col;
+        if (a.fx) c.fx = a.fx;
+        UI.on[d.id] = { c: c };
+        uiChanged();
+      },
+      after: function () {
+        lightRestore(before);
+        if (done) done();
+      },
+    });
+  }
+  if (saved) {
+    var data = { entity_id: d.id };
+    Object.keys(saved).forEach(function (k) {
+      data[k] = saved[k];
+    });
+    call("light", "turn_on", data);
+    setTimeout(open, 900);
+  } else open();
 }
 
 function lightOn(id) {

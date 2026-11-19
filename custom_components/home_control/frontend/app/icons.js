@@ -417,7 +417,7 @@ function iconPick(list, cur, fn) {
     shown = end;
   }
   function row(n) {
-    var r = mk("div", "idd-row" + (n === cur ? " sel" : "")),
+    var r = mk("div", "idd-row" + (n === cur ? " on" : "")),
       p = (STORE.icons && STORE.icons[n]) || ICONPATH[n],
       g = mk("span", "ic", IC[n] ? svg(n) : p ? iconSvg(p) : svg("info")),
       l = mk("span", "idd-n");
@@ -458,10 +458,40 @@ function iconPick(list, cur, fn) {
     q = inp.value;
     filter();
   });
+  /* The panel opens and closes by sliding its height, so what is under it moves down and up instead of jumping. */
+  function slide(open, after) {
+    panel.style.overflow = "hidden";
+    if (open) {
+      panel.style.display = "";
+      var h = panel.scrollHeight;
+      panel.style.maxHeight = "0px";
+      panel.style.opacity = "0";
+      requestAnimationFrame(function () {
+        panel.style.transition = "max-height .3s cubic-bezier(.2,.9,.3,1),opacity .22s";
+        panel.style.maxHeight = h + "px";
+        panel.style.opacity = "1";
+      });
+    } else {
+      panel.style.maxHeight = panel.scrollHeight + "px";
+      requestAnimationFrame(function () {
+        panel.style.transition = "max-height .24s cubic-bezier(.4,0,.2,1),opacity .18s";
+        panel.style.maxHeight = "0px";
+        panel.style.opacity = "0";
+      });
+    }
+    setTimeout(function () {
+      panel.style.transition = "";
+      panel.style.overflow = "";
+      panel.style.maxHeight = "";
+      panel.style.opacity = "";
+      if (after) after();
+    }, open ? 340 : 280);
+  }
   function openIt() {
     isOpen = true;
-    panel.style.display = "";
+    wrap.classList.add("open");
     build();
+    slide(true);
     iconListLoad(function () {
       if (isOpen) {
         build();
@@ -476,8 +506,11 @@ function iconPick(list, cur, fn) {
   }
   function close() {
     isOpen = false;
-    panel.style.display = "none";
+    wrap.classList.remove("open");
     if (io) io.disconnect();
+    slide(false, function () {
+      if (!isOpen) panel.style.display = "none";
+    });
   }
   btn.addEventListener("click", function () {
     if (isOpen) close();
