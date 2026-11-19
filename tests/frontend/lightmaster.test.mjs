@@ -84,3 +84,14 @@ test("the master takes the order of its section", () => {
   const keys = c.lpSortLights(c.lpLeaves(master), master.order).map((n) => n.key);
   assert.deepEqual(plain(keys.slice(0, 2)), ["light.strip", "light.desk"]);
 });
+
+test("with nothing picked no tile is lit; a picked group lights the tiles of its lights", () => {
+  const c = load();
+  const master = c.lpMasterNode("s1", ALL);
+  const tiles = c.lpLeaves(master);
+  const none = { sel: null, focus: null, root: master, joined: [] };
+  assert.deepEqual(plain(tiles.map((n) => c.lpTileSel(none, n))), plain(tiles.map(() => false))); // a lone light of the master (Desk light) is not lit by the master's own list of lights
+  const iris = master.kids.filter((k) => k.key === "light.iris")[0];
+  const picked = { sel: iris.key, focus: null, root: master, joined: [] };
+  assert.deepEqual(plain(tiles.filter((n) => c.lpTileSel(picked, n)).map((n) => n.key)), ["light.iris_a", "light.iris_b"]);
+});

@@ -1782,9 +1782,12 @@ function lpTileSel(S, n) {
     for (var q = S.focus.n; q; q = q.parent) if (q === n) return true;
     return false;
   }
-  var sel = S.sel ? lpFindIn(S, S.sel) : S.root;
+  /* With nothing picked nothing is lit, unless the panel is for one light and its tile is the only one. */
+  if (!S.sel) return n === S.root;
+  var sel = lpFindIn(S, S.sel);
   if (!sel) return false;
   for (var p = sel; p; p = p.parent) if (p === n) return true;
+  if (lpLeaves(sel).indexOf(n) >= 0) return true; /* a group or joined lights are picked: the tiles of their lights */
   return sel.cmd.some(function (e) {
     return n.cmd.indexOf(e) >= 0;
   });

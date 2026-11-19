@@ -187,6 +187,8 @@ function popFillOf(ids, rgb) {
 /* The colours of a light that has more than one: the zones of a light made of zones, or the colour zone and the white zone of a split light. Null when one colour tells it all. */
 function lightStops(id) {
   var z = A(id).zone_colors;
+  /* A light set to a white temperature is that one colour, the same as any other light at that temperature, not the (slightly different) colours its zones are reported in. */
+  if (A(id).color_mode === "color_temp" && A(id).color_temp_kelvin) return null;
   if (Array.isArray(z) && z.length > 1)
     return z.map(function (c) {
       return liveXyRgb(c[0], c[1]);
