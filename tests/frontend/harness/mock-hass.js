@@ -179,6 +179,7 @@ export function makeHass(query) {
   if (withKit) devices.push(...kitDevices);
   devices.push(...BATTERY_DEVICES.map(([id, name, byUser, area]) => ({ id, name, name_by_user: byUser, area_id: area, manufacturer: "Invented", model: "Test" })));
 
+  const groups = {};
   const stored = { user: {}, system: {} };
   const calls = [];
   window.__calls = calls;
@@ -252,7 +253,15 @@ export function makeHass(query) {
     },
     sendMessagePromise(msg) {
       switch (msg.type) {
-        case "config/entity_registry/list": return Promise.resolve(entities);
+        case "config/entity_registry/list": return Promise.resolve(entities.concat(Object.entries(groups).map(([entry, g]) => reg(g.entity_id, "group", entry, null, { config_entry_id: entry }))));
+        case "config/entity_registry/get": {
+          const g = Object.entries(groups).filter(([, x]) => x.entity_id === msg.entity_id)[0];
+          if (g) return Promise.resolve({ entity_id: msg.entity_id, platform: "group", config_entry_id: g[0] });
+          const e = entities.filter((x) => x.entity_id === msg.entity_id)[0];
+          return e ? Promise.resolve({ ...e, config_entry_id: null }) : Promise.reject({ code: "not_found", message: "Entity not found" });
+        }
+        case "config/entity_registry/update": return Promise.resolve({ entity_entry: { entity_id: msg.entity_id } });
+        case "config_entries/update": return Promise.resolve({});
         case "config/device_registry/list": return Promise.resolve(devices);
         case "config/area_registry/list": return Promise.resolve([{ area_id: "living", name: "Living room", floor_id: null }]);
         case "config/floor_registry/list": return Promise.resolve([]);
@@ -351,7 +360,58 @@ export function makeHass(query) {
       document.querySelector("dashboard-panel") && (document.querySelector("dashboard-panel").hass = hass);
       return Promise.resolve();
     },
-    callApi() { return Promise.resolve({}); },
+    // Home Assistant's "Group" helper of the type light: its configuration and options flows, enough to make, change and delete one.
+    callApi(method, path, body) {
+      const flowPath = /^config\/config_entries\/(flow|options\/flow)(?:\/(.+))?$/.exec(path);
+      if (flowPath) {
+        const options = flowPath[1] === "options/flow";
+        const id = flowPath[2];
+        if (method === "DELETE") return Promise.resolve({});
+        if (!id) {
+          if (options) {
+            const g = groups[body.handler];
+            if (!g) return Promise.reject({ message: "Unknown entry" });
+            return Promise.resolve({ type: "form", flow_id: "of-" + body.handler, step_id: "light", data_schema: [
+              { name: "entities", type: "select", description: { suggested_value: g.entities } },
+              { name: "hide_members", type: "boolean", default: false, description: { suggested_value: g.hide_members } },
+              { name: "all", type: "boolean", default: false, description: { suggested_value: g.all } },
+            ] });
+          }
+          return Promise.resolve({ type: "menu", flow_id: "f-1", step_id: "user", menu_options: ["light", "switch"] });
+        }
+        if (options) {
+          const g = groups[id.replace("of-", "")];
+          if (!body.entities || !body.entities.length) return Promise.resolve({ type: "form", errors: { base: "At least one light" } });
+          Object.assign(g, { entities: body.entities, hide_members: !!body.hide_members, all: !!body.all });
+          states[g.entity_id] = { ...states[g.entity_id], state: "on", attributes: { ...states[g.entity_id].attributes, entity_id: g.entities } };
+          hass.states = { ...states };
+          document.querySelector("dashboard-panel") && (document.querySelector("dashboard-panel").hass = hass);
+          return Promise.resolve({ type: "create_entry" });
+        }
+        if (body.next_step_id) return Promise.resolve({ type: "form", flow_id: id, step_id: body.next_step_id });
+        if (!body.name || !body.entities || !body.entities.length) return Promise.resolve({ type: "form", errors: { base: "A name and lights are needed" } });
+        const entry = "entry" + (Object.keys(groups).length + 1);
+        const slug = body.name.toLowerCase().replace(/[^a-z0-9]+/g, "_").replace(/^_|_$/g, "");
+        const entity_id = "light." + slug;
+        groups[entry] = { entity_id, name: body.name, entities: body.entities, hide_members: !!body.hide_members, all: !!body.all };
+        states[entity_id] = { entity_id, state: "on", attributes: { friendly_name: body.name, entity_id: body.entities, supported_color_modes: ["brightness"], color_mode: "brightness", brightness: 200 }, last_changed: new Date().toISOString(), last_updated: new Date().toISOString(), context: {} };
+        hass.states = { ...states };
+        document.querySelector("dashboard-panel") && (document.querySelector("dashboard-panel").hass = hass);
+        return Promise.resolve({ type: "create_entry", result: { entry_id: entry } });
+      }
+      const entryPath = /^config\/config_entries\/entry\/(.+)$/.exec(path);
+      if (entryPath && method === "DELETE") {
+        const g = groups[entryPath[1]];
+        if (g) {
+          delete states[g.entity_id];
+          delete groups[entryPath[1]];
+          hass.states = { ...states };
+          document.querySelector("dashboard-panel") && (document.querySelector("dashboard-panel").hass = hass);
+        }
+        return Promise.resolve({ require_restart: false });
+      }
+      return Promise.resolve({});
+    },
     // Sets a state (and merges attributes) in the harness's own states, so a later service call does not put the old one back.
     setState(id, state, attributes = {}) {
       states[id] = { ...states[id], ...(state === null ? {} : { state }), attributes: { ...states[id].attributes, ...attributes } };

@@ -76,11 +76,11 @@ Websocket commands:
 - `call_service` with `return_response` (`HA.serviceResponse`; xiaomi_miot only, see below)
 
 REST: `POST` and `DELETE` `config/automation/config/<id>` (notification rules; the same call the automation editor makes) and `config/script/config/<id>` (the room-off scripts, see below),
-`/api/camera_proxy/<entity>?token=` (snapshot behind the live picture).
+`/api/camera_proxy/<entity>?token=` (snapshot behind the live picture), and the configuration flows of the Group helper (`config/config_entries/flow`, `.../options/flow`, `DELETE config/config_entries/entry/<id>`) with the websocket commands `config/entity_registry/get` and `config_entries/update`: administrators make, change, rename and delete a light group (`HA.lightGroups`, used by `app/lightgroups.js` and the add popup `app/addpopup.js`; decision D-22).
 
 What the adapter offers the rest of the panel: `HA.hass()` (a plain-data view of Home Assistant plus `callService`, not the `hass` object itself), `HA.data.get/set`, `HA.history`,
 `HA.logbook`, `HA.statistics`, `HA.users`, `HA.entityRegistry`, `HA.serviceResponse`, `HA.onConnection`, `HA.camera.*`,
-`HA.route`, `HA.automations`.
+`HA.route`, `HA.automations`, `HA.lightGroups`.
 
 Services called: `light`, `switch`, `fan`, `climate`, `cover`, `lock`, `siren`, `vacuum`, `media_player`, `remote`, `scene`,
 `number`, `select`, `button`, `homeassistant.update_entity`.

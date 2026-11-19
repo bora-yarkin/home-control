@@ -531,6 +531,14 @@ function popupDefBase(key) {
         hitemPage(b, +id);
       },
     };
+  if (k === "lgroup")
+    return {
+      title: (lgDevices(id)[0] || {}).name || A(id).friendly_name || _T("lg_light_group"),
+      icon: (lgDevices(id)[0] || {}).icon || "lights",
+      build: function (b) {
+        lgPage(b, id);
+      },
+    };
   if (k === "manage-dev") {
     var md = devAt(id);
     return {

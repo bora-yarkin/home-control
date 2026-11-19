@@ -1,5 +1,5 @@
 {
-  "version":271,
+  "version":272,
   "files": [
     "integrations.js",
     "app/strings.js",
@@ -53,6 +53,8 @@
     "app/controls.js",
     "app/appliance.js",
     "app/appliancedial.js",
+    "app/lightgroups.js",
+    "app/addpopup.js",
     "app/profiles.js",
     "app/manage.js",
     "app/doorcall.js",

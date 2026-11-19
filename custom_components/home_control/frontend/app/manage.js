@@ -847,6 +847,17 @@ function devManage(b, key) {
           },
         })
       );
+    if (d.kind === "light" && d.id && lgMembers(d.id).length)
+      box.appendChild(
+        pill("lights", _T("lg_group_settings"), {
+          sub: function () {
+            return cntS(lgMembers(d.id).length, _T("light"), _T("lights"));
+          },
+          tap: function () {
+            showPopup("lgroup:" + d.id, true);
+          },
+        })
+      );
     if (d.kind === "climate" && d.id)
       box.appendChild(
         pill("thermo", _T("thermostat_dial"), {
@@ -1285,121 +1296,6 @@ function devMove(b, key) {
     });
 }
 
-function devAdd(b, rid) {
-  var pre = ADDPRE;
-  ADDPRE = null;
-  var st = { dom: ADDPRE_IX[pre] || 0, q: "" },
-    chips = mk("div", "pre"),
-    inp = mk("input", "sq"),
-    w = mk("div", "sqw pane", svg("search")),
-    box = mk("div");
-  inp.type = "text";
-  inp.placeholder = _T("search_devices");
-  inp.setAttribute("autocomplete", "off");
-  inp.setAttribute("autocapitalize", "off");
-  w.appendChild(inp);
-  function drawChips() {
-    chips.innerHTML = "";
-    ADDDOMS.forEach(function (x, i) {
-      var c = mk("div", "rbtn pane keepc" + (i === st.dom ? " act" : ""));
-      c.textContent = x[0];
-      c.addEventListener("click", function () {
-        st.dom = i;
-        drawChips();
-        list();
-      });
-      chips.appendChild(c);
-    });
-  }
-  function list() {
-    redrawBox(box, function () {
-      /* A remote is not an entity: it is made here, then filled with buttons. */
-      if (ADDDOMS[st.dom][1][0] === "__remote") {
-        box.appendChild(
-          pill("media", _T("rm_new_remote"), {
-            sub: function () {
-              return _T("rm_new_remote_sub");
-            },
-            tap: function () {
-              var d = remoteNew();
-              devList(rid).push(d);
-              uiChanged();
-              RM.edit[d.rid] = true;
-              showPopup("remote:" + d.rid, true);
-            },
-          })
-        );
-        return;
-      }
-      if (ADDDOMS[st.dom][1][0] === "__appliance") {
-        Object.keys(AP_TYPES).forEach(function (t) {
-          box.appendChild(
-            pill(AP_TYPES[t].icon, _T(AP_TYPES[t].l), {
-              sub: function () {
-                return _T("ap_choose_what_it_is_made_of");
-              },
-              tap: function () {
-                var d = apNew(t);
-                devList(rid).push(d);
-                uiChanged();
-                showPopup("ap-edit:" + d.aid, true);
-              },
-            })
-          );
-        });
-        return;
-      }
-      var items = candidates(ADDDOMS[st.dom][1], rid, st.q),
-        shown = items.slice(0, 40);
-      if (!items.length)
-        box.appendChild(
-          pill("info", _T("nothing_to_add_here"), {
-            sub: function () {
-              return _T("everything_of_this_type_is_already_i");
-            },
-          })
-        );
-      shown.forEach(function (c) {
-        var kind = DOMKIND[dom(c.id)] || "sensor";
-        box.appendChild(
-          pill(defIcon(kind, c.name, c.id), c.name, {
-            sub: function () {
-              return (c.area ? c.area + " · " : "") + c.id;
-            },
-            tap: function () {
-              var d = { id: c.id, name: c.name, icon: defIcon(kind, c.name, c.id), kind: kind };
-              if (kind === "media" && d.icon === "tv") d.sub = 1;
-              devList(rid).push(d);
-              /* A TV or a camera has other entities that belong to it: link what is found, and offer the setup page. */
-              var setupKind = devSetupKind(d),
-                found = setupKind ? kAuto(d) : 0;
-              uiChanged();
-              toast(_T("added") + c.name + "”");
-              if (setupKind && (found || devSetupAlways(setupKind))) showPopup("kwiz:" + rid + ":" + (devList(rid).length - 1), true);
-              else list();
-            },
-          })
-        );
-      });
-      if (items.length > shown.length) {
-        var m = mk("div", "hint");
-        m.textContent = items.length - shown.length + _T("more_type_to_narrow_the_list");
-        box.appendChild(m);
-      }
-    });
-  }
-  inp.addEventListener("input", function () {
-    st.q = inp.value;
-    list();
-  });
-  b.appendChild(w);
-  b.appendChild(chips);
-  b.appendChild(box);
-  drawChips();
-  list();
-}
-
-/* groups: created as Home Assistant "Group" helpers, removed again when deleted here */
 function viewFor(key) {
   return key !== "home" && UIROOM[key]
     ? function (b) {

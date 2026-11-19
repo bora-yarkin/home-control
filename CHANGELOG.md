@@ -4,6 +4,12 @@ Format: [Keep a Changelog](https://keepachangelog.com/). Versions follow [semant
 
 ## [Unreleased]
 
+### Added
+- **Light groups.** On the lights list of an add popup the first entry, *Light group*, turns the lights you check into one group: Home Assistant's own Group helper (Settings, Devices and services, Helpers) is made for them through its configuration flow, the group is added to the page instead of its lights, and its settings open at once: name, icon, the lights in it (take out, add), hide its lights in Home Assistant (on by default: the group stands for them), on when any or all are on, and delete (the helper is deleted only after a confirmation; its lights stay). The settings also open from the device settings of any light that is a group; a group not made by the helper shows its lights and can be renamed and given an icon but its lights cannot be changed here.
+
+### Changed
+- Every add popup of a page or a section (lights, switches, sensors, controls, cameras and the rest) is a checklist: check what to add, then the checkmark next to the close button adds it all at once, and closing with checks that were not saved asks. It was one tap, one device.
+
 ## [0.13.0] - 2026-11-16
 
 ### Fixed
