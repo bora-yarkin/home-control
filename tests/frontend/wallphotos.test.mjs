@@ -137,3 +137,10 @@ test("an uploaded photo is added and used at once; the 17th is refused; an addre
   assert.ok(full.log.toasts.includes("up_to_16_photos"));
   assert.equal(full.state().wallPhotos.length, 16);
 });
+
+test("the corner controls of a tile are placed over the picture: the style sheet outranks the rule that makes every child of a pane relative", () => {
+  const css = readFileSync(new URL("../../custom_components/home_control/frontend/dashboard.css", import.meta.url), "utf8");
+  assert.match(css, /\.wg-t>\.wg-x\{position:absolute;right:\d+px;top:\d+px/, "the trash button is at the top right");
+  assert.match(css, /\.wg-t>\.wg-ck\{position:absolute;left:\d+px;top:\d+px/, "the check is at the top left");
+  assert.match(css, /\.pane>\*\{position:relative/, "the rule they have to outrank is there");
+});
