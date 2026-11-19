@@ -33,6 +33,7 @@ function wall(cfg) {
   const sandbox = {
     STORE: { cfg: cfg },
     mk: (tag, cls) => el(cls),
+    hintRow: (text) => Object.assign(el("hint"), { textContent: text }),
     svg: () => "",
     pill: (icon, name, o) => Object.assign(el("pill"), { name, o }),
     sep: (name) => Object.assign(el("sep"), { name }),

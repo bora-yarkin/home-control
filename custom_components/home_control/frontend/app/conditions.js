@@ -483,9 +483,7 @@ function condBody(b, c, onChange, footer) {
       )
     );
     if (c.c === "users") {
-      var uh = mk("div", "hint");
-      uh.textContent = _T("the_section_shows_only_to_the_people_chosen_here");
-      box.appendChild(uh);
+      box.appendChild(hintRow(_T("the_section_shows_only_to_the_people_chosen_here")));
       var uw = mk("div");
       box.appendChild(uw);
       ruleUsers(function (list) {
@@ -541,9 +539,7 @@ function condBody(b, c, onChange, footer) {
           ch();
         })
       );
-      var h = mk("div", "hint");
-      h.textContent = _T("a_window_that_ends_earlier_than_it_s");
-      box.appendChild(h);
+      box.appendChild(hintRow(_T("a_window_that_ends_earlier_than_it_s")));
     }
     if (c.c === "home") {
       box.appendChild(
@@ -607,9 +603,7 @@ function condBody(b, c, onChange, footer) {
           ch();
         })
       );
-      var h3 = mk("div", "hint");
-      h3.textContent = _T("uses_today_s_sunrise_for_your_home_s");
-      box.appendChild(h3);
+      box.appendChild(hintRow(_T("uses_today_s_sunrise_for_your_home_s")));
     }
     if (c.c === "state") {
       box.appendChild(

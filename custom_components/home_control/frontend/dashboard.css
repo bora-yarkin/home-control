@@ -878,7 +878,7 @@ body.pinhdr:not(.editing) .wrap::before{content:"";position:fixed;top:0;left:0;r
 @media(prefers-reduced-motion:reduce){.cix.ring .rnd{animation:none}}
 .cbtns .rnd.wait{opacity:.6}
 
-/* The Hue Plus menu (huemenu.js): the settings of the Hue app, in the dashboard's own colours. Everything is under .hm, so no other page changes. */
+/* The Hue Plus menu: the settings of the Hue app, in the dashboard's own colours. Nothing in this dashboard uses these rules; the Hue Plus plugin (its own repository) does, so they are part of the styling the plugin API offers and stay. Everything is under .hm, so no other page changes. */
 .hm .hm-title{display:flex;align-items:center;gap:14px;padding:4px 6px 12px}
 .hm .hm-bigi{width:48px;height:48px;border-radius:15px;display:flex;align-items:center;justify-content:center;flex:none;background:var(--f-raise)}
 .hm .hm-bigi svg{width:26px;height:26px;fill:none;stroke:currentColor;stroke-width:1.7;stroke-linecap:round;stroke-linejoin:round}

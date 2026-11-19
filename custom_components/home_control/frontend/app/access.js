@@ -220,9 +220,7 @@ function accessRoot(b) {
   var box = mk("div");
   b.appendChild(box);
   function draw() {
-    var hint = mk("div", "hint");
-    hint.textContent = _T("these_rules_are_enforced_in_this_app");
-    box.appendChild(hint);
+    box.appendChild(hintRow(_T("these_rules_are_enforced_in_this_app")));
     box.appendChild(
       pill("pin", _T("let_standard_users_pin_devices_and_c"), {
         on: function () {
@@ -382,9 +380,7 @@ function accessRoom(b, key) {
         )
       );
     box.appendChild(sep(_T("devices_in_this_room"), "plug"));
-    var hint = mk("div", "hint");
-    hint.textContent = _T("tap_a_device_to_cycle_same_as_the_ro");
-    box.appendChild(hint);
+    box.appendChild(hintRow(_T("tap_a_device_to_cycle_same_as_the_ro")));
     (UI.devs[rid] || []).forEach(function (d) {
       if (!d.id) return;
       box.appendChild(
@@ -414,9 +410,7 @@ function roomAccessList(b, rid) {
     accessUsers(function (us) {
       if (!box.isConnected) return;
       redrawBox(box, function () {
-        var hint = mk("div", "hint");
-        hint.textContent = _T("pick_a_user_to_set_what_they_can_do_");
-        box.appendChild(hint);
+        box.appendChild(hintRow(_T("pick_a_user_to_set_what_they_can_do_")));
         if (!us.length) box.appendChild(pill("info", _T("no_standard_users_found"), {}));
         us.forEach(function (u) {
           box.appendChild(

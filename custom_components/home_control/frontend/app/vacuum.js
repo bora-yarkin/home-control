@@ -206,9 +206,7 @@ function rbOptSec(b, label, ent, key, get, set, inherit) {
 
 function rbRoomPage(b, rid) {
   rbResolve();
-  var h = mk("div", "hint");
-  h.textContent = _T("used_when_this_room_is_cleaned_what");
-  b.appendChild(h);
+  b.appendChild(hintRow(_T("used_when_this_room_is_cleaned_what")));
   if (RBM)
     rbOptSec(
       b,

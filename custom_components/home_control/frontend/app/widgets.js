@@ -518,6 +518,54 @@ function closeMenu(instant) {
   }
 }
 
+/* A small grey line of explanation in a popup, under the row or choice it explains. */
+function hintRow(text) {
+  var h = mk("div", "hint");
+  h.textContent = text;
+  return h;
+}
+
+/* A row that switches one yes/no setting of an object, kept as a flag that is there when it is on (and removed when it is off, so saved settings stay small). `sub(on)` words the state;
+   `inverted` is for a flag that names the exception (noadv: "no advanced button"), where the row is on while the flag is absent. Every change is saved at once. */
+function flagPill(icon, title, obj, key, sub, inverted) {
+  function on() {
+    return inverted ? !obj[key] : !!obj[key];
+  }
+  return pill(icon, title, {
+    on: on,
+    sub: function () {
+      return sub(on());
+    },
+    tap: function () {
+      if (obj[key]) delete obj[key];
+      else obj[key] = 1;
+      uiChanged();
+    },
+  });
+}
+
+/* A short explanation and the segmented choice it explains, added to `parent`. */
+function segField(parent, label, options, current, pick) {
+  parent.appendChild(hintRow(label));
+  parent.appendChild(seg(options, current, pick));
+}
+
+/* A row of round icon buttons, the one in `current` marked: the icons that fit what is being edited, one tap from picking. */
+function iconChoices(names, current, pick) {
+  var row = mk("div", "pre ico");
+  names.forEach(function (n) {
+    var c = mk("div", "rnd pane" + (current === n ? " act" : ""), svg(n));
+    c.setAttribute("role", "button");
+    c.setAttribute("aria-label", iconLabel(n));
+    c.title = iconLabel(n);
+    c.addEventListener("click", function () {
+      pick(n);
+    });
+    row.appendChild(c);
+  });
+  return row;
+}
+
 function sep(name, icon) {
   return mk("div", "sep", svg(icon || "info") + "<span></span>").appendChild(
     document.createTextNode(name)

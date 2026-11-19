@@ -93,7 +93,7 @@ test("an area holds up to 32 lights and says so", () => {
 
 test("the editor offers the page, and the page is registered", () => {
   assert.match(readFileSync(new URL("areas.js", APP), "utf8"), /showPopup\("area-lights", true\)/);
-  assert.match(readFileSync(new URL("popups.js", APP), "utf8"), /k === "area-lights"[\s\S]{0,120}build: eaMorePage/);
+  assert.match(readFileSync(new URL("popups.js", APP), "utf8"), /"area-lights": function \(id\)[\s\S]{0,160}build: eaMorePage/);
 });
 
 test("a bar's orientation choices set its direction and tilt, and read back as chosen", () => {
