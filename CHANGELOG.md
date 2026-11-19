@@ -4,6 +4,8 @@ Format: [Keep a Changelog](https://keepachangelog.com/). Versions follow [semant
 
 ## [Unreleased]
 
+## [0.16.0] - 2026-11-20
+
 ### Changed
 - **The circle of separated lights opens and closes like the Hue app.** Measured from a 60 frames a second recording of the app, frame by frame: the circle grows from the middle in 11 frames with a slight overshoot, its lights pop in together 6 frames after it starts (each from a dot to a little over full size and back), and it closes in a single frame, after which the count drop of the group grows back with a bounce. The lights no longer appear one after the other. The drop of a selected light (the teardrop on the wheel) uses the same measured pop.
 - **Joining lights, as in the Hue app.** Drop one light's drop on another and the joined lights stay where they were dropped, their count drop growing there (the same pop as every drop); they used to jump to the middle, play a ring and jump back to the real temperature. Nothing else is drawn.
