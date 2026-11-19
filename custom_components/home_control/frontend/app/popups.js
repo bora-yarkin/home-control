@@ -277,6 +277,16 @@ var POPUP_DEFS = {
       },
     };
   },
+  "lmaster-edit": function (id) {
+    var sec = secById(id.split(":")[0], id.split(":")[1]);
+    return {
+      title: (sec && sec.mn) || _T("lights_master"),
+      icon: "lights",
+      build: function (b) {
+        lightsMasterSettings(b, id);
+      },
+    };
+  },
   "lmaster": function (id) {
     return {
       title: LMASTER_NAME[id] || _T("lights_master"),

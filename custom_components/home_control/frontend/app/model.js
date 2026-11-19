@@ -588,6 +588,12 @@ function cleanLayout(a) {
     if (k === "lights" && s.master) o.master = 1;
     if (k === "lights" && s.master && typeof s.mn === "string" && s.mn.trim()) o.mn = s.mn.trim().slice(0, 40);
     if (k === "lights" && s.master && s.mall) o.mall = 1;
+    if (k === "lights" && s.master && Array.isArray(s.mo))
+      o.mo = s.mo
+        .filter(function (x, i, a) {
+          return typeof x === "string" && ENTRE.test(x) && a.indexOf(x) === i;
+        })
+        .slice(0, 100);
     if (k === "lights" && s.nowheel) o.nowheel = 1;
     if (k === "lights" && s.accent) o.accent = 1;
     if (k === "pinned" && Array.isArray(s.pins)) o.pins = cleanPins(s.pins);
