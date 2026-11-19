@@ -140,6 +140,7 @@ function dashboard({ create, lights = ["Desk lamp", "Shelf strip", "Ceiling"], r
   Object.keys(names).forEach((id) => (states[id] = { attributes: { friendly_name: names[id] } }));
   const pills = [];
   const tiles = [];
+  const forms = { texts: [] };
   const el = () => ({ children: [], style: {}, classList: { toggle() {}, add() {} }, appendChild(x) { this.children.push(x); return x; }, addEventListener() {}, setAttribute() {}, querySelector: () => el() });
   const section = { id: "lights", k: "lights", devs: [] };
   const sandbox = {
@@ -185,7 +186,34 @@ function dashboard({ create, lights = ["Desk lamp", "Shelf strip", "Ceiling"], r
     showPopup: (key, push) => calls.popups.push([key, push]),
     guardUnsaved: (o) => (calls.guard = o),
     POPGUARD: null,
-    HA: { lightGroups: { create: (name, members, opts) => create(name, members, opts, calls) } },
+    HA: {
+      lightGroups: {
+        create: (name, members, opts) => create(name, members, opts, calls),
+        entryOf: (id) => Promise.resolve(id === "light.mine" ? "e9" : null),
+        options: () => Promise.resolve({ entities: ["light.desk", "light.shelf"], hide_members: true, all: false }),
+        rename: (...a) => (calls.renamed = a, Promise.resolve()),
+        update: (...a) => (calls.updated = a, Promise.resolve()),
+        remove: (...a) => (calls.removed = a, Promise.resolve()),
+      },
+    },
+    textRow: (icon, ph, val, onChange) => {
+      const t = Object.assign(el(), { ph, val, onChange });
+      forms.texts.push(t);
+      return t;
+    },
+    seg: (opts, val, fn) => Object.assign(el(), { opts, val, fn }),
+    iconPick: () => el(),
+    iconOk: () => true,
+    iconLabel: (n) => n,
+    DEVICONS: [],
+    swapContent: (box, fn) => fn(),
+    cntS: (n, a, b) => n + " " + (n === 1 ? a : b),
+    confirmDlg: (t, fn) => fn(),
+    pickEntity: () => {},
+    closeSheet: () => calls.toasts.push("closed"),
+    STACK: [],
+    CURRENT: null,
+    LGNEW: undefined,
     RM: {}, AP_TYPES: {}, remoteNew() {}, apNew() {},
     Object, Array, Promise,
   };
@@ -195,7 +223,7 @@ function dashboard({ create, lights = ["Desk lamp", "Shelf strip", "Ceiling"], r
   const b = el();
   sandbox.devAdd(b, rid);
   const tap = (name) => pills.filter((p) => p.name === name).pop().o.tap();
-  return { sandbox, calls, tap, section, pills, tiles, save: () => calls.guard.save(() => calls.toasts.push("left")) };
+  return { sandbox, calls, tap, section, pills, tiles, forms, save: () => calls.guard.save(() => calls.toasts.push("left")) };
 }
 
 test("nothing is checked, nothing is saved, and the popup is not dirty; a check makes it dirty", () => {
@@ -216,36 +244,94 @@ test("checked lights are all added by the checkmark, in the order they were chec
   assert.ok(d.calls.toasts.includes("left"), "the popup closes");
 });
 
-test("with Light group checked the lights become one group, made first, and its settings open in place of the popup", async () => {
-  const d = dashboard({
-    create: (name, members, opts, calls) => {
-      calls.created.push({ name, members, opts });
-      return Promise.resolve({ entry_id: "e1", entity_id: "light.light_group_2" });
-    },
-  });
+test("with Light group checked nothing is made yet: the new group form opens for the checked lights, and the lights are not added one by one", async () => {
+  const d = dashboard({ create: () => Promise.reject(new Error("must not be called")) });
   d.tap("Light group");
   d.tap("Desk lamp");
   d.tap("Ceiling · lg_group");
-  const done = d.save();
-  assert.ok(done.then, "the save waits for the helper");
-  assert.equal(await done, true);
-  assert.deepEqual(plain(d.calls.created), [{ name: "Light group 2", members: ["light.desk", "light.ceiling"], opts: { hide_members: true, all: false } }], "a name no light has");
-  assert.deepEqual(d.section.devs.map((x) => x.id), ["light.light_group_2"], "the group, and not its lights");
-  assert.deepEqual(plain(d.calls.popups), [["lgroup:light.light_group_2", false]]);
+  assert.equal(d.save(), true);
+  assert.deepEqual(plain(d.sandbox.LGNEW), { rid: "~r~lights", lights: ["light.desk", "light.ceiling"] });
+  assert.deepEqual(plain(d.calls.popups), [["lgnew", false]], "the form takes the place of this popup");
+  assert.deepEqual(d.section.devs, [], "and Home Assistant has not been asked");
+  assert.equal(d.calls.created.length, 0);
 });
 
-test("a group needs two lights, and a group that could not be made adds nothing and keeps the popup open", async () => {
-  const d = dashboard({ create: () => Promise.reject(new Error("Home Assistant refused")) });
+test("a group needs two lights to go to its form", () => {
+  const d = dashboard({ create: () => Promise.reject(new Error("no")) });
   d.tap("Light group");
   d.tap("Desk lamp");
   assert.equal(d.save(), false);
   assert.ok(d.calls.toasts.includes("lg_check_two_lights"));
-  d.tap("Shelf strip");
-  assert.equal(await d.save(), false);
-  assert.ok(d.calls.toasts.includes("Home Assistant refused"), "the reason is shown");
-  assert.deepEqual(d.section.devs, [], "nothing was added");
   assert.deepEqual(d.calls.popups, []);
-  assert.equal(d.calls.guard.dirty(), true, "the choices are still there");
+});
+
+/* The new group form on its own: opened for two lights, then named and saved. */
+function newForm(create) {
+  const d = dashboard({ create });
+  d.sandbox.LGNEW = { rid: "~r~lights", lights: ["light.desk", "light.shelf"] };
+  const b = { children: [], appendChild(x) { this.children.push(x); return x; } };
+  d.sandbox.lgNewPage(b);
+  const name = (v) => d.forms.texts[0].onChange(v);
+  const done = () => d.calls.toasts.push("left");
+  return { d, name, done, save: () => d.calls.guard.save(done) };
+}
+
+test("the new group form makes the group only when it is saved, under the name given, and puts it where the add popup was opened", async () => {
+  const made = [];
+  const f = newForm((name, members, opts) => {
+    made.push({ name, members, opts });
+    return Promise.resolve({ entry_id: "e1", entity_id: "light.reading_corner" });
+  });
+  assert.equal(made.length, 0, "opening the form makes nothing");
+  assert.equal(f.d.calls.guard.dirty(), false, "and there is nothing to ask about when it is closed");
+  f.name("Reading corner");
+  assert.equal(made.length, 0, "typing the name makes nothing");
+  assert.equal(f.d.calls.guard.dirty(), true);
+  assert.equal(await f.save(), true);
+  assert.deepEqual(plain(made), [{ name: "Reading corner", members: ["light.desk", "light.shelf"], opts: { hide_members: true, all: false } }]);
+  assert.deepEqual(f.d.section.devs.map((x) => [x.id, x.name, x.icon]), [["light.reading_corner", "Reading corner", "lights"]]);
+  assert.ok(f.d.calls.toasts.includes("left"), "the form closes");
+});
+
+test("a group without a name is not made; a group Home Assistant refuses is not added and the form stays", async () => {
+  const f = newForm(() => Promise.reject(new Error("Home Assistant refused")));
+  assert.equal(f.save(), false);
+  assert.ok(f.d.calls.toasts.includes("lg_give_a_name"));
+  assert.equal(f.d.calls.created.length, 0);
+  f.name("Lamps");
+  assert.equal(await f.save(), false);
+  assert.ok(f.d.calls.toasts.includes("Home Assistant refused"));
+  assert.deepEqual(f.d.section.devs, []);
+  assert.equal(f.d.calls.guard.dirty(), true, "the form is as it was");
+});
+
+test("the settings of a group change nothing until they are saved; then the name, the lights and the options go to the helper, and the dashboard's device follows", async () => {
+  const d = dashboard({ create: () => Promise.reject(new Error("no")) });
+  d.section.devs.push({ id: "light.mine", name: "Mine", icon: "lights", kind: "light" });
+  const b = { children: [], appendChild(x) { this.children.push(x); return x; } };
+  d.sandbox.lgPage(b, "light.mine");
+  await settle();
+  assert.equal(d.calls.guard.dirty(), false, "read from the helper, nothing changed");
+  d.forms.texts[0].onChange("Renamed");
+  assert.equal(d.calls.renamed, undefined, "the helper is not touched by typing");
+  assert.equal(d.calls.guard.dirty(), true);
+  assert.equal(await d.save(), true);
+  assert.deepEqual(plain(d.calls.renamed), ["light.mine", "e9", "Renamed"]);
+  assert.equal(d.calls.updated, undefined, "the lights did not change, so the options flow is not run");
+  assert.equal(d.section.devs[0].name, "Renamed");
+});
+
+test("a group that was not made by the helper can be renamed here but its lights cannot be changed", async () => {
+  const d = dashboard({ create: () => Promise.reject(new Error("no")) });
+  d.section.devs.push({ id: "light.hue", name: "Hue room", icon: "lights", kind: "light" });
+  const b = { children: [], appendChild(x) { this.children.push(x); return x; } };
+  d.sandbox.lgPage(b, "light.hue");
+  await settle();
+  d.forms.texts[0].onChange("Bathroom lights");
+  assert.equal(await d.save(), true);
+  assert.equal(d.calls.renamed, undefined, "no helper to rename");
+  assert.equal(d.calls.updated, undefined);
+  assert.equal(d.section.devs[0].name, "Bathroom lights", "the dashboard's name follows");
 });
 
 test("a light that is not a group has no helper; the group's lights come from Home Assistant, and deleting takes its devices from every list", () => {
@@ -258,18 +344,12 @@ test("a light that is not a group has no helper; the group's lights come from Ho
   assert.deepEqual(d.section.devs.map((x) => x.id), ["light.other"]);
 });
 
-test("from the page's own Add the checked devices go to the first section of their kind, and a group goes the same way", async () => {
-  const d = dashboard({ rid: "r_living", create: () => Promise.resolve({ entry_id: "e1", entity_id: "light.g" }) });
+test("from the page's own Add the checked devices go to the first section of their kind", () => {
+  const d = dashboard({ rid: "r_living", create: () => Promise.reject(new Error("no")) });
   d.tap("Desk lamp");
   d.save();
   assert.deepEqual(plain(d.calls.pagePlaced), [["r_living", "light.desk"]], "placed by kind, not into a list of its own");
   assert.deepEqual(d.section.devs, [], "no section was named");
-  const g = dashboard({ rid: "r_living", create: () => Promise.resolve({ entry_id: "e1", entity_id: "light.g" }) });
-  g.tap("Light group");
-  g.tap("Desk lamp");
-  g.tap("Ceiling · lg_group");
-  await g.save();
-  assert.deepEqual(plain(g.calls.pagePlaced), [["r_living", "light.g"]]);
 });
 
 test("the type and the area are dropdowns: the type chooses what is listed, the area (all of them to begin with) filters the list", () => {

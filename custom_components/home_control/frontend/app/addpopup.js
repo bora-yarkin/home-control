@@ -205,7 +205,7 @@ function devAdd(b, rid) {
   drawCount();
   list();
 
-  /* Adds what is checked. With Light group checked the checked lights become one group, made first; if that fails nothing is added and the popup stays as it is. */
+  /* Adds what is checked. With Light group checked the checked lights are not added one by one: the new group form opens for them, and the group is made when that is saved. */
   function save(leave) {
     var chosen = order.map(function (id) {
         return picked[id];
@@ -243,24 +243,17 @@ function devAdd(b, rid) {
       else leave();
       return true;
     }
-    toast(_T("lg_making"));
-    return lgCreate(
-      rid,
-      lights.map(function (c) {
+    /* The group is not made yet: its form opens in place of this popup, and Home Assistant is asked only when the form is saved with a name. */
+    LGNEW = {
+      rid: rid,
+      lights: lights.map(function (c) {
         return c.id;
-      })
-    ).then(
-      function (entity) {
-        addRest();
-        POPGUARD = null;
-        showPopup("lgroup:" + entity, false);
-        return true;
-      },
-      function (err) {
-        toast((err && err.message) || _T("lg_could_not_make"));
-        return false;
-      }
-    );
+      }),
+    };
+    addRest();
+    POPGUARD = null;
+    showPopup("lgnew", false);
+    return true;
   }
   guardUnsaved({
     dirty: function () {
