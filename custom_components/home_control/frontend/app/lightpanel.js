@@ -2346,6 +2346,10 @@ function lpStage(S, host) {
   S.modes = modes;
   if (S.restore && modes.indexOf(S.restore.mode) >= 0) S.mode = S.restore.mode;
   if (S.restore && S.restore.sel) S.sel = S.restore.sel;
+  /* A lights master can open on a tab of its own choice (when it is there and the panel is not coming back to the page it was on). */
+  var ref0 = S.restore ? null : mscSection(root),
+    want = ref0 ? ref0.e.mtab : "";
+  if (want && modes.indexOf(want) >= 0) S.mode = want;
   if (modes.indexOf(S.mode) < 0) S.mode = modes[0];
   S.stage = st;
   track.style.setProperty("--n", modes.length);

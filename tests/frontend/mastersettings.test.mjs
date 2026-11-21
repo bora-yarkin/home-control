@@ -101,8 +101,8 @@ test("the section keeps its mode, chosen lights, power button and sync through t
     return plain(o);
   };
   assert.deepEqual(
-    run({ master: 1, mm: 1, ml: [{ id: "light.a", name: "Desk", icon: "lamp", kind: "light" }, { id: "light.a", name: "Again", kind: "light" }, { id: "switch.x", name: "Plug", kind: "switch" }, { id: "light.b", n: "Bed", i: "bed" }, { id: "light.c" }], mpw: "scene", mps: "scene.read", msync: 1, msyncid: "switch.sync", mhl: 1, mhs: 1, mgl: 1 }),
-    { mm: 1, ml: [{ id: "light.a", name: "Desk", icon: "lamp", kind: "light" }, { id: "light.b", name: "Bed", icon: "bed", kind: "light" }, { id: "light.c", name: "c", icon: "light", kind: "light" }], mgl: 1, mhl: 1, mhs: 1, mpw: "scene", mps: "scene.read", msync: 1, msyncid: "switch.sync" }
+    run({ master: 1, mm: 1, ml: [{ id: "light.a", name: "Desk", icon: "lamp", kind: "light" }, { id: "light.a", name: "Again", kind: "light" }, { id: "switch.x", name: "Plug", kind: "switch" }, { id: "light.b", n: "Bed", i: "bed" }, { id: "light.c" }], mpw: "scene", mps: "scene.read", msync: 1, msyncid: "switch.sync", mhl: 1, mhs: 1, mgl: 1, mtab: "scenes" }),
+    { mm: 1, ml: [{ id: "light.a", name: "Desk", icon: "lamp", kind: "light" }, { id: "light.b", name: "Bed", icon: "bed", kind: "light" }, { id: "light.c", name: "c", icon: "light", kind: "light" }], mgl: 1, mtab: "scenes", mhl: 1, mhs: 1, mpw: "scene", mps: "scene.read", msync: 1, msyncid: "switch.sync" }
   );
   assert.deepEqual(run({ master: 1, mpw: "other", mps: "scene.read", ml: [{ id: "light.a" }] }), {}, "automatic keeps no list, and an unknown power mode is the default");
 });
@@ -115,6 +115,14 @@ test("a section can leave out the master's lights or its sync, only in the secti
   assert.match(read("manage.js"), /rid\.split\("~"\)\[3\] === "ml"/);
   assert.match(src, /devEditor\("~" \+ scope \+ "~" \+ sec\.id \+ "~ml", m\)/);
   assert.doesNotMatch(src, /masterLightPage/);
+});
+
+test("a lights master can open on a tab of its own, only when that tab is there and the panel is not coming back to a page", () => {
+  const panel = read("lightpanel.js");
+  assert.match(panel, /var ref0 = S\.restore \? null : mscSection\(root\),\s*want = ref0 \? ref0\.e\.mtab : "";\s*if \(want && modes\.indexOf\(want\) >= 0\) S\.mode = want;/);
+  assert.match(src, /_T\("master_open_tab"\)/);
+  const model = read("model.js");
+  assert.match(model, /\["color", "white", "fx", "scenes", "sync"\]\.indexOf\(s\.mtab\) >= 0/);
 });
 
 test("the light panel has the sync as a page of its own, and the header has the settings and power buttons", () => {

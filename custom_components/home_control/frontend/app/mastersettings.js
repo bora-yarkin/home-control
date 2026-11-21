@@ -135,6 +135,34 @@ function masterModeRows(box, sec, scope, redraw) {
 function masterPopupRows(box, sec, scope, redraw) {
   var key = scope + ":" + sec.id,
     sid = scope + "~" + sec.id;
+  /* The tab its light popup opens on. */
+  var tabs = ["", "color", "white", "fx", "scenes", "sync"],
+    tabName = {
+      "": _T("master_open_default"),
+      color: _T("colour"),
+      white: _T("white"),
+      fx: _T("effects"),
+      scenes: _T("scenes"),
+      sync: _T("master_sync_tab"),
+    };
+  box.appendChild(
+    dropRow(
+      _T("master_open_tab"),
+      tabs,
+      function () {
+        return sec.mtab || "";
+      },
+      function (v) {
+        if (v) sec.mtab = v;
+        else delete sec.mtab;
+        uiChanged();
+      },
+      "tune",
+      function (v) {
+        return tabName[v];
+      }
+    )
+  );
   box.appendChild(sep(_T("master_power_button"), "power"));
   box.appendChild(
     seg(

@@ -605,6 +605,7 @@ function cleanLayout(a) {
           });
       }
       if (s.mgl) o.mgl = 1;
+      if (["color", "white", "fx", "scenes", "sync"].indexOf(s.mtab) >= 0) o.mtab = s.mtab;
       if (s.mhl) o.mhl = 1;
       if (s.mhs) o.mhs = 1;
       if (s.mpw === "scene") {
