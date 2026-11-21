@@ -49,8 +49,8 @@ test("the lights row follows the circle (a group is one tile until it is separat
   const panel = read("lightpanel.js");
   assert.match(panel, /S\.groupTiles = !!o\.groups;/);
   assert.match(panel, /lpState\(root, colorOk && whiteOk, !!o\.groups\)/);
-  assert.match(panel, /if \(groups\) \{\s*if \(root\.kids\) S\.ex\[root\.key\] = true;\s*\} else lpAutoSplit\(S, root\);/, "a group stays one tile, however its lights look");
-  assert.match(panel, /var list = S\.maker \|\| S\.groupTiles \? lpVisible\(S\)\.slice\(\) : lpLeaves\(S\.root\);/);
+  assert.match(panel, /var list = S\.maker \? lpVisible\(S\)\.slice\(\) : S\.hier \? lpTrayUnits\(S\) : lpLeaves\(S\.root\);/);
+  assert.match(panel, /if \(S\.hier\) lpHierInit\(S, root\);\s*else lpAutoSplit\(S, root\);/, "a group is not opened by itself, however its lights look");
   assert.match(read("lights.js"), /groups: !!\(masterSec\(sid\) \|\| \{\}\)\.mgl,/);
   assert.match(src, /flagPill\("lights", _T\("master_groups_as_one"\), sec, "mgl"/);
 });

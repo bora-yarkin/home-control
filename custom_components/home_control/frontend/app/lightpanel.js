@@ -539,18 +539,22 @@ function lpCircle(S, mode) {
     b.chips.remove();
     if (!fast) lpPinAnim(b.m, true, 0);
   }
-  function openBubble(m) {
+  /* What a circle lists: the lights a marker stands for (one level at a time in a panel whose groups are single lights: a group is one entry, and tapping it lists its lights). */
+  function bubbleKids(n) {
+    return (S.hier ? n.kids || [] : lpOpenKids(n)).filter(function (k) {
+      return lpCap(k, mode).length;
+    });
+  }
+  function openBubble(m, node, stack) {
     closeBubble(true);
+    node = node || m.n;
+    stack = stack || [];
     var R = circ.clientWidth / 2,
-      kids0 = lpOpenKids(m.n).filter(function (k) {
-        return lpCap(k, mode).length;
-      }).length,
+      kids0 = bubbleKids(node).length,
       rho = Math.min(R, Math.max(56, R * 0.5, (kids0 * 64) / (2 * Math.PI))),
       cx = R,
       cy = R,
-      kids = lpOpenKids(m.n).filter(function (k) {
-        return lpCap(k, mode).length;
-      });
+      kids = bubbleKids(node);
     var el = mk("div", "lw-bub"),
       chips = mk("div", "lw-chips");
     el.style.cssText =
@@ -572,8 +576,21 @@ function lpCircle(S, mode) {
       return x;
     });
     circ.appendChild(chips);
+    /* Inside a group that was opened from the list, the middle of the circle goes back to that list. */
+    if (stack.length) {
+      var back = mk("div", "lw-bubback", svg("back"));
+      back.style.left = cx + "px";
+      back.style.top = cy + "px";
+      back.setAttribute("role", "button");
+      back.setAttribute("aria-label", _T("back"));
+      back.addEventListener("click", function (ev) {
+        ev.stopPropagation();
+        openBubble(m, stack[stack.length - 1], stack.slice(0, -1));
+      });
+      chips.appendChild(back);
+    }
     m.pin.style.visibility = m.dot.style.visibility = "hidden";
-    bub = { m: m, n: m.n, el: el, chips: chips, cx: cx, cy: cy, rho: rho, mem: mem };
+    bub = { m: m, n: node, stack: stack, el: el, chips: chips, cx: cx, cy: cy, rho: rho, mem: mem };
     S.select(m.n.key);
   }
   /* The markers are made again whenever a group is separated or joined. */
@@ -798,6 +815,11 @@ function lpCircle(S, mode) {
     }
     if (cur && cur.inBub) {
       /* A tap on a light of the circle only picks it: its drop opens above it and bounces, and the circle stays as it is. Lights are separated by dragging them out. */
+      if (!moved && bub && S.hier && cur.n.kids && !cur.n.zones) {
+        /* A group of the list: the circle lists its lights instead (the lights of the old list go, the new ones come). */
+        openBubble(bub.m, cur.n, bub.stack.concat([bub.n]));
+        return;
+      }
       if (!moved && bub) lpPinAnim(cur, true, 0);
       return;
     }
@@ -857,6 +879,33 @@ function lpNodeLook(n) {
     first = first || l;
   }
   return first;
+}
+
+/* A panel whose groups are single lights (S.hier) opens with its lights apart, the ones that look the same sharing a marker; a group is never opened by itself, however its lights look. */
+function lpHierInit(S, root) {
+  if (!root.kids || lpNodeLook(root)) return;
+  S.ex[root.key] = true;
+  var groups = [];
+  root.kids.forEach(function (k) {
+    var l = lpNodeLook(k),
+      g = l
+        ? groups.filter(function (x) {
+            return x.look && lpSameLook(x.look, l);
+          })[0]
+        : null;
+    if (g) g.kids.push(k);
+    else groups.push({ look: l, kids: [k] });
+  });
+  groups.forEach(function (g) {
+    if (g.kids.length > 1) S.joined.push(S.makeVirtual(g.kids, g.kids[0].icon));
+  });
+}
+
+/* The lights row of a panel whose groups are single lights: the lights of the whole, a group as one tile until it is separated. */
+function lpTrayUnits(S) {
+  return (S.root.kids || [S.root]).reduce(function (a, k) {
+    return a.concat(lpFrontier(k, S.ex));
+  }, []);
 }
 
 /* A panel opens showing what the lights really do: a group whose lights look the same stays one marker; when they differ it opens separated, and the lights that look the same stay together as one marker. */
@@ -925,6 +974,7 @@ function lpState(root, both, groups) {
   };
   /* A light was dragged out of its group's circle: it is on its own, the rest of the group stays together. */
   S.detach = function (g, kid) {
+    if (S.hier) return S.pullOut(kid);
     var gone = lpLeaves(kid),
       rest = lpOpenKids(g).filter(function (k) {
         return gone.indexOf(k) < 0;
@@ -944,6 +994,86 @@ function lpState(root, both, groups) {
     if (rest.length > 1) S.joined.push(S.makeVirtual(rest, rest[0].icon));
     /* No slide and no pop: the light is under the finger already and follows it. */
     S.sel = kid.key;
+    S.rebuild();
+  };
+  /* A panel whose groups are single lights: one light (or group) is taken out of the marker it is in and has a marker of its own. A group that holds it is opened where it stands (the others of it stay together, with whatever they were together with). */
+  S.pullOut = function (kid) {
+    var chain = [];
+    for (var p = kid.parent; p; p = p.parent) chain.unshift(p);
+    chain.forEach(function (a) {
+      if (a === S.root || S.ex[a.key]) return;
+      S.ex[a.key] = true;
+      S.joined = S.joined.map(function (v) {
+        if (v.kids.indexOf(a) < 0) return v;
+        var kids = [];
+        v.kids.forEach(function (k) {
+          if (k === a) kids = kids.concat(a.kids);
+          else kids.push(k);
+        });
+        return S.makeVirtual(kids, v.icon);
+      });
+    });
+    var holder = S.joined.filter(function (v) {
+      return v.kids.indexOf(kid) >= 0;
+    })[0];
+    if (holder) {
+      var rest = holder.kids.filter(function (k) {
+        return k !== kid;
+      });
+      S.joined = S.joined.filter(function (v) {
+        return v !== holder;
+      });
+      if (rest.length > 1) S.joined.push(S.makeVirtual(rest, rest[0].icon));
+    }
+    S.sel = kid.key;
+    S.pop = [kid.key];
+    S.rebuild();
+  };
+  /* Dropping one marker on another, in a panel whose groups are single lights: they share one marker; a group that has all its lights in it is whole again, and so on up to the whole. */
+  S.joinHier = function (a, b) {
+    var kids = [],
+      gone = [];
+    [a, b].forEach(function (n) {
+      if (n.virtual) {
+        kids = kids.concat(n.kids);
+        gone.push(n);
+      } else kids.push(n);
+    });
+    S.joined = S.joined.filter(function (v) {
+      return gone.indexOf(v) < 0;
+    });
+    var again = true;
+    while (again) {
+      again = false;
+      for (var i = 0; i < kids.length && !again; i++) {
+        var par = kids[i].parent;
+        if (
+          par &&
+          par.kids.every(function (k) {
+            return kids.indexOf(k) >= 0;
+          })
+        ) {
+          /* the group takes the place of the first of its lights */
+          var at = kids.length;
+          kids.forEach(function (k, j) {
+            if (par.kids.indexOf(k) >= 0) at = Math.min(at, j);
+          });
+          kids = kids.filter(function (k) {
+            return par.kids.indexOf(k) < 0;
+          });
+          kids.splice(Math.min(at, kids.length), 0, par);
+          delete S.ex[par.key];
+          again = true;
+        }
+      }
+    }
+    if (kids.length === 1) S.sel = kids[0].key;
+    else {
+      var v = S.makeVirtual(kids, b.icon);
+      S.joined.push(v);
+      S.sel = v.key;
+    }
+    S.pop = [S.sel];
     S.rebuild();
   };
   S.rebuild = function () {
@@ -1006,6 +1136,7 @@ function lpState(root, both, groups) {
   /* Dropping one marker on another: they become one marker that moves together. When that makes all the lights of a separated group, the group is whole again. */
   S.join = function (a, b) {
     if (S.maker) return; /* the colours of a live scene are not joined to one another or to lights */
+    if (S.hier) return S.joinHier(a, b);
     var kids = [],
       gone = [];
     [a, b].forEach(function (n) {
@@ -1035,10 +1166,10 @@ function lpState(root, both, groups) {
     S.pop = [S.sel];
     S.rebuild();
   };
-  /* A master that shows its groups as one light opens with its lights apart and every group together, however its lights look. */
-  if (groups) {
-    if (root.kids) S.ex[root.key] = true;
-  } else lpAutoSplit(S, root);
+  /* A master that shows its groups as one light: a group is one light, and the lights that look the same share a marker (S.hier). */
+  S.hier = !!groups;
+  if (S.hier) lpHierInit(S, root);
+  else lpAutoSplit(S, root);
   return S;
 }
 
@@ -1711,7 +1842,7 @@ function lpFxColourPopup(b, name) {
 
 /* The lights under the circle, like in the Hue app: a tile for every light (a light made of zones is one tile), with its icon, its name and a switch, in a row that scrolls sideways. The row does not depend on what is joined or separated on the circle: groups are always shown as the lights they are made of. A tile is the colour the light shows, or its zone colours. Tapping a tile selects it and shows its pin on the circle; its switch turns it on or off. */
 function lpTrayNodes(S) {
-  var list = S.maker || S.groupTiles ? lpVisible(S).slice() : lpLeaves(S.root);
+  var list = S.maker ? lpVisible(S).slice() : S.hier ? lpTrayUnits(S) : lpLeaves(S.root);
   return lpSortLights(list, S.root.order);
 }
 
