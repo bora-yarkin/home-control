@@ -171,7 +171,7 @@ test("a group whose lights run at different settings is opened by itself in the 
 function doing(over = {}) {
   const sandbox = {
     V_: (e) => (over.off && over.off.includes(e) ? "off" : "on"),
-    A: (e) => ({ effect: (over.fx || {})[e] || "off" }),
+    A: (e) => ({ effect: (over.fx || {})[e] || "off", dynamics: (over.dynamics || {})[e] || "none" }),
     lpFxLight: (e) => e,
     pluginPlays: (e) => (over.sync || []).includes(e),
     lpFxLabel: (f) => f[0].toUpperCase() + f.slice(1),
@@ -191,6 +191,16 @@ test("under a light's name: the effect it runs, Dynamics for a scene that moves,
   assert.equal(w.lpLightDoing("light.scene", dyn), "Dynamics");
   assert.equal(w.lpLightDoing("light.plain", dyn), "Static");
   assert.equal(w.lpLightDoing("light.off", dyn), "");
+  const hue = doing({ dynamics: { "light.play": "dynamic_palette" } });
+  assert.equal(hue.lpLightDoing("light.play", {}), "Dynamics", "the bridge says the light plays a scene's colours");
+  assert.equal(hue.lpLightDoing("light.other", {}), "Static", "dynamics none is one colour");
+});
+
+test("a group section of the lights row is clipped only while it slides, and is never narrower than its lights", () => {
+  const css = readFileSync(new URL("../dashboard.css", APP), "utf8");
+  assert.match(css, /\.lp-tg\{[^}]*min-width:max-content\}/);
+  assert.match(css, /\.lp-tg\.lp-slide\{overflow:hidden;min-width:0\}/);
+  assert.match(panel, /run\.onfinish = run\.oncancel = function \(\) \{\s*wrap\.classList\.remove\("lp-slide"\)/);
 });
 
 test("a tile of several lights says what they all do, and Mixed when they do not do the same", () => {

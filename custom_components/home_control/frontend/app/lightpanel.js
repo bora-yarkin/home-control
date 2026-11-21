@@ -1922,8 +1922,11 @@ function lpLightDoing(e, dyn) {
   var on = V_(e) === "on";
   if (pluginPlays(e)) return _T("tile_sync");
   if (!on) return "";
-  var fx = A(lpFxLight(e)).effect;
+  var own = A(lpFxLight(e)),
+    fx = own.effect;
   if (fx && fx !== "off") return typeof lpFxLabel === "function" ? lpFxLabel(fx) : cap(String(fx).replace(/_/g, " "));
+  /* the bridge says a light plays a scene's colours (Hue's `dynamics` is "none" when it does not) */
+  if (own.dynamics && own.dynamics !== "none") return _T("tile_dynamics");
   return dyn[e] || dyn[lpFxLight(e)] ? _T("tile_dynamics") : _T("tile_static");
 }
 
@@ -2048,13 +2051,18 @@ function lpTray(S) {
     var wrap = anim && anim.open ? tray.querySelector('.lp-tg[data-key="' + anim.open + '"]') : null;
     if (wrap && wrap.animate) {
       var w = wrap.getBoundingClientRect().width;
-      wrap.animate(
+      /* the section is clipped only while it slides; it is never narrower than its lights otherwise */
+      wrap.classList.add("lp-slide");
+      var run = wrap.animate(
         [
           { width: "0px", opacity: 0, marginLeft: "-10px" },
           { width: w + "px", opacity: 1, marginLeft: "0px" },
         ],
         { duration: 320, easing: "cubic-bezier(.2,.9,.25,1)" }
       );
+      run.onfinish = run.oncancel = function () {
+        wrap.classList.remove("lp-slide");
+      };
     }
   }
   function addItems(items, parent) {
@@ -2072,6 +2080,7 @@ function lpTray(S) {
           fillHier();
           paint();
         };
+        wrap.classList.add("lp-slide");
         var run = wrap.animate
           ? wrap.animate(
               [

@@ -988,7 +988,8 @@ body.pinhdr:not(.editing) .wrap::before{content:"";position:fixed;top:0;left:0;r
 .lw-bubback{position:absolute;width:46px;height:46px;margin:-23px 0 0 -23px;border-radius:50%;display:flex;align-items:center;justify-content:center;background:rgba(20,22,28,.72);border:1.5px solid rgba(255,255,255,.75);color:#fff;cursor:pointer;z-index:5;pointer-events:auto}
 .lw-bubback svg{width:22px;height:22px;fill:none;stroke:currentColor;stroke-width:2;stroke-linecap:round;stroke-linejoin:round}
 /* a group of the lights row opened beside its tile: its lights, with a button that closes it */
-.lp-tg{display:flex;gap:10px;align-items:stretch;flex:0 0 auto;overflow:hidden}
+.lp-tg{display:flex;gap:10px;align-items:stretch;flex:0 0 auto;min-width:max-content}
+.lp-tg.lp-slide{overflow:hidden;min-width:0}
 .lp-tcol{flex:0 0 30px;width:30px;display:flex;align-items:center;justify-content:center;border-radius:15px;background:var(--f-raise);color:var(--ink2);cursor:pointer}
 .lp-tcol svg{width:18px;height:18px;fill:none;stroke:currentColor;stroke-width:2;stroke-linecap:round;stroke-linejoin:round}
 .lp-ts{font-size:11px;line-height:1.1;min-height:12px;margin-top:-2px;opacity:.78;text-align:center;max-width:100%;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
