@@ -138,3 +138,28 @@ test("a plugin's own styles are added to the page", () => {
   assert.equal(added.length, 1);
   assert.equal(added[0].textContent, ".x{color:red}");
 });
+
+test("a brightness slider dims an active scene as a whole when the scene's lit lights are all the lights it is for, and sets plain brightness otherwise", () => {
+  const dims = [];
+  const kind = { dim: (id, v, now) => dims.push([id, v, now]), lights: () => ["light.a", "light.b"], active: (id) => id === "scene.on" };
+  const states = { "scene.on": {}, "scene.off": {}, "light.a": { state: "on" }, "light.b": { state: "on" }, "light.c": { state: "on" }, "light.z1": { state: "on" }, "light.z2": { state: "on" } };
+  const { sandbox } = page({
+    H: () => ({ states }),
+    isOn: (id) => states[id].state === "on",
+    lightIndividuals: (ids) => ids.flatMap((id) => (id === "light.strip" ? ["light.z1", "light.z2"] : [id])),
+  });
+  sandbox.pluginSceneKind = () => kind;
+  const dim = vm.runInContext("pluginSceneDim", sandbox);
+  assert.equal(dim(["light.a", "light.b", "light.c"], 20, true), true);
+  assert.deepEqual(dims.pop(), ["scene.on", 20, true]);
+  kind.lights = () => ["light.a", "light.strip"];
+  assert.equal(dim(["light.a", "light.z1", "light.z2"], 20, true), true, "a group among the scene's lights is its parts, as the lights shown are");
+  dims.pop();
+  kind.lights = () => ["light.a", "light.b"];
+  assert.equal(dim(["light.a"], 20, true), false, "the lights left out would be changed by recalling the scene");
+  states["light.b"].state = "off";
+  assert.equal(dim(["light.a"], 20, false), true, "a light that is off is not part of what plays");
+  assert.deepEqual(dims.pop(), ["scene.on", 20, false]);
+  kind.active = () => false;
+  assert.equal(dim(["light.a", "light.b"], 20, true), false, "no active scene: plain brightness");
+});

@@ -636,11 +636,11 @@ function lightsMasterRow(sid, ids, wheel, name, all, order, meta) {
       return countOn(lightUnits(ids)) > 0;
     },
     live: function (v) {
-      if (v > 0) callLive("m:" + sid, "light", "turn_on", { entity_id: lightTargets(ids, all), brightness_pct: v });
+      if (v > 0 && !pluginSceneDim(ids, v, false)) callLive("m:" + sid, "light", "turn_on", { entity_id: lightTargets(ids, all), brightness_pct: v });
     },
     commit: function (v) {
       if (v <= 0) call("light", "turn_off", { entity_id: lightTargets(ids, all) });
-      else call("light", "turn_on", { entity_id: lightTargets(ids, all), brightness_pct: v });
+      else if (!pluginSceneDim(ids, v, true)) call("light", "turn_on", { entity_id: lightTargets(ids, all), brightness_pct: v });
     },
     onHold: function () {
       showPopup("lmaster:" + sid, true);

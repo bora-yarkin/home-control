@@ -4,6 +4,13 @@ Format: [Keep a Changelog](https://keepachangelog.com/). Versions follow [semant
 
 ## [Unreleased]
 
+## [0.17.1] - 2026-11-21
+
+### Fixed
+- **The pen and the three dots of the scene that plays came out again when a folder of the Scenes page was opened** (or a tile moved). They stay where they are while the rows are made again.
+- **A folder that opens slides the page down so it is in view**, by as much as it needs: a short folder that fits moves nothing, a tall one never goes above its own top.
+- **The brightness slider of a light popup or a lights master set every light to the same level while a Hue scene played.** When the lights are the ones the active scene is on, a scene kind that has `dim` (Hue's) sets the brightness as a whole, so each light keeps its own level in the scene, as in the Hue app. Other lights get the plain brightness as before.
+
 ## [0.17.0] - 2026-11-21
 
 ### Fixed
