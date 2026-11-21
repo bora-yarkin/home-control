@@ -95,9 +95,18 @@ function lpVisible(S) {
 function lpShownOf(S, n) {
   return (
     lpVisible(S).filter(function (m) {
-      return m === n || lpLeaves(m).indexOf(n) >= 0 || (m.virtual && m.kids.some(function (k) { return lpLeaves(k).indexOf(n) >= 0; }));
+      return m === n || lpLeaves(m).indexOf(n) >= 0 || (m.virtual && m.kids.some(function (k) { return lpLeaves(k).indexOf(n) >= 0; })) || (S.hier && lpHolds(m, n));
     })[0] || null
   );
+}
+
+/* Whether a node stands for another: the node itself, or one of the lights or groups under it (a group counts as one light, so it is found as a node and not only as the lights it is made of). */
+function lpHolds(m, n) {
+  if (m === n) return true;
+  if (m.zones || !m.kids) return false;
+  return m.kids.some(function (k) {
+    return lpHolds(k, n);
+  });
 }
 
 /* What is shown: the whole, or, where a node was separated, the nodes under it. */

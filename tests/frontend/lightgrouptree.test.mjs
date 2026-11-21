@@ -13,7 +13,7 @@ const fn = (name) => {
   assert.ok(at >= 0, `${name} exists`);
   return panel.slice(at, panel.indexOf("\n}\n", at) + 3);
 };
-const SRC = ["lpFrontier", "lpLeaves", "lpOpenKids", "lpCount", "lpFind", "lpFindIn", "lpVisible", "lpShownOf", "lpLook", "lpSameLook", "lpNodeLook", "lpHierInit", "lpTrayUnits", "lpSortLights", "lpIsGroup", "lpTrayStruct", "lpTraySig", "lpGroupColours", "lpState"].map(fn).join("\n");
+const SRC = ["lpFrontier", "lpLeaves", "lpOpenKids", "lpCount", "lpFind", "lpFindIn", "lpVisible", "lpShownOf", "lpHolds", "lpLook", "lpSameLook", "lpNodeLook", "lpHierInit", "lpTrayUnits", "lpSortLights", "lpIsGroup", "lpTrayStruct", "lpTraySig", "lpGroupColours", "lpState"].map(fn).join("\n");
 
 // The lights: a floor lamp group (L, R) and the Iris look the same; the ceiling light does not.
 const looks = { "light.l": "warm", "light.r": "warm", "light.iris": "warm", "light.ceil": "blue" };
@@ -135,4 +135,22 @@ test("a tap on a group tile opens it beside its tile, with a button that closes 
   assert.match(panel, /if \(S\.hier && lpIsGroup\(n\) && !S\.trayEx\[n\.key\]\) \{/);
   assert.match(panel, /col = mk\("div", "lp-tcol", svg\("back"\)\)/);
   assert.doesNotMatch(panel, /S\.openGroup|dblclick/);
+});
+
+test("tapping the tile of a group or of a light of a group picks it inside the marker that holds it and separates nothing", () => {
+  const { S, sandbox, nodes } = build();
+  S.rebuild = () => {};
+  // everything runs alike: the whole is one marker
+  for (const id of Object.keys(looks)) looks[id] = "warm";
+  const s2 = vm.runInContext("lpState", sandbox)(nodes.root, true, true);
+  s2.rebuild = () => {};
+  assert.deepEqual(keys(sandbox.lpVisible(s2)), ["m:x"], "one marker for all the lights");
+  assert.equal(sandbox.lpShownOf(s2, nodes.floor).key, "m:x", "a group is found in it");
+  assert.equal(sandbox.lpShownOf(s2, nodes.l).key, "m:x", "and a light of a group");
+  s2.reveal(nodes.floor);
+  assert.equal(s2.focus.n, nodes.floor, "the marker shows the group's icon");
+  assert.equal(s2.ex[nodes.root.key], undefined, "the whole is not separated");
+  s2.reveal(nodes.r);
+  assert.equal(s2.focus.n, nodes.r, "or the light's");
+  looks["light.ceil"] = "blue";
 });

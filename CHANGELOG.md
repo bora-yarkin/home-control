@@ -5,6 +5,7 @@ Format: [Keep a Changelog](https://keepachangelog.com/). Versions follow [semant
 ## [Unreleased]
 
 ### Fixed
+- **Tapping a group in the lights row separated every light on the wheel** when all the lights ran alike. The wheel did not find the group in its one marker. A group, or a light of a group, is picked inside the marker that holds it now (the marker shows its icon) and nothing is separated.
 - **The lights of the circle that opens on a marker made half a circle when there were few of them** (a fixed step apart). They are spread evenly round the whole circle now.
 - **A light dropped on another marker of the light circle got a slightly different temperature** than the lights it joined: it took the colour its place on the wheel reads as, and markers are moved apart where they would overlap. It takes the marker's own colour or temperature now.
 - **The name given to a lights master did not show in its popup** when another page had a Lights section of the same id: masters were found by the section id alone. They are now found by page and section.
