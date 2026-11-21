@@ -1402,35 +1402,6 @@ function lpFxPane(S, pane, fx) {
       box.appendChild(effectRow(x));
     });
   });
-  if (fx.scenes.length) {
-    box.appendChild(mk("div", "lp-fx-h")).textContent = _T("scenes");
-    var row = mk("div", "lp-fxr");
-    fx.scenes.forEach(function (id) {
-      var t = tile(A(id).name || id, "", "");
-      t.sw.style.background = "var(--f-raise)";
-      var kind = pluginSceneKind(id);
-      kind.palette(id, function (stops) {
-        t.sw.style.background = "linear-gradient(135deg," + (stops.length > 1 ? stops : [stops[0], stops[0]]).join(",") + ")";
-      });
-      t.active = function () {
-        return !!kind.active(id);
-      };
-      t.el.addEventListener("click", function () {
-        if (kind.dynamic(id)) kind.start(id);
-        else {
-          liveStopOn(S.root.cmd);
-          call("scene", "turn_on", { entity_id: id });
-        }
-      });
-      if (kind.dynamic(id))
-        t.pen.addEventListener("click", function () {
-          lpGo(S, kind.popup + ":" + id);
-        });
-      else t.pen.style.display = "none";
-      put(row, t);
-    });
-    box.appendChild(row);
-  }
   function paint() {
     tiles.forEach(function (t) {
       var on = !!t.active();
@@ -2106,7 +2077,9 @@ function lpStage(S, host) {
     modes = [];
   if (colorOk) modes.push("color");
   if (whiteOk) modes.push("white");
-  if (fx.effects.length || (!S.maker && fx.scenes.length)) modes.push("fx");
+  if (fx.effects.length) modes.push("fx");
+  /* A lights master has the Scenes page after Effects. */
+  if (!S.maker && mscSection(root)) modes.push("scenes");
   S.modes = modes;
   if (S.restore && modes.indexOf(S.restore.mode) >= 0) S.mode = S.restore.mode;
   if (S.restore && S.restore.sel) S.sel = S.restore.sel;
@@ -2114,8 +2087,8 @@ function lpStage(S, host) {
   S.stage = st;
   track.style.setProperty("--n", modes.length);
   modes.forEach(function (m) {
-    panes[m] = mk("div", "lp-pane" + (m === "fx" ? " fx" : ""));
-    if (m !== "fx") panes[m].appendChild(lpCircle(S, m));
+    panes[m] = mk("div", "lp-pane" + (m === "fx" || m === "scenes" ? " fx" : ""));
+    if (m !== "fx" && m !== "scenes") panes[m].appendChild(lpCircle(S, m));
     track.appendChild(panes[m]);
   });
   view.appendChild(track);
@@ -2133,14 +2106,18 @@ function lpStage(S, host) {
       if (S.maker) lpMakerFxPane(S, panes.fx, fx);
       else lpFxPane(S, panes.fx, fx);
     }
+    if (S.mode === "scenes" && !panes.scenes._built) {
+      panes.scenes._built = true;
+      lpScenesPane(S, panes.scenes);
+    }
   }
   if (modes.length > 1) {
     tabs = mk("div", "lp-itabs");
     modes.forEach(function (m, i) {
-      if (m === "fx") tabs.appendChild(mk("div", "lp-sep"));
-      var x = mk("div", "lp-it " + m, m === "fx" ? svg("sparkle") : "<i></i>");
+      if (m === "fx" || m === "scenes") tabs.appendChild(mk("div", "lp-sep"));
+      var x = mk("div", "lp-it " + m, m === "fx" ? svg("sparkle") : m === "scenes" ? svg("palette") : "<i></i>");
       x.setAttribute("role", "button");
-      x.setAttribute("aria-label", m === "color" ? _T("colour") : m === "white" ? _T("white") : _T("effects"));
+      x.setAttribute("aria-label", m === "color" ? _T("colour") : m === "white" ? _T("white") : m === "scenes" ? _T("scenes") : _T("effects"));
       x.dataset.m = m;
       x.addEventListener("click", function () {
         S.mode = m;

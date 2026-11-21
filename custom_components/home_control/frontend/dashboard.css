@@ -948,3 +948,19 @@ body.pinhdr:not(.editing) .wrap::before{content:"";position:fixed;top:0;left:0;r
 .bat .bs{flex:none;min-width:44px;text-align:center;font-size:var(--fs-s);padding:3px 9px;border-radius:11px;background:rgba(255,255,255,.1);color:var(--ink2)}
 .bat .bs.ok{background:rgba(110,200,140,.18);color:#9be0b0}
 .bat .bs.low{background:rgba(255,120,100,.2);color:#ffab9c}
+
+/* the scenes page of a lights master's light popup */
+.lp-scg{position:relative;display:grid;grid-template-rows:repeat(2,auto);grid-auto-flow:column;grid-auto-columns:94px;gap:10px;overflow-x:auto;overscroll-behavior-x:contain;scrollbar-width:none;margin:0 -2px 14px;padding:0 2px;touch-action:pan-x pan-y}
+.lp-scg::-webkit-scrollbar{display:none}
+.lp-scg .lp-fxt{margin-right:0;touch-action:pan-x pan-y;user-select:none;-webkit-user-select:none;transition:background .3s,color .3s,translate .3s cubic-bezier(.3,.9,.3,1)}
+.lp-fxt.lifting{z-index:60;box-shadow:0 10px 28px rgba(0,0,0,.45);filter:brightness(1.15);transition:none}
+.lp-fxt.mergeable{box-shadow:0 0 0 2px var(--acc)}
+.lp-fxt.fold .lp-fxs{display:grid;grid-template-columns:1fr 1fr;grid-template-rows:1fr 1fr;gap:3px;padding:5px;box-sizing:border-box;background:var(--f-line2);border-radius:18px;overflow:visible}
+.lp-fxt.fold .lp-fxs i{display:block;border-radius:50%;width:100%;height:100%}
+.lp-fxside{position:absolute;display:flex;flex-direction:column;justify-content:center;gap:10px;width:36px}
+.lp-fxside .lp-fxe{margin-right:0}
+.lp-fold{margin:0 0 14px;padding:12px 10px 4px;border-radius:20px;background:var(--f-card);border:1px solid var(--f-line)}
+.lp-fold-h{display:flex;align-items:center;gap:10px;margin:0 4px 10px}
+.lp-fold-n{flex:1;font-size:var(--fs-l,16px);font-weight:700}
+.lp-fold-h .lp-fxe{margin-right:0}
+.lp-fold-h input.sq{flex:1;min-width:0}

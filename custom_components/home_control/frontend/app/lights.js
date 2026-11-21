@@ -568,6 +568,8 @@ var LMASTER_NAME = {};
 var LMASTER_ALL = {};
 /* The order the owner gave the lights of a section's lights master, by section (entity ids); absent when they are shown by name. */
 var LMASTER_ORDER = {};
+/* The page (scope) of each section's lights master, for the scenes of its light popup. */
+var LMASTER_SCOPE = {};
 /* The lights an editor lets be added and taken out (see lightsEditDef). */
 var LMASTER_MEMBERS = {};
 
@@ -690,6 +692,7 @@ function lightsMasterSettings(b, key) {
         return on ? _T("every_light_of_the_section_even_those_") : _T("only_the_lights_that_are_on_or_all_if_none_is");
       })
     );
+    mscSourceRows(box, sec, p[0], draw);
     box.appendChild(sep(_T("order_of_the_lights"), "drag"));
     box.appendChild(hintRow(sec.mo ? _T("drag_a_light_to_move_it_the_row_follows_this_order") : _T("the_lights_are_in_alphabetical_order_drag_one_to_set_your_own")));
     var nodes = shown(),

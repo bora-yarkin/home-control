@@ -565,6 +565,7 @@ function customSection(s) {
       });
     if (mids.length > 1) {
       var mr = lightsMasterRow(s.id, mids, !s.nowheel, s.mn, s.mall, s.mo);
+      LMASTER_SCOPE[s.id] = secKey();
       rows.unshift(
         edMark(mr, function () {
           showPopup("lmaster-edit:" + secKey() + ":" + s.id, true);

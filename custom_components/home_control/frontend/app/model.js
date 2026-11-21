@@ -597,7 +597,7 @@ function cleanLayout(a) {
     if (k === "lights" && s.nowheel) o.nowheel = 1;
     if (k === "lights" && s.accent) o.accent = 1;
     if (k === "pinned" && Array.isArray(s.pins)) o.pins = cleanPins(s.pins);
-    if ((k === "quick" || k === "scenes") && Array.isArray(s.scn))
+    if ((k === "quick" || k === "scenes" || k === "lights") && Array.isArray(s.scn))
       o.scn = s.scn
         .filter(function (x, i, a) {
           return typeof x === "string" && /^[a-z0-9_-]{1,24}$/.test(x) && a.indexOf(x) === i;
@@ -611,6 +611,39 @@ function cleanLayout(a) {
         })
         .slice(0, 80);
       if (hord.length) o.hord = hord;
+    }
+    if (k === "lights") {
+      /* The scenes page of the lights master: where its scenes come from, the folders the owner made and the order of the tiles outside them. */
+      var key = function (x) {
+        return typeof x === "string" && /^[a-z0-9_.-]{1,80}$/.test(x);
+      };
+      if (Array.isArray(s.msrc))
+        o.msrc = s.msrc
+          .filter(function (x, i, a) {
+            return (x === "hue" || x === "page" || (typeof x === "string" && /^sec:[a-z0-9_-]{1,24}$/.test(x))) && a.indexOf(x) === i;
+          })
+          .slice(0, 24);
+      if (Array.isArray(s.mf)) {
+        var folders = s.mf
+          .filter(function (f) {
+            return f && typeof f.id === "string" && /^[a-z0-9]{1,12}$/.test(f.id) && typeof f.n === "string" && Array.isArray(f.s);
+          })
+          .slice(0, 30)
+          .map(function (f) {
+            return { id: f.id, n: f.n.slice(0, 40), s: f.s.filter(key).slice(0, 80) };
+          })
+          .filter(function (f) {
+            return f.s.length;
+          });
+        if (folders.length) o.mf = folders;
+      }
+      /* A folder's tile is "f:" and its id in the order. */
+      if (Array.isArray(s.mtop))
+        o.mtop = s.mtop
+          .filter(function (x) {
+            return key(x) || (typeof x === "string" && /^f:[a-z0-9]{1,12}$/.test(x));
+          })
+          .slice(0, 240);
     }
     if (k === "scenes") {
       /* Where a scenes section gets its scenes: the area it names (the room's own when it names none), the scene entities chosen for it and the plugin scenes it hides (a list of its own, even an empty one). */
