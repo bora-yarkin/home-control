@@ -946,6 +946,8 @@ function lpState(root, both, groups) {
     root: root,
     both: both,
     ex: {},
+    /* The groups of the lights row that are opened beside their tile (not separated on the wheel). */
+    trayEx: {},
     sel: null,
     subs: [],
     joined: [],
@@ -1036,28 +1038,6 @@ function lpState(root, both, groups) {
     }
     S.sel = kid.key;
     S.pop = [kid.key];
-    S.rebuild();
-  };
-  /* A group of the lights row opened (double tap, long press): its lights are tiles of the row from then on. The wheel is as it was: the lights stay together on their marker until one is dragged out. */
-  S.openGroup = function (n) {
-    if (!S.hier || !n.kids || n.virtual || n.zones || S.ex[n.key]) return;
-    var inside = S.joined.some(function (v) {
-      return v.kids.indexOf(n) >= 0;
-    });
-    S.ex[n.key] = true;
-    S.joined = S.joined.map(function (v) {
-      if (v.kids.indexOf(n) < 0) return v;
-      var kids = [];
-      v.kids.forEach(function (k) {
-        if (k === n) kids = kids.concat(n.kids);
-        else kids.push(k);
-      });
-      return S.makeVirtual(kids, v.icon);
-    });
-    if (!inside && n.kids.length > 1) S.joined.push(S.makeVirtual(n.kids, n.icon));
-    S.focus = null;
-    S.sel = null;
-    S.pop = null;
     S.rebuild();
   };
   /* Dropping one marker on another, in a panel whose groups are single lights: they share one marker; a group that has all its lights in it is whole again, and so on up to the whole. */
@@ -1935,13 +1915,47 @@ function lpTileSel(S, n) {
   });
 }
 
+/* The lights row of a panel whose groups are single lights: each tile, and after a group that was opened its lights (which can be groups that are opened too). */
+function lpTrayStruct(S, list, depth) {
+  return list.map(function (n) {
+    var item = { n: n };
+    if (lpIsGroup(n) && S.trayEx[n.key]) item.kids = lpTrayStruct(S, lpSortLights(n.kids, null), (depth || 0) + 1);
+    return item;
+  });
+}
+
+function lpTraySig(items) {
+  return items
+    .map(function (it) {
+      return it.n.key + (it.kids ? "[" + lpTraySig(it.kids) + "]" : "");
+    })
+    .join(",");
+}
+
+/* The colours a group tile shows: its lights' own when they do not all run alike (a gradient from the top left to the bottom right), else the one colour. */
+function lpGroupColours(n) {
+  var cs = [];
+  (n.kids || []).forEach(function (k) {
+    var c = avgLight(k.cmd.filter(isOn));
+    if (!c) return;
+    if (
+      !cs.some(function (x) {
+        return Math.abs(x[0] - c[0]) + Math.abs(x[1] - c[1]) + Math.abs(x[2] - c[2]) < 24;
+      })
+    )
+      cs.push(c);
+  });
+  return cs.length > 1 ? cs.slice(0, 4) : null;
+}
+
 function lpTray(S) {
   var tray = mk("div", "lp-tray"),
     tiles = [];
   function paint() {
     tiles.forEach(function (t) {
       var on = countOn(t.n.cmd) > 0,
-        cs = on ? lpTileColours(t.n) : null,
+        grp = S.hier && lpIsGroup(t.n),
+        cs = on ? (grp && lpGroupColours(t.n)) || lpTileColours(t.n) : null,
         lum = 0;
       var fxn = on ? lpTileEffect(t.n) : "";
       t.el.classList.toggle("on", on);
@@ -1960,7 +1974,7 @@ function lpTray(S) {
         }, 0) / cs.length;
         t.el.style.background =
           cs.length > 1
-            ? "linear-gradient(180deg," + cs.map(cssRgb).join(",") + ")"
+            ? "linear-gradient(" + (grp ? "135deg" : "180deg") + "," + cs.map(cssRgb).join(",") + ")"
             : "linear-gradient(180deg," + cssRgb(cs[0]) + "," + cssRgb(cs[0].map(function (v) {
                 return v * 0.86;
               })) + ")";
@@ -1968,8 +1982,66 @@ function lpTray(S) {
       t.el.classList.toggle("lt", !!cs && lum > 0.62);
     });
   }
+  var curSig = null;
+  /* A panel whose groups are single lights: the tiles, and beside a group that was opened its lights, with a button that closes it. An opened or closed group slides, and the tiles after it slide with it. */
+  function fillHier(anim) {
+    var items = lpTrayStruct(S, lpTrayNodes(S)),
+      sig = lpTraySig(items);
+    if (sig === curSig && !anim) return;
+    curSig = sig;
+    var left = tray.scrollLeft;
+    tray.textContent = "";
+    tiles = [];
+    addItems(items, tray);
+    if (S.members) addPlus();
+    tray.scrollLeft = left;
+    var wrap = anim && anim.open ? tray.querySelector('.lp-tg[data-key="' + anim.open + '"]') : null;
+    if (wrap && wrap.animate) {
+      var w = wrap.getBoundingClientRect().width;
+      wrap.animate(
+        [
+          { width: "0px", opacity: 0, marginLeft: "-10px" },
+          { width: w + "px", opacity: 1, marginLeft: "0px" },
+        ],
+        { duration: 320, easing: "cubic-bezier(.2,.9,.25,1)" }
+      );
+    }
+  }
+  function addItems(items, parent) {
+    items.forEach(function (it) {
+      addTile(it.n, parent);
+      if (!it.kids) return;
+      var wrap = mk("div", "lp-tg"),
+        col = mk("div", "lp-tcol", svg("back"));
+      wrap.dataset.key = it.n.key;
+      col.setAttribute("role", "button");
+      col.setAttribute("aria-label", _T("back"));
+      col.addEventListener("click", function () {
+        var done = function () {
+          delete S.trayEx[it.n.key];
+          fillHier();
+          paint();
+        };
+        var run = wrap.animate
+          ? wrap.animate(
+              [
+                { width: wrap.getBoundingClientRect().width + "px", opacity: 1, marginLeft: "0px" },
+                { width: "0px", opacity: 0, marginLeft: "-10px" },
+              ],
+              { duration: 300, easing: "cubic-bezier(.4,0,.6,1)", fill: "forwards" }
+            )
+          : null;
+        if (run) run.onfinish = done;
+        else done();
+      });
+      wrap.appendChild(col);
+      addItems(it.kids, wrap);
+      parent.appendChild(wrap);
+    });
+  }
   /* The tiles follow what is shown on the circles: a group that was separated is its lights. */
   function fill() {
+    if (S.hier) return fillHier();
     var nodes = lpTrayNodes(S);
     if (
       tiles.length === nodes.length &&
@@ -1981,7 +2053,9 @@ function lpTray(S) {
     var left = tray.scrollLeft;
     tray.textContent = "";
     tiles = [];
-    nodes.forEach(addTile);
+    nodes.forEach(function (n) {
+      addTile(n);
+    });
     if (S.members) addPlus();
     tray.scrollLeft = left;
   }
@@ -2014,7 +2088,7 @@ function lpTray(S) {
     });
     tray.appendChild(el);
   }
-  function addTile(n) {
+  function addTile(n, parent) {
     var el = mk("div", "lp-tile", "<div class='lp-tfx'></div>" + svg(n.icon || "light")),
       nm = mk("div", "lp-tn"),
       sw = mk("div", "lp-sw", "<i></i>");
@@ -2023,44 +2097,13 @@ function lpTray(S) {
     el.appendChild(sw);
     el.addEventListener("click", function () {
       S.reveal(n);
+      /* A tap on a group opens it beside its tile: its lights come out to the right of it. */
+      if (S.hier && lpIsGroup(n) && !S.trayEx[n.key]) {
+        S.trayEx[n.key] = true;
+        fillHier({ open: n.key });
+        paint();
+      }
     });
-    /* A group of the row opens into its lights with a double tap or a long press; a tap only picks it. */
-    if (S.hier && lpIsGroup(n)) {
-      var held = false,
-        timer = 0,
-        at = null;
-      el.addEventListener("pointerdown", function (ev) {
-        held = false;
-        at = [ev.clientX, ev.clientY];
-        clearTimeout(timer);
-        timer = setTimeout(function () {
-          held = true;
-          S.openGroup(n);
-        }, 520);
-      });
-      el.addEventListener("pointermove", function (ev) {
-        if (at && Math.hypot(ev.clientX - at[0], ev.clientY - at[1]) > 10) clearTimeout(timer);
-      });
-      ["pointerup", "pointercancel", "pointerleave"].forEach(function (type) {
-        el.addEventListener(type, function () {
-          clearTimeout(timer);
-        });
-      });
-      /* the tap that ends a long press is not a tap */
-      el.addEventListener(
-        "click",
-        function (ev) {
-          if (held) {
-            held = false;
-            ev.stopImmediatePropagation();
-          }
-        },
-        true
-      );
-      el.addEventListener("dblclick", function () {
-        S.openGroup(n);
-      });
-    }
     sw.addEventListener("click", function (e) {
       e.stopPropagation();
       lightsMasterToggle(n.cmd);
@@ -2077,7 +2120,7 @@ function lpTray(S) {
       });
       el.appendChild(rm);
     }
-    tray.appendChild(el);
+    (parent || tray).appendChild(el);
     tiles.push({ n: n, el: el, fxl: el.firstChild });
   }
   S.subs.push({
