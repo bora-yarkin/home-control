@@ -31,7 +31,7 @@ test("a way of making a scene a plugin offers is a row of the new-scene popup, s
   assert.deepEqual(rows.map((r) => r.name), ["T:tb"], "a way that is not available for the page is not offered");
 });
 
-function editor(lights, saved, attrs = () => ({})) {
+function editor(lights, saved, attrs = () => ({}), extra = {}) {
   const sandbox = {
     setTimeout,
     Date,
@@ -43,8 +43,11 @@ function editor(lights, saved, attrs = () => ({})) {
     LMASTER: {},
     LMASTER_NAME: {},
     LMASTER_ALL: {},
+    LMASTER_MEMBERS: {},
     LWHEEL: {},
-    lightsMasterPopup() {},
+    lightsMasterPopup() {
+      sandbox.drawn = (sandbox.drawn || 0) + 1;
+    },
     callRaw() {},
     POPGUARD: null,
     guardUnsaved(o) {
@@ -56,7 +59,7 @@ function editor(lights, saved, attrs = () => ({})) {
   };
   vm.createContext(sandbox);
   vm.runInContext(read("lighteditor.js"), sandbox);
-  sandbox.openLightsEditor({ name: "Scene", lights, onSave: saved });
+  sandbox.openLightsEditor({ name: "Scene", lights, onSave: saved, ...extra });
   sandbox.open = () => {
     sandbox.def = sandbox.lightsEditDef();
     sandbox.def.build({});
@@ -101,4 +104,30 @@ test("the lights editor opens only once the lights have stopped changing, so the
   await until(() => sb.shown);
   assert.ok(Date.now() - began >= 1500, "it waited for the lights to settle");
   assert.deepEqual(sb.shown, ["lights-edit", true, "boolean"]);
+});
+
+test("an editor with candidates lets lights be taken out (one stays) and added, draws again, asks before leaving and saves the lights it ends with", async () => {
+  const saved = [];
+  const sb = editor(["light.a", "light.b"], (acts, lights) => (saved.push(lights), true), () => ({}), { candidates: () => ["light.a", "light.b", "light.c"] });
+  await until(() => sb.shown);
+  const body = { textContent: "x" };
+  sb.def = sb.lightsEditDef();
+  sb.def.build(body);
+  const members = sb.LMASTER_MEMBERS.edit;
+  assert.deepEqual([...members.candidates()], ["light.c"], "only lights that are not in the scene");
+  assert.equal(sb.guard.dirty(), false);
+  members.add("light.c");
+  members.remove("light.a");
+  assert.deepEqual([...sb.LMASTER.edit], ["light.b", "light.c"]);
+  assert.equal(body.textContent, "", "the popup is drawn again");
+  assert.equal(sb.guard.dirty(), true, "a change of lights is a change to keep or discard");
+  await sb.guard.save(() => {});
+  assert.deepEqual(saved, [["light.b", "light.c"]]);
+});
+
+test("an editor without candidates has no way to change its lights", async () => {
+  const sb = editor(["light.a"], () => true);
+  await until(() => sb.shown);
+  sb.open();
+  assert.equal(sb.LMASTER_MEMBERS.edit, null);
 });

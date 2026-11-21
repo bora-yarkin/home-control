@@ -4,6 +4,11 @@ Format: [Keep a Changelog](https://keepachangelog.com/). Versions follow [semant
 
 ## [Unreleased]
 
+## [0.16.1] - 2026-11-21
+
+### Added
+- **A scene editor can take lights out and add lights.** When the plugin that opens the editor lists lights that can be added (`candidates()` of `scenes.editLights`), each tile has a minus (one light always stays) and a plus tile lists the other lights to add. `onSave` also gets the lights the editor ends with.
+
 ## [0.16.0] - 2026-11-20
 
 ### Changed

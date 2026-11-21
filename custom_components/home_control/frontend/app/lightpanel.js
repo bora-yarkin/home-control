@@ -1840,7 +1840,37 @@ function lpTray(S) {
     tray.textContent = "";
     tiles = [];
     nodes.forEach(addTile);
+    if (S.members) addPlus();
     tray.scrollLeft = left;
+  }
+  /* In a scene editor the tiles can be taken out of the scene and others of the room added: S.members is { lights(), candidates(), add(id), remove(id) }. */
+  function addPlus() {
+    var el = mk("div", "lp-tile lp-add", svg("plus")),
+      nm = mk("div", "lp-tn"),
+      list = null;
+    nm.textContent = _T("add_a_light");
+    el.appendChild(nm);
+    el.addEventListener("click", function () {
+      if (list) {
+        list.remove();
+        list = null;
+        return;
+      }
+      var ids = S.members.candidates();
+      list = mk("div", "lp-addlist");
+      if (!ids.length) list.appendChild(mk("div", "lp-addnone")).textContent = _T("nothing_found");
+      ids.forEach(function (id) {
+        list.appendChild(
+          pill("light", A(id).friendly_name || id, {
+            tap: function () {
+              S.members.add(id);
+            },
+          })
+        );
+      });
+      tray.parentNode.insertBefore(list, tray.nextSibling);
+    });
+    tray.appendChild(el);
   }
   function addTile(n) {
     var el = mk("div", "lp-tile", "<div class='lp-tfx'></div>" + svg(n.icon || "light")),
@@ -1856,6 +1886,18 @@ function lpTray(S) {
       e.stopPropagation();
       lightsMasterToggle(n.cmd);
     });
+    if (S.members && S.members.lights().length > 1) {
+      var rm = mk("div", "lp-rm", svg("minus"));
+      rm.setAttribute("role", "button");
+      rm.setAttribute("aria-label", _T("remove_2"));
+      rm.addEventListener("click", function (e) {
+        e.stopPropagation();
+        n.cmd.forEach(function (id) {
+          S.members.remove(id);
+        });
+      });
+      el.appendChild(rm);
+    }
     tray.appendChild(el);
     tiles.push({ n: n, el: el, fxl: el.firstChild });
   }
@@ -2233,6 +2275,7 @@ function lightPanel(b, root, o) {
     any = colorOk || whiteOk,
     S = lpState(root, colorOk && whiteOk);
   S.maker = !!o.maker;
+  S.members = o.members || null;
   S.mode = lpFirstMode(root, colorOk, whiteOk);
   S.restore = LPBACK && LPBACK.root === root.key ? LPBACK : null;
   LPBACK = null;
