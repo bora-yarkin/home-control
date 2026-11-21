@@ -105,9 +105,10 @@ function mscDynamic(it) {
   return it.kind === "live" || (it.kind === "hue" && !!pluginSceneKind(it.id).dynamic(it.id));
 }
 
-/* Starts it (or stops it, when it plays and can be stopped), on the lights of the master. */
+/* Starts it (or stops it, when it plays and can be stopped), on the lights of the master. A still scene that is on is switched off by tapping it again: it has nothing to stop, so the lights go off. */
 function mscPlay(S, it) {
   if (it.kind === "live") return liveToggle(it.sc);
+  if (!mscDynamic(it) && mscActive(it)) return call("light", "turn_off", { entity_id: S.root.cmd });
   if (it.kind === "classic") return runScene(it.sc);
   var kind = pluginSceneKind(it.id);
   if (kind.dynamic(it.id)) {
@@ -225,7 +226,8 @@ function mscTile(S, it) {
   var t = mk("div", "lp-fxt"),
     sw = mk("div", "lp-fxs");
   sw.style.background = "var(--f-raise)";
-  sw.appendChild(mk("div", "lp-fxstop", "<i></i>"));
+  /* A scene that moves has a stop on its picture while it plays; a still scene has none (tapping it again switches the lights off). */
+  if (mscDynamic(it)) sw.appendChild(mk("div", "lp-fxstop", "<i></i>"));
   t.appendChild(sw);
   t.appendChild(mk("div", "lp-fxn")).textContent = it.name;
   t.appendChild(mk("div", "lp-fxv")).textContent = mscKindLabel(it);

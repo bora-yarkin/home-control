@@ -15,6 +15,7 @@ Format: [Keep a Changelog](https://keepachangelog.com/). Versions follow [semant
 - **Scenes added to a scenes section were added as devices.** The add popup has a *Scenes* type of its own (they were in *Controls*), and a scene chosen there for a scenes section becomes one of the section's scenes, drawn and opened as any scene is (a Hue scene opens its popup), with a trash that only takes it out of the section.
 
 ### Added
+- **Still scenes in the Scenes page of a lights master have no stop icon**, and tapping one that is on switches the lights off (a scene that moves still stops).
 - **Under the name of a light in the lights row: what it is doing.** The effect it runs (Candle), *Dynamics* when a scene's colours move on it (a live scene, or a Hue scene when Hue Plus says which lights it plays on), *Sync* when a sync plays on it (a plugin says so), *Dynamics* also when the bridge says the light plays a scene's colours, *Static* for one colour, *Mixed* for a group whose lights differ, and nothing while it is off.
 - **A lights master with a sync tab switches off its lights that the sync does not play on** when the sync starts (a few seconds after it, when the sync says which lights it is on): they are not in its area.
 - **A lights master can open on a tab of your choice** (*Opens on* in its settings: Default, Colour, White, Effects, Scenes or Sync). A tab it does not have leaves the default.

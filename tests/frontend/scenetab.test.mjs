@@ -127,3 +127,30 @@ test("the Scenes file is in the list of files, after the light panel", () => {
   const files = JSON.parse(readFileSync(new URL("../../custom_components/home_control/frontend/version.json", import.meta.url), "utf8")).files;
   assert.ok(files.indexOf("app/scenetab.js") === files.indexOf("app/lightpanel.js") + 1);
 });
+
+test("a still scene has no stop on its picture, and tapping it again while it is on switches the lights off", () => {
+  const tab = read("scenetab.js");
+  assert.match(tab, /if \(mscDynamic\(it\)\) sw\.appendChild\(mk\("div", "lp-fxstop", "<i><\/i>"\)\);/);
+  const play = tab.slice(tab.indexOf("function mscPlay("), tab.indexOf("\n}\n", tab.indexOf("function mscPlay(")) + 3);
+  const calls = [];
+  const run = (it, active) => {
+    const sandbox = {
+      liveToggle: () => calls.push("live"),
+      mscDynamic: (x) => x.kind === "live" || x.dyn,
+      mscActive: () => active,
+      call: (d, s, data) => calls.push([d, s, plain(data)]),
+      runScene: () => calls.push("run"),
+      liveStopOn: () => {},
+      pluginSceneKind: () => ({ dynamic: () => true, active: () => active, toggle: () => calls.push("toggle"), start: () => calls.push("start") }),
+    };
+    vm.createContext(sandbox);
+    vm.runInContext(play, sandbox);
+    calls.length = 0;
+    sandbox.mscPlay({ root: { cmd: ["light.a", "light.b"] } }, it);
+    return plain(calls);
+  };
+  assert.deepEqual(run({ kind: "classic", sc: {} }, true), [["light", "turn_off", { entity_id: ["light.a", "light.b"] }]], "a classic scene that is on: off");
+  assert.deepEqual(run({ kind: "classic", sc: {} }, false), ["run"], "not on: it runs");
+  assert.deepEqual(run({ kind: "hue", id: "scene.x", dyn: false }, true), [["light", "turn_off", { entity_id: ["light.a", "light.b"] }]], "a still Hue scene that is on: off");
+  assert.deepEqual(run({ kind: "hue", id: "scene.x", dyn: true }, true), ["toggle"], "a moving one stops");
+});
