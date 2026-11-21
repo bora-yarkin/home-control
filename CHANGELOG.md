@@ -4,6 +4,8 @@ Format: [Keep a Changelog](https://keepachangelog.com/). Versions follow [semant
 
 ## [Unreleased]
 
+## [0.17.0] - 2026-11-21
+
 ### Fixed
 - **Opening and closing a group in the lights row was jumpy.** The whole row was drawn again and the section's width was animated. Now only the section's clip and the tiles after it are moved, with the same timing (the edge of the reveal and the tile after it travel together), and nothing else in the row changes. Opening a group slides the row so the group and its lights are in view; closing one slides the row back with the rest when it was scrolled past its new end, instead of the browser pulling it in with a jump.
 - **The last light of an opened group in the lights row was cut off, and the tile after it overlapped it, in Safari.** The section was spaced with `gap`, which Safari leaves out of its width. It is spaced with margins now, and its width is set outright to the width of its lights, so no browser can make it narrower.
