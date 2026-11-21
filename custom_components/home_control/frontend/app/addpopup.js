@@ -3,6 +3,15 @@
 
 /* One chosen entity put on the page; a TV or a camera is linked to what belongs to it. Gives the device and whether its setup page is worth opening. */
 function addCandidate(rid, c) {
+  /* A scene chosen for a scenes section is one of that section's scenes (drawn as any scene is), not a device in it. */
+  var sec = rid.charAt(0) === "~" ? sectionOfList(rid) : null;
+  if (sec && sec.k === "scenes" && dom(c.id) === "scene") {
+    sec.sents = (sec.sents || []).filter(function (x) {
+      return x !== c.id;
+    });
+    sec.sents.push(c.id);
+    return { d: null, at: { rid: rid, i: -1 }, wizard: false };
+  }
   var kind = DOMKIND[dom(c.id)] || "sensor",
     d = { id: c.id, name: c.name, icon: defIcon(kind, c.name, c.id), kind: kind };
   if (kind === "media" && d.icon === "tv") d.sub = 1;

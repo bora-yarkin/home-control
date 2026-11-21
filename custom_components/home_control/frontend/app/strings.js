@@ -582,6 +582,8 @@ var EN = {
   "home": "Home",
   "settings": "Settings",
   "scenes": "Scenes",
+  "scenes_from": "Scenes from",
+  "scenes_from_this_page": "This page's area",
   "effects": "Effects",
   "effect_settings": "Effect settings",
   "colour_lights": "Colour lights",

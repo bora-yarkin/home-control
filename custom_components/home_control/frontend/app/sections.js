@@ -110,7 +110,7 @@ var SECTYPES = {
       d: _T("scenes_for_this_page"),
       own: 1,
       noun: _T("device_2"),
-      add: "controls",
+      add: "scenes",
     },
     alerts: {
       t: _T("attention"),

@@ -612,6 +612,19 @@ function cleanLayout(a) {
         .slice(0, 80);
       if (hord.length) o.hord = hord;
     }
+    if (k === "scenes") {
+      /* Where a scenes section gets its scenes: the area it names (the room's own when it names none), the scene entities chosen for it and the plugin scenes it hides (a list of its own, even an empty one). */
+      if (typeof s.sarea === "string" && /^[a-z0-9_]{1,64}$/.test(s.sarea)) o.sarea = s.sarea;
+      var sceneList = function (v) {
+        return v
+          .filter(function (x, i, a) {
+            return typeof x === "string" && /^scene\.[a-z0-9_]{1,80}$/.test(x) && a.indexOf(x) === i;
+          })
+          .slice(0, 80);
+      };
+      if (Array.isArray(s.sents) && sceneList(s.sents).length) o.sents = sceneList(s.sents);
+      if (Array.isArray(s.hscn)) o.hscn = sceneList(s.hscn);
+    }
     if (ty.own) {
       o.devs = [];
       (Array.isArray(s.devs) ? s.devs : []).slice(0, 80).forEach(function (d) {

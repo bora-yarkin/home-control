@@ -398,11 +398,11 @@ var ADDDOMS = [
       "button",
       "input_button",
       "script",
-      "scene",
       "cover",
       "lock",
     ],
   ],
+  [_T("scenes"), ["scene"]],
   [_T("helpers"), ["input_text", "input_datetime", "counter", "timer"]],
   [_T("all_entities"), ["*"]],
   [_T("remote"), ["__remote"]],
@@ -436,9 +436,16 @@ var DOMKIND = {
   lock: "lock",
 };
 
+/* A room by its id. "room.section" is the room as one of its scenes sections shows it: the room with that section (`sec`, which has its own hidden scenes and its own source of scenes). */
 function roomById(id) {
-  for (var i = 0; i < UI.rooms.length; i++) if (UI.rooms[i].id === id) return UI.rooms[i];
-  return null;
+  var at = String(id).split("."),
+    room = null;
+  for (var i = 0; i < UI.rooms.length; i++) if (UI.rooms[i].id === at[0]) room = UI.rooms[i];
+  if (!room || at.length < 2) return room;
+  var sec = ((UI.layout.rooms || {})[room.id] || []).filter(function (x) {
+    return x.id === at[1];
+  })[0];
+  return sec ? sceneSectionRoom(room, sec) : null;
 }
 
 function devAt(key) {
@@ -446,13 +453,18 @@ function devAt(key) {
   return devList(p[0])[+p[1]] || null;
 }
 
+/* The section a "~page~section" list id names. */
+function sectionOfList(rid) {
+  var p = rid.split("~"),
+    arr = p[1] === "home" ? UI.layout.home : UI.layout.rooms[p[1]] || [];
+  for (var i = 0; i < arr.length; i++) if (arr[i].id === p[2]) return arr[i];
+  return null;
+}
+
 function devList(rid) {
   if (rid.charAt(0) === "~") {
-    var p = rid.split("~"),
-      arr = p[1] === "home" ? UI.layout.home : UI.layout.rooms[p[1]] || [];
-    for (var i = 0; i < arr.length; i++)
-      if (arr[i].id === p[2]) return (arr[i].devs = arr[i].devs || []);
-    return [];
+    var s = sectionOfList(rid);
+    return s ? (s.devs = s.devs || []) : [];
   }
   return UI.devs[rid] || [];
 }

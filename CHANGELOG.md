@@ -4,6 +4,13 @@ Format: [Keep a Changelog](https://keepachangelog.com/). Versions follow [semant
 
 ## [Unreleased]
 
+### Fixed
+- **Hiding a scene in one scenes section hid it in every section of the page.** The hidden Hue scenes were kept with the room. A section now keeps its own list: until its first change it uses the room's list as before, then its own.
+- **Scenes added to a scenes section were added as devices.** The add popup has a *Scenes* type of its own (they were in *Controls*), and a scene chosen there for a scenes section becomes one of the section's scenes, drawn and opened as any scene is (a Hue scene opens its popup), with a trash that only takes it out of the section.
+
+### Added
+- **A scenes section can take its scenes from another area** (*Scenes from* in the section's settings): the bathroom's scenes on the bedroom's page. The page's own area is the default.
+
 ## [0.16.1] - 2026-11-21
 
 ### Added
