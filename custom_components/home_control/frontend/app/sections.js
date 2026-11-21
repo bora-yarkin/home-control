@@ -553,24 +553,16 @@ function customSection(s) {
       rows.length > 0
     );
   }
-  if (!rows.length && !ed) return null;
-  /* Lights master: one light at the top that controls every light of the section; off unless the section turns it on. While the page is edited it opens its settings. */
-  if (k === "lights" && s.master) {
-    var mids = src
-      .filter(function (d) {
-        return d.id && d.kind === "light";
+  var mids = k === "lights" && s.master ? masterLightIds(s) : [];
+  if (!rows.length && !ed && !(s.mm && mids.length > 1)) return null;
+  /* Lights master: one light at the top that controls every light of the section (or the lights chosen for it); off unless the section turns it on. While the page is edited it opens its settings. */
+  if (k === "lights" && s.master && mids.length > 1) {
+    var mr = lightsMasterRow(secKey() + "~" + s.id, mids, !s.nowheel, s.mn, s.mall, s.mo, masterMeta(s));
+    rows.unshift(
+      edMark(mr, function () {
+        showPopup("lmaster-edit:" + secKey() + ":" + s.id, true);
       })
-      .map(function (d) {
-        return d.id;
-      });
-    if (mids.length > 1) {
-      var mr = lightsMasterRow(secKey() + "~" + s.id, mids, !s.nowheel, s.mn, s.mall, s.mo);
-      rows.unshift(
-        edMark(mr, function () {
-          showPopup("lmaster-edit:" + secKey() + ":" + s.id, true);
-        })
-      );
-    }
+    );
   }
   var body = rows;
   if (k === "read") {

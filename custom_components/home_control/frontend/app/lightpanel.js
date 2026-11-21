@@ -37,7 +37,13 @@ function lpMasterNode(sid, ids) {
   var units = lightUnits(ids),
     n = { key: "m:" + sid, name: LMASTER_NAME[sid] || _T("all_lights"), icon: "lights", cmd: units, kids: null, parent: null, zones: false, order: LMASTER_ORDER[sid] || null };
   n.kids = units.map(function (u) {
-    var k = lpNodeOf(u, null);
+    var k = lpNodeOf(u, null),
+      meta = (LMASTER_META[sid] || {})[u];
+    /* A manual master can show a light under a name and icon of its own. */
+    if (meta) {
+      if (meta.n) k.name = meta.n;
+      if (meta.i) k.icon = meta.i;
+    }
     k.parent = n;
     return k;
   });
@@ -2080,6 +2086,9 @@ function lpStage(S, host) {
   if (fx.effects.length) modes.push("fx");
   /* A lights master has the Scenes page after Effects. */
   if (!S.maker && mscSection(root)) modes.push("scenes");
+  /* and the sync, as a page of its own, when the master has it on */
+  var syncId = !S.maker && mscSection(root) ? masterSyncOf(mscSection(root).e) : null;
+  if (syncId) modes.push("sync");
   S.modes = modes;
   if (S.restore && modes.indexOf(S.restore.mode) >= 0) S.mode = S.restore.mode;
   if (S.restore && S.restore.sel) S.sel = S.restore.sel;
@@ -2087,8 +2096,8 @@ function lpStage(S, host) {
   S.stage = st;
   track.style.setProperty("--n", modes.length);
   modes.forEach(function (m) {
-    panes[m] = mk("div", "lp-pane" + (m === "fx" || m === "scenes" ? " fx" : ""));
-    if (m !== "fx" && m !== "scenes") panes[m].appendChild(lpCircle(S, m));
+    panes[m] = mk("div", "lp-pane" + (m === "fx" || m === "scenes" || m === "sync" ? " fx" : "") + (m === "sync" ? " sync" : ""));
+    if (m !== "fx" && m !== "scenes" && m !== "sync") panes[m].appendChild(lpCircle(S, m));
     track.appendChild(panes[m]);
   });
   view.appendChild(track);
@@ -2110,14 +2119,21 @@ function lpStage(S, host) {
       panes.scenes._built = true;
       lpScenesPane(S, panes.scenes);
     }
+    if (S.mode === "sync" && !panes.sync._built) {
+      panes.sync._built = true;
+      panes.sync._size = lpSyncPane(S, panes.sync, syncId, function () {
+        lpSyncSize(S, view, panes.sync, true);
+      });
+    }
+    lpSyncMode(S, st, view, panes.sync, anim);
   }
   if (modes.length > 1) {
     tabs = mk("div", "lp-itabs");
     modes.forEach(function (m, i) {
-      if (m === "fx" || m === "scenes") tabs.appendChild(mk("div", "lp-sep"));
-      var x = mk("div", "lp-it " + m, m === "fx" ? svg("sparkle") : m === "scenes" ? svg("palette") : "<i></i>");
+      if (m === "fx" || m === "scenes" || m === "sync") tabs.appendChild(mk("div", "lp-sep"));
+      var x = mk("div", "lp-it " + m, m === "fx" ? svg("sparkle") : m === "scenes" ? svg("palette") : m === "sync" ? svg("syncring") : "<i></i>");
       x.setAttribute("role", "button");
-      x.setAttribute("aria-label", m === "color" ? _T("colour") : m === "white" ? _T("white") : m === "scenes" ? _T("scenes") : _T("effects"));
+      x.setAttribute("aria-label", m === "color" ? _T("colour") : m === "white" ? _T("white") : m === "scenes" ? _T("scenes") : m === "sync" ? _T("master_sync_tab") : _T("effects"));
       x.dataset.m = m;
       x.addEventListener("click", function () {
         S.mode = m;
@@ -2157,7 +2173,15 @@ function lpStage(S, host) {
   bar.appendChild(right);
   st.appendChild(view);
   st.appendChild(bar);
-  st.appendChild(lpTray(S));
+  /* The tray slides shut while the sync is shown. */
+  var trayBox = mk("div", "lp-collapsible");
+  trayBox.appendChild(lpTray(S));
+  S.syncSubs = (S.syncSubs || []).concat([
+    function (on) {
+      trayBox.classList.toggle("shut", on);
+    },
+  ]);
+  st.appendChild(trayBox);
   host.appendChild(st);
   paint(false);
   return st;
@@ -2264,9 +2288,18 @@ function lightPanel(b, root, o) {
   }
   if (any && o.sliders) lpSliders(b, root, colorOk, whiteOk);
   if (any && o.room) {
-    var pbox = mk("div");
-    b.appendChild(pbox);
+    var pbox = mk("div"),
+      pwrap = mk("div", "lp-collapsible");
+    pwrap.appendChild(pbox);
+    b.appendChild(pwrap);
     lpSaved(pbox, S, o.room);
+    if (S.mode === "sync") pwrap.classList.add("shut");
+    /* The saved colours slide shut while the sync is shown. */
+    S.syncSubs = (S.syncSubs || []).concat([
+      function (on) {
+        pwrap.classList.toggle("shut", on);
+      },
+    ]);
   }
 }
 
@@ -2357,4 +2390,68 @@ function lpSaved(pbox, S, room) {
     }
   }
   draw();
+}
+
+/* The sync as a page of the light panel: the same page as the sync popup, built into the panel. While it is shown the saved colours, the lights row and the brightness button go (they slide shut or fade), the panel's page grows to the height of the sync page so the tabs slide down to the bottom, and everything comes back when another tab is chosen. `size` is called when the page changes height. */
+function lpSyncPane(S, pane, id, size) {
+  var box = mk("div", "lp-fx"),
+    inner = mk("div", "lp-sync-in"),
+    kind = pluginDeviceKind(id),
+    prev = CUR;
+  box.appendChild(inner);
+  pane.appendChild(box);
+  /* What the page registers for its updates belongs to the popup that shows it, not to the whole page. */
+  CUR = SLIVE;
+  try {
+    popupDef(kind.pop + ":" + id).build(inner);
+  } finally {
+    CUR = prev;
+  }
+  if (window.ResizeObserver) new ResizeObserver(size).observe(inner);
+  pane._inner = inner;
+  return size;
+}
+
+/* The height the page of the panel has while the sync is shown: what the sync page needs, at most most of the screen. */
+function lpSyncSize(S, view, pane, animate) {
+  if (S.mode !== "sync" || !pane._inner) return;
+  var want = Math.max(260, Math.min(pane._inner.offsetHeight + 8, Math.round(window.innerHeight * 0.62)));
+  view.style.transition = animate ? "height .38s cubic-bezier(.2,.9,.25,1)" : "none";
+  view.style.height = want + "px";
+}
+
+/* Switching to or from the sync page: the classes that slide and fade the rest, and the page's height. */
+function lpSyncMode(S, st, view, pane, anim) {
+  var on = S.mode === "sync",
+    was = st.classList.contains("sync");
+  if (on === was) return;
+  st.classList.toggle("sync", on);
+  (S.syncSubs || []).forEach(function (f) {
+    f(on);
+  });
+  if (on) {
+    view.classList.add("sizing");
+    var from = view.offsetHeight;
+    view.style.transition = "none";
+    view.style.height = from + "px";
+    void view.offsetHeight;
+    lpSyncSize(S, view, pane, anim !== false);
+  } else {
+    var cur = view.offsetHeight;
+    view.classList.remove("sizing");
+    view.style.height = "";
+    var nat = view.offsetHeight;
+    view.classList.add("sizing");
+    view.style.transition = "none";
+    view.style.height = cur + "px";
+    void view.offsetHeight;
+    view.style.transition = anim === false ? "none" : "height .38s cubic-bezier(.2,.9,.25,1)";
+    view.style.height = nat + "px";
+    setTimeout(function () {
+      if (S.mode === "sync") return;
+      view.classList.remove("sizing");
+      view.style.height = "";
+      view.style.transition = "";
+    }, 420);
+  }
 }

@@ -569,6 +569,8 @@ var LMASTER_NAME = {};
 var LMASTER_ALL = {};
 /* The order the owner gave the lights of a section's lights master, by section (entity ids); absent when they are shown by name. */
 var LMASTER_ORDER = {};
+/* The names and icons a manual master shows for its lights, by section. */
+var LMASTER_META = {};
 /* The lights an editor lets be added and taken out (see lightsEditDef). */
 var LMASTER_MEMBERS = {};
 
@@ -605,8 +607,9 @@ function lightsMasterToggle(ids) {
   if (plain.length) call("light", "turn_on", { entity_id: plain });
 }
 
-function lightsMasterRow(sid, ids, wheel, name, all, order) {
+function lightsMasterRow(sid, ids, wheel, name, all, order, meta) {
   LMASTER[sid] = ids;
+  LMASTER_META[sid] = meta || {};
   LMASTER_NAME[sid] = name || "";
   LMASTER_ALL[sid] = !!all;
   LMASTER_ORDER[sid] = order || null;
@@ -664,13 +667,7 @@ function lightsMasterSettings(b, key) {
   var box = mk("div");
   b.appendChild(box);
   function lightIds() {
-    return (sec.devs || [])
-      .filter(function (d) {
-        return d.id && d.kind === "light";
-      })
-      .map(function (d) {
-        return d.id;
-      });
+    return masterLightIds(sec);
   }
   /* The lights as the row shows them now: by name, or in the owner's order. */
   function shown() {
@@ -691,6 +688,8 @@ function lightsMasterSettings(b, key) {
         return on ? _T("every_light_of_the_section_even_those_") : _T("only_the_lights_that_are_on_or_all_if_none_is");
       })
     );
+    masterModeRows(box, sec, p[0], draw);
+    masterPopupRows(box, sec, p[0], draw);
     mscSourceRows(box, sec, p[0], draw);
     box.appendChild(sep(_T("order_of_the_lights"), "drag"));
     box.appendChild(hintRow(sec.mo ? _T("drag_a_light_to_move_it_the_row_follows_this_order") : _T("the_lights_are_in_alphabetical_order_drag_one_to_set_your_own")));

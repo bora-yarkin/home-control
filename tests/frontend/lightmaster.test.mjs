@@ -30,6 +30,7 @@ function load() {
     LNAME: { "light.iris": ["Iris", "target"], "light.floor": ["Floor lamps", "lamp"], "light.desk": ["Desk light", "desk"], "light.strip": ["Light Strip", "strip"], "light.iris_a": ["Iris top", "light"] },
     LMASTER_NAME: {},
     LMASTER_ORDER: {},
+    LMASTER_META: {},
     deviceGet: (k, d) => d,
     deviceSet: () => {},
     _T: (k) => k,

@@ -287,10 +287,24 @@ var POPUP_DEFS = {
       },
     };
   },
+  "lmaster-lights": function (id) {
+    return { title: _T("master_choose_lights"), icon: "lights", build: function (b) { masterLightsPage(b, id); } };
+  },
+  "lmaster-light": function (id) {
+    var m = id.split(":");
+    return { title: A(m.slice(2).join(":")).friendly_name || _T("light"), icon: "light", build: function (b) { masterLightPage(b, id); } };
+  },
+  "lmaster-pscene": function (id) {
+    return { title: _T("master_power_scene_pick"), icon: "scene", build: function (b) { masterSceneRunPage(b, id); } };
+  },
   "lmaster": function (id) {
     return {
       title: LMASTER_NAME[id] || _T("lights_master"),
       icon: "lights",
+      /* The settings of the master, for administrators, next to its power button. */
+      settings: function () {
+        showPopup("lmaster-edit:" + id.replace("~", ":"), true);
+      },
       /* The lights master is closed by its close button or by tapping outside it; sliding the panel down closes it only from its title, so that dragging on the wheel, the tiles and the scenes never does. */
       titleSlide: true,
       /* A power button next to the close button: every light of the master on or off. */
@@ -299,7 +313,7 @@ var POPUP_DEFS = {
           return countOn(lightUnits(LMASTER[id] || [])) > 0;
         },
         toggle: function () {
-          lightsMasterToggle(LMASTER[id] || []);
+          masterPower(id);
         },
       },
       build: function (b) {
@@ -1029,6 +1043,13 @@ function showPopup(key, push, layer) {
   var t = mk("div", "sh-t pane", ic(def.icon) + "<span></span>");
   t.querySelector("span:last-child").textContent = def.title;
   h.appendChild(t);
+  if (def.settings && ISADMIN) {
+    var st2 = mk("div", "rnd pane", svg("cog"));
+    st2.setAttribute("role", "button");
+    st2.setAttribute("aria-label", _T("settings"));
+    st2.addEventListener("click", def.settings);
+    h.appendChild(st2);
+  }
   if (def.power) {
     var pw = mk("div", "rnd pane", svg("power"));
     pw.setAttribute("role", "button");

@@ -120,7 +120,7 @@ test("the Effects page has no Scenes row any more, and the light popup has the S
   assert.doesNotMatch(fx, /fx\.scenes/);
   assert.doesNotMatch(fx, /_T\("scenes"\)/);
   assert.match(panel, /if \(!S\.maker && mscSection\(root\)\) modes\.push\("scenes"\);/);
-  assert.match(panel, /if \(m === "fx" \|\| m === "scenes"\) tabs\.appendChild\(mk\("div", "lp-sep"\)\);/);
+  assert.match(panel, /if \(m === "fx" \|\| m === "scenes" \|\| m === "sync"\) tabs\.appendChild\(mk\("div", "lp-sep"\)\);/);
 });
 
 test("the Scenes file is in the list of files, after the light panel", () => {

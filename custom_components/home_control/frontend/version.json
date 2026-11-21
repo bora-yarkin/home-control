@@ -1,5 +1,5 @@
 {
-  "version": 303,
+  "version": 305,
   "files": [
     "integrations.js",
     "app/strings.js",
@@ -9,6 +9,7 @@
     "app/lights.js",
     "app/lightpanel.js",
     "app/scenetab.js",
+    "app/mastersettings.js",
     "app/effects.js",
     "app/media.js",
     "app/climate.js",

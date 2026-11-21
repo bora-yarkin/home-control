@@ -971,3 +971,17 @@ body.pinhdr:not(.editing) .wrap::before{content:"";position:fixed;top:0;left:0;r
 .lp-fold-h .lp-fxe{margin-right:0}
 .lp-fold-h input.sq{flex:1;min-width:0}
 @media(prefers-reduced-motion:reduce){.lp-fxside,.lp-foldw,.lp-fold{transition:none}}
+
+/* the sync as a page of a lights master's light panel */
+.lp-collapsible{display:grid;grid-template-rows:1fr;transition:grid-template-rows .36s cubic-bezier(.2,.9,.25,1),opacity .28s,margin .36s}
+.lp-collapsible>*{min-height:0}
+.lp-collapsible.shut{grid-template-rows:0fr;opacity:0;pointer-events:none}
+.lp-collapsible.shut>*{overflow:hidden}
+.lp-stage>.lp-collapsible.shut{margin-bottom:-6px}
+.lp-view.sizing{overflow:hidden}
+.lp-view.sizing .lp-track{height:100%}
+.lp-bar-r{transition:opacity .28s}
+.lp-stage.sync .lp-bar-r{opacity:0;pointer-events:none}
+.lp-sync-in{padding:2px 12px 12px}
+.lp-pane.sync .lp-fx{padding:0}
+@media(prefers-reduced-motion:reduce){.lp-collapsible,.lp-bar-r{transition:none}}

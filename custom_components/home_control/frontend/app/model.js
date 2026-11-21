@@ -588,6 +588,29 @@ function cleanLayout(a) {
     if (k === "lights" && s.master) o.master = 1;
     if (k === "lights" && s.master && typeof s.mn === "string" && s.mn.trim()) o.mn = s.mn.trim().slice(0, 40);
     if (k === "lights" && s.master && s.mall) o.mall = 1;
+    if (k === "lights" && s.master) {
+      /* Manual: the lights chosen for the master, each with an optional name and icon. */
+      if (s.mm) {
+        o.mm = 1;
+        o.ml = (Array.isArray(s.ml) ? s.ml : [])
+          .filter(function (m, i, a) {
+            return m && typeof m.id === "string" && /^light\.[a-z0-9_]+$/.test(m.id) && a.findIndex(function (x) { return x && x.id === m.id; }) === i;
+          })
+          .slice(0, 100)
+          .map(function (m) {
+            var c = { id: m.id };
+            if (typeof m.n === "string" && m.n.trim()) c.n = m.n.trim().slice(0, 40);
+            if (iconOk(m.i)) c.i = m.i;
+            return c;
+          });
+      }
+      if (s.mpw === "scene") {
+        o.mpw = "scene";
+        if (typeof s.mps === "string" && /^[a-z0-9_.-]{1,80}$/.test(s.mps)) o.mps = s.mps;
+      }
+      if (s.msync) o.msync = 1;
+      if (typeof s.msyncid === "string" && ENTRE.test(s.msyncid)) o.msyncid = s.msyncid;
+    }
     if (k === "lights" && s.master && Array.isArray(s.mo))
       o.mo = s.mo
         .filter(function (x, i, a) {
