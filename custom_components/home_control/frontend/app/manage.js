@@ -464,7 +464,10 @@ function sectionOfList(rid) {
 function devList(rid) {
   if (rid.charAt(0) === "~") {
     var s = sectionOfList(rid);
-    return s ? (s.devs = s.devs || []) : [];
+    if (!s) return [];
+    /* "~page~section~ml" is the lights chosen for the section's lights master (they are devices too: the same popup edits them). */
+    if (rid.split("~")[3] === "ml") return (s.ml = s.ml || []);
+    return (s.devs = s.devs || []);
   }
   return UI.devs[rid] || [];
 }

@@ -593,17 +593,19 @@ function cleanLayout(a) {
       if (s.mm) {
         o.mm = 1;
         o.ml = (Array.isArray(s.ml) ? s.ml : [])
-          .filter(function (m, i, a) {
-            return m && typeof m.id === "string" && /^light\.[a-z0-9_]+$/.test(m.id) && a.findIndex(function (x) { return x && x.id === m.id; }) === i;
-          })
           .slice(0, 100)
           .map(function (m) {
-            var c = { id: m.id };
-            if (typeof m.n === "string" && m.n.trim()) c.n = m.n.trim().slice(0, 40);
-            if (iconOk(m.i)) c.i = m.i;
-            return c;
+            /* the first form kept { id, n, i } */
+            if (m && !m.kind && typeof m.id === "string")
+              m = { id: m.id, name: m.name || m.n || m.id.split(".")[1].replace(/_/g, " "), icon: m.icon || m.i || "light", kind: "light" };
+            return cleanDev(m);
+          })
+          .filter(function (c, i, a) {
+            return c && c.kind === "light" && c.id && a.findIndex(function (x) { return x && x.id === c.id; }) === i;
           });
       }
+      if (s.mhl) o.mhl = 1;
+      if (s.mhs) o.mhs = 1;
       if (s.mpw === "scene") {
         o.mpw = "scene";
         if (typeof s.mps === "string" && /^[a-z0-9_.-]{1,80}$/.test(s.mps)) o.mps = s.mps;

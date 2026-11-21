@@ -290,10 +290,6 @@ var POPUP_DEFS = {
   "lmaster-lights": function (id) {
     return { title: _T("master_choose_lights"), icon: "lights", build: function (b) { masterLightsPage(b, id); } };
   },
-  "lmaster-light": function (id) {
-    var m = id.split(":");
-    return { title: A(m.slice(2).join(":")).friendly_name || _T("light"), icon: "light", build: function (b) { masterLightPage(b, id); } };
-  },
   "lmaster-pscene": function (id) {
     return { title: _T("master_power_scene_pick"), icon: "scene", build: function (b) { masterSceneRunPage(b, id); } };
   },

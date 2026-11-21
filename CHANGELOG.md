@@ -11,7 +11,8 @@ Format: [Keep a Changelog](https://keepachangelog.com/). Versions follow [semant
 - **Scenes added to a scenes section were added as devices.** The add popup has a *Scenes* type of its own (they were in *Controls*), and a scene chosen there for a scenes section becomes one of the section's scenes, drawn and opened as any scene is (a Hue scene opens its popup), with a trash that only takes it out of the section.
 
 ### Added
-- **A lights master can control other lights than its section's.** In its settings, *Lights it controls*: *Auto* is what it was (the lights of its section, now also the ones hidden in the section), *Manual* is lights of your choice from the whole home, each with a name and icon of its own that its popup shows.
+- **A lights master can hide its lights and its sync in its section** (*In the section* in its settings): only in the section, the master keeps them. Everything is shown again while the page is edited.
+- **A lights master can control other lights than its section's.** In its settings, *Lights it controls*: *Auto* is what it was (the lights of its section, now also the ones hidden in the section), *Manual* is lights of your choice from the whole home; a tap on one opens the light's own settings popup (name, icon, options), the one a light of a section has.
 - **The power button of a lights master can run a scene** (*Power button* in its settings): it runs the chosen scene when the lights are off and switches them off when they are on.
 - **A settings button next to the power button** of a lights master's popup (administrators) opens its settings, over the popup.
 - **A sync tab in a lights master's light popup**, when the master has it on and a plugin has a sync (Hue Plus's Spotify sync): the sync page takes the place of the colour wheel; the saved colours, the lights row and the brightness button slide shut or fade, and the tabs slide down to the bottom.

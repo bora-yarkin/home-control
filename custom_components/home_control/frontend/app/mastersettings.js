@@ -26,14 +26,20 @@ function masterLightIds(sec) {
     });
 }
 
-/* The names and icons chosen for the lights of a manual master: { entity: { n, i } }. */
+/* The names and icons of the lights of a manual master: { entity: { n, i } }. */
 function masterMeta(sec) {
   var out = {};
   if (sec.mm)
     (sec.ml || []).forEach(function (m) {
-      if (m.n || m.i) out[m.id] = { n: m.n || "", i: m.i || "" };
+      out[m.id] = { n: m.name || "", i: m.icon || "" };
     });
   return out;
+}
+
+/* A light as a device the master keeps: the same record the section keeps for a light, so its popup is the device popup. */
+function masterDevice(id) {
+  var nm = (A(id).friendly_name || id).slice(0, 40);
+  return { id: id, name: nm, icon: defIcon("light", nm, id), kind: "light" };
 }
 
 /* The syncs the light popup of a master can have as a tab: the devices a plugin says are one (Hue Plus's Spotify sync). */
@@ -82,9 +88,13 @@ function masterModeRows(box, sec, scope, redraw) {
           sec.mm = 1;
           /* It starts from the lights it has now. */
           if (!sec.ml)
-            sec.ml = masterLightIds(Object.assign({}, sec, { mm: 0 })).map(function (id) {
-              return { id: id };
-            });
+            sec.ml = (sec.devs || [])
+              .filter(function (d) {
+                return d.id && d.kind === "light";
+              })
+              .map(function (d) {
+                return JSON.parse(JSON.stringify(d));
+              });
         } else delete sec.mm;
         uiChanged();
         redraw();
@@ -104,15 +114,13 @@ function masterModeRows(box, sec, scope, redraw) {
     })
   );
   (sec.ml || []).forEach(function (m) {
-    var nm = m.n || A(m.id).friendly_name || m.id;
+    /* A light of a manual master is edited in the light's own settings popup, the one a light of a section has. */
     box.appendChild(
-      pill(m.i && iconOk(m.i) ? m.i : "light", nm, {
+      pill(m.icon && iconOk(m.icon) ? m.icon : "light", m.name || m.id, {
         sub: function () {
           return m.id;
         },
-        tap: function () {
-          showPopup("lmaster-light:" + key + ":" + m.id, true);
-        },
+        tap: devEditor("~" + scope + "~" + sec.id + "~ml", m),
       })
     );
   });
@@ -155,6 +163,18 @@ function masterPopupRows(box, sec, scope, redraw) {
       })
     );
   }
+  /* The section can leave out what the master has: only in the section, the master keeps them. */
+  box.appendChild(sep(_T("master_in_section"), "lights"));
+  box.appendChild(
+    flagPill("lights", _T("master_hide_lights"), sec, "mhl", function (on) {
+      return on ? _T("master_hide_lights_on") : _T("master_hide_lights_off");
+    })
+  );
+  box.appendChild(
+    flagPill("syncring", _T("master_hide_sync"), sec, "mhs", function (on) {
+      return on ? _T("master_hide_sync_on") : _T("master_hide_sync_off");
+    })
+  );
   var syncs = masterSyncDevices();
   if (syncs.length) {
     box.appendChild(
@@ -263,10 +283,11 @@ function masterLightsPage(b, key) {
             return has(id);
           },
           tap: function () {
-            if (has(id)) sec.ml = sec.ml.filter(function (m) {
-              return m.id !== id;
-            });
-            else (sec.ml = sec.ml || []).push({ id: id });
+            if (has(id))
+              sec.ml = sec.ml.filter(function (m) {
+                return m.id !== id;
+              });
+            else (sec.ml = sec.ml || []).push(masterDevice(id));
             uiChanged();
           },
         })
@@ -274,39 +295,6 @@ function masterLightsPage(b, key) {
     });
   }
   draw();
-}
-
-/* The name and the icon a manual master shows for one of its lights. */
-function masterLightPage(b, key) {
-  var p = key.split(":"),
-    sec = secById(p[0], p[1]),
-    m = sec && (sec.ml || []).filter(function (x) {
-      return x.id === p.slice(2).join(":");
-    })[0];
-  if (!m) return;
-  b.appendChild(
-    textRow("edit", A(m.id).friendly_name || m.id, m.n || "", function (v) {
-      if (v) m.n = v.slice(0, 40);
-      else delete m.n;
-      uiChanged();
-    })
-  );
-  b.appendChild(
-    iconPick(DEVICONS, m.i || "light", function (n) {
-      m.i = n;
-      uiChanged();
-    })
-  );
-  b.appendChild(
-    pill("restart", _T("master_light_default"), {
-      tap: function () {
-        delete m.n;
-        delete m.i;
-        uiChanged();
-        popBack();
-      },
-    })
-  );
 }
 
 /* The scene the power button runs: one of the scenes of the master's own list, or none. */
