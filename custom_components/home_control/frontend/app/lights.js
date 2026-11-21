@@ -761,6 +761,21 @@ function lightsMasterPopup(b, sid) {
     /* The lights row follows the circle: a group is one tile until it is separated (the master's choice). */
     groups: !!(masterSec(sid) || {}).mgl,
   });
+  /* When the master's sync starts, the lights of the master that it does not play on go off: they are not in its area. */
+  var sync = masterSyncOf(masterSec(sid)),
+    was = sync ? V_(sync) === "on" : false;
+  if (sync)
+    SLIVE.push(function () {
+      var on = V_(sync) === "on";
+      if (on && !was)
+        setTimeout(function () {
+          var off = lightIndividuals(LMASTER[sid] || []).filter(function (e) {
+            return V_(e) === "on" && !pluginPlays(e);
+          });
+          if (off.length) call("light", "turn_off", { entity_id: off });
+        }, 2000);
+      was = on;
+    });
 }
 
 /* The lights a light group is made of. */

@@ -1898,6 +1898,45 @@ function lpFxGradient(effect) {
   return "linear-gradient(135deg," + pal.concat(pal[0]).join(",") + ")";
 }
 
+/* The lights a scene that moves plays on now: the live scenes that run (the engine says which lights each has) and a plugin's scenes that play (Hue's dynamic scenes, when the plugin can say which lights they are on). */
+function lpDynamicLights() {
+  var set = {},
+    s = engineSensor() ? liveSessions() : {};
+  Object.keys(s).forEach(function (sid) {
+    (s[sid].lights || []).forEach(function (e) {
+      set[e] = 1;
+    });
+  });
+  Object.keys(H().states).forEach(function (id) {
+    var kind = id.indexOf("scene.") === 0 ? pluginSceneKind(id) : null;
+    if (kind && kind.lights && kind.dynamic(id) && kind.active(id))
+      (kind.lights(id) || []).forEach(function (e) {
+        set[e] = 1;
+      });
+  });
+  return set;
+}
+
+/* What one light is doing, in a word for the line under its name: Sync (a plugin says a sync plays on it), the effect it runs, Dynamics (a scene's colours moving), or Static (one colour). Nothing while it is off. */
+function lpLightDoing(e, dyn) {
+  var on = V_(e) === "on";
+  if (pluginPlays(e)) return _T("tile_sync");
+  if (!on) return "";
+  var fx = A(lpFxLight(e)).effect;
+  if (fx && fx !== "off") return typeof lpFxLabel === "function" ? lpFxLabel(fx) : cap(String(fx).replace(/_/g, " "));
+  return dyn[e] || dyn[lpFxLight(e)] ? _T("tile_dynamics") : _T("tile_static");
+}
+
+/* The same for a tile: what all its lights do, or Mixed when they do not do the same. */
+function lpTileDoing(n, dyn) {
+  var words = [];
+  lpLeaves(n).forEach(function (l) {
+    var w = lpLightDoing(l.cmd[0], dyn);
+    if (w && words.indexOf(w) < 0) words.push(w);
+  });
+  return words.length > 1 ? _T("tile_mixed") : words[0] || "";
+}
+
 function lpTileColours(n) {
   var one = n.cmd.length === 1 ? lightStops(n.cmd[0]) : null;
   if (one && one.length > 1) return one;
@@ -1961,7 +2000,9 @@ function lpTray(S) {
   var tray = mk("div", "lp-tray"),
     tiles = [];
   function paint() {
+    var dyn = lpDynamicLights();
     tiles.forEach(function (t) {
+      if (t.sub) t.sub.textContent = lpTileDoing(t.n, dyn);
       var on = countOn(t.n.cmd) > 0,
         grp = S.hier && lpIsGroup(t.n),
         cs = on ? (grp && lpGroupColours(t.n)) || lpTileColours(t.n) : null,
@@ -2103,6 +2144,8 @@ function lpTray(S) {
       sw = mk("div", "lp-sw", "<i></i>");
     nm.textContent = n.name;
     el.appendChild(nm);
+    var doing = mk("div", "lp-ts");
+    el.appendChild(doing);
     el.appendChild(sw);
     el.addEventListener("click", function () {
       S.reveal(n);
@@ -2130,7 +2173,7 @@ function lpTray(S) {
       el.appendChild(rm);
     }
     (parent || tray).appendChild(el);
-    tiles.push({ n: n, el: el, fxl: el.firstChild });
+    tiles.push({ n: n, el: el, fxl: el.firstChild, sub: doing });
   }
   S.subs.push({
     build: function () {

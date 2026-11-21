@@ -166,3 +166,52 @@ test("a group whose lights run at different settings is opened by itself in the 
   assert.equal(other.sandbox.lpTraySig(other.sandbox.lpTrayStruct(other.S, other.sandbox.lpSortLights(other.sandbox.lpTrayUnits(other.S), null))), "light.ceil,light.floor,light.iris", "closed by the person: it stays closed");
   looks["light.r"] = "warm";
 });
+
+// What the line under a light's name says.
+function doing(over = {}) {
+  const sandbox = {
+    V_: (e) => (over.off && over.off.includes(e) ? "off" : "on"),
+    A: (e) => ({ effect: (over.fx || {})[e] || "off" }),
+    lpFxLight: (e) => e,
+    pluginPlays: (e) => (over.sync || []).includes(e),
+    lpFxLabel: (f) => f[0].toUpperCase() + f.slice(1),
+    _T: (k) => ({ tile_sync: "Sync", tile_dynamics: "Dynamics", tile_static: "Static", tile_mixed: "Mixed" })[k] || k,
+    cap: (s) => s,
+  };
+  vm.createContext(sandbox);
+  vm.runInContext(["lpLightDoing", "lpLeaves", "lpTileDoing"].map(fn).join("\n"), sandbox);
+  return sandbox;
+}
+
+test("under a light's name: the effect it runs, Dynamics for a scene that moves, Sync for a sync, Static for one colour, nothing when it is off", () => {
+  const w = doing({ fx: { "light.bed": "candle" }, sync: ["light.iris"], off: ["light.off"] });
+  const dyn = { "light.scene": 1 };
+  assert.equal(w.lpLightDoing("light.bed", dyn), "Candle");
+  assert.equal(w.lpLightDoing("light.iris", dyn), "Sync", "a plugin says a sync plays on it");
+  assert.equal(w.lpLightDoing("light.scene", dyn), "Dynamics");
+  assert.equal(w.lpLightDoing("light.plain", dyn), "Static");
+  assert.equal(w.lpLightDoing("light.off", dyn), "");
+});
+
+test("a tile of several lights says what they all do, and Mixed when they do not do the same", () => {
+  const w = doing({ fx: { "light.a": "candle" } });
+  const leaf = (id) => ({ cmd: [id], kids: null });
+  const group = (...ids) => ({ cmd: ids, kids: ids.map(leaf) });
+  assert.equal(w.lpTileDoing(group("light.b", "light.c"), {}), "Static");
+  assert.equal(w.lpTileDoing(group("light.a", "light.b"), {}), "Mixed");
+  assert.equal(w.lpTileDoing(group("light.a", "light.a"), {}), "Candle");
+});
+
+test("the tile of a light has the line under its name, kept up to date with the light", () => {
+  assert.match(panel, /var doing = mk\("div", "lp-ts"\);/);
+  assert.match(panel, /if \(t\.sub\) t\.sub\.textContent = lpTileDoing\(t\.n, dyn\);/);
+  assert.match(panel, /Object\.keys\(s\)\.forEach\(function \(sid\) \{\s*\(s\[sid\]\.lights \|\| \[\]\)/, "the lights of the live scenes that run");
+  assert.match(panel, /kind\.lights && kind\.dynamic\(id\) && kind\.active\(id\)/, "and of a plugin's scenes that play");
+});
+
+test("when the master's sync starts, its lights that the sync does not play on go off", () => {
+  const lights = readFileSync(new URL("lights.js", APP), "utf8");
+  assert.match(lights, /if \(on && !was\)/);
+  assert.match(lights, /return V_\(e\) === "on" && !pluginPlays\(e\);/);
+  assert.match(lights, /call\("light", "turn_off", \{ entity_id: off \}\)/);
+});
