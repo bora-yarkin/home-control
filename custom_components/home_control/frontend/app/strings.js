@@ -584,6 +584,7 @@ var EN = {
   "scenes": "Scenes",
   "scenes_from": "Scenes from",
   "scene_kind_hue": "Hue scene",
+  "scene_one": "Scene",
   "scene_new_folder": "New folder",
   "scene_folder_name": "Folder name",
   "scene_take_out_of_folder": "Take out of the folder",

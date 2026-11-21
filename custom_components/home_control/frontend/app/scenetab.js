@@ -271,7 +271,7 @@ function mscFolderTile(entry, open) {
   });
   t.appendChild(sw);
   t.appendChild(mk("div", "lp-fxn")).textContent = entry.folder.n;
-  t.appendChild(mk("div", "lp-fxv")).textContent = entry.scenes.length + " " + _T(entry.scenes.length === 1 ? "scene" : "scenes").toLowerCase();
+  t.appendChild(mk("div", "lp-fxv")).textContent = entry.scenes.length + " " + _T(entry.scenes.length === 1 ? "scene_one" : "scenes").toLowerCase();
   t.dataset.key = entry.key;
   t.setAttribute("role", "button");
   t.setAttribute("aria-label", entry.folder.n);
