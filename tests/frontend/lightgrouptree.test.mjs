@@ -82,3 +82,20 @@ test("taking a whole group out of a marker leaves it a group with a marker of it
   assert.deepEqual(keys(shown).sort(), ["light.ceil", "light.floor", "light.iris"]);
   assert.equal(shown.filter((n) => n.virtual).length, 0, "the Iris alone is not a marker of several");
 });
+
+test("a group that is one light shows its icon on its marker, not the number of its lights; a marker of several lights shows the number", () => {
+  assert.match(panel, /lpCount\(n\) > 1 && !asIcon \? "<span class='lw-num'>"/);
+  assert.match(panel, /lpMarker\(n, list\.length > 1, S\.hier && lpIsGroup\(n\)\)/);
+  assert.match(panel, /lpMarker\(k, true, S\.hier && lpIsGroup\(k\)\)/);
+  const { sandbox, nodes } = build();
+  vm.runInContext(fn("lpIsGroup"), sandbox);
+  assert.equal(sandbox.lpIsGroup(nodes.floor), true);
+  assert.equal(sandbox.lpIsGroup(nodes.l), false);
+  assert.equal(sandbox.lpIsGroup({ kids: [1, 2], virtual: true }), false, "lights that share a marker are not a group");
+  assert.equal(sandbox.lpIsGroup({ kids: [1, 2], zones: true }), false, "the zones of a light are not a group");
+});
+
+test("tapping an entry of the circle never separates it: a group or a light made of zones lists what it is made of, and a drag needs more than a slip of the finger", () => {
+  assert.match(panel, /if \(!moved && bub && S\.hier && cur\.n\.kids\) \{/);
+  assert.match(panel, /\(cur\.inBub \? 12 : 6\)/);
+});

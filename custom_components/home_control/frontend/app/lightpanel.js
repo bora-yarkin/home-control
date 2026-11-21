@@ -287,13 +287,18 @@ function lpPaintMark(m, rgb) {
 }
 
 /* A marker on a circle: a dot, and above it, while selected, a drop with the number of lights (the icon for one light), the name and the kelvin while dragging. */
-function lpMarker(n, showName) {
+/* A group of lights that is one light (in a panel whose groups are single lights): its marker shows its icon, not the number of its lights. */
+function lpIsGroup(n) {
+  return !!n.kids && !n.virtual && !n.zones;
+}
+
+function lpMarker(n, showName, asIcon) {
   var m = {
     n: n,
     x: 0,
     y: 0,
     dot: mk("div", "lw-dot"),
-    pin: mk("div", "lw-pin", lpCount(n) > 1 ? "<span class='lw-num'>" + lpCount(n) + "</span>" : svg(n.icon || "light")),
+    pin: mk("div", "lw-pin", lpCount(n) > 1 && !asIcon ? "<span class='lw-num'>" + lpCount(n) + "</span>" : svg(n.icon || "light")),
     tag: mk("div", "lw-tag"),
     pending: null,
     timer: 0,
@@ -566,7 +571,7 @@ function lpCircle(S, mode) {
     });
     /* The circle grows from the middle of the wheel, then the lights pop in one after the other at their places. */
     var mem = kids.map(function (k, i) {
-      var x = lpMarker(k, true);
+      var x = lpMarker(k, true, S.hier && lpIsGroup(k));
       x.inBub = true;
       x.pin.classList.add("bubm");
       x.dot.classList.add("bubm");
@@ -619,7 +624,7 @@ function lpCircle(S, mode) {
       return lpCap(n, mode).length && (!S.maker || n.cmd.every(vlightIs));
     });
     marks = list.map(function (n) {
-      var m = lpMarker(n, list.length > 1);
+      var m = lpMarker(n, list.length > 1, S.hier && lpIsGroup(n));
       circ.appendChild(m.dot);
       circ.appendChild(m.pin);
       return m;
@@ -752,7 +757,8 @@ function lpCircle(S, mode) {
   circ.addEventListener("pointermove", function (e) {
     if (!down || !cur) return;
     if (!moved) {
-      if (Math.hypot(e.clientX - sx, e.clientY - sy) < 6) return;
+      /* a light of a circle needs a longer drag than a marker to be taken out: a tap that slips does not separate it */
+      if (Math.hypot(e.clientX - sx, e.clientY - sy) < (cur.inBub ? 12 : 6)) return;
       moved = true;
       if (far) {
         far = false;
@@ -815,8 +821,8 @@ function lpCircle(S, mode) {
     }
     if (cur && cur.inBub) {
       /* A tap on a light of the circle only picks it: its drop opens above it and bounces, and the circle stays as it is. Lights are separated by dragging them out. */
-      if (!moved && bub && S.hier && cur.n.kids && !cur.n.zones) {
-        /* A group of the list: the circle lists its lights instead (the lights of the old list go, the new ones come). */
+      if (!moved && bub && S.hier && cur.n.kids) {
+        /* A group (or a light made of zones) of the list: the circle lists its lights (its zones) instead; the lights of the old list go, the new ones come. Tapping separates nothing. */
         openBubble(bub.m, cur.n, bub.stack.concat([bub.n]));
         return;
       }
