@@ -52,14 +52,14 @@ test("lights that look the same share a marker, a group stays one light, and the
   assert.equal(S.ex[nodes.floor.key], undefined, "the group is not opened by itself");
 });
 
-test("taking a light out of a group opens the group where it stands and leaves the others together", () => {
+test("taking a light out of a group on the wheel opens the group there and leaves the others together, and the lights row keeps the group", () => {
   const { S, sandbox, nodes } = build();
   S.rebuild = () => {};
   S.pullOut(nodes.r);
   const shown = sandbox.lpVisible(S);
   assert.deepEqual(keys(shown.filter((n) => n.virtual)[0].kids), ["light.l", "light.iris"], "the left lamp and the Iris still run together");
   assert.ok(keys(shown).includes("light.r"), "the right lamp has a marker of its own");
-  assert.deepEqual(keys(sandbox.lpTrayUnits(S)), ["light.l", "light.r", "light.iris", "light.ceil"], "the opened group shows its lights in the row");
+  assert.deepEqual(keys(sandbox.lpTrayUnits(S)), ["light.floor", "light.iris", "light.ceil"], "the lights row still has the group as a group: separating a light on the wheel does not separate it there");
 });
 
 test("dropping the light back on that marker makes the group whole again, with the Iris", () => {
@@ -153,4 +153,16 @@ test("tapping the tile of a group or of a light of a group picks it inside the m
   s2.reveal(nodes.r);
   assert.equal(s2.focus.n, nodes.r, "or the light's");
   looks["light.ceil"] = "blue";
+});
+
+test("a group whose lights run at different settings is opened by itself in the lights row (once), and closing it stays closed", () => {
+  const { S, sandbox } = build();
+  const units = () => sandbox.lpTrayStruct(S, sandbox.lpSortLights(sandbox.lpTrayUnits(S), null));
+  assert.equal(sandbox.lpTraySig(units()), "light.ceil,light.floor,light.iris", "running alike: closed");
+  const other = build();
+  looks["light.r"] = "blue";
+  assert.equal(other.sandbox.lpTraySig(other.sandbox.lpTrayStruct(other.S, other.sandbox.lpSortLights(other.sandbox.lpTrayUnits(other.S), null))), "light.ceil,light.floor[light.l,light.r],light.iris", "different: open, beside its tile");
+  other.S.trayEx["light.floor"] = false;
+  assert.equal(other.sandbox.lpTraySig(other.sandbox.lpTrayStruct(other.S, other.sandbox.lpSortLights(other.sandbox.lpTrayUnits(other.S), null))), "light.ceil,light.floor,light.iris", "closed by the person: it stays closed");
+  looks["light.r"] = "warm";
 });

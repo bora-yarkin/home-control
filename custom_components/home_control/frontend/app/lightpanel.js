@@ -919,11 +919,9 @@ function lpHierInit(S, root) {
   });
 }
 
-/* The lights row of a panel whose groups are single lights: the lights of the whole, a group as one tile until it is separated. */
+/* The lights row of a panel whose groups are single lights: the lights of the whole, a group as one tile. What is separated on the wheel does not change it: a light taken out of a group on the wheel is still in its group here. */
 function lpTrayUnits(S) {
-  return (S.root.kids || [S.root]).reduce(function (a, k) {
-    return a.concat(lpFrontier(k, S.ex));
-  }, []);
+  return (S.root.kids || [S.root]).slice();
 }
 
 /* A panel opens showing what the lights really do: a group whose lights look the same stays one marker; when they differ it opens separated, and the lights that look the same stay together as one marker. */
@@ -1928,6 +1926,8 @@ function lpTileSel(S, n) {
 function lpTrayStruct(S, list, depth) {
   return list.map(function (n) {
     var item = { n: n };
+    /* A group opens by itself, once, when its lights are not running alike; after that it is as it was left. */
+    if (lpIsGroup(n) && S.trayEx[n.key] === undefined) S.trayEx[n.key] = !lpNodeLook(n);
     if (lpIsGroup(n) && S.trayEx[n.key]) item.kids = lpTrayStruct(S, lpSortLights(n.kids, null), (depth || 0) + 1);
     return item;
   });
@@ -2027,7 +2027,7 @@ function lpTray(S) {
       col.setAttribute("aria-label", _T("back"));
       col.addEventListener("click", function () {
         var done = function () {
-          delete S.trayEx[it.n.key];
+          S.trayEx[it.n.key] = false;
           fillHier();
           paint();
         };
