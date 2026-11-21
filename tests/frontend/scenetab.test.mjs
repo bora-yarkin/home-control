@@ -26,8 +26,7 @@ function world(section = {}, extra = {}) {
   ];
   const states = { "scene.bath_dim": { attributes: { friendly_name: "Bathroom Dim" } } };
   const sandbox = {
-    LMASTER_SCOPE: { lights: "r1" },
-    secById: (scope, sid) => (sid === "lights" ? e : sid === "sc" ? { id: "sc", k: "scenes", scn: ["c2"] } : null),
+    secById: (scope, sid) => (scope === "r1" && sid === "lights" ? e : sid === "sc" ? { id: "sc", k: "scenes", scn: ["c2"] } : null),
     STORE: { scenes: stored },
     sceneById: (id) => stored.find((s) => s.id === id) || null,
     sceneAllowed: () => true,
@@ -49,14 +48,15 @@ const keys = (list) => plain(list.map((x) => x.key));
 
 test("the Scenes page is only for the light popup of a lights master section", () => {
   const { w } = world();
-  assert.equal(w.mscSection({ key: "m:lights" }).scope, "r1");
+  assert.equal(w.mscSection({ key: "m:r1~lights" }).scope, "r1");
   assert.equal(w.mscSection({ key: "m:edit" }), null, "the scene editor's popup has none");
+  assert.equal(w.mscSection({ key: "m:r2~lights" }), null, "another page's section of the same id is another section");
   assert.equal(w.mscSection({ key: "light.lamp" }), null);
 });
 
 test("with nothing chosen the scenes are the Hue scenes of the lights' areas, and the ones made from its + come first", () => {
   const { w } = world({ scn: ["c1", "l1"] });
-  const items = w.mscItems({ root: { key: "m:lights" } });
+  const items = w.mscItems({ root: { key: "m:r1~lights" } });
   assert.deepEqual(keys(items), ["c1", "l1", "scene.bath_dim"]);
   assert.deepEqual(plain(items.map((x) => x.kind)), ["classic", "live", "hue"], "each says what kind it is");
   assert.equal(items[2].name, "Dim", "the area's name is left out of a Hue scene's name");
@@ -64,28 +64,28 @@ test("with nothing chosen the scenes are the Hue scenes of the lights' areas, an
 
 test("the sources the section chose add their scenes: the page's classic and live scenes, a scenes section's", () => {
   const { w } = world({ msrc: ["page"] });
-  assert.deepEqual(keys(w.mscItems({ root: { key: "m:lights" } })), ["c1", "l1"], "only the page's own scenes, no Hue scenes");
+  assert.deepEqual(keys(w.mscItems({ root: { key: "m:r1~lights" } })), ["c1", "l1"], "only the page's own scenes, no Hue scenes");
   const both = world({ msrc: ["sec:sc"] });
-  assert.deepEqual(keys(both.w.mscItems({ root: { key: "m:lights" } })), ["c2", "scene.bath_dim"], "what that scenes section shows");
+  assert.deepEqual(keys(both.w.mscItems({ root: { key: "m:r1~lights" } })), ["c2", "scene.bath_dim"], "what that scenes section shows");
   const none = world({ msrc: ["sec:gone"] });
-  assert.deepEqual(keys(none.w.mscItems({ root: { key: "m:lights" } })), [], "a scenes section that was deleted adds nothing, and the master keeps working");
+  assert.deepEqual(keys(none.w.mscItems({ root: { key: "m:r1~lights" } })), [], "a scenes section that was deleted adds nothing, and the master keeps working");
 });
 
 test("removing a scenes section does not remove a scene from the master that was made from its own +", () => {
   const { w } = world({ scn: ["c1"], msrc: ["sec:gone"] });
-  assert.deepEqual(keys(w.mscItems({ root: { key: "m:lights" } })), ["c1"]);
+  assert.deepEqual(keys(w.mscItems({ root: { key: "m:r1~lights" } })), ["c1"]);
 });
 
 test("folders and the order: scenes in a folder are in its tile, the rest in the order given, new ones last", () => {
   const { w, e } = world({ scn: ["c1", "l1"], mf: [{ id: "f1", n: "Evening", s: ["l1"] }], mtop: ["scene.bath_dim", "c1"] });
-  const entries = w.mscTop(w.mscItems({ root: { key: "m:lights" } }), e);
+  const entries = w.mscTop(w.mscItems({ root: { key: "m:r1~lights" } }), e);
   assert.deepEqual(plain(entries.map((x) => x.key)), ["scene.bath_dim", "c1", "f:f1"]);
   assert.deepEqual(plain(entries[2].scenes.map((x) => x.key)), ["l1"]);
 });
 
 test("a folder that loses its last scene is gone, and a scene that no longer exists leaves a folder without a tile", () => {
   const { w, e } = world({ scn: ["c1"], msrc: [], mf: [{ id: "f1", n: "A", s: ["c1"] }, { id: "f2", n: "B", s: ["gone"] }] });
-  const entries = w.mscTop(w.mscItems({ root: { key: "m:lights" } }), e);
+  const entries = w.mscTop(w.mscItems({ root: { key: "m:r1~lights" } }), e);
   assert.deepEqual(plain(entries.map((x) => x.key)), ["f:f1"], "the folder of a scene that is gone has no tile");
   w.mscFoldersChange(e, (folders) => {
     folders[0].s = [];

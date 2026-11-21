@@ -2,12 +2,13 @@
    the scene that plays has a pen and three dots beside it. Which scenes are in it is the section's own choice (`msrc`, with the scenes made from its + in `scn`), not the scenes sections': removing a scenes section changes nothing here.
    What the section keeps (app/model.js): scn (the scenes made here), msrc (where else they come from), mf (the folders: { id, n, s: [keys] }) and mtop (the order of the tiles that are outside folders). */
 
-/* The section a lights master popup is for: the page it is on and its settings. */
+/* The section a lights master popup is for: the page it is on and its settings. A master is named "page~section" (a page's Lights section can have the same id as another page's). */
 function mscSection(root) {
-  var sid = String((root && root.key) || "").replace(/^m:/, ""),
-    scope = LMASTER_SCOPE[sid],
-    e = scope ? secById(scope, sid) : null;
-  return e && e.k === "lights" ? { scope: scope, e: e } : null;
+  var at = String((root && root.key) || "")
+      .replace(/^m:/, "")
+      .split("~"),
+    e = at.length === 2 ? secById(at[0], at[1]) : null;
+  return e && e.k === "lights" ? { scope: at[0], e: e } : null;
 }
 
 /* Where the scenes of a section come from when it has not chosen: the Hue scenes of its lights' areas, as the Effects page used to list them. */
@@ -219,21 +220,8 @@ function mscTop(items, e) {
   });
 }
 
-/* Two rows that scroll sideways: the first half of the tiles along the top, the rest along the bottom (as the Hue app and Hue Plus fill them). */
-function mscRows(grid) {
-  var tiles = grid.querySelectorAll(".lp-fxt:not(.new)"),
-    all = grid.querySelectorAll(".lp-fxt"),
-    /* A few tiles stay in one row; more are split over two. */
-    half = all.length > 4 ? Math.ceil(all.length / 2) : all.length;
-  Array.prototype.forEach.call(all, function (t, i) {
-    t.style.gridRow = i < half ? "1" : "2";
-    t.style.gridColumn = String((i < half ? i : i - half) + 1);
-  });
-  return tiles;
-}
-
 /* One tile: the round picture, the name and, under it, what kind of scene it is. */
-function mscTile(S, it, ref) {
+function mscTile(S, it) {
   var t = mk("div", "lp-fxt"),
     sw = mk("div", "lp-fxs");
   sw.style.background = "var(--f-raise)";
@@ -257,7 +245,7 @@ function mscTile(S, it, ref) {
   return t;
 }
 
-/* A folder: the pictures of up to four of its scenes in the one tile; tapping it opens it in place under the rows. */
+/* A folder: the pictures of up to four of its scenes in the one tile; tapping it opens it under its row. */
 function mscFolderTile(entry, open) {
   var t = mk("div", "lp-fxt fold"),
     sw = mk("div", "lp-fxs");
@@ -280,59 +268,123 @@ function mscFolderTile(entry, open) {
   return t;
 }
 
-/* The pen and the three dots of the scene that plays: they come out of its tile to the right, and the tiles of its row after it slide over. */
-var MSC_SIDE_W = 46;
+/* Tiles in four columns: each row is its own line of up to four tiles that share its width, so the pen and dots that come out beside the scene that plays take their room from the tiles of that row. */
+var MSC_COLS = 4;
 
-function mscSide(grid, S, ref, redraw) {
-  var side = null;
-  function active() {
-    return [].filter.call(grid.querySelectorAll(".lp-fxt:not(.new):not(.fold)"), function (t) {
-      return t.item && mscActive(t.item);
-    })[0];
+/* A list of tiles that can be reordered (hold, then drag: the others make room as it moves), dropped on one another to make a folder, and with the pen and dots beside the scene that plays. `tiles` are the tiles
+   in their order, `plus` the tile that makes a scene (last, not movable). opts: { folder, onOrder(ids), onMerge(a, b), onOutside(key), redraw, folderCards() }. */
+function mscList(S, ref, tiles, plus, opts) {
+  var wrap = mk("div", "lp-scl"),
+    order = tiles.slice(),
+    side = null;
+  wrap.order = function () {
+    return order;
+  };
+  function activeTile() {
+    return ISADMIN
+      ? order.filter(function (t) {
+          return t.item && mscActive(t.item);
+        })[0]
+      : null;
   }
-  function make(t) {
-    var el = mk("div", "lp-fxside");
-    var pen = mk("div", "lp-fxe", svg("edit")),
+  /* The pen and the three dots of the scene that plays, in its row right after its tile. */
+  function sideUpdate() {
+    var on = activeTile();
+    if (side && (!on || side.t !== on)) {
+      var gone = side.el;
+      gone.classList.remove("open");
+      setTimeout(function () {
+        gone.remove();
+      }, 320);
+      side = null;
+    }
+    if (!on || side) return;
+    var el = mk("div", "lp-fxside"),
+      pen = mk("div", "lp-fxe", svg("edit")),
       dots = mk("div", "lp-fxe", svg("dots"));
     pen.setAttribute("role", "button");
     pen.setAttribute("aria-label", _T("effect_settings"));
+    pen.addEventListener("click", function () {
+      mscEdit(S, on.item);
+    });
     dots.setAttribute("role", "button");
     dots.setAttribute("aria-label", _T("more"));
-    pen.addEventListener("click", function () {
-      mscEdit(S, t.item);
-    });
     dots.addEventListener("click", function () {
-      mscMore(S, t.item, ref, redraw);
+      mscMore(S, on.item, ref, opts.redraw);
     });
     el.appendChild(pen);
     el.appendChild(dots);
-    return el;
+    on.parentNode.insertBefore(el, on.nextSibling);
+    side = { t: on, el: el };
+    void el.offsetWidth;
+    el.classList.add("open");
   }
-  return function () {
-    var tiles = [].slice.call(grid.querySelectorAll(".lp-fxt"));
-    var on = ISADMIN ? active() : null;
-    tiles.forEach(function (t) {
-      t.style.translate = "";
-    });
-    if (!on) {
-      if (side) side.el.remove();
+  /* The tiles of `list` in rows of four; a folder that is open has its card under the row its tile is in. FLIP: each tile slides from where it was to where it is now. */
+  function apply(list, animate, skip) {
+    var before = new Map();
+    if (animate)
+      list.concat(plus ? [plus] : []).forEach(function (t) {
+        before.set(t, t.getBoundingClientRect());
+      });
+    order = list;
+    if (side) {
+      side.el.remove();
       side = null;
-      return;
     }
-    var row = on.style.gridRow,
-      col = +on.style.gridColumn;
-    tiles.forEach(function (t) {
-      if (t.style.gridRow === row && +t.style.gridColumn > col) t.style.translate = MSC_SIDE_W + "px 0";
+    var all = list.concat(plus ? [plus] : []),
+      rows = wrap.querySelectorAll(".lp-scr, .lp-foldw");
+    [].forEach.call(rows, function (r) {
+      r.remove();
     });
-    if (!side || side.t !== on) {
-      if (side) side.el.remove();
-      side = { t: on, el: make(on) };
-      grid.appendChild(side.el);
+    for (var i = 0; i < all.length; i += MSC_COLS) {
+      var row = mk("div", "lp-scr");
+      all.slice(i, i + MSC_COLS).forEach(function (t) {
+        row.appendChild(t);
+        var card = t.entry && opts.cards[t.entry.folder.id];
+        if (card) row.card = card;
+      });
+      wrap.appendChild(row);
+      if (row.card) wrap.appendChild(row.card);
     }
-    side.el.style.left = on.offsetLeft + on.offsetWidth + 4 + "px";
-    side.el.style.top = on.offsetTop + "px";
-    side.el.style.height = on.offsetHeight + "px";
-  };
+    sideUpdate();
+    if (animate)
+      all.forEach(function (t) {
+        var was = before.get(t),
+          now = t.getBoundingClientRect();
+        if (!was || t === skip) return;
+        var dx = was.left - now.left,
+          dy = was.top - now.top;
+        if ((dx || dy) && t.animate) t.animate([{ transform: "translate(" + dx + "px," + dy + "px)" }, { transform: "none" }], { duration: 240, easing: "cubic-bezier(.2,.8,.2,1)" });
+      });
+  }
+  wrap.apply = apply;
+  wrap.sideUpdate = sideUpdate;
+  apply(order, false);
+  if (ISADMIN)
+    sceneSortable(wrap, {
+      tiles: function () {
+        return order;
+      },
+      apply: apply,
+      idOf: function (el) {
+        return el.dataset.key;
+      },
+      done: function () {
+        opts.onOrder(
+          order.map(function (t) {
+            return t.dataset.key;
+          })
+        );
+      },
+      /* A scene dropped on another scene makes a folder of the two; dropped on a folder it goes into it (not inside a folder, and a folder is not put into another). */
+      canMerge: function (a, b) {
+        return !opts.folder && !a.entry && !!opts.onMerge;
+      },
+      merge: opts.onMerge,
+      outside: opts.onOutside || null,
+      bounds: opts.bounds || null,
+    });
+  return wrap;
 }
 
 /* The Scenes page. */
@@ -342,118 +394,32 @@ function lpScenesPane(S, pane) {
   var e = ref.e,
     box = mk("div", "lp-fx"),
     openFolder = null,
-    repaint = [];
+    cards = {},
+    paints = [];
   pane.appendChild(box);
   function redraw() {
     var top = box.scrollTop;
     draw();
     box.scrollTop = top;
   }
-  /* A grid of tiles that can be reordered, and dropped on one another to make a folder (outside a folder) or taken out of it (dropped beside its card). */
-  function grid(entries, where) {
-    var g = mk("div", "lp-scg"),
-      folder = where.folder;
-    entries.forEach(function (en) {
-      if (en.folder) g.appendChild(mscFolderTile(en, function () {
-        openFolder = openFolder === en.folder.id ? null : en.folder.id;
-        redraw();
-      }));
-      else g.appendChild(mscTile(S, en.item, ref));
+  function newTile() {
+    var add = mk("div", "lp-fxt new"),
+      plus = mk("div", "lp-fxs plus", svg("plus"));
+    add.appendChild(plus);
+    add.appendChild(mk("div", "lp-fxn")).textContent = _T("new_scene");
+    add.addEventListener("click", function () {
+      LPBACK = { root: S.root.key, mode: S.mode, sel: S.sel };
+      showPopup("scene-new:" + ref.scope + ":" + e.id, true);
     });
-    if (!folder && ISADMIN) {
-      var add = mk("div", "lp-fxt new"),
-        plus = mk("div", "lp-fxs plus", svg("plus"));
-      add.appendChild(plus);
-      add.appendChild(mk("div", "lp-fxn")).textContent = _T("new_scene");
-      add.addEventListener("click", function () {
-        LPBACK = { root: S.root.key, mode: S.mode, sel: S.sel };
-        showPopup("scene-new:" + ref.scope + ":" + e.id, true);
-      });
-      g.appendChild(add);
-    }
-    mscRows(g);
-    var sideUpdate = mscSide(g, S, ref, redraw);
-    sideUpdate();
-    repaint.push(function () {
-      [].forEach.call(g.querySelectorAll(".lp-fxt:not(.new)"), function (t) {
-        if (t.item) t.classList.toggle("picked", mscActive(t.item));
-        else if (t.entry)
-          t.classList.toggle(
-            "picked",
-            t.entry.scenes.some(mscActive)
-          );
-      });
-      sideUpdate();
-    });
-    if (ISADMIN)
-      sceneSortable(
-        g,
-        ".lp-fxt:not(.new)",
-        function (el) {
-          return el.dataset.key;
-        },
-        function (ids) {
-          if (folder)
-            mscFoldersChange(e, function (folders) {
-              folders.forEach(function (f) {
-                if (f.id === folder.id) f.s = ids;
-              });
-            });
-          else {
-            e.mtop = ids;
-            uiChanged();
-          }
-          redraw();
-        },
-        {
-          live: false,
-          /* Dropped on another scene a folder is made of the two; dropped on a folder, the scene goes into it. */
-          merge: function (a, b) {
-            if (folder || String(a).indexOf("f:") === 0) return redraw();
-            if (String(b).indexOf("f:") === 0)
-              mscFoldersChange(e, function (folders) {
-                folders.forEach(function (f) {
-                  if ("f:" + f.id === b) f.s.push(a);
-                });
-              });
-            else {
-              var made = { id: Date.now().toString(36), n: _T("scene_new_folder"), s: [b, a] };
-              mscFoldersChange(e, function (folders) {
-                folders.push(made);
-              });
-              openFolder = made.id;
-            }
-            redraw();
-          },
-          /* A scene let go outside the card of its folder is outside every folder again. */
-          outside: folder
-            ? function (key) {
-                mscFoldersChange(e, function (folders) {
-                  folders.forEach(function (f) {
-                    f.s = f.s.filter(function (k) {
-                      return k !== key;
-                    });
-                  });
-                });
-                redraw();
-              }
-            : null,
-          bounds: function () {
-            return card;
-          },
-        }
-      );
-    var card = null;
-    g.setCard = function (c) {
-      card = c;
-    };
-    return g;
+    return add;
   }
-  /* The folder that is open: its name with a pen, and its scenes as a grid of their own. */
+  /* The card of a folder: its name with a pen, and its scenes in a list of their own. It slides open under the row of its tile, and the rows below slide down. */
   function folderCard(en) {
-    var card = mk("div", "lp-fold"),
+    var outer = mk("div", "lp-foldw"),
+      card = mk("div", "lp-fold"),
       head = mk("div", "lp-fold-h"),
       name = mk("div", "lp-fold-n");
+    outer.appendChild(card);
     name.textContent = en.folder.n;
     head.appendChild(name);
     if (ISADMIN) {
@@ -487,19 +453,50 @@ function lpScenesPane(S, pane) {
       head.appendChild(pen);
     }
     card.appendChild(head);
-    var g = grid(
+    var list = mscList(
+      S,
+      ref,
       en.scenes.map(function (it) {
-        return { key: it.key, item: it };
+        return mscTile(S, it);
       }),
-      { folder: en.folder }
+      null,
+      {
+        folder: en.folder,
+        cards: {},
+        redraw: redraw,
+        bounds: function () {
+          return card;
+        },
+        onOrder: function (ids) {
+          mscFoldersChange(e, function (folders) {
+            folders.forEach(function (f) {
+              if (f.id === en.folder.id) f.s = ids;
+            });
+          });
+        },
+        /* A scene let go outside the card of its folder is outside every folder again. */
+        onOutside: function (key) {
+          mscFoldersChange(e, function (folders) {
+            folders.forEach(function (f) {
+              f.s = f.s.filter(function (k) {
+                return k !== key;
+              });
+            });
+          });
+          redraw();
+        },
+      }
     );
-    g.setCard(card);
-    card.appendChild(g);
-    return card;
+    card.appendChild(list);
+    paints.push(function () {
+      list.apply(list.order(), false);
+    });
+    return outer;
   }
   function draw() {
     box.innerHTML = "";
-    repaint = [];
+    paints = [];
+    cards = {};
     var items = mscItems(S),
       entries = mscTop(items, e);
     if (!entries.length && !ISADMIN) {
@@ -507,31 +504,104 @@ function lpScenesPane(S, pane) {
       return;
     }
     box.appendChild(mk("div", "lp-fx-h")).textContent = _T("scenes");
-    box.appendChild(grid(entries, {}));
-    entries.forEach(function (en) {
-      if (en.folder && en.folder.id === openFolder) box.appendChild(folderCard(en));
+    var top = null;
+    function toggle(en) {
+      var id = en.folder.id,
+        card = cards[id];
+      if (card) {
+        /* closing: it slides shut, then goes */
+        card.classList.remove("open");
+        delete cards[id];
+        openFolder = null;
+        setTimeout(function () {
+          card.remove();
+        }, 340);
+        return;
+      }
+      /* a folder that was open slides shut as this one opens */
+      Object.keys(cards).forEach(function (other) {
+        var c = cards[other];
+        c.classList.remove("open");
+        delete cards[other];
+        setTimeout(function () {
+          c.remove();
+        }, 340);
+      });
+      openFolder = id;
+      cards[id] = folderCard(en);
+      top.apply(top.order(), false);
+      void cards[id].offsetHeight;
+      cards[id].classList.add("open");
+    }
+    var tiles = entries.map(function (en) {
+      return en.folder
+        ? mscFolderTile(en, function () {
+            toggle(en);
+          })
+        : mscTile(S, en.item);
     });
+    top = mscList(S, ref, tiles, ISADMIN ? newTile() : null, {
+      cards: cards,
+      redraw: redraw,
+      onOrder: function (ids) {
+        e.mtop = ids;
+        uiChanged();
+      },
+      /* Dropped on another scene a folder is made of the two (opened, to be named); dropped on a folder, the scene goes into it. */
+      onMerge: function (a, b) {
+        if (String(b).indexOf("f:") === 0)
+          mscFoldersChange(e, function (folders) {
+            folders.forEach(function (f) {
+              if ("f:" + f.id === b) f.s.push(a);
+            });
+          });
+        else {
+          var made = { id: Date.now().toString(36), n: _T("scene_new_folder"), s: [b, a] };
+          mscFoldersChange(e, function (folders) {
+            folders.push(made);
+          });
+          openFolder = made.id;
+        }
+        redraw();
+      },
+    });
+    box.appendChild(top);
+    if (openFolder) {
+      var open = tiles.filter(function (t) {
+        return t.entry && t.entry.folder.id === openFolder;
+      })[0];
+      if (open) {
+        cards[openFolder] = folderCard(open.entry);
+        top.apply(top.order(), false);
+        cards[openFolder].classList.add("open");
+      } else openFolder = null;
+    }
+    paints.push(top.sideUpdate);
     paint();
   }
+  /* The tiles that play are lit, and the scene that plays has its pen and dots. */
   function paint() {
-    repaint.forEach(function (fn) {
-      fn();
+    [].forEach.call(box.querySelectorAll(".lp-fxt:not(.new)"), function (t) {
+      if (t.item) t.classList.toggle("picked", mscActive(t.item));
+      else if (t.entry) t.classList.toggle("picked", t.entry.scenes.some(mscActive));
+    });
+    [].forEach.call(box.querySelectorAll(".lp-scl"), function (l) {
+      if (l.sideUpdate) l.sideUpdate();
     });
   }
   draw();
-  reg(function () {
+  SLIVE.push(function () {
     if (box.isConnected) paint();
   });
 }
 
-/* Hold, then drag, to put tiles in another order; dropped on the middle of another it is a drop onto it (opts.merge(a, b)), and dropped outside opts.bounds() it is taken out (opts.outside(id)). A press that moves before the hold is a scroll or a tap, and is left alone. The same as
-   Hue Plus's room view has it: done(ids) gets the new order (ids from idOf(element)). */
-function sceneSortable(box, selector, idOf, done, opts) {
-  opts = opts || {};
+/* Hold, then drag: the tile follows the pointer and the others make room live (they slide to their new places, as on a phone's home screen); over the middle of another it is a drop onto it (opts.merge(a, b)); let go outside opts.bounds() it is taken out (opts.outside(id)).
+   A press that moves before the hold is a scroll or a tap, and is left alone. opts: { tiles(), apply(list, animate, skip), idOf(el), done(), canMerge(a, b), merge, outside, bounds }. */
+function sceneSortable(box, opts) {
   var HOLD = 380;
   box.addEventListener("pointerdown", function (e) {
-    var el = e.target.closest(selector);
-    if (!el || !box.contains(el) || e.button > 0) return;
+    var el = e.target.closest(".lp-fxt:not(.new)");
+    if (!el || !box.contains(el) || e.button > 0 || !opts.tiles().length) return;
     var timer = null,
       lifted = false,
       target = null,
@@ -539,92 +609,100 @@ function sceneSortable(box, selector, idOf, done, opts) {
       sy = e.clientY,
       grab = null,
       endX = 0,
-      endY = 0;
+      endY = 0,
+      last = null,
+      lastAt = 0,
+      raf = 0,
+      scroller = el.closest(".lp-fx");
     function inside(node, x, y) {
       var r = node.getBoundingClientRect();
       return x > r.left && x < r.right && y > r.top && y < r.bottom;
     }
-    function items() {
-      return [].filter.call(box.children, function (c) {
-        return c.matches(selector);
-      });
-    }
     function place(ev) {
       el.style.transform = "none";
       var base = el.getBoundingClientRect();
-      el.style.transform = "translate(" + (ev.clientX - grab.x - base.left) + "px," + (ev.clientY - grab.y - base.top) + "px) scale(1.03)";
+      el.style.transform = "translate(" + (ev.clientX - grab.x - base.left) + "px," + (ev.clientY - grab.y - base.top) + "px) scale(1.04)";
+    }
+    function stopTouchScroll(ev) {
+      ev.preventDefault();
     }
     function lift() {
       lifted = true;
       var r = el.getBoundingClientRect();
       grab = { x: sx - r.left, y: sy - r.top };
       el.classList.add("lifting");
-      /* The tile is carried over the whole page, not only over its own row. */
-      box.style.overflow = "visible";
+      document.addEventListener("touchmove", stopTouchScroll, { passive: false });
       try {
         el.setPointerCapture(e.pointerId);
       } catch (x) {}
       if (navigator.vibrate) navigator.vibrate(12);
+      edge();
+    }
+    /* Near the top or the bottom of the page the page scrolls, so a tile can be carried to a folder that is out of sight. */
+    function edge() {
+      if (!lifted) return;
+      if (scroller && last) {
+        var r = scroller.getBoundingClientRect(),
+          d = last.clientY < r.top + 36 ? -8 : last.clientY > r.bottom - 36 ? 8 : 0;
+        if (d) {
+          scroller.scrollTop += d;
+          place(last);
+        }
+      }
+      raf = requestAnimationFrame(edge);
     }
     function move(ev) {
+      last = ev;
       if (!lifted) {
         if (Math.hypot(ev.clientX - sx, ev.clientY - sy) > 9) stop(false);
         return;
       }
       ev.preventDefault();
+      var list = opts.tiles(),
+        hit = null;
+      list.forEach(function (o) {
+        o.classList.remove("mergeable");
+        if (o === el || hit) return;
+        if (inside(o, ev.clientX, ev.clientY)) hit = o;
+      });
       target = null;
-      items().forEach(function (other) {
-        other.classList.remove("mergeable");
-        if (other === el) return;
-        var r = other.getBoundingClientRect(),
-          middle =
-            ev.clientX > r.left + r.width * 0.3 && ev.clientX < r.right - r.width * 0.3 && ev.clientY > r.top + r.height * 0.3 && ev.clientY < r.bottom - r.height * 0.3;
-        /* The middle of another item is a drop onto it; its edges make room. */
-        if (opts.merge && middle) {
-          target = other;
-          other.classList.add("mergeable");
+      if (hit) {
+        var r = hit.getBoundingClientRect(),
+          middle = ev.clientX > r.left + r.width * 0.3 && ev.clientX < r.right - r.width * 0.3 && ev.clientY > r.top + r.height * 0.28 && ev.clientY < r.bottom - r.height * 0.28;
+        if (opts.merge && opts.canMerge(el, hit) && middle) {
+          target = hit;
+          hit.classList.add("mergeable");
+        } else if (performance.now() - lastAt > 140) {
+          /* The tile takes the place of the one it is over: before it from its left half, after it from its right. */
+          var next = list.filter(function (o) {
+              return o !== el;
+            }),
+            at = next.indexOf(hit) + (ev.clientX > r.left + r.width / 2 ? 1 : 0);
+          next.splice(at, 0, el);
+          if (next.some(function (o, i) {
+              return o !== list[i];
+            })) {
+            lastAt = performance.now();
+            opts.apply(next, true, el);
+          }
         }
-      });
+      }
       place(ev);
-    }
-    /* The tile was carried over the others without them moving; where it is let go is its new place, and the tiles in between slide to theirs. */
-    function dropAt(x, y) {
-      var others = items().filter(function (o) {
-          return o !== el;
-        }),
-        before = others.map(function (o) {
-          return o.getBoundingClientRect();
-        }),
-        best = null,
-        bestD = Infinity;
-      others.forEach(function (o, i) {
-        var r = before[i],
-          d = Math.hypot(x - (r.left + r.width / 2), y - (r.top + r.height / 2));
-        if (d < bestD) {
-          bestD = d;
-          best = { o: o, r: r };
-        }
-      });
-      if (!best) return;
-      var after = x > best.r.left + best.r.width / 2 && y > best.r.top - 1 ? best.o.nextSibling : best.o;
-      if (y > best.r.bottom) after = best.o.nextSibling;
-      box.insertBefore(el, after);
-      others.forEach(function (o, i) {
-        var r = o.getBoundingClientRect(),
-          dx = before[i].left - r.left,
-          dy = before[i].top - r.top;
-        if ((dx || dy) && o.animate) o.animate([{ transform: "translate(" + dx + "px," + dy + "px)" }, { transform: "none" }], { duration: 220, easing: "cubic-bezier(.2,.8,.2,1)" });
-      });
     }
     function stop(commit) {
       clearTimeout(timer);
+      cancelAnimationFrame(raf);
       document.removeEventListener("pointermove", move, true);
       document.removeEventListener("pointerup", up, true);
       document.removeEventListener("pointercancel", cancel, true);
+      document.removeEventListener("touchmove", stopTouchScroll);
       if (lifted) {
-        box.style.overflow = "";
         el.classList.remove("lifting");
+        /* The tile settles into its place. */
+        var held = el.getBoundingClientRect();
         el.style.transform = "";
+        var home = el.getBoundingClientRect();
+        if (el.animate) el.animate([{ transform: "translate(" + (held.left - home.left) + "px," + (held.top - home.top) + "px) scale(1.04)" }, { transform: "none" }], { duration: 200, easing: "cubic-bezier(.2,.8,.2,1)" });
         /* The click that ends a drag is not a tap. */
         var eat = function (c) {
           c.stopPropagation();
@@ -634,15 +712,12 @@ function sceneSortable(box, selector, idOf, done, opts) {
         setTimeout(function () {
           box.removeEventListener("click", eat, true);
         }, 60);
-        items().forEach(function (other) {
+        opts.tiles().forEach(function (other) {
           other.classList.remove("mergeable");
         });
-        if (commit && target && opts.merge) opts.merge(idOf(el), idOf(target));
-        else if (commit && opts.outside && !inside(opts.bounds ? opts.bounds() : box, endX, endY)) opts.outside(idOf(el));
-        else if (commit) {
-          dropAt(endX, endY);
-          done(items().map(idOf));
-        }
+        if (commit && target && opts.merge) opts.merge(opts.idOf(el), opts.idOf(target));
+        else if (commit && opts.outside && !inside(opts.bounds ? opts.bounds() : box, endX, endY)) opts.outside(opts.idOf(el));
+        else if (commit) opts.done();
       }
     }
     function up(ev) {
@@ -659,7 +734,7 @@ function sceneSortable(box, selector, idOf, done, opts) {
     timer = setTimeout(lift, HOLD);
   });
   box.addEventListener("contextmenu", function (e) {
-    if (e.target.closest(selector)) e.preventDefault();
+    if (e.target.closest(".lp-fxt")) e.preventDefault();
   });
 }
 

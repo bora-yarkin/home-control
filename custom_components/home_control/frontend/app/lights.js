@@ -561,6 +561,7 @@ function lightIndividuals(ids, depth) {
 }
 
 /* The lights master of a Lights section: one light that stands for every light in the section. The section's lights are kept here for its popup. */
+/* Keyed by "page~section": the same section id is on every page. */
 var LMASTER = {};
 /* What the section called its lights master (its row, its popup and its panel), by section; empty when it was not renamed. */
 var LMASTER_NAME = {};
@@ -568,8 +569,6 @@ var LMASTER_NAME = {};
 var LMASTER_ALL = {};
 /* The order the owner gave the lights of a section's lights master, by section (entity ids); absent when they are shown by name. */
 var LMASTER_ORDER = {};
-/* The page (scope) of each section's lights master, for the scenes of its light popup. */
-var LMASTER_SCOPE = {};
 /* The lights an editor lets be added and taken out (see lightsEditDef). */
 var LMASTER_MEMBERS = {};
 

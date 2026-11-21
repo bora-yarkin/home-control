@@ -291,6 +291,17 @@ var POPUP_DEFS = {
     return {
       title: LMASTER_NAME[id] || _T("lights_master"),
       icon: "lights",
+      /* The lights master is closed by its close button or by tapping outside it; sliding the panel down closes it only from its title, so that dragging on the wheel, the tiles and the scenes never does. */
+      titleSlide: true,
+      /* A power button next to the close button: every light of the master on or off. */
+      power: {
+        on: function () {
+          return countOn(lightUnits(LMASTER[id] || [])) > 0;
+        },
+        toggle: function () {
+          lightsMasterToggle(LMASTER[id] || []);
+        },
+      },
       build: function (b) {
         lightsMasterPopup(b, id);
       },
@@ -851,7 +862,7 @@ function sheetDrag(sh) {
     );
   }
   function begin(x, y, t) {
-    mode = skip(t) || sh.scrollTop > 0 ? 3 : 1;
+    mode = skip(t) || sh.scrollTop > 0 || (sh.dataset.titleSlide && !(t && t.closest && t.closest(".sh-h"))) ? 3 : 1;
     sx = x;
     sy = y;
     dy = 0;
@@ -1005,6 +1016,7 @@ function showPopup(key, push, layer) {
     "sheet" + (key === "settings" || STACK.indexOf("settings") >= 0 ? " stg" : "") + (LAYERS.length ? " layer" : "") + (/^(manage-dev|manage-add|lgroup:|lgnew)/.test(key) ? " tall" : "")
   );
   document.body.appendChild(sh);
+  if (def.titleSlide) sh.dataset.titleSlide = "1";
   sheetDrag(sh);
   SLIVE = [];
   CUR = SLIVE;
@@ -1017,6 +1029,17 @@ function showPopup(key, push, layer) {
   var t = mk("div", "sh-t pane", ic(def.icon) + "<span></span>");
   t.querySelector("span:last-child").textContent = def.title;
   h.appendChild(t);
+  if (def.power) {
+    var pw = mk("div", "rnd pane", svg("power"));
+    pw.setAttribute("role", "button");
+    pw.setAttribute("aria-label", _T("power"));
+    pw.addEventListener("click", def.power.toggle);
+    SLIVE.push(function () {
+      if (pw.isConnected) pw.classList.toggle("act", !!def.power.on());
+    });
+    pw.classList.toggle("act", !!def.power.on());
+    h.appendChild(pw);
+  }
   var x = mk("div", "rnd pane", svg("close"));
   x.addEventListener("click", LAYERS.length ? closeLayer : closeSheet);
   h.appendChild(x);
