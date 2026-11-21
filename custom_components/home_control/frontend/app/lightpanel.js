@@ -883,7 +883,7 @@ function lpAutoSplit(S, n) {
 }
 
 /* The state of one panel: what is separated (S.ex) or joined by hand (S.joined), what is selected, and the pieces that must follow (the circles in S.subs, the brightness row S.bsl). 'both' is true when there are Colour and White tabs. */
-function lpState(root, both) {
+function lpState(root, both, groups) {
   var S = {
     root: root,
     both: both,
@@ -1035,7 +1035,10 @@ function lpState(root, both) {
     S.pop = [S.sel];
     S.rebuild();
   };
-  lpAutoSplit(S, root);
+  /* A master that shows its groups as one light opens with its lights apart and every group together, however its lights look. */
+  if (groups) {
+    if (root.kids) S.ex[root.key] = true;
+  } else lpAutoSplit(S, root);
   return S;
 }
 
@@ -1708,7 +1711,7 @@ function lpFxColourPopup(b, name) {
 
 /* The lights under the circle, like in the Hue app: a tile for every light (a light made of zones is one tile), with its icon, its name and a switch, in a row that scrolls sideways. The row does not depend on what is joined or separated on the circle: groups are always shown as the lights they are made of. A tile is the colour the light shows, or its zone colours. Tapping a tile selects it and shows its pin on the circle; its switch turns it on or off. */
 function lpTrayNodes(S) {
-  var list = S.maker ? lpVisible(S).slice() : lpLeaves(S.root);
+  var list = S.maker || S.groupTiles ? lpVisible(S).slice() : lpLeaves(S.root);
   return lpSortLights(list, S.root.order);
 }
 
@@ -2274,9 +2277,10 @@ function lightPanel(b, root, o) {
   var colorOk = lpCap(root, "color").length > 0,
     whiteOk = lpCap(root, "white").length > 0,
     any = colorOk || whiteOk,
-    S = lpState(root, colorOk && whiteOk);
+    S = lpState(root, colorOk && whiteOk, !!o.groups);
   S.maker = !!o.maker;
   S.members = o.members || null;
+  S.groupTiles = !!o.groups;
   S.mode = lpFirstMode(root, colorOk, whiteOk);
   S.restore = LPBACK && LPBACK.root === root.key ? LPBACK : null;
   LPBACK = null;

@@ -758,6 +758,8 @@ function lightsMasterPopup(b, sid) {
     room: savedRoomOf(lightIndividuals(ids)),
     sliders: LWHEEL["m:" + sid] === false,
     members: LMASTER_MEMBERS[sid] || null,
+    /* The lights row follows the circle: a group is one tile until it is separated (the master's choice). */
+    groups: !!(masterSec(sid) || {}).mgl,
   });
 }
 

@@ -11,7 +11,7 @@ Format: [Keep a Changelog](https://keepachangelog.com/). Versions follow [semant
 - **Scenes added to a scenes section were added as devices.** The add popup has a *Scenes* type of its own (they were in *Controls*), and a scene chosen there for a scenes section becomes one of the section's scenes, drawn and opened as any scene is (a Hue scene opens its popup), with a trash that only takes it out of the section.
 
 ### Added
-- **A lights master can show the lights of each group instead of the group** (*Show grouped lights as one light* in its settings, on by default): off, a light group is not a tile of the lights row; its lights are.
+- **A lights master can show grouped lights as one light** (*Show grouped lights as one light* in its settings, off by default): the lights row follows the colour circle, so a group is one tile until it is separated, and separating it shows its lights in the row.
 - **A lights master can hide its lights and its sync in its section** (*In the section* in its settings): only in the section, the master keeps them. Everything is shown again while the page is edited.
 - **A lights master can control other lights than its section's.** In its settings, *Lights it controls*: *Auto* is what it was (the lights of its section, now also the ones hidden in the section), *Manual* is lights of your choice from the whole home; a tap on one opens the light's own settings popup (name, icon, options), the one a light of a section has.
 - **The power button of a lights master can run a scene** (*Power button* in its settings): it runs the chosen scene when the lights are off and switches them off when they are on.

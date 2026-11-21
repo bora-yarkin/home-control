@@ -591,7 +591,7 @@ var EN = {
   "master_choose_lights": "Choose lights",
   "master_groups_as_one": "Show grouped lights as one light",
   "master_groups_as_one_on": "A group is one tile in the lights row; separating it shows its lights",
-  "master_groups_as_one_off": "The lights row has the lights of each group, not the group",
+  "master_groups_as_one_off": "The lights row has every light, also the lights of a group",
   "master_in_section": "In the section",
   "master_hide_lights": "Hide the lights in the section",
   "master_hide_lights_on": "The section shows only the master, not its lights",
