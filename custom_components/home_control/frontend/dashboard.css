@@ -992,7 +992,8 @@ body.pinhdr:not(.editing) .wrap::before{content:"";position:fixed;top:0;left:0;r
 .lp-tg{display:flex;align-items:stretch;flex:0 0 auto;min-width:max-content}
 .lp-tg>*+*{margin-left:10px}
 .lp-tg.lp-slide{overflow:hidden;min-width:0}
-.lp-tcol{flex:0 0 30px;width:30px;display:flex;align-items:center;justify-content:center;border-radius:15px;background:var(--f-raise);color:var(--ink2);cursor:pointer}
-.lp-tcol svg{width:18px;height:18px;fill:none;stroke:currentColor;stroke-width:2;stroke-linecap:round;stroke-linejoin:round}
+.lp-tcol{flex:0 0 30px;width:30px;display:flex;align-items:center;justify-content:center;color:var(--ink2);cursor:pointer;transition:color .2s}
+.lp-tcol:hover{color:var(--ink)}
+.lp-tcol svg{width:22px;height:22px;fill:none;stroke:currentColor;stroke-width:2;stroke-linecap:round;stroke-linejoin:round;transform-origin:50% 50%}
 .lp-ts{font-size:11px;line-height:1.1;min-height:12px;margin-top:-2px;opacity:.78;text-align:center;max-width:100%;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
 .lp-tile{height:150px}

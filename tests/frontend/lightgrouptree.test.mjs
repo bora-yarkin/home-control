@@ -132,8 +132,8 @@ test("a group whose lights run at different colours shows them as a gradient, an
 });
 
 test("a tap on a group tile opens it beside its tile, with a button that closes it, and neither double tap nor long press separates anything", () => {
-  assert.match(panel, /if \(S\.hier && lpIsGroup\(n\) && !S\.trayEx\[n\.key\]\) \{/);
-  assert.match(panel, /col = mk\("div", "lp-tcol", svg\("back"\)\)/);
+  assert.match(panel, /if \(S\.hier && lpIsGroup\(n\)\) \{\s*if \(!S\.trayEx\[n\.key\]\) \{/);
+  assert.match(panel, /col = mk\("div", "lp-tcol", svg\("chevs"\)\)/);
   assert.doesNotMatch(panel, /S\.openGroup|dblclick/);
 });
 
@@ -229,4 +229,12 @@ test("when the master's sync starts, its lights that the sync does not play on g
   assert.match(lights, /if \(on && !was\)/);
   assert.match(lights, /return V_\(e\) === "on" && !pluginPlays\(e\);/);
   assert.match(lights, /call\("light", "turn_off", \{ entity_id: off \}\)/);
+});
+
+test("tapping an opened group again closes it, and the arrow between has no background and spins half a turn back when it closes and forward when it opens", () => {
+  assert.match(panel, /else \{\s*var open = tray\.querySelector\('\.lp-tg\[data-key="' \+ n\.key \+ '"\]'\);\s*if \(open && !open\.classList\.contains\("lp-slide"\)\) collapseGroup\(n, open\);/);
+  assert.match(panel, /arrow\.animate\(\[\{ transform: "rotate\(0deg\)" \}, \{ transform: "rotate\(180deg\)" \}\]/, "spins back when it closes");
+  assert.match(panel, /arrow\.animate\(\[\{ transform: "rotate\(180deg\)" \}, \{ transform: "rotate\(0deg\)" \}\]/, "and the other way when it opens");
+  const css = readFileSync(new URL("../dashboard.css", APP), "utf8");
+  assert.doesNotMatch(css.match(/\.lp-tcol\{[^}]*\}/)[0], /background|border-radius/);
 });

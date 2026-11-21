@@ -2064,6 +2064,8 @@ function lpTray(S) {
       run.onfinish = run.oncancel = function () {
         wrap.classList.remove("lp-slide");
       };
+      var arrow = wrap.querySelector(".lp-tcol svg");
+      if (arrow && arrow.animate) arrow.animate([{ transform: "rotate(180deg)" }, { transform: "rotate(0deg)" }], { duration: 320, easing: "cubic-bezier(.2,.9,.25,1)" });
     }
   }
   /* An opened group is as wide as its lights, said outright (the widths of the tiles and the space between them, the same numbers as in the style sheet), so that no browser can work out a narrower one and let the next tile sit on top of the last light. Innermost first. */
@@ -2080,33 +2082,39 @@ function lpTray(S) {
       g.style.width = g.style.flexBasis = groupWidth(g) + "px";
     });
   }
+  /* Closing an opened group: its arrow spins half a turn back and its lights slide in; the tiles after them slide along. */
+  function collapseGroup(n, wrap) {
+    var done = function () {
+      S.trayEx[n.key] = false;
+      fillHier();
+      paint();
+    };
+    var arrow = wrap.querySelector(".lp-tcol svg");
+    if (arrow && arrow.animate) arrow.animate([{ transform: "rotate(0deg)" }, { transform: "rotate(180deg)" }], { duration: 300, easing: "cubic-bezier(.4,0,.2,1)", fill: "forwards" });
+    wrap.classList.add("lp-slide");
+    var run = wrap.animate
+      ? wrap.animate(
+          [
+            { width: wrap.getBoundingClientRect().width + "px", opacity: 1, marginLeft: "0px" },
+            { width: "0px", opacity: 0, marginLeft: "-10px" },
+          ],
+          { duration: 300, easing: "cubic-bezier(.4,0,.6,1)", fill: "forwards" }
+        )
+      : null;
+    if (run) run.onfinish = done;
+    else done();
+  }
   function addItems(items, parent) {
     items.forEach(function (it) {
       addTile(it.n, parent);
       if (!it.kids) return;
       var wrap = mk("div", "lp-tg"),
-        col = mk("div", "lp-tcol", svg("back"));
+        col = mk("div", "lp-tcol", svg("chevs"));
       wrap.dataset.key = it.n.key;
       col.setAttribute("role", "button");
       col.setAttribute("aria-label", _T("back"));
       col.addEventListener("click", function () {
-        var done = function () {
-          S.trayEx[it.n.key] = false;
-          fillHier();
-          paint();
-        };
-        wrap.classList.add("lp-slide");
-        var run = wrap.animate
-          ? wrap.animate(
-              [
-                { width: wrap.getBoundingClientRect().width + "px", opacity: 1, marginLeft: "0px" },
-                { width: "0px", opacity: 0, marginLeft: "-10px" },
-              ],
-              { duration: 300, easing: "cubic-bezier(.4,0,.6,1)", fill: "forwards" }
-            )
-          : null;
-        if (run) run.onfinish = done;
-        else done();
+        collapseGroup(it.n, wrap);
       });
       wrap.appendChild(col);
       addItems(it.kids, wrap);
@@ -2173,11 +2181,16 @@ function lpTray(S) {
     el.appendChild(sw);
     el.addEventListener("click", function () {
       S.reveal(n);
-      /* A tap on a group opens it beside its tile: its lights come out to the right of it. */
-      if (S.hier && lpIsGroup(n) && !S.trayEx[n.key]) {
-        S.trayEx[n.key] = true;
-        fillHier({ open: n.key });
-        paint();
+      /* A tap on a group opens it beside its tile: its lights come out to the right of it. Tapping it again closes it. */
+      if (S.hier && lpIsGroup(n)) {
+        if (!S.trayEx[n.key]) {
+          S.trayEx[n.key] = true;
+          fillHier({ open: n.key });
+          paint();
+        } else {
+          var open = tray.querySelector('.lp-tg[data-key="' + n.key + '"]');
+          if (open && !open.classList.contains("lp-slide")) collapseGroup(n, open);
+        }
       }
     });
     sw.addEventListener("click", function (e) {
