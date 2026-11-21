@@ -2435,11 +2435,11 @@ function lpBrightness(S) {
       return countOn(ids()) > 0;
     },
     live: function (v) {
-      if (v > 0) callLive("lpb:" + S.root.key, "light", "turn_on", { entity_id: lightTargets(ids(), lpAll(S)), brightness_pct: v });
+      if (v > 0 && !pluginSceneDim(ids(), v, false)) callLive("lpb:" + S.root.key, "light", "turn_on", { entity_id: lightTargets(ids(), lpAll(S)), brightness_pct: v });
     },
     commit: function (v) {
       if (v <= 0) call("light", "turn_off", { entity_id: lightTargets(ids(), lpAll(S)) });
-      else call("light", "turn_on", { entity_id: lightTargets(ids(), lpAll(S)), brightness_pct: v });
+      else if (!pluginSceneDim(ids(), v, true)) call("light", "turn_on", { entity_id: lightTargets(ids(), lpAll(S)), brightness_pct: v });
     },
     stage: function () {
       return S.stage;
@@ -2598,7 +2598,7 @@ function lpBrightnessRow(S) {
       return countOn(ids()) > 0;
     },
     live: function (v) {
-      if (v > 0)
+      if (v > 0 && !pluginSceneDim(ids(), v, false))
         callLive("lpb:" + root.key, "light", "turn_on", {
           entity_id: lightTargets(ids(), lpAll(S)),
           brightness_pct: v,
@@ -2606,7 +2606,7 @@ function lpBrightnessRow(S) {
     },
     commit: function (v) {
       if (v <= 0) call("light", "turn_off", { entity_id: lightTargets(ids(), lpAll(S)) });
-      else call("light", "turn_on", { entity_id: lightTargets(ids(), lpAll(S)), brightness_pct: v });
+      else if (!pluginSceneDim(ids(), v, true)) call("light", "turn_on", { entity_id: lightTargets(ids(), lpAll(S)), brightness_pct: v });
     },
     onTap: function () {
       lightsMasterToggle(ids());

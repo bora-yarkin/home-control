@@ -40,6 +40,33 @@ function pluginSceneKind(id) {
   return pluginFind(PLUGIN_SCENE_KINDS, id);
 }
 
+/* The active scene that a plugin can dim as a whole (Hue's) and that is on exactly the lights shown: every one of its lit lights is among them. Recalling a scene would change the lights left out, so a slider that is for some of its lights is not for the scene. Returns its entity id, or "". */
+function pluginActiveScene(ids) {
+  var target = lightIndividuals(ids);
+  return (
+    Object.keys(H().states).filter(function (id) {
+      var k = id.indexOf("scene.") === 0 ? pluginSceneKind(id) : null;
+      if (!k || !k.dim || !k.lights || !k.active(id)) return false;
+      /* A light that is a group (the bed light's zones) is its parts here too, as the lights shown are. */
+      var lit = lightIndividuals(k.lights(id)).filter(isOn);
+      return (
+        lit.length > 0 &&
+        lit.every(function (l) {
+          return target.indexOf(l) >= 0;
+        })
+      );
+    })[0] || ""
+  );
+}
+
+/* Sets the brightness of lights that play such a scene as a whole, so that they keep their own levels in it (Hue scales every light of the scene from its level). Returns whether it did it. `now` sends at once, else only the latest value is sent while a slider moves. */
+function pluginSceneDim(ids, v, now) {
+  var scene = pluginActiveScene(ids);
+  if (!scene) return false;
+  pluginSceneKind(scene).dim(scene, v, now);
+  return true;
+}
+
 function pluginDeviceKind(id) {
   return id ? pluginFind(PLUGIN_DEVICE_KINDS, id) : null;
 }
