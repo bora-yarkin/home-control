@@ -568,6 +568,8 @@ var LMASTER_NAME = {};
 var LMASTER_ALL = {};
 /* The order the owner gave the lights of a section's lights master, by section (entity ids); absent when they are shown by name. */
 var LMASTER_ORDER = {};
+/* The lights an editor lets be added and taken out (see lightsEditDef). */
+var LMASTER_MEMBERS = {};
 
 /* The lights a master slider changes: the ones that are on, or all of them when none is. */
 function lightTargets(ids, all) {
@@ -754,6 +756,7 @@ function lightsMasterPopup(b, sid) {
   lightPanel(b, lpMasterNode(sid, ids), {
     room: savedRoomOf(lightIndividuals(ids)),
     sliders: LWHEEL["m:" + sid] === false,
+    members: LMASTER_MEMBERS[sid] || null,
   });
 }
 

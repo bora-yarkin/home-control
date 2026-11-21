@@ -99,11 +99,11 @@ function lightEditDef() {
   };
 }
 
-/* The same for several lights at once (a room's, a scene's): the light popup of the group, opened over whatever asks for it. Every light may be switched on from it, the lights follow each change at once, and the checkmark keeps what they show: o.onSave(acts) gets one act for each light and answers true (or a promise of true) when it kept them, false when it did not (the popup stays open). Leaving after a change asks; discarding puts the lights back as they were. o: { name, icon, lights, onSave(acts), after }. */
+/* The same for several lights at once (a room's, a scene's): the light popup of the group, opened over whatever asks for it. Every light may be switched on from it, the lights follow each change at once, and the checkmark keeps what they show: o.onSave(acts) gets one act for each light and answers true (or a promise of true) when it kept them, false when it did not (the popup stays open). Leaving after a change asks; discarding puts the lights back as they were. o: { name, icon, lights, candidates() (other lights that can be added), onSave(acts, lights), after }. With `candidates` the tiles can be taken out of the scene (one light stays) and lights of that list added. */
 var LIE = null;
 
 function openLightsEditor(o) {
-  LIE = { name: o.name, icon: o.icon, lights: o.lights.slice(), onSave: o.onSave };
+  LIE = { name: o.name, icon: o.icon, lights: o.lights.slice(), onSave: o.onSave, candidates: o.candidates || null };
   var lights = LIE.lights;
   /* The popup groups the lights that look the same when it opens. Lights changed just before (a scene played to edit it) report one by one, so it waits until they have stopped changing, or the grouping would be of how they were and not of how they are. */
   var last = JSON.stringify(lightSnapshot(lights)),
@@ -130,18 +130,47 @@ function lightsEditDef() {
     title: le.name,
     icon: le.icon || "lights",
     build: function (b) {
-      var snap = lightSnapshot(le.lights);
+      var snap = lightSnapshot(le.lights),
+        first = le.lights.slice();
       LMASTER["edit"] = le.lights;
       LMASTER_NAME["edit"] = le.name;
       LMASTER_ALL["edit"] = true;
       LWHEEL["m:edit"] = undefined;
+      /* Taking a light out or adding one draws the popup again with the lights it has now. */
+      function redraw() {
+        LMASTER["edit"] = le.lights;
+        b.textContent = "";
+        lightsMasterPopup(b, "edit");
+      }
+      LMASTER_MEMBERS["edit"] = le.candidates
+        ? {
+            lights: function () {
+              return le.lights;
+            },
+            candidates: function () {
+              return le.candidates().filter(function (id) {
+                return le.lights.indexOf(id) < 0;
+              });
+            },
+            add: function (id) {
+              le.lights = le.lights.concat([id]);
+              redraw();
+            },
+            remove: function (id) {
+              le.lights = le.lights.filter(function (x) {
+                return x !== id;
+              });
+              redraw();
+            },
+          }
+        : null;
       lightsMasterPopup(b, "edit");
       guardUnsaved({
         dirty: function () {
-          return JSON.stringify(lightSnapshot(le.lights)) !== JSON.stringify(snap);
+          return JSON.stringify(lightSnapshot(le.lights)) !== JSON.stringify(snap) || le.lights.join() !== first.join();
         },
         save: function (leave) {
-          return Promise.resolve(le.onSave(lightUnits(le.lights).map(lightAct))).then(function (ok) {
+          return Promise.resolve(le.onSave(lightUnits(le.lights).map(lightAct), le.lights.slice())).then(function (ok) {
             if (ok === false) return false;
             POPGUARD = null;
             leave();

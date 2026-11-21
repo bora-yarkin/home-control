@@ -761,6 +761,12 @@ body.pinhdr:not(.editing) .wrap::before{content:"";position:fixed;top:0;left:0;r
 .lp-tile.on.lt{color:#1a1c22;text-shadow:none}
 .lp-tile.picked{box-shadow:inset 0 0 0 3px var(--ink),inset 0 0 0 5px rgba(0,0,0,.4)}
 .lp-tile>svg{width:30px;height:30px;fill:none;stroke:currentColor;stroke-width:1.6;stroke-linecap:round;stroke-linejoin:round}
+.lp-add{align-items:center;justify-content:center;border:1px dashed var(--f-line2);background:transparent}
+.lp-add>svg{width:30px;height:30px}
+.lp-rm{position:absolute;top:6px;right:6px;width:24px;height:24px;border-radius:50%;background:rgba(0,0,0,.45);color:#fff;display:flex;align-items:center;justify-content:center}
+.lp-rm svg{width:14px;height:14px;fill:none;stroke:currentColor;stroke-width:2.4;stroke-linecap:round}
+.lp-addlist{display:flex;flex-direction:column;gap:var(--sp);margin:0 0 var(--sp)}
+.lp-addnone{color:var(--ink2);padding:10px 4px;font-size:var(--fs-m)}
 .lp-tn{flex:1;max-width:100%;font-size:var(--fs-s,12px);font-weight:600;text-align:center;line-height:1.2;overflow:hidden;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical}
 .lp-sw{width:52px;height:28px;border-radius:14px;background:rgba(255,255,255,.14);position:relative;flex:0 0 auto;transition:background .2s}
 .lp-sw i{position:absolute;left:3px;top:3px;width:22px;height:22px;border-radius:50%;background:#9a9ca4;transition:transform .2s,background .2s}
