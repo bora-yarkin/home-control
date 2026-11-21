@@ -604,6 +604,7 @@ function cleanLayout(a) {
             return c && c.kind === "light" && c.id && a.findIndex(function (x) { return x && x.id === c.id; }) === i;
           });
       }
+      if (s.mug) o.mug = 1;
       if (s.mhl) o.mhl = 1;
       if (s.mhs) o.mhs = 1;
       if (s.mpw === "scene") {

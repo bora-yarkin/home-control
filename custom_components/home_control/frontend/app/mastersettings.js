@@ -7,23 +7,38 @@ function masterSec(sid) {
   return at.length === 2 ? secById(at[0], at[1]) : null;
 }
 
+/* The lights of a list with each light group replaced by the lights it is made of (a group of groups too), once each. */
+function masterExpand(ids) {
+  var out = [];
+  function add(id) {
+    /* The colour zones of a gradient light are not a group: the light stays one. */
+    var members = zoneMembers(id).length > 1 ? [] : lightMembers(id);
+    if (members.length) members.forEach(add);
+    else if (out.indexOf(id) < 0) out.push(id);
+  }
+  ids.forEach(add);
+  return out;
+}
+
 /* The lights it controls. Automatic: every light of its section, also the ones hidden in the section (hiding is for the page; the master still has them), except what this person may not see. Manual: the lights chosen for it. */
 function masterLightIds(sec) {
-  if (sec.mm)
-    return (sec.ml || [])
-      .map(function (m) {
-        return m.id;
-      })
-      .filter(function (id) {
-        return H().states[id];
-      });
-  return (sec.devs || [])
-    .filter(function (d) {
-      return d.id && d.kind === "light" && modeOf(d.id).mode !== "hide";
-    })
-    .map(function (d) {
-      return d.id;
-    });
+  var ids = sec.mm
+    ? (sec.ml || [])
+        .map(function (m) {
+          return m.id;
+        })
+        .filter(function (id) {
+          return H().states[id];
+        })
+    : (sec.devs || [])
+        .filter(function (d) {
+          return d.id && d.kind === "light" && modeOf(d.id).mode !== "hide";
+        })
+        .map(function (d) {
+          return d.id;
+        });
+  /* With grouped lights not shown as one light, the lights row has the lights of each group instead of the group. */
+  return sec.mug ? masterExpand(ids) : ids;
 }
 
 /* The names and icons of the lights of a manual master: { entity: { n, i } }. */
@@ -102,6 +117,18 @@ function masterModeRows(box, sec, scope, redraw) {
     )
   );
   box.appendChild(hintRow(sec.mm ? _T("master_manual_hint") : _T("master_auto_hint")));
+  box.appendChild(
+    flagPill(
+      "lights",
+      _T("master_groups_as_one"),
+      sec,
+      "mug",
+      function (on) {
+        return on ? _T("master_groups_as_one_on") : _T("master_groups_as_one_off");
+      },
+      true
+    )
+  );
   if (!sec.mm) return;
   box.appendChild(
     pill("plus", _T("master_choose_lights"), {

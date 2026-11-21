@@ -15,11 +15,11 @@ const fn = (src, name) => {
   return src.slice(at, src.indexOf("\n}\n", at) + 3);
 };
 const src = read("mastersettings.js");
-const SRC = ["masterSec", "masterLightIds", "masterMeta", "masterSyncDevices", "masterSyncOf", "masterPower"].map((n) => fn(src, n)).join("\n");
+const SRC = ["masterSec", "masterExpand", "masterLightIds", "masterMeta", "masterSyncDevices", "masterSyncOf", "masterPower"].map((n) => fn(src, n)).join("\n");
 
 function world(sec, extra = {}) {
   const calls = [];
-  const states = { "light.a": {}, "light.b": {}, "light.c": {}, "switch.sync": {}, "switch.other": {} };
+  const states = { "light.a": {}, "light.b": {}, "light.c": {}, "light.g": {}, "light.h": {}, "switch.sync": {}, "switch.other": {} };
   const sandbox = {
     calls,
     H: () => ({ states }),
@@ -27,6 +27,8 @@ function world(sec, extra = {}) {
     secById: (scope, sid) => (scope === "r1" && sid === "lights" ? sec : null),
     pluginDeviceKind: (id) => (id === "switch.sync" ? { sync: true } : id === "switch.other" ? { sync: false } : null),
     LMASTER: { "r1~lights": ["light.a", "light.b"] },
+    zoneMembers: (id) => (id === "light.tube" ? ["z1", "z2", "z3"] : []),
+    lightMembers: (id) => ({ "light.tube": ["light.z1", "light.z2"], "light.g": ["light.a", "light.h"], "light.h": ["light.b", "light.c"] })[id] || [],
     countOn: () => 0,
     lightUnits: (ids) => ids,
     lightsMasterToggle: (ids) => calls.push(["toggle", plain(ids)]),
@@ -43,6 +45,16 @@ test("automatic: every light of the section, the ones hidden in it too, but not 
   const w = world({});
   const sec = { devs: [{ id: "light.a", kind: "light" }, { id: "light.b", kind: "light", hide: 1 }, { id: "light.c", kind: "light" }, { id: "switch.x", kind: "switch" }, { name: "x", kind: "special" }] };
   assert.deepEqual(plain(w.masterLightIds(sec)), ["light.a", "light.b"]);
+});
+
+test("grouped lights are one light in the lights row unless the master shows the lights of each group instead", () => {
+  const w = world({});
+  const sec = { devs: [{ id: "light.g", kind: "light" }, { id: "light.b", kind: "light" }] };
+  assert.deepEqual(plain(w.masterLightIds(sec)), ["light.g", "light.b"], "as one light, the default");
+  assert.deepEqual(plain(w.masterLightIds({ ...sec, mug: 1 })), ["light.a", "light.b", "light.c"], "a group of groups too, each light once");
+  assert.deepEqual(plain(w.masterLightIds({ mug: 1, devs: [{ id: "light.tube", kind: "light" }] })), ["light.tube"], "the zones of a gradient light are not a group");
+  const manual = { mm: 1, mug: 1, ml: [{ id: "light.g", name: "G", icon: "light", kind: "light" }] };
+  assert.deepEqual(plain(w.masterLightIds(manual)), ["light.a", "light.b", "light.c"]);
 });
 
 test("manual: the lights chosen for it, whatever section they are in, and only the ones that exist", () => {
@@ -91,8 +103,8 @@ test("the section keeps its mode, chosen lights, power button and sync through t
     return plain(o);
   };
   assert.deepEqual(
-    run({ master: 1, mm: 1, ml: [{ id: "light.a", name: "Desk", icon: "lamp", kind: "light" }, { id: "light.a", name: "Again", kind: "light" }, { id: "switch.x", name: "Plug", kind: "switch" }, { id: "light.b", n: "Bed", i: "bed" }, { id: "light.c" }], mpw: "scene", mps: "scene.read", msync: 1, msyncid: "switch.sync", mhl: 1, mhs: 1 }),
-    { mm: 1, ml: [{ id: "light.a", name: "Desk", icon: "lamp", kind: "light" }, { id: "light.b", name: "Bed", icon: "bed", kind: "light" }, { id: "light.c", name: "c", icon: "light", kind: "light" }], mhl: 1, mhs: 1, mpw: "scene", mps: "scene.read", msync: 1, msyncid: "switch.sync" }
+    run({ master: 1, mm: 1, ml: [{ id: "light.a", name: "Desk", icon: "lamp", kind: "light" }, { id: "light.a", name: "Again", kind: "light" }, { id: "switch.x", name: "Plug", kind: "switch" }, { id: "light.b", n: "Bed", i: "bed" }, { id: "light.c" }], mpw: "scene", mps: "scene.read", msync: 1, msyncid: "switch.sync", mhl: 1, mhs: 1, mug: 1 }),
+    { mm: 1, ml: [{ id: "light.a", name: "Desk", icon: "lamp", kind: "light" }, { id: "light.b", name: "Bed", icon: "bed", kind: "light" }, { id: "light.c", name: "c", icon: "light", kind: "light" }], mug: 1, mhl: 1, mhs: 1, mpw: "scene", mps: "scene.read", msync: 1, msyncid: "switch.sync" }
   );
   assert.deepEqual(run({ master: 1, mpw: "other", mps: "scene.read", ml: [{ id: "light.a" }] }), {}, "automatic keeps no list, and an unknown power mode is the default");
 });
