@@ -559,7 +559,8 @@ function customSection(s) {
     );
   }
   var mids = k === "lights" && s.master ? masterLightIds(s) : [];
-  if (!rows.length && !ed && !(s.mm && mids.length > 1)) return null;
+  /* A lights master keeps its section on the page when it has hidden every row of it: the master is the section then. */
+  if (!rows.length && !ed && !(s.master && mids.length > 1)) return null;
   /* Lights master: one light at the top that controls every light of the section (or the lights chosen for it); off unless the section turns it on. While the page is edited it opens its settings. */
   if (k === "lights" && s.master && mids.length > 1) {
     var mr = lightsMasterRow(secKey() + "~" + s.id, mids, !s.nowheel, s.mn, s.mall, s.mo, masterMeta(s));
