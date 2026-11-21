@@ -2047,6 +2047,7 @@ function lpTray(S) {
     tiles = [];
     addItems(items, tray);
     if (S.members) addPlus();
+    fitGroups();
     tray.scrollLeft = left;
     var wrap = anim && anim.open ? tray.querySelector('.lp-tg[data-key="' + anim.open + '"]') : null;
     if (wrap && wrap.animate) {
@@ -2064,6 +2065,20 @@ function lpTray(S) {
         wrap.classList.remove("lp-slide");
       };
     }
+  }
+  /* An opened group is as wide as its lights, said outright (the widths of the tiles and the space between them, the same numbers as in the style sheet), so that no browser can work out a narrower one and let the next tile sit on top of the last light. Innermost first. */
+  function groupWidth(g) {
+    var kids = [].slice.call(g.children),
+      sum = 0;
+    kids.forEach(function (c) {
+      sum += c.classList.contains("lp-tg") ? groupWidth(c) : c.classList.contains("lp-tcol") ? 30 : 98;
+    });
+    return sum + Math.max(0, kids.length - 1) * 10;
+  }
+  function fitGroups() {
+    [].forEach.call(tray.querySelectorAll(".lp-tg"), function (g) {
+      g.style.width = g.style.flexBasis = groupWidth(g) + "px";
+    });
   }
   function addItems(items, parent) {
     items.forEach(function (it) {

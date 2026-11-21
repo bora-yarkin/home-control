@@ -201,6 +201,9 @@ test("a group section of the lights row is clipped only while it slides, and is 
   assert.match(css, /\.lp-tg\{[^}]*min-width:max-content\}/);
   assert.doesNotMatch(css.match(/\.lp-tg\{[^}]*\}/)[0], /gap/, "spaced with margins: Safari leaves a flex container's gap out of its content width");
   assert.match(css, /\.lp-tg>\*\+\*\{margin-left:10px\}/);
+  assert.match(css, /\.lp-tile\{[^}]*flex:0 0 98px/, "the width the group is worked out from");
+  assert.match(css, /\.lp-tcol\{flex:0 0 30px;width:30px/);
+  assert.match(panel, /g\.style\.width = g\.style\.flexBasis = groupWidth\(g\) \+ "px"/, "an opened group is as wide as its lights, said outright");
   assert.match(css, /\.lp-tg\.lp-slide\{overflow:hidden;min-width:0\}/);
   assert.match(panel, /run\.onfinish = run\.oncancel = function \(\) \{\s*wrap\.classList\.remove\("lp-slide"\)/);
 });
