@@ -565,9 +565,9 @@ function lpCircle(S, mode) {
     el.style.cssText =
       "left:" + (cx - rho) + "px;top:" + (cy - rho) + "px;width:" + 2 * rho + "px;height:" + 2 * rho + "px;";
     circ.appendChild(el);
-    /* The first light sits at 12 o'clock and the others follow clockwise, a fixed step apart like in the Hue app (spread evenly round the whole circle only when there are more than eight). */
+    /* The first light sits at 12 o'clock and the others follow clockwise, spread evenly round the whole circle however many there are. */
     var ang = kids.map(function (k, i) {
-      return -Math.PI / 2 + i * Math.min((2 * Math.PI) / kids.length, Math.PI / 4);
+      return -Math.PI / 2 + (i * 2 * Math.PI) / kids.length;
     });
     /* The circle grows from the middle of the wheel, then the lights pop in one after the other at their places. */
     var mem = kids.map(function (k, i) {
@@ -1036,6 +1036,28 @@ function lpState(root, both, groups) {
     }
     S.sel = kid.key;
     S.pop = [kid.key];
+    S.rebuild();
+  };
+  /* A group of the lights row opened (double tap, long press): its lights are tiles of the row from then on. The wheel is as it was: the lights stay together on their marker until one is dragged out. */
+  S.openGroup = function (n) {
+    if (!S.hier || !n.kids || n.virtual || n.zones || S.ex[n.key]) return;
+    var inside = S.joined.some(function (v) {
+      return v.kids.indexOf(n) >= 0;
+    });
+    S.ex[n.key] = true;
+    S.joined = S.joined.map(function (v) {
+      if (v.kids.indexOf(n) < 0) return v;
+      var kids = [];
+      v.kids.forEach(function (k) {
+        if (k === n) kids = kids.concat(n.kids);
+        else kids.push(k);
+      });
+      return S.makeVirtual(kids, v.icon);
+    });
+    if (!inside && n.kids.length > 1) S.joined.push(S.makeVirtual(n.kids, n.icon));
+    S.focus = null;
+    S.sel = null;
+    S.pop = null;
     S.rebuild();
   };
   /* Dropping one marker on another, in a panel whose groups are single lights: they share one marker; a group that has all its lights in it is whole again, and so on up to the whole. */
@@ -2002,6 +2024,43 @@ function lpTray(S) {
     el.addEventListener("click", function () {
       S.reveal(n);
     });
+    /* A group of the row opens into its lights with a double tap or a long press; a tap only picks it. */
+    if (S.hier && lpIsGroup(n)) {
+      var held = false,
+        timer = 0,
+        at = null;
+      el.addEventListener("pointerdown", function (ev) {
+        held = false;
+        at = [ev.clientX, ev.clientY];
+        clearTimeout(timer);
+        timer = setTimeout(function () {
+          held = true;
+          S.openGroup(n);
+        }, 520);
+      });
+      el.addEventListener("pointermove", function (ev) {
+        if (at && Math.hypot(ev.clientX - at[0], ev.clientY - at[1]) > 10) clearTimeout(timer);
+      });
+      ["pointerup", "pointercancel", "pointerleave"].forEach(function (type) {
+        el.addEventListener(type, function () {
+          clearTimeout(timer);
+        });
+      });
+      /* the tap that ends a long press is not a tap */
+      el.addEventListener(
+        "click",
+        function (ev) {
+          if (held) {
+            held = false;
+            ev.stopImmediatePropagation();
+          }
+        },
+        true
+      );
+      el.addEventListener("dblclick", function () {
+        S.openGroup(n);
+      });
+    }
     sw.addEventListener("click", function (e) {
       e.stopPropagation();
       lightsMasterToggle(n.cmd);

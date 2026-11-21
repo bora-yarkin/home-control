@@ -104,3 +104,39 @@ test("a light dropped on a marker takes that marker's own colour or temperature,
   assert.match(panel, /exact = own && isOn\(own\) \? \(isColor \? \{ hs_color: lpHs\(own\) \} : \{ color_temp_kelvin: lpKelvin\(own\) \}\) : null/);
   assert.match(panel, /data = exact && \(exact\.hs_color \|\| exact\.color_temp_kelvin\) \? exact : finger\(/);
 });
+
+test("the lights of a circle are spread evenly round the whole circle, not a fixed step apart", () => {
+  assert.match(panel, /return -Math\.PI \/ 2 \+ \(i \* 2 \* Math\.PI\) \/ kids\.length;/);
+  assert.doesNotMatch(panel, /Math\.min\(\(2 \* Math\.PI\) \/ kids\.length, Math\.PI \/ 4\)/);
+});
+
+test("a group of the lights row opens into its lights (double tap, long press) and the wheel stays as it was", () => {
+  const { S, sandbox, nodes } = build();
+  S.rebuild = () => {};
+  S.openGroup(nodes.floor);
+  assert.deepEqual(keys(sandbox.lpTrayUnits(S)), ["light.l", "light.r", "light.iris", "light.ceil"], "the lights are tiles of the row");
+  const shown = sandbox.lpVisible(S);
+  assert.equal(shown.length, 2, "the markers of the wheel are the same two");
+  assert.deepEqual(keys(shown.filter((n) => n.virtual)[0].kids), ["light.l", "light.r", "light.iris"], "the lights stay together on their marker");
+  S.openGroup(nodes.l);
+  assert.equal(S.ex["light.l"], undefined, "a light is not a group");
+});
+
+test("a group that had a marker of its own keeps it, with its lights together on it, when its row tile is opened", () => {
+  const { S, sandbox, nodes } = build();
+  S.rebuild = () => {};
+  // the floor lamps are first taken out of the marker they share with the Iris
+  S.pullOut(nodes.floor);
+  assert.deepEqual(keys(sandbox.lpVisible(S)).sort(), ["light.ceil", "light.floor", "light.iris"]);
+  S.openGroup(nodes.floor);
+  const shown = sandbox.lpVisible(S);
+  assert.equal(shown.length, 3);
+  assert.deepEqual(keys(shown.filter((n) => n.virtual)[0].kids), ["light.l", "light.r"]);
+  assert.deepEqual(keys(sandbox.lpTrayUnits(S)), ["light.l", "light.r", "light.iris", "light.ceil"]);
+});
+
+test("the row tile of a group opens with a double tap or a long press, and the tap that ends a long press picks nothing", () => {
+  assert.match(panel, /if \(S\.hier && lpIsGroup\(n\)\) \{/);
+  assert.match(panel, /el\.addEventListener\("dblclick", function \(\) \{\s*S\.openGroup\(n\);/);
+  assert.match(panel, /ev\.stopImmediatePropagation\(\)/);
+});
