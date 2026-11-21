@@ -4,6 +4,14 @@ Format: [Keep a Changelog](https://keepachangelog.com/). Versions follow [semant
 
 ## [Unreleased]
 
+## [0.17.2] - 2026-11-21
+
+### Changed
+- **The power button of a lights master's popup is in the place of the icon at the left of its title**, with the tint when its lights are on. Nothing is beside the close button but the settings button.
+
+### Fixed
+- **The gap between an opened group of the lights row and the tile after it was not the same for every group in Safari.** A rule that kept a group from being narrower than its content counted the width of the tile names, which are longer than the tiles, so a group with long names came out wider than its lights. The width said outright is used, so every gap is 10 pixels.
+
 ## [0.17.1] - 2026-11-21
 
 ### Fixed

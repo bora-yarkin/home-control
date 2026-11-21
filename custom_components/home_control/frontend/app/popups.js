@@ -1036,26 +1036,34 @@ function showPopup(key, push, layer) {
     back.addEventListener("click", popBack);
     h.appendChild(back);
   }
-  var t = mk("div", "sh-t pane", ic(def.icon) + "<span></span>");
+  var t = mk("div", "sh-t pane", ic(def.power ? "power" : def.icon) + "<span></span>");
   t.querySelector("span:last-child").textContent = def.title;
   h.appendChild(t);
+  /* A popup with a power button has it in the place of the icon at the left of its title: every light of the master on or off. */
+  if (def.power) {
+    var pw = t.querySelector(".ic");
+    pw.classList.add("pwr");
+    pw.setAttribute("role", "button");
+    pw.setAttribute("tabindex", "0");
+    pw.setAttribute("aria-label", _T("power"));
+    pw.addEventListener("click", def.power.toggle);
+    pw.addEventListener("keydown", function (ev) {
+      if (ev.key === "Enter" || ev.key === " ") {
+        ev.preventDefault();
+        def.power.toggle();
+      }
+    });
+    SLIVE.push(function () {
+      if (pw.isConnected) pw.classList.toggle("act", !!def.power.on());
+    });
+    pw.classList.toggle("act", !!def.power.on());
+  }
   if (def.settings && ISADMIN) {
     var st2 = mk("div", "rnd pane", svg("cog"));
     st2.setAttribute("role", "button");
     st2.setAttribute("aria-label", _T("settings"));
     st2.addEventListener("click", def.settings);
     h.appendChild(st2);
-  }
-  if (def.power) {
-    var pw = mk("div", "rnd pane", svg("power"));
-    pw.setAttribute("role", "button");
-    pw.setAttribute("aria-label", _T("power"));
-    pw.addEventListener("click", def.power.toggle);
-    SLIVE.push(function () {
-      if (pw.isConnected) pw.classList.toggle("act", !!def.power.on());
-    });
-    pw.classList.toggle("act", !!def.power.on());
-    h.appendChild(pw);
   }
   var x = mk("div", "rnd pane", svg("close"));
   x.addEventListener("click", LAYERS.length ? closeLayer : closeSheet);

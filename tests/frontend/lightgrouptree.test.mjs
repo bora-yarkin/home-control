@@ -196,9 +196,11 @@ test("under a light's name: the effect it runs, Dynamics for a scene that moves,
   assert.equal(hue.lpLightDoing("light.other", {}), "Static", "dynamics none is one colour");
 });
 
-test("an opened group is never narrower than its lights, and opening and closing move tiles and clip, which never lay the row out again", () => {
+test("an opened group is exactly as wide as its lights, and opening and closing move tiles and clip, which never lay the row out again", () => {
   const css = readFileSync(new URL("../dashboard.css", APP), "utf8");
-  assert.match(css, /\.lp-tg\{[^}]*min-width:max-content\}/);
+  /* not min-width:max-content: Safari counts the width of a tile's name (longer than the tile) in it, so a group with long names came out wider than its lights and the tile after it sat further away than the others */
+  assert.match(css, /\.lp-tg\{[^}]*min-width:0\}/);
+  assert.doesNotMatch(css, /\.lp-tg\{[^}]*max-content/);
   assert.doesNotMatch(css.match(/\.lp-tg\{[^}]*\}/)[0], /gap/, "spaced with margins: Safari leaves a flex container's gap out of its content width");
   assert.match(css, /\.lp-tg>\*\+\*\{margin-left:10px\}/);
   assert.match(css, /\.lp-tile\{[^}]*flex:0 0 98px/, "the width the group is worked out from");

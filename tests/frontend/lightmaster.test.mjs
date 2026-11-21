@@ -96,3 +96,10 @@ test("with nothing picked no tile is lit; a picked group lights the tiles of its
   const picked = { sel: iris.key, focus: null, root: master, joined: [] };
   assert.deepEqual(plain(tiles.filter((n) => c.lpTileSel(picked, n)).map((n) => n.key)), ["light.iris_a", "light.iris_b"]);
 });
+
+test("the power button of a popup is in the place of the icon at the left of its title, not beside the close button", () => {
+  const src = readFileSync(new URL("../../custom_components/home_control/frontend/app/popups.js", import.meta.url), "utf8");
+  assert.match(src, /ic\(def\.power \? "power" : def\.icon\)/, "the title's icon is the power icon");
+  assert.match(src, /def\.power\.toggle/);
+  assert.equal((src.match(/svg\("power"\)/g) || []).length, 0, "no second power button is made for the right side");
+});
