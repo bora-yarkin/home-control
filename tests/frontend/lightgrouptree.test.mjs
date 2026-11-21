@@ -131,8 +131,8 @@ test("a group whose lights run at different colours shows them as a gradient, an
   assert.match(panel, /"linear-gradient\(" \+ \(grp \? "135deg" : "180deg"\)/);
 });
 
-test("a tap on a group tile opens it beside its tile, with a button that closes it, and neither double tap nor long press separates anything", () => {
-  assert.match(panel, /if \(S\.hier && lpIsGroup\(n\)\) \{\s*if \(!S\.trayEx\[n\.key\]\) \{/);
+test("a tap on a group tile opens it beside its tile, with an arrow that closes it, and neither double tap nor long press separates anything", () => {
+  assert.match(panel, /if \(!S\.trayEx\[n\.key\]\) expandGroup\(n, el\);/);
   assert.match(panel, /col = mk\("div", "lp-tcol", svg\("chevs"\)\)/);
   assert.doesNotMatch(panel, /S\.openGroup|dblclick/);
 });
@@ -196,7 +196,7 @@ test("under a light's name: the effect it runs, Dynamics for a scene that moves,
   assert.equal(hue.lpLightDoing("light.other", {}), "Static", "dynamics none is one colour");
 });
 
-test("a group section of the lights row is clipped only while it slides, and is never narrower than its lights", () => {
+test("an opened group is never narrower than its lights, and opening and closing move tiles and clip, which never lay the row out again", () => {
   const css = readFileSync(new URL("../dashboard.css", APP), "utf8");
   assert.match(css, /\.lp-tg\{[^}]*min-width:max-content\}/);
   assert.doesNotMatch(css.match(/\.lp-tg\{[^}]*\}/)[0], /gap/, "spaced with margins: Safari leaves a flex container's gap out of its content width");
@@ -204,8 +204,12 @@ test("a group section of the lights row is clipped only while it slides, and is 
   assert.match(css, /\.lp-tile\{[^}]*flex:0 0 98px/, "the width the group is worked out from");
   assert.match(css, /\.lp-tcol\{flex:0 0 30px;width:30px/);
   assert.match(panel, /g\.style\.width = g\.style\.flexBasis = groupWidth\(g\) \+ "px"/, "an opened group is as wide as its lights, said outright");
-  assert.match(css, /\.lp-tg\.lp-slide\{overflow:hidden;min-width:0\}/);
-  assert.match(panel, /run\.onfinish = run\.oncancel = function \(\) \{\s*wrap\.classList\.remove\("lp-slide"\)/);
+  // the slide: a clip on the section and a translate of the tiles after it, with one timing; nothing animates a width
+  assert.match(panel, /wrap\.animate\(\[\{ clipPath: "inset\(0 100% 0 0\)" \}, \{ clipPath: "inset\(0 0 0 0\)" \}\], LP_SLIDE\)/);
+  assert.match(panel, /s\.animate\(\[\{ transform: "translateX\(" \+ -shift \+ "px\)" \}, \{ transform: "translateX\(0\)" \}\], LP_SLIDE\)/);
+  assert.doesNotMatch(panel, /width: "0px"/);
+  // closing: the section goes and the slide of the tiles is cancelled in the same moment
+  assert.match(panel, /wrap\.remove\(\);[\s\S]*moved\.forEach\(function \(a\) \{\s*a\.cancel\(\);/);
 });
 
 test("a tile of several lights says what they all do, and Mixed when they do not do the same", () => {
@@ -232,9 +236,10 @@ test("when the master's sync starts, its lights that the sync does not play on g
 });
 
 test("tapping an opened group again closes it, and the arrow between has no background and spins half a turn back when it closes and forward when it opens", () => {
-  assert.match(panel, /else \{\s*var open = tray\.querySelector\('\.lp-tg\[data-key="' \+ n\.key \+ '"\]'\);\s*if \(open && !open\.classList\.contains\("lp-slide"\)\) collapseGroup\(n, open\);/);
-  assert.match(panel, /arrow\.animate\(\[\{ transform: "rotate\(0deg\)" \}, \{ transform: "rotate\(180deg\)" \}\]/, "spins back when it closes");
-  assert.match(panel, /arrow\.animate\(\[\{ transform: "rotate\(180deg\)" \}, \{ transform: "rotate\(0deg\)" \}\]/, "and the other way when it opens");
+  assert.match(panel, /else \{\s*var open = el\.nextElementSibling;[\s\S]*collapseGroup\(n, open\);/);
+  assert.match(panel, /spin\(wrap, 180, 0\)/, "forward when it opens");
+  assert.match(panel, /spin\(wrap, 0, 180\)/, "back when it closes");
   const css = readFileSync(new URL("../dashboard.css", APP), "utf8");
   assert.doesNotMatch(css.match(/\.lp-tcol\{[^}]*\}/)[0], /background|border-radius/);
 });
+
