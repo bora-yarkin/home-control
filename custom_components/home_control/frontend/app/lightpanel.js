@@ -37,7 +37,13 @@ function lpMasterNode(sid, ids) {
   var units = lightUnits(ids),
     n = { key: "m:" + sid, name: LMASTER_NAME[sid] || _T("all_lights"), icon: "lights", cmd: units, kids: null, parent: null, zones: false, order: LMASTER_ORDER[sid] || null };
   n.kids = units.map(function (u) {
-    var k = lpNodeOf(u, null);
+    var k = lpNodeOf(u, null),
+      meta = (LMASTER_META[sid] || {})[u];
+    /* A manual master can show a light under a name and icon of its own. */
+    if (meta) {
+      if (meta.n) k.name = meta.n;
+      if (meta.i) k.icon = meta.i;
+    }
     k.parent = n;
     return k;
   });
@@ -89,9 +95,18 @@ function lpVisible(S) {
 function lpShownOf(S, n) {
   return (
     lpVisible(S).filter(function (m) {
-      return m === n || lpLeaves(m).indexOf(n) >= 0 || (m.virtual && m.kids.some(function (k) { return lpLeaves(k).indexOf(n) >= 0; }));
+      return m === n || lpLeaves(m).indexOf(n) >= 0 || (m.virtual && m.kids.some(function (k) { return lpLeaves(k).indexOf(n) >= 0; })) || (S.hier && lpHolds(m, n));
     })[0] || null
   );
+}
+
+/* Whether a node stands for another: the node itself, or one of the lights or groups under it (a group counts as one light, so it is found as a node and not only as the lights it is made of). */
+function lpHolds(m, n) {
+  if (m === n) return true;
+  if (m.zones || !m.kids) return false;
+  return m.kids.some(function (k) {
+    return lpHolds(k, n);
+  });
 }
 
 /* What is shown: the whole, or, where a node was separated, the nodes under it. */
@@ -281,13 +296,18 @@ function lpPaintMark(m, rgb) {
 }
 
 /* A marker on a circle: a dot, and above it, while selected, a drop with the number of lights (the icon for one light), the name and the kelvin while dragging. */
-function lpMarker(n, showName) {
+/* A group of lights that is one light (in a panel whose groups are single lights): its marker shows its icon, not the number of its lights. */
+function lpIsGroup(n) {
+  return !!n.kids && !n.virtual && !n.zones;
+}
+
+function lpMarker(n, showName, asIcon) {
   var m = {
     n: n,
     x: 0,
     y: 0,
     dot: mk("div", "lw-dot"),
-    pin: mk("div", "lw-pin", lpCount(n) > 1 ? "<span class='lw-num'>" + lpCount(n) + "</span>" : svg(n.icon || "light")),
+    pin: mk("div", "lw-pin", lpCount(n) > 1 && !asIcon ? "<span class='lw-num'>" + lpCount(n) + "</span>" : svg(n.icon || "light")),
     tag: mk("div", "lw-tag"),
     pending: null,
     timer: 0,
@@ -533,30 +553,34 @@ function lpCircle(S, mode) {
     b.chips.remove();
     if (!fast) lpPinAnim(b.m, true, 0);
   }
-  function openBubble(m) {
+  /* What a circle lists: the lights a marker stands for (one level at a time in a panel whose groups are single lights: a group is one entry, and tapping it lists its lights). */
+  function bubbleKids(n) {
+    return (S.hier ? n.kids || [] : lpOpenKids(n)).filter(function (k) {
+      return lpCap(k, mode).length;
+    });
+  }
+  function openBubble(m, node, stack) {
     closeBubble(true);
+    node = node || m.n;
+    stack = stack || [];
     var R = circ.clientWidth / 2,
-      kids0 = lpOpenKids(m.n).filter(function (k) {
-        return lpCap(k, mode).length;
-      }).length,
+      kids0 = bubbleKids(node).length,
       rho = Math.min(R, Math.max(56, R * 0.5, (kids0 * 64) / (2 * Math.PI))),
       cx = R,
       cy = R,
-      kids = lpOpenKids(m.n).filter(function (k) {
-        return lpCap(k, mode).length;
-      });
+      kids = bubbleKids(node);
     var el = mk("div", "lw-bub"),
       chips = mk("div", "lw-chips");
     el.style.cssText =
       "left:" + (cx - rho) + "px;top:" + (cy - rho) + "px;width:" + 2 * rho + "px;height:" + 2 * rho + "px;";
     circ.appendChild(el);
-    /* The first light sits at 12 o'clock and the others follow clockwise, a fixed step apart like in the Hue app (spread evenly round the whole circle only when there are more than eight). */
+    /* The first light sits at 12 o'clock and the others follow clockwise, spread evenly round the whole circle however many there are. */
     var ang = kids.map(function (k, i) {
-      return -Math.PI / 2 + i * Math.min((2 * Math.PI) / kids.length, Math.PI / 4);
+      return -Math.PI / 2 + (i * 2 * Math.PI) / kids.length;
     });
     /* The circle grows from the middle of the wheel, then the lights pop in one after the other at their places. */
     var mem = kids.map(function (k, i) {
-      var x = lpMarker(k, true);
+      var x = lpMarker(k, true, S.hier && lpIsGroup(k));
       x.inBub = true;
       x.pin.classList.add("bubm");
       x.dot.classList.add("bubm");
@@ -566,8 +590,21 @@ function lpCircle(S, mode) {
       return x;
     });
     circ.appendChild(chips);
+    /* Inside a group that was opened from the list, the middle of the circle goes back to that list. */
+    if (stack.length) {
+      var back = mk("div", "lw-bubback", svg("back"));
+      back.style.left = cx + "px";
+      back.style.top = cy + "px";
+      back.setAttribute("role", "button");
+      back.setAttribute("aria-label", _T("back"));
+      back.addEventListener("click", function (ev) {
+        ev.stopPropagation();
+        openBubble(m, stack[stack.length - 1], stack.slice(0, -1));
+      });
+      chips.appendChild(back);
+    }
     m.pin.style.visibility = m.dot.style.visibility = "hidden";
-    bub = { m: m, n: m.n, el: el, chips: chips, cx: cx, cy: cy, rho: rho, mem: mem };
+    bub = { m: m, n: node, stack: stack, el: el, chips: chips, cx: cx, cy: cy, rho: rho, mem: mem };
     S.select(m.n.key);
   }
   /* The markers are made again whenever a group is separated or joined. */
@@ -596,7 +633,7 @@ function lpCircle(S, mode) {
       return lpCap(n, mode).length && (!S.maker || n.cmd.every(vlightIs));
     });
     marks = list.map(function (n) {
-      var m = lpMarker(n, list.length > 1);
+      var m = lpMarker(n, list.length > 1, S.hier && lpIsGroup(n));
       circ.appendChild(m.dot);
       circ.appendChild(m.pin);
       return m;
@@ -679,7 +716,10 @@ function lpCircle(S, mode) {
     })[0];
     if (!t) return;
     var r = circ.getBoundingClientRect(),
-      data = finger({ clientX: r.left + t.x, clientY: r.top + t.y }).data;
+      /* The lights take what the marker they are dropped on really has, not what its place on the wheel reads as: markers are moved apart where they would overlap, and a place read back differs a little from the temperature it came from. */
+      own = ref(t.n),
+      exact = own && isOn(own) ? (isColor ? { hs_color: lpHs(own) } : { color_temp_kelvin: lpKelvin(own) }) : null,
+      data = exact && (exact.hs_color || exact.color_temp_kelvin) ? exact : finger({ clientX: r.left + t.x, clientY: r.top + t.y }).data;
     lpPush(m.n, mode, data);
     /* The joined lights stay where they were dropped, in the colour of the spot, until the lights report it themselves (a few seconds at most); they used to start in the middle and move. */
     hold = {
@@ -729,7 +769,8 @@ function lpCircle(S, mode) {
   circ.addEventListener("pointermove", function (e) {
     if (!down || !cur) return;
     if (!moved) {
-      if (Math.hypot(e.clientX - sx, e.clientY - sy) < 6) return;
+      /* a light of a circle needs a longer drag than a marker to be taken out: a tap that slips does not separate it */
+      if (Math.hypot(e.clientX - sx, e.clientY - sy) < (cur.inBub ? 12 : 6)) return;
       moved = true;
       if (far) {
         far = false;
@@ -792,6 +833,11 @@ function lpCircle(S, mode) {
     }
     if (cur && cur.inBub) {
       /* A tap on a light of the circle only picks it: its drop opens above it and bounces, and the circle stays as it is. Lights are separated by dragging them out. */
+      if (!moved && bub && S.hier && cur.n.kids) {
+        /* A group (or a light made of zones) of the list: the circle lists its lights (its zones) instead; the lights of the old list go, the new ones come. Tapping separates nothing. */
+        openBubble(bub.m, cur.n, bub.stack.concat([bub.n]));
+        return;
+      }
       if (!moved && bub) lpPinAnim(cur, true, 0);
       return;
     }
@@ -853,6 +899,31 @@ function lpNodeLook(n) {
   return first;
 }
 
+/* A panel whose groups are single lights (S.hier) opens with its lights apart, the ones that look the same sharing a marker; a group is never opened by itself, however its lights look. */
+function lpHierInit(S, root) {
+  if (!root.kids || lpNodeLook(root)) return;
+  S.ex[root.key] = true;
+  var groups = [];
+  root.kids.forEach(function (k) {
+    var l = lpNodeLook(k),
+      g = l
+        ? groups.filter(function (x) {
+            return x.look && lpSameLook(x.look, l);
+          })[0]
+        : null;
+    if (g) g.kids.push(k);
+    else groups.push({ look: l, kids: [k] });
+  });
+  groups.forEach(function (g) {
+    if (g.kids.length > 1) S.joined.push(S.makeVirtual(g.kids, g.kids[0].icon));
+  });
+}
+
+/* The lights row of a panel whose groups are single lights: the lights of the whole, a group as one tile. What is separated on the wheel does not change it: a light taken out of a group on the wheel is still in its group here. */
+function lpTrayUnits(S) {
+  return (S.root.kids || [S.root]).slice();
+}
+
 /* A panel opens showing what the lights really do: a group whose lights look the same stays one marker; when they differ it opens separated, and the lights that look the same stay together as one marker. */
 function lpAutoSplit(S, n) {
   if (!n.kids || lpNodeLook(n)) return;
@@ -877,11 +948,13 @@ function lpAutoSplit(S, n) {
 }
 
 /* The state of one panel: what is separated (S.ex) or joined by hand (S.joined), what is selected, and the pieces that must follow (the circles in S.subs, the brightness row S.bsl). 'both' is true when there are Colour and White tabs. */
-function lpState(root, both) {
+function lpState(root, both, groups) {
   var S = {
     root: root,
     both: both,
     ex: {},
+    /* The groups of the lights row that are opened beside their tile (not separated on the wheel). */
+    trayEx: {},
     sel: null,
     subs: [],
     joined: [],
@@ -919,6 +992,7 @@ function lpState(root, both) {
   };
   /* A light was dragged out of its group's circle: it is on its own, the rest of the group stays together. */
   S.detach = function (g, kid) {
+    if (S.hier) return S.pullOut(kid);
     var gone = lpLeaves(kid),
       rest = lpOpenKids(g).filter(function (k) {
         return gone.indexOf(k) < 0;
@@ -938,6 +1012,86 @@ function lpState(root, both) {
     if (rest.length > 1) S.joined.push(S.makeVirtual(rest, rest[0].icon));
     /* No slide and no pop: the light is under the finger already and follows it. */
     S.sel = kid.key;
+    S.rebuild();
+  };
+  /* A panel whose groups are single lights: one light (or group) is taken out of the marker it is in and has a marker of its own. A group that holds it is opened where it stands (the others of it stay together, with whatever they were together with). */
+  S.pullOut = function (kid) {
+    var chain = [];
+    for (var p = kid.parent; p; p = p.parent) chain.unshift(p);
+    chain.forEach(function (a) {
+      if (a === S.root || S.ex[a.key]) return;
+      S.ex[a.key] = true;
+      S.joined = S.joined.map(function (v) {
+        if (v.kids.indexOf(a) < 0) return v;
+        var kids = [];
+        v.kids.forEach(function (k) {
+          if (k === a) kids = kids.concat(a.kids);
+          else kids.push(k);
+        });
+        return S.makeVirtual(kids, v.icon);
+      });
+    });
+    var holder = S.joined.filter(function (v) {
+      return v.kids.indexOf(kid) >= 0;
+    })[0];
+    if (holder) {
+      var rest = holder.kids.filter(function (k) {
+        return k !== kid;
+      });
+      S.joined = S.joined.filter(function (v) {
+        return v !== holder;
+      });
+      if (rest.length > 1) S.joined.push(S.makeVirtual(rest, rest[0].icon));
+    }
+    S.sel = kid.key;
+    S.pop = [kid.key];
+    S.rebuild();
+  };
+  /* Dropping one marker on another, in a panel whose groups are single lights: they share one marker; a group that has all its lights in it is whole again, and so on up to the whole. */
+  S.joinHier = function (a, b) {
+    var kids = [],
+      gone = [];
+    [a, b].forEach(function (n) {
+      if (n.virtual) {
+        kids = kids.concat(n.kids);
+        gone.push(n);
+      } else kids.push(n);
+    });
+    S.joined = S.joined.filter(function (v) {
+      return gone.indexOf(v) < 0;
+    });
+    var again = true;
+    while (again) {
+      again = false;
+      for (var i = 0; i < kids.length && !again; i++) {
+        var par = kids[i].parent;
+        if (
+          par &&
+          par.kids.every(function (k) {
+            return kids.indexOf(k) >= 0;
+          })
+        ) {
+          /* the group takes the place of the first of its lights */
+          var at = kids.length;
+          kids.forEach(function (k, j) {
+            if (par.kids.indexOf(k) >= 0) at = Math.min(at, j);
+          });
+          kids = kids.filter(function (k) {
+            return par.kids.indexOf(k) < 0;
+          });
+          kids.splice(Math.min(at, kids.length), 0, par);
+          delete S.ex[par.key];
+          again = true;
+        }
+      }
+    }
+    if (kids.length === 1) S.sel = kids[0].key;
+    else {
+      var v = S.makeVirtual(kids, b.icon);
+      S.joined.push(v);
+      S.sel = v.key;
+    }
+    S.pop = [S.sel];
     S.rebuild();
   };
   S.rebuild = function () {
@@ -1000,6 +1154,7 @@ function lpState(root, both) {
   /* Dropping one marker on another: they become one marker that moves together. When that makes all the lights of a separated group, the group is whole again. */
   S.join = function (a, b) {
     if (S.maker) return; /* the colours of a live scene are not joined to one another or to lights */
+    if (S.hier) return S.joinHier(a, b);
     var kids = [],
       gone = [];
     [a, b].forEach(function (n) {
@@ -1029,7 +1184,10 @@ function lpState(root, both) {
     S.pop = [S.sel];
     S.rebuild();
   };
-  lpAutoSplit(S, root);
+  /* A master that shows its groups as one light: a group is one light, and the lights that look the same share a marker (S.hier). */
+  S.hier = !!groups;
+  if (S.hier) lpHierInit(S, root);
+  else lpAutoSplit(S, root);
   return S;
 }
 
@@ -1402,35 +1560,6 @@ function lpFxPane(S, pane, fx) {
       box.appendChild(effectRow(x));
     });
   });
-  if (fx.scenes.length) {
-    box.appendChild(mk("div", "lp-fx-h")).textContent = _T("scenes");
-    var row = mk("div", "lp-fxr");
-    fx.scenes.forEach(function (id) {
-      var t = tile(A(id).name || id, "", "");
-      t.sw.style.background = "var(--f-raise)";
-      var kind = pluginSceneKind(id);
-      kind.palette(id, function (stops) {
-        t.sw.style.background = "linear-gradient(135deg," + (stops.length > 1 ? stops : [stops[0], stops[0]]).join(",") + ")";
-      });
-      t.active = function () {
-        return !!kind.active(id);
-      };
-      t.el.addEventListener("click", function () {
-        if (kind.dynamic(id)) kind.start(id);
-        else {
-          liveStopOn(S.root.cmd);
-          call("scene", "turn_on", { entity_id: id });
-        }
-      });
-      if (kind.dynamic(id))
-        t.pen.addEventListener("click", function () {
-          lpGo(S, kind.popup + ":" + id);
-        });
-      else t.pen.style.display = "none";
-      put(row, t);
-    });
-    box.appendChild(row);
-  }
   function paint() {
     tiles.forEach(function (t) {
       var on = !!t.active();
@@ -1731,7 +1860,7 @@ function lpFxColourPopup(b, name) {
 
 /* The lights under the circle, like in the Hue app: a tile for every light (a light made of zones is one tile), with its icon, its name and a switch, in a row that scrolls sideways. The row does not depend on what is joined or separated on the circle: groups are always shown as the lights they are made of. A tile is the colour the light shows, or its zone colours. Tapping a tile selects it and shows its pin on the circle; its switch turns it on or off. */
 function lpTrayNodes(S) {
-  var list = S.maker ? lpVisible(S).slice() : lpLeaves(S.root);
+  var list = S.maker ? lpVisible(S).slice() : S.hier ? lpTrayUnits(S) : lpLeaves(S.root);
   return lpSortLights(list, S.root.order);
 }
 
@@ -1769,6 +1898,48 @@ function lpFxGradient(effect) {
   return "linear-gradient(135deg," + pal.concat(pal[0]).join(",") + ")";
 }
 
+/* The lights a scene that moves plays on now: the live scenes that run (the engine says which lights each has) and a plugin's scenes that play (Hue's dynamic scenes, when the plugin can say which lights they are on). */
+function lpDynamicLights() {
+  var set = {},
+    s = engineSensor() ? liveSessions() : {};
+  Object.keys(s).forEach(function (sid) {
+    (s[sid].lights || []).forEach(function (e) {
+      set[e] = 1;
+    });
+  });
+  Object.keys(H().states).forEach(function (id) {
+    var kind = id.indexOf("scene.") === 0 ? pluginSceneKind(id) : null;
+    if (kind && kind.lights && kind.dynamic(id) && kind.active(id))
+      (kind.lights(id) || []).forEach(function (e) {
+        set[e] = 1;
+      });
+  });
+  return set;
+}
+
+/* What one light is doing, in a word for the line under its name: Sync (a plugin says a sync plays on it), the effect it runs, Dynamics (a scene's colours moving), or Static (one colour). Nothing while it is off. */
+function lpLightDoing(e, dyn) {
+  var on = V_(e) === "on";
+  if (pluginPlays(e)) return _T("tile_sync");
+  if (!on) return "";
+  var own = A(lpFxLight(e)),
+    fx = own.effect;
+  if (fx && fx !== "off") return typeof lpFxLabel === "function" ? lpFxLabel(fx) : cap(String(fx).replace(/_/g, " "));
+  /* the bridge says a light plays a scene's colours (Hue's `dynamics` is "none" when it does not) */
+  if (own.dynamics && own.dynamics !== "none") return _T("tile_dynamics");
+  return dyn[e] || dyn[lpFxLight(e)] ? _T("tile_dynamics") : _T("tile_static");
+}
+
+/* The same for a tile: what all its lights do, or Mixed when they do not do the same. */
+function lpTileDoing(n, dyn) {
+  var words = [];
+  lpLeaves(n).forEach(function (l) {
+    var w = lpLightDoing(l.cmd[0], dyn);
+    if (w && words.indexOf(w) < 0) words.push(w);
+  });
+  return words.length > 1 ? _T("tile_mixed") : words[0] || "";
+}
+
 function lpTileColours(n) {
   var one = n.cmd.length === 1 ? lightStops(n.cmd[0]) : null;
   if (one && one.length > 1) return one;
@@ -1793,13 +1964,51 @@ function lpTileSel(S, n) {
   });
 }
 
+/* The lights row of a panel whose groups are single lights: each tile, and after a group that was opened its lights (which can be groups that are opened too). */
+function lpTrayStruct(S, list, depth) {
+  return list.map(function (n) {
+    var item = { n: n };
+    /* A group opens by itself, once, when its lights are not running alike; after that it is as it was left. */
+    if (lpIsGroup(n) && S.trayEx[n.key] === undefined) S.trayEx[n.key] = !lpNodeLook(n);
+    if (lpIsGroup(n) && S.trayEx[n.key]) item.kids = lpTrayStruct(S, lpSortLights(n.kids, null), (depth || 0) + 1);
+    return item;
+  });
+}
+
+function lpTraySig(items) {
+  return items
+    .map(function (it) {
+      return it.n.key + (it.kids ? "[" + lpTraySig(it.kids) + "]" : "");
+    })
+    .join(",");
+}
+
+/* The colours a group tile shows: its lights' own when they do not all run alike (a gradient from the top left to the bottom right), else the one colour. */
+function lpGroupColours(n) {
+  var cs = [];
+  (n.kids || []).forEach(function (k) {
+    var c = avgLight(k.cmd.filter(isOn));
+    if (!c) return;
+    if (
+      !cs.some(function (x) {
+        return Math.abs(x[0] - c[0]) + Math.abs(x[1] - c[1]) + Math.abs(x[2] - c[2]) < 24;
+      })
+    )
+      cs.push(c);
+  });
+  return cs.length > 1 ? cs.slice(0, 4) : null;
+}
+
 function lpTray(S) {
   var tray = mk("div", "lp-tray"),
     tiles = [];
   function paint() {
+    var dyn = lpDynamicLights();
     tiles.forEach(function (t) {
+      if (t.sub) t.sub.textContent = lpTileDoing(t.n, dyn);
       var on = countOn(t.n.cmd) > 0,
-        cs = on ? lpTileColours(t.n) : null,
+        grp = S.hier && lpIsGroup(t.n),
+        cs = on ? (grp && lpGroupColours(t.n)) || lpTileColours(t.n) : null,
         lum = 0;
       var fxn = on ? lpTileEffect(t.n) : "";
       t.el.classList.toggle("on", on);
@@ -1818,7 +2027,7 @@ function lpTray(S) {
         }, 0) / cs.length;
         t.el.style.background =
           cs.length > 1
-            ? "linear-gradient(180deg," + cs.map(cssRgb).join(",") + ")"
+            ? "linear-gradient(" + (grp ? "135deg" : "180deg") + "," + cs.map(cssRgb).join(",") + ")"
             : "linear-gradient(180deg," + cssRgb(cs[0]) + "," + cssRgb(cs[0].map(function (v) {
                 return v * 0.86;
               })) + ")";
@@ -1826,8 +2035,143 @@ function lpTray(S) {
       t.el.classList.toggle("lt", !!cs && lum > 0.62);
     });
   }
+  var curSig = null;
+  /* A panel whose groups are single lights: the tiles, and beside a group that was opened its lights, with a button that closes it. An opened or closed group slides, and the tiles after it slide with it. */
+  function fillHier() {
+    var items = lpTrayStruct(S, lpTrayNodes(S)),
+      sig = lpTraySig(items);
+    if (sig === curSig) return;
+    curSig = sig;
+    var left = tray.scrollLeft;
+    tray.textContent = "";
+    tiles = [];
+    addItems(items, tray);
+    if (S.members) addPlus();
+    fitGroups();
+    tray.scrollLeft = left;
+  }
+  /* An opened group is as wide as its lights, said outright (the widths of the tiles and the space between them, the same numbers as in the style sheet), so that no browser can work out a narrower one and let the next tile sit on top of the last light. Innermost first. */
+  function groupWidth(g) {
+    var kids = [].slice.call(g.children),
+      sum = 0;
+    kids.forEach(function (c) {
+      sum += c.classList.contains("lp-tg") ? groupWidth(c) : c.classList.contains("lp-tcol") ? 30 : 98;
+    });
+    return sum + Math.max(0, kids.length - 1) * 10;
+  }
+  function fitGroups() {
+    [].forEach.call(tray.querySelectorAll(".lp-tg"), function (g) {
+      g.style.width = g.style.flexBasis = groupWidth(g) + "px";
+    });
+  }
+  /* Opening and closing a group are moves of the tiles, not changes of their width: the section is revealed from its left edge while the tiles after it slide to or from where they stand, with the same timing, so the edge of the reveal and the tile after it travel together. Only transforms and a clip are animated, which the browser does without laying the row out again. */
+  var LP_SLIDE = { duration: 340, easing: "cubic-bezier(.3,.8,.25,1)" };
+  function laterSiblings(el) {
+    var out = [];
+    for (var s = el.nextElementSibling; s; s = s.nextElementSibling) out.push(s);
+    return out;
+  }
+  function spin(wrap, from, to) {
+    var arrow = wrap.querySelector(".lp-tcol svg");
+    if (arrow && arrow.animate) arrow.animate([{ transform: "rotate(" + from + "deg)" }, { transform: "rotate(" + to + "deg)" }], { duration: LP_SLIDE.duration, easing: LP_SLIDE.easing, fill: "forwards" });
+  }
+  /* The row slides to a place (the same time and the same slowing as the tiles). */
+  function scrollTrayTo(x, ms) {
+    var from = tray.scrollLeft;
+    if (Math.abs(x - from) < 1) return;
+    var t0 = performance.now();
+    (function step(now) {
+      var p = Math.min(1, (now - t0) / ms),
+        e = 1 - Math.pow(1 - p, 3);
+      tray.scrollLeft = from + (x - from) * e;
+      if (p < 1) requestAnimationFrame(step);
+    })(t0);
+  }
+  function leftIn(el) {
+    return el.getBoundingClientRect().left - tray.getBoundingClientRect().left + tray.scrollLeft;
+  }
+  function resig() {
+    curSig = lpTraySig(lpTrayStruct(S, lpTrayNodes(S)));
+  }
+  /* A group of the row is opened: its lights come out to the right of its tile. */
+  function expandGroup(n, tileEl) {
+    S.trayEx[n.key] = true;
+    var parent = tileEl.parentNode,
+      it = lpTrayStruct(S, [n])[0];
+    /* inside another opened group the row is drawn again (the section around it changes width too) */
+    if (parent !== tray || !it.kids || !tileEl.animate) {
+      fillHier();
+      paint();
+      return;
+    }
+    var wrap = makeWrap(it);
+    parent.insertBefore(wrap, tileEl.nextSibling);
+    fitGroups();
+    resig();
+    paint();
+    var shift = wrap.offsetWidth + 10;
+    /* The row slides so that the group and its lights are in view (the group stays in view too). */
+    var end = leftIn(wrap) + wrap.offsetWidth + 12;
+    if (end > tray.scrollLeft + tray.clientWidth) scrollTrayTo(Math.max(0, Math.min(end - tray.clientWidth, leftIn(tileEl) - 8)), LP_SLIDE.duration);
+    laterSiblings(wrap).forEach(function (s) {
+      s.animate([{ transform: "translateX(" + -shift + "px)" }, { transform: "translateX(0)" }], LP_SLIDE);
+    });
+    wrap.animate([{ clipPath: "inset(0 100% 0 0)" }, { clipPath: "inset(0 0 0 0)" }], LP_SLIDE);
+    spin(wrap, 180, 0);
+  }
+  /* Closing an opened group: the reverse. */
+  function collapseGroup(n, wrap) {
+    if (wrap.parentNode !== tray || !wrap.animate) {
+      S.trayEx[n.key] = false;
+      fillHier();
+      paint();
+      return;
+    }
+    var shift = wrap.offsetWidth + 10,
+      /* The row gets shorter by that much. If it is scrolled past the new end, it slides back with the rest, so the browser does not pull it back in one step when the section goes. */
+      after = Math.max(0, tray.scrollWidth - shift - tray.clientWidth);
+    if (tray.scrollLeft > after) scrollTrayTo(after, LP_SLIDE.duration);
+    var moved = laterSiblings(wrap).map(function (s) {
+        return s.animate([{ transform: "translateX(0)" }, { transform: "translateX(" + -shift + "px)" }], { duration: LP_SLIDE.duration, easing: LP_SLIDE.easing, fill: "forwards" });
+      }),
+      shut = wrap.animate([{ clipPath: "inset(0 0 0 0)" }, { clipPath: "inset(0 100% 0 0)" }], { duration: LP_SLIDE.duration, easing: LP_SLIDE.easing, fill: "forwards" });
+    spin(wrap, 0, 180);
+    shut.onfinish = function () {
+      /* the section goes and the tiles' slide is taken off in the same moment, so they do not move twice */
+      S.trayEx[n.key] = false;
+      wrap.remove();
+      tiles = tiles.filter(function (x) {
+        return x.el.isConnected;
+      });
+      resig();
+      moved.forEach(function (a) {
+        a.cancel();
+      });
+      paint();
+    };
+  }
+  function makeWrap(it) {
+    var wrap = mk("div", "lp-tg"),
+      col = mk("div", "lp-tcol", svg("chevs"));
+    wrap.dataset.key = it.n.key;
+    col.setAttribute("role", "button");
+    col.setAttribute("aria-label", _T("back"));
+    col.addEventListener("click", function () {
+      collapseGroup(it.n, wrap);
+    });
+    wrap.appendChild(col);
+    addItems(it.kids, wrap);
+    return wrap;
+  }
+  function addItems(items, parent) {
+    items.forEach(function (it) {
+      addTile(it.n, parent);
+      if (it.kids) parent.appendChild(makeWrap(it));
+    });
+  }
   /* The tiles follow what is shown on the circles: a group that was separated is its lights. */
   function fill() {
+    if (S.hier) return fillHier();
     var nodes = lpTrayNodes(S);
     if (
       tiles.length === nodes.length &&
@@ -1839,7 +2183,9 @@ function lpTray(S) {
     var left = tray.scrollLeft;
     tray.textContent = "";
     tiles = [];
-    nodes.forEach(addTile);
+    nodes.forEach(function (n) {
+      addTile(n);
+    });
     if (S.members) addPlus();
     tray.scrollLeft = left;
   }
@@ -1872,15 +2218,25 @@ function lpTray(S) {
     });
     tray.appendChild(el);
   }
-  function addTile(n) {
+  function addTile(n, parent) {
     var el = mk("div", "lp-tile", "<div class='lp-tfx'></div>" + svg(n.icon || "light")),
       nm = mk("div", "lp-tn"),
       sw = mk("div", "lp-sw", "<i></i>");
     nm.textContent = n.name;
     el.appendChild(nm);
+    var doing = mk("div", "lp-ts");
+    el.appendChild(doing);
     el.appendChild(sw);
     el.addEventListener("click", function () {
       S.reveal(n);
+      /* A tap on a group opens it beside its tile: its lights come out to the right of it. Tapping it again closes it. */
+      if (S.hier && lpIsGroup(n)) {
+        if (!S.trayEx[n.key]) expandGroup(n, el);
+        else {
+          var open = el.nextElementSibling;
+          if (open && open.classList.contains("lp-tg") && open.dataset.key === n.key && !open.getAnimations().length) collapseGroup(n, open);
+        }
+      }
     });
     sw.addEventListener("click", function (e) {
       e.stopPropagation();
@@ -1898,8 +2254,8 @@ function lpTray(S) {
       });
       el.appendChild(rm);
     }
-    tray.appendChild(el);
-    tiles.push({ n: n, el: el, fxl: el.firstChild });
+    (parent || tray).appendChild(el);
+    tiles.push({ n: n, el: el, fxl: el.firstChild, sub: doing });
   }
   S.subs.push({
     build: function () {
@@ -2106,16 +2462,25 @@ function lpStage(S, host) {
     modes = [];
   if (colorOk) modes.push("color");
   if (whiteOk) modes.push("white");
-  if (fx.effects.length || (!S.maker && fx.scenes.length)) modes.push("fx");
+  if (fx.effects.length) modes.push("fx");
+  /* A lights master has the Scenes page after Effects. */
+  if (!S.maker && mscSection(root)) modes.push("scenes");
+  /* and the sync, as a page of its own, when the master has it on */
+  var syncId = !S.maker && mscSection(root) ? masterSyncOf(mscSection(root).e) : null;
+  if (syncId) modes.push("sync");
   S.modes = modes;
   if (S.restore && modes.indexOf(S.restore.mode) >= 0) S.mode = S.restore.mode;
   if (S.restore && S.restore.sel) S.sel = S.restore.sel;
+  /* A lights master can open on a tab of its own choice (when it is there and the panel is not coming back to the page it was on). */
+  var ref0 = S.restore ? null : mscSection(root),
+    want = ref0 ? ref0.e.mtab : "";
+  if (want && modes.indexOf(want) >= 0) S.mode = want;
   if (modes.indexOf(S.mode) < 0) S.mode = modes[0];
   S.stage = st;
   track.style.setProperty("--n", modes.length);
   modes.forEach(function (m) {
-    panes[m] = mk("div", "lp-pane" + (m === "fx" ? " fx" : ""));
-    if (m !== "fx") panes[m].appendChild(lpCircle(S, m));
+    panes[m] = mk("div", "lp-pane" + (m === "fx" || m === "scenes" || m === "sync" ? " fx" : "") + (m === "sync" ? " sync" : ""));
+    if (m !== "fx" && m !== "scenes" && m !== "sync") panes[m].appendChild(lpCircle(S, m));
     track.appendChild(panes[m]);
   });
   view.appendChild(track);
@@ -2133,14 +2498,25 @@ function lpStage(S, host) {
       if (S.maker) lpMakerFxPane(S, panes.fx, fx);
       else lpFxPane(S, panes.fx, fx);
     }
+    if (S.mode === "scenes" && !panes.scenes._built) {
+      panes.scenes._built = true;
+      lpScenesPane(S, panes.scenes);
+    }
+    if (S.mode === "sync" && !panes.sync._built) {
+      panes.sync._built = true;
+      panes.sync._size = lpSyncPane(S, panes.sync, syncId, function () {
+        lpSyncSize(S, view, panes.sync, true);
+      });
+    }
+    lpSyncMode(S, st, view, panes.sync, anim);
   }
   if (modes.length > 1) {
     tabs = mk("div", "lp-itabs");
     modes.forEach(function (m, i) {
-      if (m === "fx") tabs.appendChild(mk("div", "lp-sep"));
-      var x = mk("div", "lp-it " + m, m === "fx" ? svg("sparkle") : "<i></i>");
+      if (m === "fx" || m === "scenes" || m === "sync") tabs.appendChild(mk("div", "lp-sep"));
+      var x = mk("div", "lp-it " + m, m === "fx" ? svg("sparkle") : m === "scenes" ? svg("palette") : m === "sync" ? svg("syncring") : "<i></i>");
       x.setAttribute("role", "button");
-      x.setAttribute("aria-label", m === "color" ? _T("colour") : m === "white" ? _T("white") : _T("effects"));
+      x.setAttribute("aria-label", m === "color" ? _T("colour") : m === "white" ? _T("white") : m === "scenes" ? _T("scenes") : m === "sync" ? _T("master_sync_tab") : _T("effects"));
       x.dataset.m = m;
       x.addEventListener("click", function () {
         S.mode = m;
@@ -2180,7 +2556,15 @@ function lpStage(S, host) {
   bar.appendChild(right);
   st.appendChild(view);
   st.appendChild(bar);
-  st.appendChild(lpTray(S));
+  /* The tray slides shut while the sync is shown. */
+  var trayBox = mk("div", "lp-collapsible");
+  trayBox.appendChild(lpTray(S));
+  S.syncSubs = (S.syncSubs || []).concat([
+    function (on) {
+      trayBox.classList.toggle("shut", on);
+    },
+  ]);
+  st.appendChild(trayBox);
   host.appendChild(st);
   paint(false);
   return st;
@@ -2273,9 +2657,10 @@ function lightPanel(b, root, o) {
   var colorOk = lpCap(root, "color").length > 0,
     whiteOk = lpCap(root, "white").length > 0,
     any = colorOk || whiteOk,
-    S = lpState(root, colorOk && whiteOk);
+    S = lpState(root, colorOk && whiteOk, !!o.groups);
   S.maker = !!o.maker;
   S.members = o.members || null;
+  S.groupTiles = !!o.groups;
   S.mode = lpFirstMode(root, colorOk, whiteOk);
   S.restore = LPBACK && LPBACK.root === root.key ? LPBACK : null;
   LPBACK = null;
@@ -2287,9 +2672,18 @@ function lightPanel(b, root, o) {
   }
   if (any && o.sliders) lpSliders(b, root, colorOk, whiteOk);
   if (any && o.room) {
-    var pbox = mk("div");
-    b.appendChild(pbox);
+    var pbox = mk("div"),
+      pwrap = mk("div", "lp-collapsible");
+    pwrap.appendChild(pbox);
+    b.appendChild(pwrap);
     lpSaved(pbox, S, o.room);
+    if (S.mode === "sync") pwrap.classList.add("shut");
+    /* The saved colours slide shut while the sync is shown. */
+    S.syncSubs = (S.syncSubs || []).concat([
+      function (on) {
+        pwrap.classList.toggle("shut", on);
+      },
+    ]);
   }
 }
 
@@ -2380,4 +2774,68 @@ function lpSaved(pbox, S, room) {
     }
   }
   draw();
+}
+
+/* The sync as a page of the light panel: the same page as the sync popup, built into the panel. While it is shown the saved colours, the lights row and the brightness button go (they slide shut or fade), the panel's page grows to the height of the sync page so the tabs slide down to the bottom, and everything comes back when another tab is chosen. `size` is called when the page changes height. */
+function lpSyncPane(S, pane, id, size) {
+  var box = mk("div", "lp-fx"),
+    inner = mk("div", "lp-sync-in"),
+    kind = pluginDeviceKind(id),
+    prev = CUR;
+  box.appendChild(inner);
+  pane.appendChild(box);
+  /* What the page registers for its updates belongs to the popup that shows it, not to the whole page. */
+  CUR = SLIVE;
+  try {
+    popupDef(kind.pop + ":" + id).build(inner);
+  } finally {
+    CUR = prev;
+  }
+  if (window.ResizeObserver) new ResizeObserver(size).observe(inner);
+  pane._inner = inner;
+  return size;
+}
+
+/* The height the page of the panel has while the sync is shown: what the sync page needs, at most most of the screen. */
+function lpSyncSize(S, view, pane, animate) {
+  if (S.mode !== "sync" || !pane._inner) return;
+  var want = Math.max(260, Math.min(pane._inner.offsetHeight + 8, Math.round(window.innerHeight * 0.62)));
+  view.style.transition = animate ? "height .38s cubic-bezier(.2,.9,.25,1)" : "none";
+  view.style.height = want + "px";
+}
+
+/* Switching to or from the sync page: the classes that slide and fade the rest, and the page's height. */
+function lpSyncMode(S, st, view, pane, anim) {
+  var on = S.mode === "sync",
+    was = st.classList.contains("sync");
+  if (on === was) return;
+  st.classList.toggle("sync", on);
+  (S.syncSubs || []).forEach(function (f) {
+    f(on);
+  });
+  if (on) {
+    view.classList.add("sizing");
+    var from = view.offsetHeight;
+    view.style.transition = "none";
+    view.style.height = from + "px";
+    void view.offsetHeight;
+    lpSyncSize(S, view, pane, anim !== false);
+  } else {
+    var cur = view.offsetHeight;
+    view.classList.remove("sizing");
+    view.style.height = "";
+    var nat = view.offsetHeight;
+    view.classList.add("sizing");
+    view.style.transition = "none";
+    view.style.height = cur + "px";
+    void view.offsetHeight;
+    view.style.transition = anim === false ? "none" : "height .38s cubic-bezier(.2,.9,.25,1)";
+    view.style.height = nat + "px";
+    setTimeout(function () {
+      if (S.mode === "sync") return;
+      view.classList.remove("sizing");
+      view.style.height = "";
+      view.style.transition = "";
+    }, 420);
+  }
 }

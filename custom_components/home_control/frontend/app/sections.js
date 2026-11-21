@@ -110,7 +110,7 @@ var SECTYPES = {
       d: _T("scenes_for_this_page"),
       own: 1,
       noun: _T("device_2"),
-      add: "controls",
+      add: "scenes",
     },
     alerts: {
       t: _T("attention"),
@@ -530,6 +530,11 @@ function customSection(s) {
   (s.devs || []).forEach(function (d) {
     if (k === "lights" && d.id) LWHEEL[d.id] = !s.nowheel;
     if (!ed && (d.hide || (d.id && modeOf(d.id).mode === "hide"))) return;
+    /* A lights master can leave its lights and the sync out of the section; it keeps them itself. */
+    if (!ed && k === "lights" && s.master && d.id) {
+      var pk = pluginDeviceKind(d.id);
+      if (pk ? pk.sync && s.mhs : d.kind === "light" && s.mhl) return;
+    }
     var r = k === "read" ? (d.id ? readTile(d) : null) : devRow(d);
     if (!r && ed) r = k === "read" ? readTile(d) : pill(d.icon || "plug", d.name, {});
     if (!r) return;
@@ -553,24 +558,17 @@ function customSection(s) {
       rows.length > 0
     );
   }
-  if (!rows.length && !ed) return null;
-  /* Lights master: one light at the top that controls every light of the section; off unless the section turns it on. While the page is edited it opens its settings. */
-  if (k === "lights" && s.master) {
-    var mids = src
-      .filter(function (d) {
-        return d.id && d.kind === "light";
+  var mids = k === "lights" && s.master ? masterLightIds(s) : [];
+  /* A lights master keeps its section on the page when it has hidden every row of it: the master is the section then. */
+  if (!rows.length && !ed && !(s.master && mids.length > 1)) return null;
+  /* Lights master: one light at the top that controls every light of the section (or the lights chosen for it); off unless the section turns it on. While the page is edited it opens its settings. */
+  if (k === "lights" && s.master && mids.length > 1) {
+    var mr = lightsMasterRow(secKey() + "~" + s.id, mids, !s.nowheel, s.mn, s.mall, s.mo, masterMeta(s));
+    rows.unshift(
+      edMark(mr, function () {
+        showPopup("lmaster-edit:" + secKey() + ":" + s.id, true);
       })
-      .map(function (d) {
-        return d.id;
-      });
-    if (mids.length > 1) {
-      var mr = lightsMasterRow(s.id, mids, !s.nowheel, s.mn, s.mall, s.mo);
-      rows.unshift(
-        edMark(mr, function () {
-          showPopup("lmaster-edit:" + secKey() + ":" + s.id, true);
-        })
-      );
-    }
+    );
   }
   var body = rows;
   if (k === "read") {

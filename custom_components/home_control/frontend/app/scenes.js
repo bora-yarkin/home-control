@@ -421,18 +421,35 @@ function applyPresetData(d, p, id) {
   } else d.hs_color = [p.h, p.s];
 }
 
-/* A scene entity can be hidden from the page of the room that shows its area (the administrator's choice, kept with the room). */
+/* The scenes of a scenes section are the scenes of its source area (the room's own, or the one the section names) and the scene entities chosen for it. Which of a plugin's scenes are hidden is the section's choice: a
+   section that has not made one yet uses the room's list (`hscn`, how it was kept before), and from its first change keeps its own, so hiding a scene in one section leaves the other sections of the page alone. */
+function sceneSectionRoom(room, sec) {
+  var ctx = Object.create(room);
+  ctx.id = room.id + "." + sec.id;
+  ctx.sec = sec;
+  ctx.area = sec.sarea || room.area;
+  return ctx;
+}
+
+function sceneEntHiddenList(room) {
+  var sec = room && room.sec;
+  if (sec && Array.isArray(sec.hscn)) return sec.hscn;
+  return (room && room.hscn) || [];
+}
+
+/* A scene entity can be hidden from the scenes section that shows it (the administrator's choice). */
 function sceneEntHidden(room, id) {
-  return !!room && (room.hscn || []).indexOf(id) >= 0;
+  return !!room && sceneEntHiddenList(room).indexOf(id) >= 0;
 }
 
 function sceneEntSetHidden(room, id, hide) {
   if (!room || !/^scene\.[a-z0-9_]+$/.test(id)) return;
-  var scenes = (room.hscn || []).filter(function (x) {
+  var scenes = sceneEntHiddenList(room).filter(function (x) {
     return x !== id;
   });
   if (hide && scenes.length < 80) scenes.push(id);
-  if (scenes.length) room.hscn = scenes;
+  if (room.sec) room.sec.hscn = scenes;
+  else if (scenes.length) room.hscn = scenes;
   else delete room.hscn;
   uiChanged();
 }
@@ -542,7 +559,7 @@ function scenesSection(room, extra) {
     dyn.innerHTML = "";
     dyn.className = e.lay === "grid2" ? "gridl g2" : e.lay === "grid3" ? "gridl g3" : "";
     var mine = secScenes(e),
-      ents = extra ? extra() : [];
+      ents = extra ? extra(e) : [];
     function sceneRows(list) {
       return list.map(function (sc) {
         return edDel(
@@ -750,40 +767,73 @@ function sceneKindOrder(e, items) {
   });
 }
 
+/* A scene's name without the area's name in front of it ("Bathroom Dim" is "Dim"): the page's name, or the name of the area the section takes its scenes from. A section can keep the names whole. */
+function sceneShortName(name, ctx, sec) {
+  if (sec.keepname) return name;
+  var areas = (H().areas || {})[ctx.area],
+    heads = [ctx.name, areas && areas.name];
+  for (var i = 0; i < heads.length; i++) {
+    var h = heads[i];
+    if (h && name.indexOf(h) === 0) {
+      var rest = name.slice(h.length).replace(/^\s+/, "");
+      if (rest) return rest;
+    }
+  }
+  return name;
+}
+
 function lightingScenesExtra(key) {
   var r = UIROOM[key];
-  if (!r || !r.area || !sceneIds(r.area).length) return null;
+  if (!r) return null;
   if (!ISADMIN && ["view", "hide"].indexOf(modeOf("", key).mode) >= 0) return null;
-  /* The scene entities of the room's area, each with the kind a plugin owns it as (Hue's), if any. */
-  return function () {
-    return sceneIds(r.area)
-      .filter(function (s) {
-        return editing() || !pluginSceneKind(s[0]) || !sceneEntHidden(r, s[0]);
+  /* A section's scene entities, each with the kind a plugin owns it as (Hue's), if any: the scenes of its source area, then the ones chosen for it. */
+  return function (sec) {
+    var ctx = sceneSectionRoom(r, sec),
+      own = (ctx.area ? sceneIds(ctx.area) : []).map(function (s) {
+        return s[0];
+      }),
+      chosen = (sec.sents || []).filter(function (id) {
+        return own.indexOf(id) < 0 && H().states[id];
+      });
+    return own
+      .concat(chosen)
+      .filter(function (id) {
+        return editing() || !pluginSceneKind(id) || !sceneEntHidden(ctx, id);
       })
-      .map(function (s) {
-        var nm = A(s[0]).friendly_name || s[0],
-          kind = pluginSceneKind(s[0]);
-        if (nm.indexOf(r.name) === 0) nm = nm.slice(r.name.length).replace(/^\s+/, "") || nm;
-        var row = sceneEntRow(s[0], nm, kind ? kind.icon : "scene", null, r);
+      .map(function (id) {
+        var nm = A(id).friendly_name || id,
+          kind = pluginSceneKind(id),
+          picked = chosen.indexOf(id) >= 0;
+        nm = sceneShortName(nm, ctx, sec);
+        var row = sceneEntRow(id, nm, kind ? kind.icon : "scene", null, ctx);
         if (kind)
           row = edMark(row, function () {
-            showPopup(sceneKindPopupKey(kind, s[0], r), true);
-          }, sceneEntHidden(r, s[0]));
-        /* A scene a plugin can delete (Hue's, from the bridge) has the same trash as the scenes made here, and the same question. */
-        if (kind && kind.remove)
+            showPopup(sceneKindPopupKey(kind, id, ctx), true);
+          }, sceneEntHidden(ctx, id));
+        if (picked)
+          /* A scene chosen for this section is only taken out of it; it stays where it is. */
+          row = edDel(row, function () {
+            sec.sents = sec.sents.filter(function (x) {
+              return x !== id;
+            });
+            uiChanged();
+            rerender();
+          });
+        else if (kind && kind.remove)
+          /* A scene a plugin can delete (Hue's, from the bridge) has the same trash as the scenes made here, and the same question. */
           row = edDel(
             row,
             function () {
               confirmDlg(_T("delete_scene") + ": " + nm + "?", function () {
-                Promise.resolve(kind.remove(s[0])).then(function () {
-                  sceneEntSetHidden(r, s[0], false);
+                Promise.resolve(kind.remove(id)).then(function () {
+                  sceneEntSetHidden(ctx, id, false);
                   rerender();
                 });
               });
             },
             _T("delete_scene")
           );
-        return { id: s[0], kind: kind, row: row };
+        return { id: id, kind: kind, row: row };
       });
   };
 }

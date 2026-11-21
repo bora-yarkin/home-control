@@ -168,6 +168,7 @@ function dashboard({ create, lights = ["Desk lamp", "Shelf strip", "Ceiling"], r
       return p;
     },
     redrawBox: (box, fn) => fn(),
+    sectionOfList: () => null,
     candidates: (doms, rid, q, area) => {
       calls.candidateArgs = [doms, rid, q, area];
       return lights.map((n) => ({ id: Object.keys(names).filter((k) => names[k] === n)[0], name: n, area: "", group: n === "Ceiling" }));

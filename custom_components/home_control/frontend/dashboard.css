@@ -948,3 +948,52 @@ body.pinhdr:not(.editing) .wrap::before{content:"";position:fixed;top:0;left:0;r
 .bat .bs{flex:none;min-width:44px;text-align:center;font-size:var(--fs-s);padding:3px 9px;border-radius:11px;background:rgba(255,255,255,.1);color:var(--ink2)}
 .bat .bs.ok{background:rgba(110,200,140,.18);color:#9be0b0}
 .bat .bs.low{background:rgba(255,120,100,.2);color:#ffab9c}
+
+/* the scenes page of a lights master's light popup: four columns, rows that share their width, a folder that slides open under its row */
+.lp-scl{display:flex;flex-direction:column;margin:0 0 14px}
+.lp-scr{display:flex;gap:10px;margin:0 0 10px;align-items:stretch}
+.lp-scr .lp-fxt{flex:1 1 0;min-width:0;width:auto;max-width:calc((100% - 30px)/4);margin:0;padding:10px 4px 8px;touch-action:pan-y;user-select:none;-webkit-user-select:none;transition:background .3s,color .3s}
+.lp-scr .lp-fxs{width:min(100%,64px);margin-bottom:2px}
+.lp-fxt.lifting{z-index:60;box-shadow:0 10px 28px rgba(0,0,0,.45);filter:brightness(1.15);transition:none;position:relative}
+.lp-fxt.mergeable{box-shadow:0 0 0 2px var(--acc)}
+.lp-fxt.fold .lp-fxs{display:grid;grid-template-columns:1fr 1fr;grid-template-rows:1fr 1fr;gap:3px;padding:5px;box-sizing:border-box;background:var(--f-line2);border-radius:18px;overflow:visible}
+.lp-fxt.fold .lp-fxs i{display:block;border-radius:50%;width:100%;height:100%}
+.lp-fxside{flex:0 0 0;width:0;overflow:hidden;display:flex;flex-direction:column;justify-content:center;align-items:center;gap:10px;opacity:0;margin-left:-10px;transition:flex-basis .32s cubic-bezier(.3,.9,.3,1),width .32s cubic-bezier(.3,.9,.3,1),margin .32s cubic-bezier(.3,.9,.3,1),opacity .25s}
+.lp-fxside.open{flex-basis:36px;width:36px;opacity:1;margin-left:0}
+.lp-fxside .lp-fxe{margin-right:0;flex:0 0 auto}
+.lp-foldw{display:grid;grid-template-rows:0fr;margin:0;transition:grid-template-rows .34s cubic-bezier(.3,.9,.3,1),margin .34s cubic-bezier(.3,.9,.3,1)}
+.lp-foldw.open{grid-template-rows:1fr;margin:0 0 10px}
+.lp-fold{min-height:0;overflow:hidden;border-radius:20px;background:var(--f-card);border:1px solid transparent;padding:0 10px;transition:padding .34s,border-color .34s}
+.lp-foldw.open .lp-fold{padding:12px 10px 2px;border-color:var(--f-line)}
+.lp-fold .lp-scl{margin:0}
+.lp-fold-h{display:flex;align-items:center;gap:10px;margin:0 4px 10px}
+.lp-fold-n{flex:1;font-size:var(--fs-l,16px);font-weight:700}
+.lp-fold-h .lp-fxe{margin-right:0}
+.lp-fold-h input.sq{flex:1;min-width:0}
+@media(prefers-reduced-motion:reduce){.lp-fxside,.lp-foldw,.lp-fold{transition:none}}
+
+/* the sync as a page of a lights master's light panel */
+.lp-collapsible{display:grid;grid-template-rows:1fr;transition:grid-template-rows .36s cubic-bezier(.2,.9,.25,1),opacity .28s,margin .36s}
+.lp-collapsible>*{min-height:0}
+.lp-collapsible.shut{grid-template-rows:0fr;opacity:0;pointer-events:none}
+.lp-collapsible.shut>*{overflow:hidden}
+.lp-stage>.lp-collapsible.shut{margin-bottom:-6px}
+.lp-view.sizing{overflow:hidden}
+.lp-view.sizing .lp-track{height:100%}
+.lp-bar-r{transition:opacity .28s}
+.lp-stage.sync .lp-bar-r{opacity:0;pointer-events:none}
+.lp-sync-in{padding:2px 12px 12px}
+.lp-pane.sync .lp-fx{padding:0}
+@media(prefers-reduced-motion:reduce){.lp-collapsible,.lp-bar-r{transition:none}}
+.lw-bubback{position:absolute;width:46px;height:46px;margin:-23px 0 0 -23px;border-radius:50%;display:flex;align-items:center;justify-content:center;background:rgba(20,22,28,.72);border:1.5px solid rgba(255,255,255,.75);color:#fff;cursor:pointer;z-index:5;pointer-events:auto}
+.lw-bubback svg{width:22px;height:22px;fill:none;stroke:currentColor;stroke-width:2;stroke-linecap:round;stroke-linejoin:round}
+/* a group of the lights row opened beside its tile: its lights, with a button that closes it */
+/* spaced with margins, not gap: Safari leaves a flex container's gap out of its content width, which cut the last light off */
+.lp-tg{display:flex;align-items:stretch;flex:0 0 auto;min-width:max-content}
+.lp-tg>*+*{margin-left:10px}
+.lp-tg.lp-slide{overflow:hidden;min-width:0}
+.lp-tcol{flex:0 0 30px;width:30px;display:flex;align-items:center;justify-content:center;color:var(--ink2);cursor:pointer;transition:color .2s}
+.lp-tcol:hover{color:var(--ink)}
+.lp-tcol svg{width:22px;height:22px;fill:none;stroke:currentColor;stroke-width:2;stroke-linecap:round;stroke-linejoin:round;transform-origin:50% 50%}
+.lp-ts{font-size:11px;line-height:1.1;min-height:12px;margin-top:-2px;opacity:.78;text-align:center;max-width:100%;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.lp-tile{height:150px}

@@ -561,6 +561,7 @@ function lightIndividuals(ids, depth) {
 }
 
 /* The lights master of a Lights section: one light that stands for every light in the section. The section's lights are kept here for its popup. */
+/* Keyed by "page~section": the same section id is on every page. */
 var LMASTER = {};
 /* What the section called its lights master (its row, its popup and its panel), by section; empty when it was not renamed. */
 var LMASTER_NAME = {};
@@ -568,6 +569,8 @@ var LMASTER_NAME = {};
 var LMASTER_ALL = {};
 /* The order the owner gave the lights of a section's lights master, by section (entity ids); absent when they are shown by name. */
 var LMASTER_ORDER = {};
+/* The names and icons a manual master shows for its lights, by section. */
+var LMASTER_META = {};
 /* The lights an editor lets be added and taken out (see lightsEditDef). */
 var LMASTER_MEMBERS = {};
 
@@ -604,8 +607,9 @@ function lightsMasterToggle(ids) {
   if (plain.length) call("light", "turn_on", { entity_id: plain });
 }
 
-function lightsMasterRow(sid, ids, wheel, name, all, order) {
+function lightsMasterRow(sid, ids, wheel, name, all, order, meta) {
   LMASTER[sid] = ids;
+  LMASTER_META[sid] = meta || {};
   LMASTER_NAME[sid] = name || "";
   LMASTER_ALL[sid] = !!all;
   LMASTER_ORDER[sid] = order || null;
@@ -663,13 +667,7 @@ function lightsMasterSettings(b, key) {
   var box = mk("div");
   b.appendChild(box);
   function lightIds() {
-    return (sec.devs || [])
-      .filter(function (d) {
-        return d.id && d.kind === "light";
-      })
-      .map(function (d) {
-        return d.id;
-      });
+    return masterLightIds(sec);
   }
   /* The lights as the row shows them now: by name, or in the owner's order. */
   function shown() {
@@ -690,6 +688,9 @@ function lightsMasterSettings(b, key) {
         return on ? _T("every_light_of_the_section_even_those_") : _T("only_the_lights_that_are_on_or_all_if_none_is");
       })
     );
+    masterModeRows(box, sec, p[0], draw);
+    masterPopupRows(box, sec, p[0], draw);
+    mscSourceRows(box, sec, p[0], draw);
     box.appendChild(sep(_T("order_of_the_lights"), "drag"));
     box.appendChild(hintRow(sec.mo ? _T("drag_a_light_to_move_it_the_row_follows_this_order") : _T("the_lights_are_in_alphabetical_order_drag_one_to_set_your_own")));
     var nodes = shown(),
@@ -757,7 +758,24 @@ function lightsMasterPopup(b, sid) {
     room: savedRoomOf(lightIndividuals(ids)),
     sliders: LWHEEL["m:" + sid] === false,
     members: LMASTER_MEMBERS[sid] || null,
+    /* The lights row follows the circle: a group is one tile until it is separated (the master's choice). */
+    groups: !!(masterSec(sid) || {}).mgl,
   });
+  /* When the master's sync starts, the lights of the master that it does not play on go off: they are not in its area. */
+  var sync = masterSyncOf(masterSec(sid)),
+    was = sync ? V_(sync) === "on" : false;
+  if (sync)
+    SLIVE.push(function () {
+      var on = V_(sync) === "on";
+      if (on && !was)
+        setTimeout(function () {
+          var off = lightIndividuals(LMASTER[sid] || []).filter(function (e) {
+            return V_(e) === "on" && !pluginPlays(e);
+          });
+          if (off.length) call("light", "turn_off", { entity_id: off });
+        }, 2000);
+      was = on;
+    });
 }
 
 /* The lights a light group is made of. */

@@ -842,7 +842,7 @@ function devEditor(rid, d) {
 
 /* The device type preselected when "Add device" is tapped in a section. */
 var ADDPRE = null,
-  ADDPRE_IX = { lights: 0, other: 1, climate: 3, media: 4, camera: 6, sensors: 7, controls: 8 };
+  ADDPRE_IX = { lights: 0, other: 1, climate: 3, media: 4, camera: 6, sensors: 7, controls: 8, scenes: 9 };
 
 /* Rooms grouped by their Home Assistant floor (lowest level first), keeping the dashboard's room order inside each floor.
  Returns null when everything is on one floor, so the Home page then shows a single grid as before. */
@@ -876,6 +876,9 @@ function pageDevIds(rid) {
   secOrder(sc).forEach(function (s) {
     (s.devs || []).forEach(function (d) {
       if (d.id) out[d.id] = 1;
+    });
+    (s.sents || []).forEach(function (id) {
+      out[id] = 1;
     });
   });
   return out;
@@ -1221,6 +1224,47 @@ function secEditor(b, key) {
             showPopup("pick-pin:" + key, true);
           },
         })
+      );
+    /* Where a scenes section gets its scenes: the page's own area, or any other area (the bathroom's scenes in the bedroom's page). */
+    if (k === "scenes" && sk !== "home") {
+      var from = selectTile(
+        _T("scenes_from"),
+        function () {
+          var ids = Object.keys(H().areas || {}).sort(function (x, y) {
+            return String(H().areas[x].name).localeCompare(H().areas[y].name);
+          });
+          return ["room"].concat(ids);
+        },
+        function () {
+          return e.sarea || "room";
+        },
+        function (v) {
+          if (v === "room") delete e.sarea;
+          else e.sarea = v;
+          save();
+          from.refresh();
+        },
+        "home",
+        function (v) {
+          return v === "room" ? _T("scenes_from_this_page") : (H().areas[v] || {}).name || v;
+        }
+      );
+      from.classList.add("selrow");
+      from.refresh();
+      box.appendChild(from);
+    }
+    if (k === "scenes" && sk !== "home")
+      box.appendChild(
+        flagPill(
+          "edit",
+          _T("scene_names_without_area"),
+          e,
+          "keepname",
+          function (on) {
+            return on ? _T("scene_names_without_area_on") : _T("scene_names_without_area_off");
+          },
+          true
+        )
       );
     if (k === "quick" || k === "scenes")
       box.appendChild(

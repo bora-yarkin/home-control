@@ -588,6 +588,33 @@ function cleanLayout(a) {
     if (k === "lights" && s.master) o.master = 1;
     if (k === "lights" && s.master && typeof s.mn === "string" && s.mn.trim()) o.mn = s.mn.trim().slice(0, 40);
     if (k === "lights" && s.master && s.mall) o.mall = 1;
+    if (k === "lights" && s.master) {
+      /* Manual: the lights chosen for the master, each with an optional name and icon. */
+      if (s.mm) {
+        o.mm = 1;
+        o.ml = (Array.isArray(s.ml) ? s.ml : [])
+          .slice(0, 100)
+          .map(function (m) {
+            /* the first form kept { id, n, i } */
+            if (m && !m.kind && typeof m.id === "string")
+              m = { id: m.id, name: m.name || m.n || m.id.split(".")[1].replace(/_/g, " "), icon: m.icon || m.i || "light", kind: "light" };
+            return cleanDev(m);
+          })
+          .filter(function (c, i, a) {
+            return c && c.kind === "light" && c.id && a.findIndex(function (x) { return x && x.id === c.id; }) === i;
+          });
+      }
+      if (s.mgl) o.mgl = 1;
+      if (["color", "white", "fx", "scenes", "sync"].indexOf(s.mtab) >= 0) o.mtab = s.mtab;
+      if (s.mhl) o.mhl = 1;
+      if (s.mhs) o.mhs = 1;
+      if (s.mpw === "scene") {
+        o.mpw = "scene";
+        if (typeof s.mps === "string" && /^[a-z0-9_.-]{1,80}$/.test(s.mps)) o.mps = s.mps;
+      }
+      if (s.msync) o.msync = 1;
+      if (typeof s.msyncid === "string" && ENTRE.test(s.msyncid)) o.msyncid = s.msyncid;
+    }
     if (k === "lights" && s.master && Array.isArray(s.mo))
       o.mo = s.mo
         .filter(function (x, i, a) {
@@ -597,7 +624,7 @@ function cleanLayout(a) {
     if (k === "lights" && s.nowheel) o.nowheel = 1;
     if (k === "lights" && s.accent) o.accent = 1;
     if (k === "pinned" && Array.isArray(s.pins)) o.pins = cleanPins(s.pins);
-    if ((k === "quick" || k === "scenes") && Array.isArray(s.scn))
+    if ((k === "quick" || k === "scenes" || k === "lights") && Array.isArray(s.scn))
       o.scn = s.scn
         .filter(function (x, i, a) {
           return typeof x === "string" && /^[a-z0-9_-]{1,24}$/.test(x) && a.indexOf(x) === i;
@@ -611,6 +638,53 @@ function cleanLayout(a) {
         })
         .slice(0, 80);
       if (hord.length) o.hord = hord;
+    }
+    if (k === "lights") {
+      /* The scenes page of the lights master: where its scenes come from, the folders the owner made and the order of the tiles outside them. */
+      var key = function (x) {
+        return typeof x === "string" && /^[a-z0-9_.-]{1,80}$/.test(x);
+      };
+      if (Array.isArray(s.msrc))
+        o.msrc = s.msrc
+          .filter(function (x, i, a) {
+            return (x === "hue" || x === "page" || (typeof x === "string" && /^sec:[a-z0-9_-]{1,24}$/.test(x))) && a.indexOf(x) === i;
+          })
+          .slice(0, 24);
+      if (Array.isArray(s.mf)) {
+        var folders = s.mf
+          .filter(function (f) {
+            return f && typeof f.id === "string" && /^[a-z0-9]{1,12}$/.test(f.id) && typeof f.n === "string" && Array.isArray(f.s);
+          })
+          .slice(0, 30)
+          .map(function (f) {
+            return { id: f.id, n: f.n.slice(0, 40), s: f.s.filter(key).slice(0, 80) };
+          })
+          .filter(function (f) {
+            return f.s.length;
+          });
+        if (folders.length) o.mf = folders;
+      }
+      /* A folder's tile is "f:" and its id in the order. */
+      if (Array.isArray(s.mtop))
+        o.mtop = s.mtop
+          .filter(function (x) {
+            return key(x) || (typeof x === "string" && /^f:[a-z0-9]{1,12}$/.test(x));
+          })
+          .slice(0, 240);
+    }
+    if (k === "scenes") {
+      /* Where a scenes section gets its scenes: the area it names (the room's own when it names none), the scene entities chosen for it and the plugin scenes it hides (a list of its own, even an empty one). */
+      if (typeof s.sarea === "string" && /^[a-z0-9_]{1,64}$/.test(s.sarea)) o.sarea = s.sarea;
+      var sceneList = function (v) {
+        return v
+          .filter(function (x, i, a) {
+            return typeof x === "string" && /^scene\.[a-z0-9_]{1,80}$/.test(x) && a.indexOf(x) === i;
+          })
+          .slice(0, 80);
+      };
+      if (Array.isArray(s.sents) && sceneList(s.sents).length) o.sents = sceneList(s.sents);
+      if (Array.isArray(s.hscn)) o.hscn = sceneList(s.hscn);
+      if (s.keepname) o.keepname = 1;
     }
     if (ty.own) {
       o.devs = [];
