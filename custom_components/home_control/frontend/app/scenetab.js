@@ -329,10 +329,6 @@ function mscList(S, ref, tiles, plus, opts) {
         before.set(t, t.getBoundingClientRect());
       });
     order = list;
-    if (side) {
-      side.el.remove();
-      side = null;
-    }
     var all = list.concat(plus ? [plus] : []),
       rows = wrap.querySelectorAll(".lp-scr, .lp-foldw");
     [].forEach.call(rows, function (r) {
@@ -347,6 +343,14 @@ function mscList(S, ref, tiles, plus, opts) {
       });
       wrap.appendChild(row);
       if (row.card) wrap.appendChild(row.card);
+    }
+    /* The pen and the dots of the scene that plays stay where they are while the rows are made again (a folder opening or a tile moving): they do not come out again. */
+    if (side) {
+      if (list.indexOf(side.t) >= 0) side.t.parentNode.insertBefore(side.el, side.t.nextSibling);
+      else {
+        side.el.remove();
+        side = null;
+      }
     }
     sideUpdate();
     if (animate)
@@ -387,6 +391,27 @@ function mscList(S, ref, tiles, plus, opts) {
       bounds: opts.bounds || null,
     });
   return wrap;
+}
+
+/* The page slides to a place (the same slowing as everything that opens in the panel). */
+function mscSlideScroll(el, to, ms) {
+  var from = el.scrollTop,
+    t0 = performance.now();
+  if (Math.abs(to - from) < 1) return;
+  (function step(now) {
+    var p = Math.min(1, (now - t0) / ms);
+    el.scrollTop = from + (to - from) * (1 - Math.pow(1 - p, 3));
+    if (p < 1) requestAnimationFrame(step);
+  })(t0);
+}
+
+/* A folder that opens slides the page down so that it is in view, by as much as it needs: a short folder that already fits moves nothing, a tall one does not go above its own top. */
+function mscRevealCard(box, card) {
+  var height = card.firstElementChild ? card.firstElementChild.scrollHeight + 12 : 0,
+    top = card.getBoundingClientRect().top - box.getBoundingClientRect().top + box.scrollTop,
+    want = top + height + 8 - box.clientHeight,
+    to = Math.min(want, top - 10);
+  if (to > box.scrollTop + 1) mscSlideScroll(box, to, 340);
 }
 
 /* The Scenes page. */
@@ -534,6 +559,7 @@ function lpScenesPane(S, pane) {
       top.apply(top.order(), false);
       void cards[id].offsetHeight;
       cards[id].classList.add("open");
+      mscRevealCard(box, cards[id]);
     }
     var tiles = entries.map(function (en) {
       return en.folder

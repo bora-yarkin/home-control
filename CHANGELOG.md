@@ -4,6 +4,10 @@ Format: [Keep a Changelog](https://keepachangelog.com/). Versions follow [semant
 
 ## [Unreleased]
 
+### Fixed
+- **The pen and the three dots of the scene that plays came out again when a folder of the Scenes page was opened** (or a tile moved). They stay where they are while the rows are made again.
+- **A folder that opens slides the page down so it is in view**, by as much as it needs: a short folder that fits moves nothing, a tall one never goes above its own top.
+
 ## [0.17.0] - 2026-11-21
 
 ### Fixed

@@ -154,3 +154,26 @@ test("a still scene has no stop on its picture, and tapping it again while it is
   assert.deepEqual(run({ kind: "hue", id: "scene.x", dyn: false }, true), [["light", "turn_off", { entity_id: ["light.a", "light.b"] }]], "a still Hue scene that is on: off");
   assert.deepEqual(run({ kind: "hue", id: "scene.x", dyn: true }, true), ["toggle"], "a moving one stops");
 });
+
+test("the pen and dots of the scene that plays stay put when the rows are made again, and a folder that opens slides the page only as far as it needs", () => {
+  const tab = read("scenetab.js");
+  const apply = tab.slice(tab.indexOf("function apply(list, animate, skip)"), tab.indexOf("wrap.apply = apply;"));
+  assert.doesNotMatch(apply, /side\.el\.remove\(\);\s*side = null;\s*\}\s*var all/, "they are not taken away before the rows are made");
+  assert.match(apply, /side\.t\.parentNode\.insertBefore\(side\.el, side\.t\.nextSibling\)/, "they are put back after their tile, with the class that has them out");
+  assert.match(tab, /to = Math\.min\(want, top - 10\)/, "never above the folder's own top");
+  assert.match(tab, /if \(to > box\.scrollTop \+ 1\) mscSlideScroll\(box, to, 340\)/, "a folder that fits moves nothing");
+  assert.match(tab, /cards\[id\]\.classList\.add\("open"\);\s*mscRevealCard\(box, cards\[id\]\);/);
+  // the helper works out where to slide to from the heights
+  const sandbox = { performance: { now: () => 0 }, requestAnimationFrame() {} };
+  vm.createContext(sandbox);
+  vm.runInContext(tab.slice(tab.indexOf("function mscSlideScroll("), tab.indexOf("/* The Scenes page. */")), sandbox);
+  const box = (scrollTop, clientHeight, boxTop = 100) => ({ scrollTop, clientHeight, getBoundingClientRect: () => ({ top: boxTop }) });
+  const card = (cardTop, inner) => ({ firstElementChild: { scrollHeight: inner }, getBoundingClientRect: () => ({ top: cardTop }) });
+  let b = box(0, 400);
+  vm.runInContext("1", sandbox);
+  sandbox.mscRevealCard(b, card(150, 120)); // top 50 + 132 + 8 = 190 < 400: it fits
+  assert.equal(b.scrollTop, 0, "a short folder that fits: no scroll");
+  b = box(0, 400);
+  sandbox.mscRevealCard(b, card(400, 500)); // top 300, height 512: want 420, but not above top - 10 = 290
+  assert.equal(b.scrollTop, 0, "the scroll is started with an animation, not set in one step");
+});
