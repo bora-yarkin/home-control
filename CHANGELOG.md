@@ -5,6 +5,7 @@ Format: [Keep a Changelog](https://keepachangelog.com/). Versions follow [semant
 ## [Unreleased]
 
 ### Fixed
+- **The last light of an opened group in the lights row was cut off, and the tile after it overlapped it, in Safari.** The section was spaced with `gap`, which Safari leaves out of its width. It is spaced with margins now.
 - **Tapping a group in the lights row separated every light on the wheel** when all the lights ran alike. The wheel did not find the group in its one marker. A group, or a light of a group, is picked inside the marker that holds it now (the marker shows its icon) and nothing is separated.
 - **The lights of the circle that opens on a marker made half a circle when there were few of them** (a fixed step apart). They are spread evenly round the whole circle now.
 - **A light dropped on another marker of the light circle got a slightly different temperature** than the lights it joined: it took the colour its place on the wheel reads as, and markers are moved apart where they would overlap. It takes the marker's own colour or temperature now.
