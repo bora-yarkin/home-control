@@ -624,6 +624,7 @@ function cleanLayout(a) {
       };
       if (Array.isArray(s.sents) && sceneList(s.sents).length) o.sents = sceneList(s.sents);
       if (Array.isArray(s.hscn)) o.hscn = sceneList(s.hscn);
+      if (s.keepname) o.keepname = 1;
     }
     if (ty.own) {
       o.devs = [];

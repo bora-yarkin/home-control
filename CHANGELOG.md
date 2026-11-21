@@ -9,6 +9,7 @@ Format: [Keep a Changelog](https://keepachangelog.com/). Versions follow [semant
 - **Scenes added to a scenes section were added as devices.** The add popup has a *Scenes* type of its own (they were in *Controls*), and a scene chosen there for a scenes section becomes one of the section's scenes, drawn and opened as any scene is (a Hue scene opens its popup), with a trash that only takes it out of the section.
 
 ### Added
+- **The area's name is left out of scene names in a scenes section** ("Bathroom Dim" shows as "Dim"), for the page's area and for the area the section takes its scenes from; *Leave the area name out of scene names* in the section's settings turns it off.
 - **A scenes section can take its scenes from another area** (*Scenes from* in the section's settings): the bathroom's scenes on the bedroom's page. The page's own area is the default.
 
 ## [0.16.1] - 2026-11-21

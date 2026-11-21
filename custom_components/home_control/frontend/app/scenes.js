@@ -767,6 +767,21 @@ function sceneKindOrder(e, items) {
   });
 }
 
+/* A scene's name without the area's name in front of it ("Bathroom Dim" is "Dim"): the page's name, or the name of the area the section takes its scenes from. A section can keep the names whole. */
+function sceneShortName(name, ctx, sec) {
+  if (sec.keepname) return name;
+  var areas = (H().areas || {})[ctx.area],
+    heads = [ctx.name, areas && areas.name];
+  for (var i = 0; i < heads.length; i++) {
+    var h = heads[i];
+    if (h && name.indexOf(h) === 0) {
+      var rest = name.slice(h.length).replace(/^\s+/, "");
+      if (rest) return rest;
+    }
+  }
+  return name;
+}
+
 function lightingScenesExtra(key) {
   var r = UIROOM[key];
   if (!r) return null;
@@ -789,7 +804,7 @@ function lightingScenesExtra(key) {
         var nm = A(id).friendly_name || id,
           kind = pluginSceneKind(id),
           picked = chosen.indexOf(id) >= 0;
-        if (nm.indexOf(ctx.name) === 0) nm = nm.slice(ctx.name.length).replace(/^\s+/, "") || nm;
+        nm = sceneShortName(nm, ctx, sec);
         var row = sceneEntRow(id, nm, kind ? kind.icon : "scene", null, ctx);
         if (kind)
           row = edMark(row, function () {

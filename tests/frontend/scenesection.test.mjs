@@ -17,7 +17,7 @@ const fn = (src, name) => {
 };
 
 const scenes = read("scenes.js");
-const SCENE_SRC = ["sceneIds", "sceneSectionRoom", "sceneEntHiddenList", "sceneEntHidden", "sceneEntSetHidden", "lightingScenesExtra"].map((n) => fn(scenes, n)).join("\n");
+const SCENE_SRC = ["sceneIds", "sceneShortName", "sceneSectionRoom", "sceneEntHiddenList", "sceneEntHidden", "sceneEntSetHidden", "lightingScenesExtra"].map((n) => fn(scenes, n)).join("\n");
 
 function world(extra = {}) {
   const entities = {};
@@ -151,4 +151,13 @@ test("the add popup has a Scenes type of its own, and Controls no longer holds t
   assert.doesNotMatch(controls, /"scene"/);
   assert.match(read("editor.js"), /ADDPRE_IX = \{[^}]*scenes: 9/);
   assert.match(read("sections.js"), /own: 1,\s*noun: _T\("device_2"\),\s*add: "scenes"/);
+});
+
+test("the area's name is left out of a scene's name: the page's, or the area the section takes its scenes from, unless the section keeps names whole", () => {
+  const w = world({ H: () => ({ states: {}, entities: {}, devices: {}, areas: { bath: { name: "Bathroom" } } }) });
+  const ctx = { name: "Bora's Bedroom", area: "bath" };
+  assert.equal(w.sceneShortName("Bathroom Dim", ctx, {}), "Dim", "the source area's name");
+  assert.equal(w.sceneShortName("Bora's Bedroom Read", ctx, {}), "Read", "the page's name");
+  assert.equal(w.sceneShortName("Bathroom", ctx, {}), "Bathroom", "a name that is only the area's stays");
+  assert.equal(w.sceneShortName("Bathroom Dim", ctx, { keepname: 1 }), "Bathroom Dim");
 });

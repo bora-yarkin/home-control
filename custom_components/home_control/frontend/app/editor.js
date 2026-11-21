@@ -1253,6 +1253,19 @@ function secEditor(b, key) {
       from.refresh();
       box.appendChild(from);
     }
+    if (k === "scenes" && sk !== "home")
+      box.appendChild(
+        flagPill(
+          "edit",
+          _T("scene_names_without_area"),
+          e,
+          "keepname",
+          function (on) {
+            return on ? _T("scene_names_without_area_on") : _T("scene_names_without_area_off");
+          },
+          true
+        )
+      );
     if (k === "quick" || k === "scenes")
       box.appendChild(
         pill("scene", _T("scenes_in_this_section"), {
