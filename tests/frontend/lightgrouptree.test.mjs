@@ -99,3 +99,8 @@ test("tapping an entry of the circle never separates it: a group or a light made
   assert.match(panel, /if \(!moved && bub && S\.hier && cur\.n\.kids\) \{/);
   assert.match(panel, /\(cur\.inBub \? 12 : 6\)/);
 });
+
+test("a light dropped on a marker takes that marker's own colour or temperature, not the one its place on the wheel reads as", () => {
+  assert.match(panel, /exact = own && isOn\(own\) \? \(isColor \? \{ hs_color: lpHs\(own\) \} : \{ color_temp_kelvin: lpKelvin\(own\) \}\) : null/);
+  assert.match(panel, /data = exact && \(exact\.hs_color \|\| exact\.color_temp_kelvin\) \? exact : finger\(/);
+});

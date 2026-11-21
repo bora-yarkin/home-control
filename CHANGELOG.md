@@ -5,6 +5,7 @@ Format: [Keep a Changelog](https://keepachangelog.com/). Versions follow [semant
 ## [Unreleased]
 
 ### Fixed
+- **A light dropped on another marker of the light circle got a slightly different temperature** than the lights it joined: it took the colour its place on the wheel reads as, and markers are moved apart where they would overlap. It takes the marker's own colour or temperature now.
 - **The name given to a lights master did not show in its popup** when another page had a Lights section of the same id: masters were found by the section id alone. They are now found by page and section.
 - **A folder moved to the first place went back to the last** (dropped on the middle of a scene it was taken for a drop onto it and ignored). A folder is only reordered; a scene dropped on a scene or a folder makes or fills one.
 - **Hiding a scene in one scenes section hid it in every section of the page.** The hidden Hue scenes were kept with the room. A section now keeps its own list: until its first change it uses the room's list as before, then its own.

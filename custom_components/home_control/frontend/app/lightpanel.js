@@ -707,7 +707,10 @@ function lpCircle(S, mode) {
     })[0];
     if (!t) return;
     var r = circ.getBoundingClientRect(),
-      data = finger({ clientX: r.left + t.x, clientY: r.top + t.y }).data;
+      /* The lights take what the marker they are dropped on really has, not what its place on the wheel reads as: markers are moved apart where they would overlap, and a place read back differs a little from the temperature it came from. */
+      own = ref(t.n),
+      exact = own && isOn(own) ? (isColor ? { hs_color: lpHs(own) } : { color_temp_kelvin: lpKelvin(own) }) : null,
+      data = exact && (exact.hs_color || exact.color_temp_kelvin) ? exact : finger({ clientX: r.left + t.x, clientY: r.top + t.y }).data;
     lpPush(m.n, mode, data);
     /* The joined lights stay where they were dropped, in the colour of the spot, until the lights report it themselves (a few seconds at most); they used to start in the middle and move. */
     hold = {
