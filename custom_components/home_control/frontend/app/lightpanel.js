@@ -2075,6 +2075,21 @@ function lpTray(S) {
     var arrow = wrap.querySelector(".lp-tcol svg");
     if (arrow && arrow.animate) arrow.animate([{ transform: "rotate(" + from + "deg)" }, { transform: "rotate(" + to + "deg)" }], { duration: LP_SLIDE.duration, easing: LP_SLIDE.easing, fill: "forwards" });
   }
+  /* The row slides to a place (the same time and the same slowing as the tiles). */
+  function scrollTrayTo(x, ms) {
+    var from = tray.scrollLeft;
+    if (Math.abs(x - from) < 1) return;
+    var t0 = performance.now();
+    (function step(now) {
+      var p = Math.min(1, (now - t0) / ms),
+        e = 1 - Math.pow(1 - p, 3);
+      tray.scrollLeft = from + (x - from) * e;
+      if (p < 1) requestAnimationFrame(step);
+    })(t0);
+  }
+  function leftIn(el) {
+    return el.getBoundingClientRect().left - tray.getBoundingClientRect().left + tray.scrollLeft;
+  }
   function resig() {
     curSig = lpTraySig(lpTrayStruct(S, lpTrayNodes(S)));
   }
@@ -2095,6 +2110,9 @@ function lpTray(S) {
     resig();
     paint();
     var shift = wrap.offsetWidth + 10;
+    /* The row slides so that the group and its lights are in view (the group stays in view too). */
+    var end = leftIn(wrap) + wrap.offsetWidth + 12;
+    if (end > tray.scrollLeft + tray.clientWidth) scrollTrayTo(Math.max(0, Math.min(end - tray.clientWidth, leftIn(tileEl) - 8)), LP_SLIDE.duration);
     laterSiblings(wrap).forEach(function (s) {
       s.animate([{ transform: "translateX(" + -shift + "px)" }, { transform: "translateX(0)" }], LP_SLIDE);
     });
@@ -2110,7 +2128,10 @@ function lpTray(S) {
       return;
     }
     var shift = wrap.offsetWidth + 10,
-      moved = laterSiblings(wrap).map(function (s) {
+      /* The row gets shorter by that much. If it is scrolled past the new end, it slides back with the rest, so the browser does not pull it back in one step when the section goes. */
+      after = Math.max(0, tray.scrollWidth - shift - tray.clientWidth);
+    if (tray.scrollLeft > after) scrollTrayTo(after, LP_SLIDE.duration);
+    var moved = laterSiblings(wrap).map(function (s) {
         return s.animate([{ transform: "translateX(0)" }, { transform: "translateX(" + -shift + "px)" }], { duration: LP_SLIDE.duration, easing: LP_SLIDE.easing, fill: "forwards" });
       }),
       shut = wrap.animate([{ clipPath: "inset(0 0 0 0)" }, { clipPath: "inset(0 100% 0 0)" }], { duration: LP_SLIDE.duration, easing: LP_SLIDE.easing, fill: "forwards" });

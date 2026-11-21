@@ -243,3 +243,8 @@ test("tapping an opened group again closes it, and the arrow between has no back
   assert.doesNotMatch(css.match(/\.lp-tcol\{[^}]*\}/)[0], /background|border-radius/);
 });
 
+
+test("opening a group slides the row so the group and its lights are in view, and closing one slides it back with the rest instead of letting the browser pull it in", () => {
+  assert.match(panel, /if \(end > tray\.scrollLeft \+ tray\.clientWidth\) scrollTrayTo\(Math\.max\(0, Math\.min\(end - tray\.clientWidth, leftIn\(tileEl\) - 8\)\), LP_SLIDE\.duration\);/);
+  assert.match(panel, /after = Math\.max\(0, tray\.scrollWidth - shift - tray\.clientWidth\);\s*if \(tray\.scrollLeft > after\) scrollTrayTo\(after, LP_SLIDE\.duration\);/);
+});
