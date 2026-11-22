@@ -176,6 +176,12 @@ var POPUP_DEFS = {
   "live-edit": function (id) {
     return liveMakerDef();
   },
+  "scene-auto": function (id) {
+    return { title: AUTOED && !AUTOED.isNew ? _T("auto_edit_title") : _T("auto_new_title"), icon: "scene", build: autoSceneEditor };
+  },
+  "scene-tags": function (id) {
+    return { title: _T("auto_tags_row"), icon: "tune", build: sceneTagsPage };
+  },
   "scene-new": function (id) {
     return {
       title: _T("what_kind_of_scene"),

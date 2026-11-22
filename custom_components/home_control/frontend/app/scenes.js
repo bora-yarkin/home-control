@@ -19,10 +19,23 @@ function sceneIds(area) {
     });
 }
 
+/* Whether a scene has any of these tags. */
+function sceneHasTag(sc, tags) {
+  return (sc.tags || []).some(function (t) {
+    return (tags || []).indexOf(t) >= 0;
+  });
+}
+
+/* The scenes a scenes section shows: the ones chosen for it, then those with a tag it takes in (a scene of any page), less those it leaves out by tag. */
 function secScenes(e) {
-  return (e.scn || []).map(sceneById).filter(function (sc) {
+  var out = (e.scn || []).map(sceneById).filter(function (sc) {
     return sc && sceneAllowed(sc);
   });
+  if (e.stag)
+    STORE.scenes.forEach(function (sc) {
+      if (out.indexOf(sc) < 0 && sceneHasTag(sc, e.stag) && !sceneHasTag(sc, e.xtag) && sceneAllowed(sc)) out.push(sc);
+    });
+  return out;
 }
 
 function scnToggle(e, id) {
@@ -387,6 +400,8 @@ function runScene(sc) {
     liveToggle(sc);
     return;
   }
+  /* An auto scene gives the lights of its page its colours at random; a lights master plays it on its own lights. */
+  if (sc.auto) return autoScenePlay(sc, lightUnits(sc.room === "home" ? allLights() : ROOMLIGHTS[sc.room] || []));
   var f = filterActs(compileScene(sc)),
     ids = actionIds(f.acts);
   if (!ids.length && !f.acts.some(function (a) { return a.live; })) {
@@ -509,6 +524,21 @@ function sceneActive(sc) {
 
 function sceneRow(sc) {
   if (sc.live) return liveRow(sc);
+  if (sc.auto)
+    return edMark(
+      pill(sc.icon || "scene", sc.name, {
+        sub: function () {
+          return _T("auto_scene") + " · " + sc.auto.colors.length + " " + _T("auto_colours").toLowerCase();
+        },
+        tap: function () {
+          runScene(sc);
+        },
+        pin: { kind: "cscene", sid: sc.id, name: sc.name, icon: sc.icon || "scene", room: TITLES[sc.room] },
+      }),
+      function () {
+        autoSceneEdit(sc);
+      }
+    );
   return edMark(
     pill(sc.icon || "scene", sc.name, {
       on: function () {

@@ -71,6 +71,16 @@ function sceneNewPage(b, key) {
     })
   );
   b.appendChild(
+    pill("palette", _T("auto_scene"), {
+      sub: function () {
+        return _T("auto_scene_sub");
+      },
+      tap: function () {
+        autoSceneNew(scope, target);
+      },
+    })
+  );
+  b.appendChild(
     pill("light", _T("save_the_lights_as_they_are"), {
       sub: function () {
         return _T("save_the_lights_as_they_are_sub");

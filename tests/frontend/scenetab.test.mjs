@@ -26,6 +26,8 @@ function world(section = {}, extra = {}) {
   ];
   const states = { "scene.bath_dim": { attributes: { friendly_name: "Bathroom Dim" } } };
   const sandbox = {
+    sceneHasTag: () => false,
+    cleanTags: () => [],
     secById: (scope, sid) => (scope === "r1" && sid === "lights" ? e : sid === "sc" ? { id: "sc", k: "scenes", scn: ["c2"] } : null),
     STORE: { scenes: stored },
     sceneById: (id) => stored.find((s) => s.id === id) || null,
@@ -104,7 +106,7 @@ test("the section keeps its sources, folders and order through the layout clean-
   const body = model.slice(at, model.indexOf('if (k === "scenes") {', at));
   const run = (s) => {
     const o = {};
-    vm.runInNewContext(`(function(s,o,k){${body}})(s,o,k)`, { s, o, k: "devs" });
+    vm.runInNewContext(`(function(s,o,k){${body}})(s,o,k)`, { s, o, k: "devs", cleanTags: (l) => (Array.isArray(l) ? l.filter((x) => typeof x === "string" && x) : []) });
     return plain(o);
   };
   assert.deepEqual(run({ msrc: ["hue", "page", "sec:a1", "sec:Bad Id", "hue"], mf: [{ id: "f1", n: "X", s: ["c1", "scene.a", "bad key!"] }, { id: "no id!", n: "Y", s: ["c1"] }, { id: "f2", n: "Z", s: [] }], mtop: ["c1", "f:f1", "x y"] }), {

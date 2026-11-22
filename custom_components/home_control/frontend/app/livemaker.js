@@ -95,6 +95,7 @@ function liveMakerOpen(room, sc, target, areas, draft, pending) {
     pending: pending || null,
     id: sc ? sc.id : "",
     name: src ? src.name : "",
+    tags: src && src.tags ? src.tags.slice() : [],
     icon: liveIcon(src),
     areas: areas.slice(),
     live: JSON.parse(
@@ -179,6 +180,7 @@ function liveMakerScene() {
     name: String(LMK.name || "").trim(),
     room: LMK.room,
     icon: LMK.icon,
+    tags: LMK.tags,
     others: "keep",
     acts: [],
     live: {
@@ -305,6 +307,7 @@ function liveMakerBuild(b) {
       LMK.icon = n;
     })
   );
+  if (ISADMIN) b.appendChild(sceneTagsRow(LMK));
   b.appendChild(
     pill("target", _T("areas"), {
       sub: function () {

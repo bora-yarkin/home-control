@@ -13,6 +13,8 @@ const plain = (value) => JSON.parse(JSON.stringify(value));
 
 function page(extra = {}) {
   const sandbox = {
+    sceneHasTag: () => false,
+    cleanTags: () => [],
     _T: (k) => k,
     ENTRE: /^[a-z_]+\.[a-z0-9_]+$/,
     ISADMIN: true,

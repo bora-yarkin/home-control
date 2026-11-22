@@ -528,6 +528,16 @@ function cleanUI(u) {
   return o;
 }
 
+/* The tags of a scene: lower case words, at most 12, once each. They are for the administrator (which scenes a master or a section takes in or leaves out); nobody else sees them. */
+function cleanTags(list) {
+  var out = [];
+  (Array.isArray(list) ? list : []).forEach(function (t) {
+    t = typeof t === "string" ? t.trim().toLowerCase().replace(/\s+/g, " ") : "";
+    if (/^[^\s].{0,22}[^\s]$|^[^\s]$/.test(t) && out.indexOf(t) < 0 && out.length < 12) out.push(t);
+  });
+  return out;
+}
+
 function cleanLayout(a) {
   var out = [],
     seen = {};
@@ -677,6 +687,13 @@ function cleanLayout(a) {
         })
         .slice(0, 40);
     /* The order of the scenes a plugin owns that a scenes section shows (`pord`; `hord` is what it was called). */
+    /* A scenes section can take in the scenes that have a tag (stag) and leave out the tagged ones it would otherwise have (xtag). */
+    if (k === "scenes") {
+      var st = cleanTags(s.stag),
+        xtg = cleanTags(s.xtag);
+      if (st.length) o.stag = st;
+      if (xtg.length) o.xtag = xtg;
+    }
     if (k === "scenes" && (Array.isArray(s.pord) || Array.isArray(s.hord))) {
       var hord = (s.pord || s.hord)
         .filter(function (x, i, a) {
@@ -696,9 +713,12 @@ function cleanLayout(a) {
             return x === "hue" ? "plugin" : x;
           })
           .filter(function (x, i, a) {
-            return (x === "plugin" || x === "page" || (typeof x === "string" && /^sec:[a-z0-9_-]{1,24}$/.test(x))) && a.indexOf(x) === i;
+            return (x === "plugin" || x === "page" || (typeof x === "string" && (/^sec:[a-z0-9_-]{1,24}$/.test(x) || (/^tag:/.test(x) && cleanTags([x.slice(4)]).length)))) && a.indexOf(x) === i;
           })
           .slice(0, 24);
+      /* Scenes tagged with any of these are left out of what the sources bring in (not of the scenes made from its own +). */
+      var xt = cleanTags(s.mxt);
+      if (xt.length) o.mxt = xt;
       if (Array.isArray(s.mf)) {
         var folders = s.mf
           .filter(function (f) {

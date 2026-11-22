@@ -1108,6 +1108,10 @@ function secEditor(b, key) {
           true
         )
       );
+    if (k === "scenes")
+      sceneTagSectionRows(box, e, function () {
+        redrawBox(box, draw);
+      });
     if (k === "quick" || k === "scenes")
       box.appendChild(
         pill("scene", _T("scenes_in_this_section"), {

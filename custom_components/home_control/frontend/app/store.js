@@ -232,6 +232,8 @@ function cleanScene(s) {
     return null;
   var live = s.live ? cleanLive(s.live) : null;
   if (s.live && !live) return null;
+  var auto = s.auto ? cleanAuto(s.auto) : null;
+  if (s.auto && !auto) return null;
   var acts = [];
   (Array.isArray(s.acts) ? s.acts : []).slice(0, 20).forEach(function (a) {
     if (a && typeof a.live === "string" && /^[a-z0-9_-]{1,24}$/.test(a.live)) {
@@ -269,7 +271,39 @@ function cleanScene(s) {
     acts: acts,
   };
   if (live) out.live = live;
+  if (auto) out.auto = auto;
+  var tags = cleanTags(s.tags);
+  if (tags.length) out.tags = tags;
   return out;
+}
+
+/* An auto scene: up to ten colours, each a colour (h, s) or a white (k) with a brightness (b, 1 to 100). */
+function cleanAuto(a) {
+  if (!a || typeof a !== "object" || !Array.isArray(a.colors)) return null;
+  var colors = [];
+  a.colors.slice(0, 40).forEach(function (c) {
+    if (!c || typeof c !== "object" || colors.length >= 10) return;
+    var o = {};
+    if (typeof c.k === "number" && c.k >= 1500 && c.k <= 9000) o.k = Math.round(c.k);
+    else if (typeof c.h === "number" && typeof c.s === "number" && c.h >= 0 && c.h <= 360 && c.s >= 0 && c.s <= 100) {
+      o.h = Math.round(c.h);
+      o.s = Math.round(c.s);
+    } else return;
+    o.b = typeof c.b === "number" ? Math.max(1, Math.min(100, Math.round(c.b))) : 100;
+    colors.push(o);
+  });
+  return colors.length ? { colors: colors } : null;
+}
+
+/* Every tag any scene has, once, in order: the tags of the home. A tag nobody uses any more is not here. */
+function sceneTags() {
+  var out = [];
+  STORE.scenes.forEach(function (sc) {
+    (sc.tags || []).forEach(function (t) {
+      if (out.indexOf(t) < 0) out.push(t);
+    });
+  });
+  return out.sort();
 }
 
 function cleanStore(v) {

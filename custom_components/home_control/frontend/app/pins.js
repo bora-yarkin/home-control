@@ -185,7 +185,8 @@ function quickActions() {
       });
       edDel(
         edMark(el, function () {
-          staticOpen(sc.room, sc);
+          if (sc.auto) autoSceneEdit(sc);
+          else staticOpen(sc.room, sc);
         }),
         function () {
           scnToggle(e, sc.id);
