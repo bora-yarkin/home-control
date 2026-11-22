@@ -858,6 +858,7 @@ function lpCircle(S, mode) {
       })
     )
       return;
+    if (!bub && S.resplit()) return S.rebuild();
     start();
   });
   requestAnimationFrame(build);
@@ -875,12 +876,16 @@ function lpLook(e) {
     xy: a.xy_color || null,
     k: a.color_temp_kelvin || null,
     mode: a.color_mode,
+    /* what the light is doing beyond its colour: an effect, or a live scene's moving palette */
+    fx: a.effect && a.effect !== "off" ? a.effect : "",
+    dyn: !!a.dynamics && a.dynamics !== "none",
   };
 }
 
-/* Whether two lights look the same: both off, or the same colour (or white temperature) at about the same brightness. */
+/* Whether two lights look the same: both off, or the same colour (or white temperature) at about the same brightness, doing the same (a still colour, the same effect, or a moving palette): a light on an effect or in a live scene is not one with a light that only shows a colour, however close the colours are at the moment. */
 function lpSameLook(x, y) {
   if (x.off || y.off) return !!x.off && !!y.off;
+  if ((x.fx || "") !== (y.fx || "") || !!x.dyn !== !!y.dyn) return false;
   if (x.b != null && y.b != null && Math.abs(x.b - y.b) >= 8) return false;
   if (x.mode === "color_temp" && y.mode === "color_temp" && x.k && y.k) return Math.abs(x.k - y.k) < 150;
   if (x.xy && y.xy) return Math.hypot(x.xy[0] - y.xy[0], x.xy[1] - y.xy[1]) < 0.012;
@@ -901,7 +906,8 @@ function lpNodeLook(n) {
 
 /* A panel whose groups are single lights (S.hier) opens with its lights apart, the ones that look the same sharing a marker; a group is never opened by itself, however its lights look. */
 function lpHierInit(S, root) {
-  if (!root.kids || lpNodeLook(root)) return;
+  if (!root.kids) return;
+  if (lpNodeLook(root)) return S.auto.push(root);
   S.ex[root.key] = true;
   var groups = [];
   root.kids.forEach(function (k) {
@@ -915,7 +921,11 @@ function lpHierInit(S, root) {
     else groups.push({ look: l, kids: [k] });
   });
   groups.forEach(function (g) {
-    if (g.kids.length > 1) S.joined.push(S.makeVirtual(g.kids, g.kids[0].icon));
+    if (g.kids.length > 1) {
+      var v = S.makeVirtual(g.kids, g.kids[0].icon);
+      v.auto = true;
+      S.joined.push(v);
+    }
   });
 }
 
@@ -926,7 +936,8 @@ function lpTrayUnits(S) {
 
 /* A panel opens showing what the lights really do: a group whose lights look the same stays one marker; when they differ it opens separated, and the lights that look the same stay together as one marker. */
 function lpAutoSplit(S, n) {
-  if (!n.kids || lpNodeLook(n)) return;
+  if (!n.kids) return;
+  if (lpNodeLook(n)) return S.auto.push(n);
   S.ex[n.key] = true;
   var groups = [];
   n.kids.forEach(function (k) {
@@ -940,7 +951,11 @@ function lpAutoSplit(S, n) {
     else groups.push({ look: l, kids: [k] });
   });
   groups.forEach(function (g) {
-    if (g.kids.length > 1) S.joined.push(S.makeVirtual(g.kids, g.kids[0].icon));
+    if (g.kids.length > 1) {
+      var v = S.makeVirtual(g.kids, g.kids[0].icon);
+      v.auto = true;
+      S.joined.push(v);
+    }
   });
   n.kids.forEach(function (k) {
     lpAutoSplit(S, k);
@@ -958,6 +973,8 @@ function lpState(root, both, groups) {
     sel: null,
     subs: [],
     joined: [],
+    /* what was left whole at the opening because its lights looked the same (looked at again by resplit) */
+    auto: [],
     jn: 0,
     from: null,
     pop: null,
@@ -1093,6 +1110,34 @@ function lpState(root, both, groups) {
     }
     S.pop = [S.sel];
     S.rebuild();
+  };
+  /* The lights that were left in one marker, or put in one, because they looked the same when the panel opened are taken apart when they no longer do (a scene was run, a light was changed somewhere else). A marker the person made by dropping one on another, or a group they joined again, stays as it is. Returns whether anything was taken apart. */
+  S.resplit = function () {
+    var changed = false;
+    S.auto = S.auto.filter(function (n) {
+      if (S.ex[n.key]) return false;
+      if (lpNodeLook(n)) return true;
+      if (S.hier) lpHierInit(S, n);
+      else lpAutoSplit(S, n);
+      changed = true;
+      return false;
+    });
+    var keep = S.joined.filter(function (v) {
+      if (!v.auto) return true;
+      var first = null;
+      return v.kids.every(function (k) {
+        var l = lpNodeLook(k);
+        if (!l) return false;
+        first = first || l;
+        return lpSameLook(first, l);
+      });
+    });
+    if (keep.length !== S.joined.length) {
+      S.joined = keep;
+      changed = true;
+    }
+    if (changed && S.sel && !lpFindIn(S, S.sel)) S.sel = null;
+    return changed;
   };
   S.rebuild = function () {
     S.popNow = S.pop;

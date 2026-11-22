@@ -250,3 +250,49 @@ test("opening a group slides the row so the group and its lights are in view, an
   assert.match(panel, /if \(end > tray\.scrollLeft \+ tray\.clientWidth\) scrollTrayTo\(Math\.max\(0, Math\.min\(end - tray\.clientWidth, leftIn\(tileEl\) - 8\)\), LP_SLIDE\.duration\);/);
   assert.match(panel, /after = Math\.max\(0, tray\.scrollWidth - shift - tray\.clientWidth\);\s*if \(tray\.scrollLeft > after\) scrollTrayTo\(after, LP_SLIDE\.duration\);/);
 });
+
+test("lights that run differently do not share a marker, however close their colours are: an effect, a moving palette and a still colour are three things", () => {
+  const states = {
+    "light.still": { state: "on", attributes: { brightness: 100, xy_color: [0.5, 0.4], color_mode: "xy", effect: "off", dynamics: "none" } },
+    "light.still2": { state: "on", attributes: { brightness: 102, xy_color: [0.502, 0.4], color_mode: "xy", effect: "off", dynamics: "none" } },
+    "light.fire": { state: "on", attributes: { brightness: 100, xy_color: [0.5, 0.4], color_mode: "xy", effect: "fire", dynamics: "none" } },
+    "light.moving": { state: "on", attributes: { brightness: 100, xy_color: [0.5, 0.4], color_mode: "xy", effect: "off", dynamics: "dynamic_palette" } },
+    "light.moving2": { state: "on", attributes: { brightness: 100, xy_color: [0.501, 0.4], color_mode: "xy", effect: "off", dynamics: "dynamic_palette" } },
+  };
+  const sandbox = { isOn: (e) => states[e].state === "on", A: (e) => states[e].attributes };
+  vm.createContext(sandbox);
+  vm.runInContext(["lpLook", "lpSameLook"].map(fn).join("\n"), sandbox);
+  const same = (a, b) => sandbox.lpSameLook(sandbox.lpLook(a), sandbox.lpLook(b));
+  assert.equal(same("light.still", "light.still2"), true, "two lights that show the same colour");
+  assert.equal(same("light.still", "light.fire"), false, "an effect is not a still colour");
+  assert.equal(same("light.still", "light.moving"), false, "a live scene is not a still colour");
+  assert.equal(same("light.fire", "light.moving"), false);
+  assert.equal(same("light.moving", "light.moving2"), true, "two lights in a live scene at the same colour at the moment");
+});
+
+test("lights that were put in one marker because they looked alike are taken apart when one of them changes, but a marker the person made stays", () => {
+  const { S, sandbox, nodes } = build();
+  assert.equal(S.resplit(), false, "nothing changed: nothing to take apart");
+  looks["light.iris"] = "blue";
+  assert.equal(S.resplit(), true, "the Iris no longer looks like the floor lamps");
+  assert.equal(sandbox.lpVisible(S).filter((n) => n.virtual).length, 0, "the lights have a marker each");
+  assert.equal(S.resplit(), false);
+  looks["light.iris"] = "warm";
+  const handmade = S.makeVirtual([nodes.floor, nodes.ceil], "light");
+  S.joined.push(handmade);
+  assert.equal(S.resplit(), false, "dropped on one another by the person: it stays, whatever the colours are");
+  assert.ok(S.joined.includes(handmade));
+  assert.match(panel, /if \(!bub && S\.resplit\(\)\) return S\.rebuild\(\);/, "the circle checks it whenever the lights change, but never while a circle of lights is open or a finger is on it");
+});
+
+test("a whole room left as one marker because every light looked alike opens into the lights when one of them changes", () => {
+  for (const id of Object.keys(looks)) looks[id] = "warm";
+  const { S, sandbox, nodes } = build();
+  assert.deepEqual(keys(sandbox.lpVisible(S)), ["m:x"], "everything alike: one marker");
+  assert.equal(S.resplit(), false);
+  looks["light.ceil"] = "blue";
+  assert.equal(S.resplit(), true, "the ceiling light stopped looking like the rest");
+  assert.equal(S.ex[nodes.root.key], true, "the whole is opened where it was");
+  assert.deepEqual(keys(sandbox.lpVisible(S).filter((n) => !n.virtual)), ["light.ceil"], "the ceiling light has its own marker, the others stay together");
+  looks["light.ceil"] = "blue";
+});

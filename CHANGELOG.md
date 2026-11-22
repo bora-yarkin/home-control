@@ -4,6 +4,10 @@ Format: [Keep a Changelog](https://keepachangelog.com/). Versions follow [semant
 
 ## [Unreleased]
 
+### Fixed
+- **Lights that run differently were one marker on the wheel, and could not be separated by dragging.** Lights count as looking alike by their colour and brightness only, so a light on an effect (Fireplace) or in a live scene, whose colour happened to be close, was put in one marker with the others. A light on an effect, a moving palette and a still colour are told apart now.
+- **The wheel did not follow lights that changed while the popup was open.** The markers moved, but which lights share a marker was worked out only when the popup opened, so after a scene was run or a light was changed somewhere else, lights that no longer looked alike stayed in one marker. They are taken apart as soon as they stop looking alike (only what the panel put together itself: a marker made by dropping a light on another stays).
+
 ## [0.17.2] - 2026-11-21
 
 ### Changed
