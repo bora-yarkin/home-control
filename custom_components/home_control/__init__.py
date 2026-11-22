@@ -46,6 +46,11 @@ def _dashboard_version() -> int:
     return int(json.loads((FRONTEND / "version.json").read_text(encoding="utf-8"))["version"])
 
 
+def _release_version() -> str:
+    """The version of the integration (its manifest), shown in the dashboard's Settings."""
+    return str(json.loads((Path(__file__).parent / "manifest.json").read_text(encoding="utf-8"))["version"])
+
+
 async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
     if not hass.data.get(STATIC_REGISTERED):
         # Registering twice (after a reload) is an error, and the folder does not change while Home Assistant runs.
@@ -72,7 +77,7 @@ async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
         embed_iframe=True,
         require_admin=entry.options.get(CONF_ADMIN_ONLY, False),
         handle_safe_area=True,
-        config={},
+        config={"release": await hass.async_add_executor_job(_release_version)},
     )
     entry.runtime_data = await live_setup.async_setup(hass, entry)
     if not hass.services.has_service(DOMAIN, "scene_start"):

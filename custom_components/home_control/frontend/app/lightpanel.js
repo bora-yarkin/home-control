@@ -125,10 +125,6 @@ function lpCap(n, mode) {
   });
 }
 
-function lpSplit(e) {
-  return !!(UIDEV[e] || {}).split;
-}
-
 /* A light does not report its colour or white temperature while it is off, so where it was last seen is kept (in this browser, across visits) to show its marker there instead of in the middle. */
 var LPMEM = lpMemLoad(),
   lpMemT = 0,
@@ -148,10 +144,10 @@ function lpRemember(e, key, v) {
   }, 1500);
 }
 
-/* Colour and white temperature as a light has them (or had them last); a light with separate zones (split) keeps what was last set for each zone. */
+/* Colour and white temperature as a light has them (or had them last). */
 function lpHs(e) {
   var a = A(e),
-    v = lpSplit(e) ? lzone(e).hs : a.hs_color;
+    v = a.hs_color;
   /* A light that reports only an xy colour (the zones of a gradient light) is placed by that colour. */
   if (!v && a.xy_color && V_(e) === "on") v = liveXyHs(a.xy_color[0], a.xy_color[1]);
   if (v) lpRemember(e, "hs", v);
@@ -160,7 +156,7 @@ function lpHs(e) {
 }
 
 function lpKelvin(e) {
-  var v = lpSplit(e) ? lzone(e).k : A(e).color_temp_kelvin;
+  var v = A(e).color_temp_kelvin;
   if (v) lpRemember(e, "k", v);
   else v = (LPMEM[e] || {}).k;
   return v || null;
@@ -203,11 +199,6 @@ function lpKrange(n) {
 function lpPush(n, mode, data) {
   var t = lpCap(n, mode);
   if (!t.length) return;
-  if (t.length === 1 && lpSplit(t[0])) {
-    var d = Object.assign({ entity_id: t[0] }, data);
-    lightPush(t[0], d);
-    return;
-  }
   callLive("lp:" + n.key + ":" + mode, "light", "turn_on", Object.assign({ entity_id: t }, data));
 }
 

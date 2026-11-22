@@ -58,7 +58,6 @@ function searchItems() {
     [
       [_T("backup_and_restore"), "manage-backup", "sd"],
       [_T("change_log"), "manage-log", "clock"],
-      [_T("layout_check"), "manage-check", "tune"],
     ].forEach(function (p) {
       it.push({ n: p[0], r: _T("settings"), i: p[2], k: "pop", v: p[1] });
     });

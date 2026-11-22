@@ -1031,8 +1031,12 @@ function rimgEl(u) {
 }
 
 /* ---- more device types, tiles, settings pages ---- */
-var BUILD = "3.82",
-  PICK = null;
+var PICK = null;
+
+/* The version of Home Control this page runs (the integration's, from its manifest; the panel is given it, see dashboard-panel.js). */
+function appVersion() {
+  return window.HC_RELEASE || "";
+}
 
 /* entity picker */
 /* 'taken' (optional) says which entities are already used and are left out of the list. */

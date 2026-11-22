@@ -327,7 +327,7 @@ function cleanStore(v) {
     ui: cleanUI(v && v.ui),
     access: cleanAccess(v && v.access),
     notify: cleanNotify(v && v.notify),
-    cfg: cleanCfg(v && v.cfg, v && v.features),
+    cfg: cleanCfg(v && v.cfg),
     icons: cleanIcons(v && v.icons),
     pins: cleanPins(v && v.pins),
   };
@@ -382,22 +382,17 @@ function cleanStore(v) {
   return o;
 }
 
-/* Automatic backups used to be a feature switch; an old saved value is carried over once. */
-function cleanCfg(c, legacy) {
+function cleanCfg(c) {
   var o = {
     rb: {},
     gx: {},
     mediaCtl: false,
-    backupKeep: 5,
-    backupEvery: 6,
-    autobackup: !!(legacy && legacy.autobackup === true),
     partsLow: 15,
     alertOff: [],
     wallPhotos: [],
     wallOff: [],
   };
   if (c && typeof c === "object") {
-    if (typeof c.autobackup === "boolean") o.autobackup = c.autobackup;
     if (c.mediaCtl === true) o.mediaCtl = true;
     if (c.rb && typeof c.rb === "object")
       Object.keys(c.rb)
@@ -426,8 +421,6 @@ function cleanCfg(c, legacy) {
       o.alertOff = c.alertOff.filter(function (k, i, a) {
         return ALERT_KEYS.indexOf(k) >= 0 && a.indexOf(k) === i;
       });
-    if ([3, 5, 10, 20].indexOf(c.backupKeep) >= 0) o.backupKeep = c.backupKeep;
-    if ([1, 6, 24].indexOf(c.backupEvery) >= 0) o.backupEvery = c.backupEvery;
     /* The photos of the wall screen, and which of them are switched off (kept in the gallery, not shown): `wallOff` lists positions in `wallPhotos`; a photo that is dropped as
        invalid takes its place in that list with it. */
     if (Array.isArray(c.wallPhotos)) {
@@ -499,7 +492,6 @@ function storeSave() {
       } catch (e) {}
     }
     LOGSKIP = false;
-    if (prevJ) bkAdd(prevJ, false);
   }
   STORE_SAVED = Date.now();
   HA.data

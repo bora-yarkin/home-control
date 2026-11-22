@@ -135,8 +135,10 @@ function masterLightList(box, sec, scope, redraw) {
   LMASTER_META[sid] = masterMeta(sec);
   var root = lpMasterNode(sid, masterLightIds(sec)),
     own = {};
-  (sec.ml || []).forEach(function (m) {
-    own[m.id] = m;
+  /* The lights a tap edits (name, icon, which controls it shows): the chosen ones of a manual master, the section's own devices of an automatic one. */
+  var ownRid = sec.mm ? "~" + scope + "~" + sec.id + "~ml" : "~" + scope + "~" + sec.id;
+  (sec.mm ? sec.ml || [] : sec.devs || []).forEach(function (m) {
+    if (m.id) own[m.id] = m;
   });
   box.appendChild(sep(_T("order_of_the_lights"), "drag"));
   box.appendChild(hintRow(sec.mo ? _T("drag_a_light_to_move_it_the_row_follows_this_order") : _T("the_lights_are_in_alphabetical_order_drag_one_to_set_your_own")));
@@ -157,7 +159,7 @@ function masterLightList(box, sec, scope, redraw) {
     nodes.forEach(function (n) {
       var wrap = mk("div", "ml-item"),
         group = sec.mgl && lpIsGroup(n),
-        edit = sec.mm && own[n.key] ? devEditor("~" + scope + "~" + sec.id + "~ml", own[n.key]) : null,
+        edit = own[n.key] ? devEditor(ownRid, own[n.key]) : null,
         row = pill(n.icon || "light", n.name, {
           sub: function () {
             return group ? lpCount(n) + " " + _T("lights").toLowerCase() : n.key;

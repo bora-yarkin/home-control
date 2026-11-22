@@ -161,9 +161,7 @@ var POPUP_DEFS = {
       },
     };
   },
-  "manage-autobackup": function (id) {
-    return { title: _T("automatic_backups"), icon: "sd", build: bkAutoPage };
-  },
+
   "manage-wallphotos": function (id) {
     return { title: _T("screensaver_photos"), icon: "media", build: wallPhotosPage };
   },
@@ -535,9 +533,7 @@ var POPUP_DEFS = {
   "manage-backup": function (id) {
     return { title: _T("backup_and_restore"), icon: "sd", build: backupPage };
   },
-  "manage-check": function (id) {
-    return { title: _T("layout_check"), icon: "tune", build: checkPage };
-  },
+
   "manage-about": function (id) {
     return { title: _T("about_and_diagnostics"), icon: "info", build: aboutPage };
   },

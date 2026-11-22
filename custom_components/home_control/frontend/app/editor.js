@@ -666,10 +666,6 @@ function editPageSettings(b, key) {
     box = mk("div");
   b.appendChild(box);
   function draw() {
-    var o = secOrder(sc),
-      hid = o.filter(function (s) {
-        return s.hide;
-      });
     if (room) {
       box.appendChild(
         pill("edit", _T("room_details"), {
@@ -722,46 +718,6 @@ function editPageSettings(b, key) {
       )
     );
     box.appendChild(hintRow(_T("on_wide_screens_phones_always_use_on")));
-    box.appendChild(sep(_T("hidden_sections"), "lock"));
-    if (!hid.length) {
-      box.appendChild(hintRow(_T("none_hide_a_section_from_its_setting")));
-    }
-    hid.forEach(function (s) {
-      box.appendChild(
-        pill("plus", secName(s), {
-          sub: function () {
-            return _T("hidden_tap_to_show_it_again");
-          },
-          tap: function () {
-            s.hide = false;
-            setSecOrder(sc, o);
-            uiChanged();
-            redrawBox(box, draw);
-          },
-        })
-      );
-    });
-    box.appendChild(sep(_T("export_and_import"), "sd"));
-    box.appendChild(
-      pill("sd", _T("export_this_page"), {
-        sub: function () {
-          return _T("export_this_page_sub");
-        },
-        tap: function () {
-          pageExportFile(sc);
-        },
-      })
-    );
-    box.appendChild(
-      pill("plus", _T("import_a_page"), {
-        sub: function () {
-          return _T("import_a_page_sub");
-        },
-        tap: function () {
-          pageImportFile(sc);
-        },
-      })
-    );
     box.appendChild(sep(_T("start_over"), "restart"));
     box.appendChild(
       pill("restart", _T("reset_sections"), {
@@ -1029,32 +985,6 @@ function secEditor(b, key) {
           },
         })
       );
-    if (k === "lights" && e.master)
-      box.appendChild(
-        pill("edit", _T("lights_master_settings"), {
-          sub: function () {
-            return _T("name_whole_room_and_the_order_of_the_lights");
-          },
-          tap: function () {
-            showPopup("lmaster-edit:" + key, true);
-          },
-        })
-      );
-    if (k === "lights") {
-      /* More lights masters in the section, each with the lights chosen for it (app/lightsmasters.js). */
-      (e.masters || []).forEach(function (m) {
-        box.appendChild(
-          pill("lights", m.mn || _T("all_lights"), {
-            sub: function () {
-              return cntS((m.ml || []).length, _T("light_2"), _T("lights").toLowerCase());
-            },
-            tap: function () {
-              showPopup("lmaster-edit:" + key.split(":")[0] + ":" + m.id, true);
-            },
-          })
-        );
-      });
-    }
     if (k === "energy") {
       box.appendChild(sep(_T("cost"), "plug"));
       box.appendChild(

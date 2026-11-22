@@ -367,15 +367,10 @@ function wallBoot() {
       wallHide();
       return;
     }
-    if (e.key === "Tab" && !KBD) {
-      KBD = true;
-      a11yScan();
-    }
     if (e.key === "Escape") {
       if (SHEET) closeSheet();
       return;
     }
-    if (!PREFS.a11y && !KBD) return;
     var el = e.target;
     if (
       (e.key === "Enter" || e.key === " ") &&

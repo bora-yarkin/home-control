@@ -161,7 +161,7 @@ function popFillOf(ids, rgb) {
   };
 }
 
-/* The colours of a light that has more than one: the zones of a light made of zones, or the colour zone and the white zone of a split light. Null when one colour tells it all. */
+/* The colours of a light made of zones. Null when one colour tells it all. */
 function lightStops(id) {
   var z = A(id).zone_colors;
   /* A light set to a white temperature is that one colour, the same as any other light at that temperature, not the (slightly different) colours its zones are reported in. */
@@ -170,10 +170,6 @@ function lightStops(id) {
     return z.map(function (c) {
       return liveXyRgb(c[0], c[1]);
     });
-  if ((UIDEV[id] || {}).split) {
-    var m = lzone(id);
-    if (m.hs && m.k) return [hsv2rgb(m.hs[0], m.hs[1]), kelvinRgb(m.k)];
-  }
   return null;
 }
 
@@ -324,60 +320,8 @@ function lightRow(id, showRoom, inPopup) {
   return r;
 }
 
-/* A light shown as split (one bar with a colour zone and a white zone) keeps what was last set for each zone, because Home Assistant reports only the zone used last. Its commands are spaced out, since the Razer bar can freeze when it gets them in quick succession. */
-var LMEM = {},
-  LSEND = {};
-
-function lzone(id) {
-  var m = LMEM[id];
-  if (!m) {
-    m = deviceGet("db_lzone_" + id, {});
-    LMEM[id] = m;
-  }
-  var a = A(id),
-    ch = false;
-  if (a.hs_color && JSON.stringify(a.hs_color) !== JSON.stringify(m.hs)) {
-    m.hs = a.hs_color;
-    ch = true;
-  }
-  if (a.color_temp_kelvin && a.color_temp_kelvin !== m.k) {
-    m.k = a.color_temp_kelvin;
-    ch = true;
-  }
-  if (ch) deviceSet("db_lzone_" + id, m);
-  return m;
-}
-
 function lightPush(id, data) {
-  if (!(UIDEV[id] || {}).split) {
-    callLive(id, "light", "turn_on", data);
-    return;
-  }
-  var s = (LSEND[id] = LSEND[id] || { at: 0, q: [], busy: false });
-  function ty(x) {
-    return "hs_color" in x ? "c" : "color_temp_kelvin" in x ? "w" : "b";
-  }
-  s.q = s.q.filter(function (x) {
-    return ty(x) !== ty(data);
-  });
-  s.q.push(data);
-  if (s.busy) return;
-  s.busy = true;
-  (function next() {
-    var d = s.q.shift();
-    if (!d) {
-      s.busy = false;
-      return;
-    }
-    setTimeout(
-      function () {
-        s.at = Date.now();
-        call("light", "turn_on", d);
-        next();
-      },
-      Math.max(0, s.at + 1500 - Date.now())
-    );
-  })();
+  callLive(id, "light", "turn_on", data);
 }
 
 /* The colour a saved colour or white temperature shows. */

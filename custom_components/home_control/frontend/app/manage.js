@@ -1118,16 +1118,10 @@ function devMediaOptions(c) {
   );
 }
 
-/* A light's own settings: separate colour and white, which controls it shows, and what it does when it is turned on from the app. */
+/* A light's own settings: which controls it shows, and what it does when it is turned on from the app. */
 function devLightOptions(c) {
   var d = c.d,
     box = c.box;
-  if (lightRaw(d.id).color && lightRaw(d.id).white)
-    box.appendChild(
-      flagPill("palette", _T("separate_colour_and_white"), d, "split", function (on) {
-        return on ? _T("colour_back_and_white_front_are_sepa") : _T("one_set_of_controls_the_light_follow");
-      })
-    );
   box.appendChild(sep(_T("light_features"), "light"));
   box.appendChild(hintRow(_T("hide_controls_this_light_doesn_t_rea")));
   [
