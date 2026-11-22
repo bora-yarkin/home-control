@@ -350,3 +350,25 @@ test("the white range of a marker or a wheel is what every one of its lights can
   range["light.b"] = [6600, 7000];
   assert.deepEqual(Array.from(sandbox.lpKrange({ cmd: ["light.a", "light.b"] })), [2000, 6535], "lights with nothing in common: the first one's range, as before");
 });
+
+test("under the mode a tile says the brightness its lights that are on run at and the temperature of those on a white; nothing while they are off", () => {
+  const A = {
+    "light.a": { brightness: 255, color_mode: "color_temp", color_temp_kelvin: 2700 },
+    "light.b": { brightness: 128, color_mode: "color_temp", color_temp_kelvin: 3500 },
+    "light.c": { brightness: 128, color_mode: "hs" },
+  };
+  const sandbox = {
+    A: (e) => A[e],
+    briNow: (e) => A[e].brightness,
+    isOn: (e) => e !== "light.off",
+    lightIndividuals: (l) => l,
+    _T: (k) => (k === "k" ? " K · " : k),
+  };
+  vm.createContext(sandbox);
+  vm.runInContext(fn("lpTileLevels"), sandbox);
+  assert.equal(sandbox.lpTileLevels({ cmd: ["light.a"] }), "100% · 2700K");
+  assert.equal(sandbox.lpTileLevels({ cmd: ["light.a", "light.b"] }), "75% · 3100K");
+  assert.equal(sandbox.lpTileLevels({ cmd: ["light.c"] }), "50%", "a colour has no temperature");
+  assert.equal(sandbox.lpTileLevels({ cmd: ["light.off"] }), "");
+  assert.match(panel, /if \(t\.lv\) t\.lv\.textContent = lpTileLevels\(t\.n\);/);
+});

@@ -2049,6 +2049,32 @@ function lpLightDoing(e, dyn) {
   return dyn[e] || dyn[lpFxLight(e)] ? _T("tile_dynamics") : _T("tile_static");
 }
 
+/* The line under the mode: the brightness the lights that are on run at (their average) and the temperature of those that run a white (their average). Nothing while they are all off. */
+function lpTileLevels(n) {
+  var on = lightIndividuals(n.cmd).filter(isOn);
+  if (!on.length) return "";
+  var bri = 0;
+  on.forEach(function (e) {
+    bri += briNow(e);
+  });
+  var ks = on
+    .map(function (e) {
+      var a = A(e);
+      return a.color_mode === "color_temp" && a.color_temp_kelvin ? a.color_temp_kelvin : 0;
+    })
+    .filter(Boolean);
+  var words = [Math.round(bri / on.length / 2.55) + "%"];
+  if (ks.length)
+    words.push(
+      Math.round(
+        ks.reduce(function (a, b) {
+          return a + b;
+        }, 0) / ks.length
+      ) + _T("k").replace(/[\s·]+/g, "")
+    );
+  return words.join(" · ");
+}
+
 /* The same for a tile: what all its lights do, or Mixed when they do not do the same. */
 function lpTileDoing(n, dyn) {
   var words = [];
@@ -2125,6 +2151,7 @@ function lpTray(S) {
     var dyn = lpDynamicLights();
     tiles.forEach(function (t) {
       if (t.sub) t.sub.textContent = lpTileDoing(t.n, dyn);
+      if (t.lv) t.lv.textContent = lpTileLevels(t.n);
       var on = countOn(t.n.cmd) > 0,
         grp = S.hier && lpIsGroup(t.n),
         cs = on ? (grp && lpGroupColours(t.n)) || lpTileColours(t.n) : null,
@@ -2345,6 +2372,8 @@ function lpTray(S) {
     el.appendChild(nm);
     var doing = mk("div", "lp-ts");
     el.appendChild(doing);
+    var levels = mk("div", "lp-ts lp-tl");
+    el.appendChild(levels);
     el.appendChild(sw);
     el.addEventListener("click", function () {
       S.reveal(n);
@@ -2374,7 +2403,7 @@ function lpTray(S) {
       el.appendChild(rm);
     }
     (parent || tray).appendChild(el);
-    tiles.push({ n: n, el: el, fxl: el.firstChild, sub: doing });
+    tiles.push({ n: n, el: el, fxl: el.firstChild, sub: doing, lv: levels });
   }
   S.subs.push({
     build: function () {
