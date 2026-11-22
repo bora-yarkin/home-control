@@ -8,7 +8,7 @@ function mscSection(root) {
       .replace(/^m:/, "")
       .split("~"),
     e = at.length === 2 ? secById(at[0], at[1]) : null;
-  return e && e.k === "lights" ? { scope: at[0], e: e } : null;
+  return e && e.k === "devs" ? { scope: at[0], e: e } : null;
 }
 
 /* Where the scenes of a section come from when it has not chosen: the Hue scenes of its lights' areas, as the Effects page used to list them. */

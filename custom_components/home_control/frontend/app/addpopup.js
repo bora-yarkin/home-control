@@ -197,7 +197,7 @@ function addEntities(f) {
   /* Lights only: the first entry makes a lights master (when it is a Lights section that is being added to), the next one makes the checked lights one group. */
   if (ADDDOMS[f.st.dom][1][0] === "light" && ISADMIN) {
     var host = f.rid.charAt(0) === "~" ? sectionOfList(f.rid) : null;
-    if (host && host.k === "lights")
+    if (host && host.k === "devs")
       f.box.appendChild(
         pill("lights", _T("lights_master"), {
           sub: function () {

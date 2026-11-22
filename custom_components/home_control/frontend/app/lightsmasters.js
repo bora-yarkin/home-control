@@ -60,7 +60,7 @@ function masterTargets() {
     )
     .forEach(function (p) {
       secOrder(scopeKey(p[0])).forEach(function (s) {
-        if (s.k === "lights") out.push({ scope: p[0], page: p[1] || p[0], sec: s });
+        if (s.k === "devs") out.push({ scope: p[0], page: p[1] || p[0], sec: s });
       });
     });
   return out;
@@ -80,7 +80,7 @@ function allMasters() {
     );
   pages.forEach(function (p) {
     secOrder(scopeKey(p[0])).forEach(function (s) {
-      if (s.k !== "lights" || s.hide) return;
+      if (s.k !== "devs" || s.hide) return;
       if (s.master) out.push({ key: p[0] + "~" + s.id, scope: p[0], page: p[1], host: s, sec: s, own: true, ids: masterLightIds(s) });
       (s.masters || []).forEach(function (m) {
         out.push({ key: p[0] + "~" + m.id, scope: p[0], page: p[1], host: s, sec: m, own: false, ids: masterLightIds(m) });
@@ -96,7 +96,7 @@ function allMasters() {
 function masterAddPage(b, key) {
   var p = key.split(":"),
     host = secById(p[0], p[1]);
-  if (!host || host.k !== "lights") return;
+  if (!host || host.k !== "devs") return;
   var hasOwn = !!host.master;
   b.appendChild(
     pill("restart", _T("master_auto"), {
@@ -129,7 +129,7 @@ function masterAddPage(b, key) {
 function masterNewPage(b, key) {
   var p = key.split(":"),
     host = secById(p[0], p[1]);
-  if (!host || host.k !== "lights") return;
+  if (!host || host.k !== "devs") return;
   var draft = { ml: [], mn: "" };
   b.appendChild(
     textRow("edit", _T("lm_name"), "", function (v) {

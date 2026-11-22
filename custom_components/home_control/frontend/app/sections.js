@@ -19,59 +19,11 @@ function secById(scope, sid) {
  deleted from the page editor, and device-owning types hold their own list of widgets. */
 var SECTYPES = {
     devs: {
-      t: _T("devices_2"),
-      i: "plug",
-      d: _T("any_mix_of_lights_media_climate_and_"),
-      own: 1,
-      noun: _T("widget"),
-    },
-    lights: {
-      t: _T("lights"),
-      i: "lights",
-      d: _T("lights_with_one_button_to_turn_them_"),
-      own: 1,
-      noun: _T("light_2"),
-      add: "lights",
-    },
-    media: {
-      t: _T("media"),
-      i: "tv",
-      d: _T("tvs_speakers_and_remotes"),
-      own: 1,
-      noun: _T("media_player"),
-      add: "media",
-    },
-    climate: {
-      t: _T("climate"),
-      i: "ac",
-      d: _T("air_conditioners_and_fans"),
-      own: 1,
-      noun: _T("climate_device"),
-      add: "climate",
-    },
-    controls: {
-      t: _T("controls"),
+      t: _T("section"),
       i: "tune",
-      d: _T("numbers_selects_buttons_scripts_cove"),
-      own: 1,
-      noun: _T("control"),
-      add: "controls",
-    },
-    sensors: {
-      t: _T("sensors"),
-      i: "thermo",
-      d: _T("sensor_readings_and_states"),
-      own: 1,
-      noun: _T("sensor"),
-      add: "sensors",
-    },
-    other: {
-      t: _T("other_devices"),
-      i: "plug",
-      d: _T("switches_vacuums_and_anything_else"),
+      d: _T("section_d"),
       own: 1,
       noun: _T("device_2"),
-      add: "other",
     },
     camera: {
       t: _T("camera"),
@@ -131,15 +83,6 @@ var SECTYPES = {
       one: 1,
       wide: 1,
     },
-    quick: {
-      t: _T("quick_actions_2"),
-      i: "scene",
-      d: _T("one_tap_scenes"),
-      wide: 1,
-      own: 1,
-      noun: _T("device_2"),
-      add: "controls",
-    },
     rooms: { t: _T("rooms"), i: "home", d: _T("links_to_every_page"), one: 1 },
     glance: {
       t: _T("at_a_glance"),
@@ -150,51 +93,44 @@ var SECTYPES = {
     pinned: { t: _T("pinned"), i: "pin", d: _T("your_favourite_devices"), wide: 1 },
     link: { t: _T("linked_section"), i: "swap", d: _T("shows_a_section_from_another_page") },
   },
+  /* What the sections of layout 4 and earlier are called now: [name, icon, kind they become]. Quick actions are Scenes. */
+  LEGACY_SECTYPES = {
+    lights: [_T("lights"), "lights"],
+    media: [_T("media"), "tv"],
+    climate: [_T("climate"), "ac"],
+    controls: [_T("controls"), "tune"],
+    sensors: [_T("sensors"), "thermo"],
+    other: [_T("other_devices"), "plug"],
+    quick: [_T("quick_actions_2"), "scene", "scenes"],
+  },
+  /* The order the Add section list shows them in, by what they are for. */
   SEC_PICK = [
     "devs",
-    "lights",
-    "media",
-    "climate",
-    "controls",
-    "sensors",
-    "other",
-    "camera",
-    "read",
+    "glance",
+    "rooms",
+    "alerts",
+    "chips",
+    "status",
+    "scenes",
+    "pinned",
     "chart",
+    "read",
     "note",
     "security",
     "energy",
+    "camera",
     "cameras",
-    "status",
-    "scenes",
-    "alerts",
-    "chips",
-    "quick",
-    "rooms",
-    "glance",
-    "pinned",
     "link",
   ],
-  /* The sections a new page starts with (also what an old layout is converted from). */
+  /* The sections a new Home page starts with. */
   HOME_TPL = [
     ["alerts", "alerts"],
-    ["climate", "chips"],
-    ["quick", "quick"],
-    ["rooms", "rooms"],
     ["glance", "glance"],
-    ["pinned", "pinned"],
+    ["rooms", "rooms"],
+    ["scenes", "scenes"],
   ],
-  ROOM_TPL = [
-    "status",
-    "camera",
-    "lights",
-    "scenes",
-    "media",
-    "climate",
-    "controls",
-    "sensors",
-    "other",
-  ];
+  /* A new room page starts with its status tiles and one empty Section (suggested sections are offered when a room is made, see suggestSections). */
+  ROOM_TPL = ["status"];
 
 function secName(s) {
   return s.t || (SECTYPES[s.k] || SECTYPES.devs).t;
@@ -210,10 +146,8 @@ function seedSections(scope) {
         return { id: x[0], k: x[1], hide: false };
       })
     : ROOM_TPL.map(function (id) {
-        var o = { id: id, k: id, hide: false };
-        if (SECTYPES[id].own) o.devs = [];
-        return o;
-      });
+        return { id: id, k: id, hide: false };
+      }).concat([{ id: "main", k: "devs", hide: false, devs: [] }]);
 }
 
 function secOrder(scope) {
@@ -228,26 +162,6 @@ function secOrder(scope) {
 function setSecOrder(scope, arr) {
   if (scope === "home") UI.layout.home = arr;
   else UI.layout.rooms[scope.slice(5)] = arr;
-}
-
-function secOf(d) {
-  return (
-    {
-      light: "lights",
-      media: "media",
-      climate: "climate",
-      fan: "climate",
-      switch: "other",
-      vacuum: "other",
-      special: "other",
-      sensor: "sensors",
-      number: "controls",
-      select: "controls",
-      button: "controls",
-      cover: "controls",
-      lock: "controls",
-    }[d.kind] || "other"
-  );
 }
 
 var COLS = [];
@@ -536,7 +450,7 @@ function customSection(s) {
   (s.devs || []).forEach(function (d) {
     if (!ed && (d.hide || (d.id && modeOf(d.id).mode === "hide"))) return;
     /* A lights master can leave its lights and the sync out of the section; it keeps them itself. */
-    if (!ed && k === "lights" && d.id && masterLeavesOut(s, d)) return;
+    if (!ed && k === "devs" && d.id && masterLeavesOut(s, d)) return;
     var r = k === "read" ? (d.id ? readTile(d) : null) : devRow(d);
     if (!r && ed) r = k === "read" ? readTile(d) : pill(d.icon || "plug", d.name, {});
     if (!r) return;
@@ -560,14 +474,14 @@ function customSection(s) {
       rows.length > 0
     );
   }
-  var mids = k === "lights" && s.master ? masterLightIds(s) : [];
+  var mids = k === "devs" && s.master ? masterLightIds(s) : [];
   /* More lights masters held by the section (app/lightsmasters.js): each with the lights chosen for it, shown while the page is edited too so it can be opened. */
-  var extras = k === "lights" ? (s.masters || []).filter(function (m) { return masterLightIds(m).length > (ed ? 0 : 1); }) : [];
+  var extras = k === "devs" ? (s.masters || []).filter(function (m) { return masterLightIds(m).length > (ed ? 0 : 1); }) : [];
   /* A lights master keeps its section on the page when it has hidden every row of it: the master is the section then. */
   if (!rows.length && !ed && !(s.master && mids.length > 1) && !extras.length) return null;
   /* Lights master: one light at the top that controls every light of the section (or the lights chosen for it); off unless the section turns it on. While the page is edited it opens its settings. */
   var masterRows = [];
-  if (k === "lights" && s.master && mids.length > 1) {
+  if (k === "devs" && s.master && mids.length > 1) {
     var mr = lightsMasterRow(secKey() + "~" + s.id, mids, s.mn, s.mall, s.mo, masterMeta(s));
     masterRows.push(
       edMark(mr, function () {

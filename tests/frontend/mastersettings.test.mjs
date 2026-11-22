@@ -90,14 +90,14 @@ test("the power button switches the lights, or runs its scene when they are off 
 
 test("the section keeps its mode, chosen lights, power button and sync through the layout clean-up", () => {
   const model = read("model.js");
-  const at = model.indexOf('if (k === "lights" && s.master) {\n      /* Manual');
+  const at = model.indexOf('if (k === "devs" && s.master) {\n      /* Manual');
   assert.ok(at > 0);
-  const body = model.slice(at, model.indexOf("if (k === \"lights\" && s.master && Array.isArray(s.mo))", at));
+  const body = model.slice(at, model.indexOf("if (k === \"devs\" && s.master && Array.isArray(s.mo))", at));
   const run = (s) => {
     const o = {};
     // cleanDev is the dashboard's own check of a device (model.js); here it only has to refuse what has no name or is not a light.
     const cleanDev = (d) => (d && typeof d.name === "string" && d.name && /^[a-z_]+\.[a-z0-9_]+$/.test(d.id) ? { id: d.id, name: d.name, icon: /^[a-z]+$/.test(d.icon || "") ? d.icon : "plug", kind: d.kind } : null);
-    vm.runInNewContext(`(function(s,o,k){${body}})(s,o,k)`, { s, o, k: "lights", cleanDev, ENTRE: /^[a-z_]+\.[a-z0-9_]+$/ });
+    vm.runInNewContext(`(function(s,o,k){${body}})(s,o,k)`, { s, o, k: "devs", cleanDev, ENTRE: /^[a-z_]+\.[a-z0-9_]+$/ });
     return plain(o);
   };
   assert.deepEqual(
@@ -109,7 +109,7 @@ test("the section keeps its mode, chosen lights, power button and sync through t
 
 test("a section can leave out the master's lights or its sync, only in the section, and a light of a manual master is edited in the device popup", () => {
   const sections = read("sections.js");
-  assert.match(sections, /!ed && k === "lights" && d\.id && masterLeavesOut\(s, d\)/, "everything is shown while the page is edited");
+  assert.match(sections, /!ed && k === "devs" && d\.id && masterLeavesOut\(s, d\)/, "everything is shown while the page is edited");
   assert.match(sections, /if \(!rows\.length && !ed && !\(s\.master && mids\.length > 1\) && !extras\.length\) return null;/, "a master that has hidden every row of its section is still the section");
   assert.match(read("manage.js"), /rid\.split\("~"\)\[3\] === "ml"/);
   assert.match(src, /devEditor\(ownRid, own\[n\.key\]\)/);

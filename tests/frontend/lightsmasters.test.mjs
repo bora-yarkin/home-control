@@ -45,8 +45,8 @@ const light = (id, name = id) => ({ id, name, icon: "light", kind: "light" });
 const layout = () => ({
   home: [],
   rooms: {
-    bora: [{ id: "lights", k: "lights", hide: false, devs: [light("light.bed_1"), light("light.bed_2")], master: 1 }],
-    bath: [{ id: "lights", k: "lights", hide: false, devs: [] }],
+    bora: [{ id: "lights", k: "devs", hide: false, devs: [light("light.bed_1"), light("light.bed_2")], master: 1 }],
+    bath: [{ id: "lights", k: "devs", hide: false, devs: [] }],
   },
 });
 
@@ -56,7 +56,7 @@ test("a lights section holds more masters, each always manual, with ids that no 
     w.cleanLayout([
       {
         id: "lights",
-        k: "lights",
+        k: "devs",
         devs: [light("light.bed_1")],
         master: 1,
         masters: [
@@ -67,7 +67,7 @@ test("a lights section holds more masters, each always manual, with ids that no 
           { id: "other", mm: 0, ml: [light("light.hall_1")], mpw: "scene", mps: "scene.read" },
         ],
       },
-      { id: "second", k: "lights", devs: [] },
+      { id: "second", k: "devs", devs: [] },
     ])
   );
   assert.equal(out.length, 2, "the section and its neighbour");
@@ -124,7 +124,7 @@ test("moving the automatic master of a section saves its lights as chosen ones, 
 test("copying leaves the master where it is, and a held master can be moved to another section of the same page or copied into its own", () => {
   const l = layout();
   l.rooms.bora[0].masters = [{ id: "bath", master: 1, mm: 1, mn: "Bath", ml: [light("light.bath_1"), light("light.bath_2")], msrc: ["sec:lights"] }];
-  l.rooms.bora.push({ id: "second", k: "lights", devs: [light("light.hall_1")] });
+  l.rooms.bora.push({ id: "second", k: "devs", devs: [light("light.hall_1")] });
   const w = world(l);
   const copy = plain(w.masterTransfer("bora", "bath", { scope: "bora", sec: l.rooms.bora[1] }, true));
   assert.equal(l.rooms.bora[0].masters.length, 1, "the original stays");

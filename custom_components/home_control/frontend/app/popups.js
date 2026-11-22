@@ -617,15 +617,6 @@ var POPUP_DEFS = {
       },
     };
   },
-  "sec-type": function (id) {
-    return {
-      title: _T("section_type"),
-      icon: "tune",
-      build: function (b) {
-        secTypePage(b, id);
-      },
-    };
-  },
   "manage-header": function (id) {
     var hr = roomById(id);
     return {

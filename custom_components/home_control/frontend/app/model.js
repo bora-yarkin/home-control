@@ -493,7 +493,7 @@ function cleanUI(u) {
   });
   var lv = u.layout && u.layout.v,
     cur = lv >= 4 ? { home: u.layout.home, rooms: u.layout.rooms || {} } : { home: null, rooms: {} };
-  o.layout.v = 4;
+  o.layout.v = 5;
   o.layout.home = cleanLayout(cur.home || seedSections("home"));
   Object.keys(ids).forEach(function (rid) {
     o.layout.rooms[rid] = cleanLayout(cur.rooms[rid] || seedSections("room:" + rid));
@@ -514,11 +514,15 @@ function cleanLayout(a) {
     if (!s || typeof s.id !== "string" || !/^[a-z][a-z0-9_]{1,14}$/.test(s.id) || seen[s.id])
       return;
     seen[s.id] = 1;
-    var k = typeof s.k === "string" && SECTYPES[s.k] ? s.k : "devs",
+    /* Layout 5: the sections that held devices (Lights, Media, Climate, Controls, Sensors, Other devices, Devices) are one kind, Section; each keeps the name and icon its type gave it. Quick actions are Scenes. */
+    var old = LEGACY_SECTYPES[s.k],
+      k = old ? (old[2] || "devs") : typeof s.k === "string" && SECTYPES[s.k] ? s.k : "devs",
       ty = SECTYPES[k],
       o = { id: s.id, k: k, hide: !!s.hide };
     if (typeof s.t === "string" && s.t && s.t.length <= 40) o.t = s.t;
+    else if (old && old[0]) o.t = old[0];
     if (iconOk(s.i)) o.i = s.i;
+    else if (old && old[1]) o.i = old[1];
     if (k === "glance" && s.gl && typeof s.gl === "object") {
       var cs = [];
       (Array.isArray(s.gl.c) ? s.gl.c : []).slice(0, 12).forEach(function (x) {
@@ -587,10 +591,10 @@ function cleanLayout(a) {
       /^[a-z0-9_-]{1,24}:[a-z][a-z0-9_]{1,14}$/.test(s.ref)
     )
       o.ref = s.ref;
-    if (k === "lights" && s.master) o.master = 1;
-    if (k === "lights" && s.master && typeof s.mn === "string" && s.mn.trim()) o.mn = s.mn.trim().slice(0, 40);
-    if (k === "lights" && s.master && s.mall) o.mall = 1;
-    if (k === "lights" && s.master) {
+    if (k === "devs" && s.master) o.master = 1;
+    if (k === "devs" && s.master && typeof s.mn === "string" && s.mn.trim()) o.mn = s.mn.trim().slice(0, 40);
+    if (k === "devs" && s.master && s.mall) o.mall = 1;
+    if (k === "devs" && s.master) {
       /* Manual: the lights chosen for the master, each with an optional name and icon. */
       if (s.mm) {
         o.mm = 1;
@@ -615,11 +619,11 @@ function cleanLayout(a) {
       if (s.mgr === "ha") o.mgr = "ha";
     }
     /* More lights masters in the section, each a holder of the same settings under an id of its own (see app/lightsmasters.js). They are always manual: the lights are chosen for them. */
-    if (k === "lights" && Array.isArray(s.masters)) {
+    if (k === "devs" && Array.isArray(s.masters)) {
       var held = [];
       s.masters.slice(0, 12).forEach(function (h) {
         if (!h || typeof h.id !== "string" || !/^[a-z][a-z0-9_]{1,14}$/.test(h.id) || seen[h.id]) return;
-        var c = cleanLayout([Object.assign({}, h, { k: "lights", master: 1, mm: 1, hide: false, masters: null })])[0];
+        var c = cleanLayout([Object.assign({}, h, { k: "devs", master: 1, mm: 1, hide: false, masters: null })])[0];
         if (!c) return;
         seen[h.id] = 1;
         ["k", "hide", "devs", "t", "i", "when", "and", "lay"].forEach(function (x) {
@@ -629,14 +633,14 @@ function cleanLayout(a) {
       });
       if (held.length) o.masters = held;
     }
-    if (k === "lights" && s.master && Array.isArray(s.mo))
+    if (k === "devs" && s.master && Array.isArray(s.mo))
       o.mo = s.mo
         .filter(function (x, i, a) {
           return typeof x === "string" && ENTRE.test(x) && a.indexOf(x) === i;
         })
         .slice(0, 100);
     if (k === "pinned" && Array.isArray(s.pins)) o.pins = cleanPins(s.pins);
-    if ((k === "quick" || k === "scenes" || k === "lights") && Array.isArray(s.scn))
+    if ((k === "scenes" || k === "devs") && Array.isArray(s.scn))
       o.scn = s.scn
         .filter(function (x, i, a) {
           return typeof x === "string" && /^[a-z0-9_-]{1,24}$/.test(x) && a.indexOf(x) === i;
@@ -651,7 +655,7 @@ function cleanLayout(a) {
         .slice(0, 80);
       if (hord.length) o.hord = hord;
     }
-    if (k === "lights") {
+    if (k === "devs") {
       /* The scenes page of the lights master: where its scenes come from, the folders the owner made and the order of the tiles outside them. */
       var key = function (x) {
         return typeof x === "string" && /^[a-z0-9_.-]{1,80}$/.test(x);

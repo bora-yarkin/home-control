@@ -409,12 +409,7 @@ function resetPage(sc) {
     }
   } else
     devs.forEach(function (d) {
-      var want = d.kind === "camera" ? "camera" : secOf(d),
-        t =
-          fresh.filter(function (x) {
-            return x.id === want;
-          })[0] || fresh[fresh.length - 1];
-      t.devs.push(d);
+      secForDevice(fresh, d).devs.push(d);
     });
   old.forEach(function (x) {
     if (!x.pins && !x.scn) return;
@@ -473,123 +468,52 @@ function secAdd(sc, k) {
   return e;
 }
 
-/* Changes a section to another type; widgets stay when both types hold widgets. */
-function secSetKind(sc, sid, v, done) {
-  var arr = secOrder(sc),
-    e = arr.filter(function (x) {
-      return x.id === sid;
-    })[0],
-    to = SECTYPES[v];
-  if (!e || !to || e.k === v) return done && done();
-  if (
-    to.one &&
-    arr.some(function (x) {
-      return x !== e && x.k === v;
-    })
-  ) {
-    toast(_T("this_page_already_has_one"));
-    return;
-  }
-  function go() {
-    e.k = v;
-    if (v !== "link") delete e.ref;
-    if (to.own) {
-      if (!e.devs) e.devs = [];
-    } else delete e.devs;
-    if (v === "chart") {
-      if (!e.r) e.r = "24h";
-    } else delete e.r;
-    if (v !== "note") delete e.txt;
-    if ((!to.own && v !== "pinned") || v === "read" || v === "camera") delete e.lay;
-    setSecOrder(sc, arr);
-    uiChanged();
-    if (done) done();
-  }
-  if (!to.own && (e.devs || []).length) confirmDlg(_T("changing_the_type_removes_the_widget"), go);
-  else go();
-}
+/* The kinds of section there are, by what they are for, for the Add section list. */
+var SEC_GROUPS = [
+  ["sec_group_section", "tune", ["devs"]],
+  ["sec_group_overview", "home", ["glance", "rooms", "alerts", "chips", "status"]],
+  ["sec_group_scenes", "scene", ["scenes", "pinned"]],
+  ["sec_group_information", "info", ["chart", "read", "note", "security", "energy"]],
+  ["sec_group_cameras", "cam", ["camera", "cameras"]],
+  ["sec_group_tools", "swap", ["link"]],
+];
 
 function secTypesPage(b, scopeId) {
   var sc = scopeKey(scopeId),
     have = secOrder(sc);
   b.appendChild(mkHint(_T("choose_what_the_new_section_shows_yo")));
-  SEC_PICK.forEach(function (k) {
-    var ty = SECTYPES[k],
-      ex = ty.one
-        ? have.filter(function (x) {
-            return x.k === k;
-          })[0]
-        : null;
-    if (ex && !ex.hide) return;
-    if (ex) {
+  SEC_GROUPS.forEach(function (g) {
+    b.appendChild(sep(_T(g[0]), g[1]));
+    g[2].forEach(function (k) {
+      var ty = SECTYPES[k],
+        ex = ty.one
+          ? have.filter(function (x) {
+              return x.k === k;
+            })[0]
+          : null;
       b.appendChild(
         pill(ty.i, ty.t, {
           sub: function () {
-            return _T("already_on_this_page_hidden_tap_to_s");
+            return ex ? (ex.hide ? _T("already_on_this_page_hidden_tap_to_s") : _T("already_on_this_page")) : ty.d;
           },
           tap: function () {
-            ex.hide = false;
-            setSecOrder(sc, have);
-            uiChanged();
-            closeSheet();
+            if (ex) {
+              if (!ex.hide) return toast(_T("this_page_already_has_one"));
+              ex.hide = false;
+              setSecOrder(sc, have);
+              uiChanged();
+              closeSheet();
+              return;
+            }
+            var e = secAdd(sc, k);
+            if (!e) return;
+            STACK.pop();
+            CURRENT = null;
+            showPopup("manage-sec:" + scopeId + ":" + e.id, true);
           },
         })
       );
-      return;
-    }
-    b.appendChild(
-      pill(ty.i, ty.t, {
-        sub: function () {
-          return ty.d;
-        },
-        tap: function () {
-          var e = secAdd(sc, k);
-          if (!e) return;
-          STACK.pop();
-          CURRENT = null;
-          showPopup("manage-sec:" + scopeId + ":" + e.id, true);
-        },
-      })
-    );
-  });
-}
-
-function secTypePage(b, key) {
-  var p = key.split(":"),
-    scopeId = p[0],
-    sid = p[1],
-    sc = scopeKey(scopeId),
-    arr = secOrder(sc),
-    e = arr.filter(function (x) {
-      return x.id === sid;
-    })[0];
-  if (!e) return;
-  SEC_PICK.forEach(function (k) {
-    var ty = SECTYPES[k];
-    if (
-      ty.one &&
-      arr.some(function (x) {
-        return x !== e && x.k === k;
-      })
-    )
-      return;
-    b.appendChild(
-      pill(ty.i, ty.t, {
-        on: function () {
-          return e.k === k;
-        },
-        sub: function () {
-          return ty.d;
-        },
-        tap: function () {
-          secSetKind(sc, sid, k, function () {
-            STACK.pop();
-            CURRENT = null;
-            showPopup("manage-sec:" + key, false);
-          });
-        },
-      })
-    );
+    });
   });
 }
 
@@ -805,17 +729,29 @@ var ADDPRE = null,
 /* Rooms grouped by their Home Assistant floor (lowest level first), keeping the dashboard's room order inside each floor.
  Returns null when everything is on one floor, so the Home page then shows a single grid as before. */
 /* Widgets live inside sections. These put a device on a page (into its first section of the matching type, creating one if needed) or take devices off. */
-function addDevToPage(room, d) {
-  var arr = secOrder("room:" + room),
-    want = d.kind === "camera" ? "camera" : secOf(d),
-    s = arr.filter(function (x) {
-      return x.k === want;
-    })[0];
+/* The section of a page a device goes into when no section was chosen: one that already holds a device of its kind, else the first Section, else a new one. */
+function secForDevice(arr, d) {
+  var secs = arr.filter(function (x) {
+    return x.k === "devs";
+  });
+  var same = secs.filter(function (x) {
+    return (x.devs || []).some(function (y) {
+      return y.kind === d.kind;
+    });
+  })[0];
+  var s = same || secs[0];
   if (!s) {
-    s = { id: newSecId(arr), k: want, hide: false, devs: [] };
+    s = { id: newSecId(arr), k: "devs", hide: false, devs: [] };
     arr.push(s);
   }
-  (s.devs = s.devs || []).push(d);
+  if (!s.devs) s.devs = [];
+  return s;
+}
+
+function addDevToPage(room, d) {
+  var arr = secOrder("room:" + room),
+    s = secForDevice(arr, d);
+  s.devs.push(d);
   return { rid: "~" + room + "~" + s.id, i: s.devs.length - 1 };
 }
 
@@ -886,18 +822,7 @@ function secEditor(b, key) {
   var box = mk("div");
   b.appendChild(box);
   function draw() {
-    var k = e.k || "devs",
-      ty = SECTYPES[k] || SECTYPES.devs;
-    box.appendChild(
-      pill(ty.i, ty.t, {
-        sub: function () {
-          return _T("section_type_tap_to_change_it");
-        },
-        tap: function () {
-          showPopup("sec-type:" + key, true);
-        },
-      })
-    );
+    var k = e.k || "devs";
     box.appendChild(
       pill("check", _T("show_this_section"), {
         on: function () {
@@ -1013,18 +938,7 @@ function secEditor(b, key) {
     }
     /* Sections that list items can show them in one, two or three columns. Pinned items and quick actions already had a default shape (2 columns, 4 tiles), which stays when nothing is chosen. */
     if (
-      [
-        "devs",
-        "lights",
-        "media",
-        "climate",
-        "controls",
-        "sensors",
-        "other",
-        "scenes",
-        "pinned",
-        "quick",
-      ].indexOf(k) >= 0
+      ["devs", "scenes", "pinned"].indexOf(k) >= 0
     ) {
       box.appendChild(sep(_T("layout"), "tune"));
       box.appendChild(

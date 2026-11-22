@@ -18,7 +18,7 @@ const tab = read("scenetab.js");
 const SRC = ["mscSection", "mscItems", "mscKindLabel", "mscFoldersChange", "mscTop"].map((n) => fn(tab, n)).join("\n") + "\nvar MSC_DEFAULT_SRC = [\"hue\"];";
 
 function world(section = {}, extra = {}) {
-  const e = { id: "lights", k: "lights", master: 1, ...section };
+  const e = { id: "lights", k: "devs", master: 1, ...section };
   const stored = [
     { id: "c1", name: "Movie", room: "r1", acts: [] },
     { id: "l1", name: "Aurora", room: "r1", live: { palette: [] } },
@@ -99,12 +99,12 @@ test("a folder that loses its last scene is gone, and a scene that no longer exi
 
 test("the section keeps its sources, folders and order through the layout clean-up, and drops what is not valid", () => {
   const model = read("model.js");
-  const at = model.indexOf('if (k === "lights") {\n      /* The scenes page');
+  const at = model.indexOf('if (k === "devs") {\n      /* The scenes page');
   assert.ok(at > 0);
   const body = model.slice(at, model.indexOf('if (k === "scenes") {', at));
   const run = (s) => {
     const o = {};
-    vm.runInNewContext(`(function(s,o,k){${body}})(s,o,k)`, { s, o, k: "lights" });
+    vm.runInNewContext(`(function(s,o,k){${body}})(s,o,k)`, { s, o, k: "devs" });
     return plain(o);
   };
   assert.deepEqual(run({ msrc: ["hue", "page", "sec:a1", "sec:Bad Id", "hue"], mf: [{ id: "f1", n: "X", s: ["c1", "scene.a", "bad key!"] }, { id: "no id!", n: "Y", s: ["c1"] }, { id: "f2", n: "Z", s: [] }], mtop: ["c1", "f:f1", "x y"] }), {
