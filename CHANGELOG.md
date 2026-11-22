@@ -4,6 +4,11 @@ Format: [Keep a Changelog](https://keepachangelog.com/). Versions follow [semant
 
 ## [Unreleased]
 
+## [0.19.0] - 2026-11-22
+
+### Changed
+- **Layout 5 (one-way):** the sections that held devices (Lights, Media, Climate, Controls, Sensors, Other devices, Devices) are one kind, **Section**, with the name and icon they had; Quick actions are Scenes. The layout converts when it loads and is saved at your next change; the Edit history can undo that save. A new Home page starts with Attention, At a glance, Rooms and Scenes; a new room page offers suggested sections from a Home Assistant room, or starts empty. Old-data conversions from before layout 4 are removed, so a layout older than 4 starts from the default pages.
+
 ### Added
 - **Auto scenes**: a new kind of scene, up to ten colours each with a brightness. Played on a lights master (or a page's lights) it gives every light one of the colours at random, and playing it again gives them out again. Add one from the + of a scenes section or a master's scenes.
 - **Scene tags**: admins can tag classic, live and auto scenes (a search box over the tags of the home, *Add the tag* when nothing matches; tags are lower case and shown only in settings). A lights master or a scenes section can take in the scenes with a tag, and leave out the tagged ones its sources would bring (for example a bathroom's scenes on a bedroom page). A tag no scene has is gone.
