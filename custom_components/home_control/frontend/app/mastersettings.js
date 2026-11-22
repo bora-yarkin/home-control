@@ -485,7 +485,7 @@ function masterSceneRunPage(b, key) {
   mscItems(S0).forEach(function (it) {
     rows.push(
       b.appendChild(
-        pill(it.kind === "hue" ? "palette" : it.kind === "live" ? "sparkle" : "scene", it.name, {
+        pill(it.kind === "plugin" ? "palette" : it.kind === "live" ? "sparkle" : "scene", it.name, {
           sub: function () {
             return mscKindLabel(it);
           },

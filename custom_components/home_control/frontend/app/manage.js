@@ -583,7 +583,7 @@ function areaName(id) {
 /* A light that stands for other lights: a group made in Home Assistant (it lists its lights), or a Hue room or zone (which lists Hue lights and may list no entities). */
 function isLightGroup(id) {
   var a = A(id);
-  return dom(id) === "light" && (!!a.is_hue_group || (Array.isArray(a.entity_id) && a.entity_id.length > 0));
+  return dom(id) === "light" && (pluginIsGroup(id) || (Array.isArray(a.entity_id) && a.entity_id.length > 0));
 }
 
 function candidates(doms, roomId, q, areaId) {
@@ -990,10 +990,22 @@ function devBehaviourTab(c) {
     box = c.box;
   profileSettings(box, d, c.key);
   if (d.kind === "appliance")
-    box.appendChild(pill("tune", _T("ap_set_up"), { tap: function () { showPopup("ap-edit:" + d.aid, true); } }));
+    box.appendChild(
+      pill("tune", _T("set_up_this_device"), {
+        sub: function () {
+          return _T("kit_appliance_sub");
+        },
+        tap: function () {
+          showPopup("ap-edit:" + d.aid, true);
+        },
+      })
+    );
   if (d.kind === "remote")
     box.appendChild(
-      pill("media", _T("rm_edit_buttons"), {
+      pill("tune", _T("set_up_this_device"), {
+        sub: function () {
+          return _T("kit_remote_sub");
+        },
         tap: function () {
           RM.edit[d.rid] = true;
           showPopup("remote:" + d.rid, true);

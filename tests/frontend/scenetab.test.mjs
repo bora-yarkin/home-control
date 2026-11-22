@@ -15,7 +15,7 @@ const fn = (src, name) => {
   return src.slice(at, src.indexOf("\n}\n", at) + 3);
 };
 const tab = read("scenetab.js");
-const SRC = ["mscSection", "mscItems", "mscKindLabel", "mscFoldersChange", "mscTop"].map((n) => fn(tab, n)).join("\n") + "\nvar MSC_DEFAULT_SRC = [\"hue\"];";
+const SRC = ["mscSection", "mscItems", "mscKindLabel", "mscFoldersChange", "mscTop"].map((n) => fn(tab, n)).join("\n") + "\nvar MSC_DEFAULT_SRC = [\"plugin\"];";
 
 function world(section = {}, extra = {}) {
   const e = { id: "lights", k: "devs", master: 1, ...section };
@@ -58,7 +58,7 @@ test("with nothing chosen the scenes are the Hue scenes of the lights' areas, an
   const { w } = world({ scn: ["c1", "l1"] });
   const items = w.mscItems({ root: { key: "m:r1~lights" } });
   assert.deepEqual(keys(items), ["c1", "l1", "scene.bath_dim"]);
-  assert.deepEqual(plain(items.map((x) => x.kind)), ["classic", "live", "hue"], "each says what kind it is");
+  assert.deepEqual(plain(items.map((x) => x.kind)), ["classic", "live", "plugin"], "each says what kind it is");
   assert.equal(items[2].name, "Dim", "the area's name is left out of a Hue scene's name");
 });
 
@@ -108,7 +108,7 @@ test("the section keeps its sources, folders and order through the layout clean-
     return plain(o);
   };
   assert.deepEqual(run({ msrc: ["hue", "page", "sec:a1", "sec:Bad Id", "hue"], mf: [{ id: "f1", n: "X", s: ["c1", "scene.a", "bad key!"] }, { id: "no id!", n: "Y", s: ["c1"] }, { id: "f2", n: "Z", s: [] }], mtop: ["c1", "f:f1", "x y"] }), {
-    msrc: ["hue", "page", "sec:a1"],
+    msrc: ["plugin", "page", "sec:a1"],
     mf: [{ id: "f1", n: "X", s: ["c1", "scene.a"] }],
     mtop: ["c1", "f:f1"],
   });
@@ -151,8 +151,8 @@ test("a still scene has no stop on its picture, and tapping it again while it is
   };
   assert.deepEqual(run({ kind: "classic", sc: {} }, true), [["light", "turn_off", { entity_id: ["light.a", "light.b"] }]], "a classic scene that is on: off");
   assert.deepEqual(run({ kind: "classic", sc: {} }, false), ["run"], "not on: it runs");
-  assert.deepEqual(run({ kind: "hue", id: "scene.x", dyn: false }, true), [["light", "turn_off", { entity_id: ["light.a", "light.b"] }]], "a still Hue scene that is on: off");
-  assert.deepEqual(run({ kind: "hue", id: "scene.x", dyn: true }, true), ["toggle"], "a moving one stops");
+  assert.deepEqual(run({ kind: "plugin", id: "scene.x", dyn: false }, true), [["light", "turn_off", { entity_id: ["light.a", "light.b"] }]], "a still Hue scene that is on: off");
+  assert.deepEqual(run({ kind: "plugin", id: "scene.x", dyn: true }, true), ["toggle"], "a moving one stops");
 });
 
 test("the pen and dots of the scene that plays stay put when the rows are made again, and a folder that opens slides the page only as far as it needs", () => {

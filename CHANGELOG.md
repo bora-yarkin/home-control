@@ -11,6 +11,7 @@ Format: [Keep a Changelog](https://keepachangelog.com/). Versions follow [semant
 - **Each light tile in a lights master has a second small line under its mode** with the brightness its lights run at and, for lights on a white, the temperature (averaged for a group).
 
 ### Fixed
+- **Plugin wording and checks come from the plugin**: the scenes a plugin owns are a scene *source* and *kind* called `plugin` (stored `hue` becomes `plugin`, `hord` is `pord`), the words for them are the plugin's, and a light that stands for others is told by `registerGroupCheck` instead of a Hue attribute. A device's *Set up this device* row is the same for appliances, remotes and kits.
 - **Old-data conversions removed**: layouts from before sections (v3), the shared pins/quick-action lists, the first form of a master's lights, and the one-time takeover of Hue Plus's saved scenes. A dashboard that is not at layout version 4 starts from the default pages. The Hue app's menu styles (`.hm-*`) moved to Hue Plus, which draws those pages.
 - **Unused code removed**: three functions, a popup that repeated another, a list of settable kinds, and style rules nothing used.
 - **Columns are one dropdown each**: a page has *Sections side by side* (Automatic, 1 to 4) and a section has *Columns* (Automatic, 1 to 4 columns of items inside it). The section's Full / Half width and the *Turn-all-off button* of a Lights section (and its button) are gone; a lights master has its own power button.

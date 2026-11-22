@@ -624,7 +624,7 @@ function scenesSection(room, extra) {
           return x.id;
         });
         ids.splice(t, 0, ids.splice(f, 1)[0]);
-        e.hord = ids;
+        e.pord = ids;
         uiChanged();
       });
     }
@@ -744,10 +744,10 @@ function devRowRaw(d) {
   return null;
 }
 
-/* The scenes a plugin owns, in the order the administrator gave them (the section's hord); the ones not in it follow. */
+/* The scenes a plugin owns, in the order the administrator gave them (the section's pord); the ones not in it follow. */
 function sceneKindOrder(e, items) {
   var pos = {};
-  (e.hord || []).forEach(function (id, i) {
+  (e.pord || []).forEach(function (id, i) {
     pos[id] = i;
   });
   return items.slice().sort(function (x, y) {

@@ -675,14 +675,14 @@ function cleanLayout(a) {
           return typeof x === "string" && /^[a-z0-9_-]{1,24}$/.test(x) && a.indexOf(x) === i;
         })
         .slice(0, 40);
-    /* The order of the Hue scenes a scenes section shows. */
-    if (k === "scenes" && Array.isArray(s.hord)) {
-      var hord = s.hord
+    /* The order of the scenes a plugin owns that a scenes section shows (`pord`; `hord` is what it was called). */
+    if (k === "scenes" && (Array.isArray(s.pord) || Array.isArray(s.hord))) {
+      var hord = (s.pord || s.hord)
         .filter(function (x, i, a) {
           return typeof x === "string" && /^scene\.[a-z0-9_]{1,80}$/.test(x) && a.indexOf(x) === i;
         })
         .slice(0, 80);
-      if (hord.length) o.hord = hord;
+      if (hord.length) o.pord = hord;
     }
     if (k === "devs") {
       /* The scenes page of the lights master: where its scenes come from, the folders the owner made and the order of the tiles outside them. */
@@ -691,8 +691,11 @@ function cleanLayout(a) {
       };
       if (Array.isArray(s.msrc))
         o.msrc = s.msrc
+          .map(function (x) {
+            return x === "hue" ? "plugin" : x;
+          })
           .filter(function (x, i, a) {
-            return (x === "hue" || x === "page" || (typeof x === "string" && /^sec:[a-z0-9_-]{1,24}$/.test(x))) && a.indexOf(x) === i;
+            return (x === "plugin" || x === "page" || (typeof x === "string" && /^sec:[a-z0-9_-]{1,24}$/.test(x))) && a.indexOf(x) === i;
           })
           .slice(0, 24);
       if (Array.isArray(s.mf)) {

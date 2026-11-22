@@ -30,7 +30,7 @@ function world(sec, extra = {}) {
     countOn: () => 0,
     lightUnits: (ids) => ids,
     lightsMasterToggle: (ids) => calls.push(["toggle", plain(ids)]),
-    mscItems: () => [{ key: "scene.read", kind: "hue" }],
+    mscItems: () => [{ key: "scene.read", kind: "plugin" }],
     mscPlay: (S, it) => calls.push(["scene", it.key, plain(S.root.cmd)]),
     ...extra,
   };

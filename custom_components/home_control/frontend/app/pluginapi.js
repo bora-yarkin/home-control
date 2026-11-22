@@ -31,6 +31,9 @@ var PLUGIN_PLAYBACK = [];
 /* A style a light panel offers for some lights (Hue's gradient styles): { applies(id), icon(id): svg markup, popup(body, id), blends(id) (optional: whether the zones are drawn blended into a line, the default) }. */
 var PLUGIN_STYLES = [];
 
+/* Lights a plugin says stand for other lights (Hue's rooms and zones): a function of a light id that says whether it does. */
+var PLUGIN_GROUPS = [];
+
 function pluginFind(list, id) {
   for (var i = 0; i < list.length; i++) if (list[i].match(id)) return list[i];
   return null;
@@ -72,6 +75,13 @@ function pluginDeviceKind(id) {
 }
 
 /* The playback a plugin reports on a light: { entity, label, pct } or null. */
+/* Whether a plugin says this light stands for other lights. */
+function pluginIsGroup(id) {
+  return PLUGIN_GROUPS.some(function (f) {
+    return !!f(id);
+  });
+}
+
 function pluginPlays(id) {
   for (var i = 0; i < PLUGIN_PLAYBACK.length; i++) {
     var p = PLUGIN_PLAYBACK[i].plays(id);
@@ -239,6 +249,9 @@ window.HomeControl = {
   },
   registerDeviceKind: function (def) {
     PLUGIN_DEVICE_KINDS.push(def);
+  },
+  registerGroupCheck: function (fn) {
+    PLUGIN_GROUPS.push(fn);
   },
   registerPlayback: function (def) {
     PLUGIN_PLAYBACK.push(def);

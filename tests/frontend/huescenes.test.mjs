@@ -20,6 +20,7 @@ function page(extra = {}) {
     CURRENT: null,
     STORE: { scenes: [], eareas: [] },
     H: () => ({ entities: {}, states: { "light.a": {}, "light.b": {}, "light.c": {} } }),
+    pluginIsGroup: () => false,
     A: (id) => (sandbox.GROUPS[id] ? { entity_id: sandbox.GROUPS[id] } : { name: "Reading" }),
     GROUPS: {},
     ROOMLIGHTS: {},

@@ -265,7 +265,7 @@ test("the mode of the scene is saved, and brightness effects made elsewhere are 
 test("the scenes a plugin owns (Hue's) follow the order a section was given, and new ones come after", () => {
   const p = page();
   const items = ["a", "b", "c", "d"].map((id) => ({ id: "scene." + id }));
-  const order = (hord) => plain(p.sceneKindOrder({ hord }, items)).map((x) => x.id);
+  const order = (pord) => plain(p.sceneKindOrder({ pord }, items)).map((x) => x.id);
   assert.deepEqual(order(undefined), ["scene.a", "scene.b", "scene.c", "scene.d"]);
   assert.deepEqual(order(["scene.c", "scene.a"]), ["scene.c", "scene.a", "scene.b", "scene.d"]);
   assert.deepEqual(order(["scene.gone", "scene.d"]), ["scene.d", "scene.a", "scene.b", "scene.c"]);

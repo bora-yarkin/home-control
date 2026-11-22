@@ -12,9 +12,9 @@ function mscSection(root) {
 }
 
 /* Where the scenes of a section come from when it has not chosen: the Hue scenes of its lights' areas, as the Effects page used to list them. */
-var MSC_DEFAULT_SRC = ["hue"];
+var MSC_DEFAULT_SRC = ["plugin"];
 
-/* The scenes of the section, each as { key, kind: "hue" | "live" | "classic", id, name, sc }: the ones made from its + first, then the sources it has chosen. */
+/* The scenes of the section, each as { key, kind: "plugin" | "live" | "classic", id, name, sc }: the ones made from its + first, then the sources it has chosen. */
 function mscItems(S) {
   var ref = mscSection(S.root);
   if (!ref) return [];
@@ -25,7 +25,7 @@ function mscItems(S) {
   function add(key, kind, name, sc) {
     if (seen[key]) return;
     /* A Hue scene is named after its room ("Bathroom Dim"); the page's name, or the area's, is left out as in a scenes section. */
-    if (kind === "hue") name = sceneShortName(name, { name: page.name, area: page.area }, e);
+    if (kind === "plugin") name = sceneShortName(name, { name: page.name, area: page.area }, e);
     seen[key] = 1;
     out.push({ key: key, kind: kind, id: key, name: name, sc: sc || null });
   }
@@ -39,9 +39,9 @@ function mscItems(S) {
     })
     .forEach(stored);
   (e.msrc || MSC_DEFAULT_SRC).forEach(function (src) {
-    if (src === "hue")
+    if (src === "plugin")
       lpFxOf(S.root).scenes.forEach(function (id) {
-        add(id, "hue", A(id).friendly_name || A(id).name || id);
+        add(id, "plugin", A(id).friendly_name || A(id).name || id);
       });
     else if (src === "page")
       STORE.scenes
@@ -57,7 +57,7 @@ function mscItems(S) {
       secScenes(other).forEach(stored);
       if (more)
         (more(other) || []).forEach(function (x) {
-          if (x.kind) add(x.id, "hue", A(x.id).friendly_name || A(x.id).name || x.id);
+          if (x.kind) add(x.id, "plugin", A(x.id).friendly_name || A(x.id).name || x.id);
         });
     }
   });
@@ -65,7 +65,7 @@ function mscItems(S) {
 }
 
 function mscKindLabel(it) {
-  return it.kind === "hue" ? _T("scene_kind_hue") : it.kind === "live" ? _T("live_scene") : _T("classic_scene");
+  return it.kind === "plugin" ? _T("scene_kind_plugin") : it.kind === "live" ? _T("live_scene") : _T("classic_scene");
 }
 
 /* The colours of a scene's round tile: a Hue scene's from the bridge, a live scene's palette, a classic scene's lights. cb gets the CSS colours (a Hue scene's come later). */
@@ -75,7 +75,7 @@ function mscColours(it, cb) {
     var hs = c.hs || [c.h, c.s];
     return hs && typeof hs[0] === "number" ? cssRgb(hsv2rgb(hs[0], hs[1])) : null;
   }
-  if (it.kind === "hue") {
+  if (it.kind === "plugin") {
     var kind = pluginSceneKind(it.id);
     if (kind && kind.palette) kind.palette(it.id, cb);
     return;
@@ -94,7 +94,7 @@ function mscColours(it, cb) {
 }
 
 function mscActive(it) {
-  if (it.kind === "hue") {
+  if (it.kind === "plugin") {
     var kind = pluginSceneKind(it.id);
     return !!(kind && kind.active(it.id));
   }
@@ -102,7 +102,7 @@ function mscActive(it) {
 }
 
 function mscDynamic(it) {
-  return it.kind === "live" || (it.kind === "hue" && !!pluginSceneKind(it.id).dynamic(it.id));
+  return it.kind === "live" || (it.kind === "plugin" && !!pluginSceneKind(it.id).dynamic(it.id));
 }
 
 /* Starts it (or stops it, when it plays and can be stopped), on the lights of the master. A still scene that is on is switched off by tapping it again: it has nothing to stop, so the lights go off. */
@@ -134,7 +134,7 @@ function mscMore(S, it, ref, redraw) {
     fold = (ref.e.mf || []).filter(function (f) {
       return f.s.indexOf(it.key) >= 0;
     })[0],
-    kind = it.kind === "hue" ? pluginSceneKind(it.id) : null;
+    kind = it.kind === "plugin" ? pluginSceneKind(it.id) : null;
   if (fold)
     list.push({
       label: _T("scene_take_out_of_folder"),
@@ -160,12 +160,12 @@ function mscMore(S, it, ref, redraw) {
         redraw();
       },
     });
-  if (it.kind === "hue" ? kind && kind.remove : true)
+  if (it.kind === "plugin" ? kind && kind.remove : true)
     list.push({
       label: _T("delete_scene"),
       danger: true,
       fn: function () {
-        if (it.kind === "hue")
+        if (it.kind === "plugin")
           confirmDlg(_T("delete_scene") + ": " + it.name + "?", function () {
             Promise.resolve(kind.remove(it.id)).then(redraw);
           });
@@ -791,7 +791,7 @@ function mscSourceRows(box, sec, scope, redraw) {
   box.appendChild(sep(_T("scenes_in_the_light_popup"), "palette"));
   box.appendChild(hintRow(_T("scenes_in_the_light_popup_hint")));
   /* The scenes a plugin owns (Hue Plus brings the words for them, and the scenes). */
-  if (PLUGIN_SCENE_KINDS.length) box.appendChild(row("hue", _T("scene_source_hue"), _T("scene_source_hue_sub")));
+  if (PLUGIN_SCENE_KINDS.length) box.appendChild(row("plugin", _T("scene_source_plugin"), _T("scene_source_plugin_sub")));
   box.appendChild(row("page", _T("scene_source_page"), _T("scene_source_page_sub")));
   var n = 0;
   secOrder(scopeKey(scope)).forEach(function (s) {
