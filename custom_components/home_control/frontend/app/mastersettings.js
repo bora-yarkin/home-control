@@ -105,33 +105,126 @@ function masterModeRows(box, sec, scope, redraw) {
   }
   if (!held) box.appendChild(modeSeg());
   box.appendChild(hintRow(sec.mm ? _T("master_manual_hint") : _T("master_auto_hint")));
-  box.appendChild(
-    flagPill("lights", _T("master_groups_as_one"), sec, "mgl", function (on) {
-      return on ? _T("master_groups_as_one_on") : _T("master_groups_as_one_off");
-    })
-  );
-  if (!sec.mm) return;
-  box.appendChild(
-    pill("plus", _T("master_choose_lights"), {
-      sub: function () {
-        return (sec.ml || []).length + " " + _T("lights").toLowerCase();
-      },
-      tap: function () {
-        showPopup("lmaster-lights:" + key, true);
-      },
-    })
-  );
-  (sec.ml || []).forEach(function (m) {
-    /* A light of a manual master is edited in the light's own settings popup, the one a light of a section has. */
+  /* The list of lights below follows it: with it on a group is one row that opens, with it off every light is a row. */
+  var grouped = flagPill("lights", _T("master_groups_as_one"), sec, "mgl", function (on) {
+    return on ? _T("master_groups_as_one_on") : _T("master_groups_as_one_off");
+  });
+  grouped.addEventListener("click", function () {
+    setTimeout(redraw, 60);
+  });
+  box.appendChild(grouped);
+  if (sec.mm)
     box.appendChild(
-      pill(m.icon && iconOk(m.icon) ? m.icon : "light", m.name || m.id, {
+      pill("plus", _T("master_choose_lights"), {
         sub: function () {
-          return m.id;
+          return (sec.ml || []).length + " " + _T("lights").toLowerCase();
         },
-        tap: devEditor("~" + scope + "~" + sec.id + "~ml", m),
+        tap: function () {
+          showPopup("lmaster-lights:" + key, true);
+        },
       })
     );
+  masterLightList(box, sec, scope, redraw);
+}
+
+/* The lights of the master in one list, in the order of its row: the lights the master has (the section's lights when it is automatic, the chosen ones when it is manual), each with a grip to drag it. With "grouped lights as one light" a group is one row with a button that slides its lights open, which are ordered inside it; without, every light is its own row. A manual master's light is edited with a tap. */
+var MLOPEN = {};
+
+function masterLightList(box, sec, scope, redraw) {
+  var sid = scope + "~" + sec.id;
+  LMASTER_META[sid] = masterMeta(sec);
+  var root = lpMasterNode(sid, masterLightIds(sec)),
+    own = {};
+  (sec.ml || []).forEach(function (m) {
+    own[m.id] = m;
   });
+  box.appendChild(sep(_T("order_of_the_lights"), "drag"));
+  box.appendChild(hintRow(sec.mo ? _T("drag_a_light_to_move_it_the_row_follows_this_order") : _T("the_lights_are_in_alphabetical_order_drag_one_to_set_your_own")));
+  /* Putting the lights of one list in a new order keeps the order of every other list. */
+  function saved(nodes, from, to) {
+    var keys = nodes.map(function (n) {
+      return n.key;
+    });
+    keys.splice(to, 0, keys.splice(from, 1)[0]);
+    sec.mo = (sec.mo || []).filter(function (k) {
+      return keys.indexOf(k) < 0;
+    }).concat(keys);
+    uiChanged();
+    setTimeout(redraw, 250);
+  }
+  function fill(into, nodes) {
+    var items = [];
+    nodes.forEach(function (n) {
+      var wrap = mk("div", "ml-item"),
+        group = sec.mgl && lpIsGroup(n),
+        edit = sec.mm && own[n.key] ? devEditor("~" + scope + "~" + sec.id + "~ml", own[n.key]) : null,
+        row = pill(n.icon || "light", n.name, {
+          sub: function () {
+            return group ? lpCount(n) + " " + _T("lights").toLowerCase() : n.key;
+          },
+          tap: edit,
+        });
+      wrap.appendChild(row);
+      if (nodes.length > 1) {
+        var g = mk("div", "grip", svg("drag"));
+        g.addEventListener("click", function (e) {
+          e.stopPropagation();
+        });
+        gripKeys(g, wrap, items, function (f, t) {
+          saved(nodes, f, t);
+        });
+        g.addEventListener("pointerdown", function (e) {
+          edDrag(e, wrap, items, function (f, t) {
+            saved(nodes, f, t);
+          });
+        });
+        row.appendChild(g);
+      }
+      if (group) {
+        var more = mk("div", "ml-more"),
+          kids = mk("div", "ml-kids"),
+          chev = mk("div", "chev", svg("chev")),
+          shut = !MLOPEN[sid + n.key];
+        fill(kids, lpSortLights(n.kids, sec.mo));
+        more.appendChild(kids);
+        more.style.height = shut ? "0px" : "";
+        row.classList.toggle("open", !shut);
+        row.insertBefore(chev, row.querySelector(".grip"));
+        chev.addEventListener("click", function (e) {
+          e.stopPropagation();
+          var open = !MLOPEN[sid + n.key];
+          MLOPEN[sid + n.key] = open;
+          row.classList.toggle("open", open);
+          var h = kids.offsetHeight;
+          more.style.height = open ? "0px" : h + "px";
+          more.getBoundingClientRect();
+          more.style.height = open ? h + "px" : "0px";
+          if (open)
+            setTimeout(function () {
+              if (MLOPEN[sid + n.key]) more.style.height = "";
+            }, 260);
+        });
+        wrap.appendChild(more);
+      }
+      items.push(wrap);
+    });
+    items.forEach(function (w) {
+      into.appendChild(w);
+    });
+  }
+  var list = mk("div", "ml-list");
+  box.appendChild(list);
+  fill(list, lpSortLights(sec.mgl ? root.kids : lpLeaves(root), sec.mo));
+  if (sec.mo)
+    box.appendChild(
+      pill("restart", _T("back_to_alphabetical_order"), {
+        tap: function () {
+          delete sec.mo;
+          uiChanged();
+          redraw();
+        },
+      })
+    );
 }
 
 /* The settings that are about the popup: what the power button does, and the sync tab. */

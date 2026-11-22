@@ -2115,7 +2115,7 @@ function lpTrayStruct(S, list, depth) {
     var item = { n: n };
     /* A group opens by itself, once, when its lights are not running alike; after that it is as it was left. */
     if (lpIsGroup(n) && S.trayEx[n.key] === undefined) S.trayEx[n.key] = !lpNodeLook(n);
-    if (lpIsGroup(n) && S.trayEx[n.key]) item.kids = lpTrayStruct(S, lpSortLights(n.kids, null), (depth || 0) + 1);
+    if (lpIsGroup(n) && S.trayEx[n.key]) item.kids = lpTrayStruct(S, lpSortLights(n.kids, S.root.order), (depth || 0) + 1);
     return item;
   });
 }

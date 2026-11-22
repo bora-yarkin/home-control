@@ -670,11 +670,6 @@ function lightsMasterSettings(b, key, part) {
   function lightIds() {
     return masterLightIds(sec);
   }
-  /* The lights as the row shows them now: by name, or in the owner's order. */
-  function shown() {
-    var node = lpMasterNode(sec.id, lightIds());
-    return lpSortLights(lpLeaves(node), sec.mo || null);
-  }
   function part_(name, icon, sub) {
     return pill(icon, _T("lm_part_" + name), {
       sub: function () {
@@ -719,37 +714,6 @@ function lightsMasterSettings(b, key, part) {
       })
     );
     masterModeRows(box, sec, p[0], draw);
-    box.appendChild(sep(_T("order_of_the_lights"), "drag"));
-    box.appendChild(hintRow(sec.mo ? _T("drag_a_light_to_move_it_the_row_follows_this_order") : _T("the_lights_are_in_alphabetical_order_drag_one_to_set_your_own")));
-    var nodes = shown(),
-      rows = nodes.map(function (n) {
-        var r = pill(n.icon || "light", n.name, {
-          sub: function () {
-            return n.key;
-          },
-        });
-        box.appendChild(r);
-        return r;
-      });
-    makeSortable(box, rows, function (from, to) {
-      var keys = nodes.map(function (n) {
-        return n.key;
-      });
-      keys.splice(to, 0, keys.splice(from, 1)[0]);
-      sec.mo = keys;
-      uiChanged();
-      setTimeout(draw, 250);
-    });
-    if (sec.mo)
-      box.appendChild(
-        pill("restart", _T("back_to_alphabetical_order"), {
-          tap: function () {
-            delete sec.mo;
-            uiChanged();
-            draw();
-          },
-        })
-      );
   }
   draw();
 }

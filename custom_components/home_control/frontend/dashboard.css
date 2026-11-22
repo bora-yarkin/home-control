@@ -1000,3 +1000,6 @@ body.pinhdr:not(.editing) .wrap::before{content:"";position:fixed;top:0;left:0;r
 .lp-tcol svg{width:22px;height:22px;fill:none;stroke:currentColor;stroke-width:2;stroke-linecap:round;stroke-linejoin:round;transform-origin:50% 50%}
 .lp-ts{font-size:11px;line-height:1.1;min-height:12px;margin-top:-2px;opacity:.78;text-align:center;max-width:100%;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
 .lp-tile{height:150px}
+.ml-list,.ml-kids{display:flex;flex-direction:column;gap:8px}
+.ml-more{overflow:hidden;transition:height .24s cubic-bezier(.2,.9,.3,1)}
+.ml-kids{padding:8px 0 0 22px}
