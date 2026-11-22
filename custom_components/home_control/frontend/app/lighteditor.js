@@ -135,7 +135,6 @@ function lightsEditDef() {
       LMASTER["edit"] = le.lights;
       LMASTER_NAME["edit"] = le.name;
       LMASTER_ALL["edit"] = true;
-      LWHEEL["m:edit"] = undefined;
       /* Taking a light out or adding one draws the popup again with the lights it has now. */
       function redraw() {
         LMASTER["edit"] = le.lights;

@@ -2762,45 +2762,10 @@ function lpBrightnessRow(S) {
   });
 }
 
-/* The old colour / white slider, for a Lights section that has the colour wheel turned off. */
-function lpSliders(b, root, colorOk, whiteOk) {
-  var box = mk("div"),
-    ref = function (mode) {
-      var c = lpCap(root, mode);
-      return c.filter(isOn)[0] || c[0];
-    };
-  b.appendChild(box);
-  lightColourRow(box, {
-    color: colorOk,
-    white: whiteOk,
-    icon: root.icon,
-    wheel: false,
-    colorNow: function () {
-      var r = lpCap(root, "color").filter(isOn)[0];
-      return !!r && LP_COLOUR_MODES.indexOf(A(r).color_mode) >= 0;
-    },
-    hs: function () {
-      var r = ref("color");
-      return (r && lpHs(r)) || null;
-    },
-    kelvin: function () {
-      var r = ref("white");
-      return r ? lpKelvin(r) : null;
-    },
-    krange: function () {
-      return lpKrange(root);
-    },
-    kgrad: whiteOk ? kelGrad(lpCap(root, "white")[0]) : "",
-    push: function (d) {
-      lpPush(root, "hs_color" in d ? "color" : "white", d);
-    },
-  });
-}
-
 /* The white temperatures saved for every light. Until one is added or removed here, they are the whites already saved as presets of lights. */
 /* ---- the panel ---- */
 
-/* 'root' is the node tree of what the popup controls. 'o': room (the room whose saved colours are shown, or null for none), and sliders (the colour wheel is turned off for this light or section: the old colour slider is shown instead). */
+/* 'root' is the node tree of what the popup controls. 'o': room (the room whose saved colours are shown, or null for none). */
 function lightPanel(b, root, o) {
   var colorOk = lpCap(root, "color").length > 0,
     whiteOk = lpCap(root, "white").length > 0,
@@ -2813,12 +2778,11 @@ function lightPanel(b, root, o) {
   S.restore = LPBACK && LPBACK.root === root.key ? LPBACK : null;
   LPBACK = null;
   if (o.ready) o.ready(S);
-  if (any && !o.sliders) lpStage(S, b);
+  if (any) lpStage(S, b);
   else {
     S.bsl = lpBrightnessRow(S);
     b.appendChild(S.bsl);
   }
-  if (any && o.sliders) lpSliders(b, root, colorOk, whiteOk);
   if (any && o.room) {
     var pbox = mk("div"),
       pwrap = mk("div", "lp-collapsible");

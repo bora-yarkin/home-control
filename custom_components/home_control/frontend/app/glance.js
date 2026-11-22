@@ -175,7 +175,7 @@ function glanceCfg() {
       return x.k === "glance";
     })[0],
     g = (e && e.gl) || {};
-  return { o: g.o || [], h: g.h || [], c: g.c || [], f: !!g.f, lm: g.lm || [] };
+  return { o: g.o || [], h: g.h || [], c: g.c || [], lm: g.lm || [] };
 }
 
 function glanceSave(fn) {
@@ -389,25 +389,6 @@ function glancePage(b, id) {
     })
   );
   if (id === "media") b.appendChild(mediaCtlPill());
-  if (id === "lights")
-    b.appendChild(
-      pill("palette", _T("light_colour_in_popups"), {
-        on: function () {
-          return glanceCfg().f;
-        },
-        sub: function () {
-          return glanceCfg().f
-            ? _T("popup_sliders_are_filled_with_the_ligh")
-            : _T("popups_use_the_accent_colour");
-        },
-        tap: function () {
-          glanceSave(function (x) {
-            if (x.f) delete x.f;
-            else x.f = 1;
-          });
-        },
-      })
-    );
   if (id === "lights") glMasterPicks(b);
   if (id === "lights")
     gxPage(

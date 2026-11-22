@@ -153,34 +153,11 @@ function inkRow(r, rgb, p) {
 /* The accent every device on a page uses when it is on. */
 var PAGEFILL = "color-mix(in srgb,var(--acc) 45%,var(--f-card))";
 
-/* Whether popups fill a light's sliders with its own colour. The Lights section it is in can turn that off (flag accent); then popups use the accent like the page. */
-function popFill(id) {
-  var s = lightsSectionOf(id);
-  return !(s && s.accent);
-}
-
-/* The Lights section a light is listed in, if any. */
-function lightsSectionOf(id) {
-  var found = null;
-  allSectionLists().forEach(function (l) {
-    l.forEach(function (s) {
-      if (found || s.k !== "lights") return;
-      if (
-        (s.devs || []).some(function (d) {
-          return d.id === id;
-        })
-      )
-        found = s;
-    });
-  });
-  return found;
-}
-
 /* A fill colour for a popup slider: the light's colour (rgb() says which) or the accent. */
 function popFillOf(ids, rgb) {
   return function () {
     var c = rgb();
-    return c ? (popFill(ids[0]) ? cssRgb(c) : PAGEFILL) : null;
+    return c ? cssRgb(c) : null;
   };
 }
 
@@ -312,7 +289,7 @@ function lightRow(id, showRoom, inPopup) {
     var rgb = lightRgb(id),
       la = A(id);
     r._lc = on ? rgb || WARMWHITE : null;
-    var full = typeof inPopup === "function" ? inPopup() : inPopup && popFill(id);
+    var full = typeof inPopup === "function" ? inPopup() : !!inPopup;
     r._ink = full ? r._lc : on ? cssToRgb(PAGEFILL) : null;
     if (full) tintEl(r, r._lc);
     else tintIcon(r, r._lc);
@@ -401,63 +378,6 @@ function lightPush(id, data) {
       Math.max(0, s.at + 1500 - Date.now())
     );
   })();
-}
-
-/* Which lights have the colour circle on press and hold: lights of a Lights section follow the section's setting. */
-var LWHEEL = {};
-
-var HUE_BG =
-  "linear-gradient(90deg,hsl(0,100%,55%),hsl(60,100%,50%),hsl(120,100%,45%),hsl(180,100%,45%),hsl(240,100%,60%),hsl(300,100%,55%),hsl(360,100%,55%))";
-
-/* Colour and white temperature share one slider (used where the Lights section turns the colour circle off). Tapping its icon switches between them. While dragging, the light follows. 'c' describes what is controlled: color and white (what it can do), colorNow(), hs(), kelvin(), krange(), kgrad, icon, wheel, and push(data) which sends a change to the light or lights. */
-function lightColourRow(box, c) {
-  var mode = c.color && c.white ? (c.colorNow() ? "color" : "white") : c.color ? "color" : "white";
-  function sat() {
-    var h = c.hs();
-    return h && h[1] >= 30 ? h[1] : 100;
-  }
-  function data(v) {
-    return mode === "color" ? { hs_color: [v, sat()] } : { color_temp_kelvin: v };
-  }
-  function draw() {
-    box.innerHTML = "";
-    var isColor = mode === "color",
-      k = c.krange();
-    box.appendChild(
-      sliderRow({
-        icon: isColor ? "palette" : "thermo",
-        name: isColor ? _T("colour") : _T("white_temperature"),
-        track: isColor ? "hue" : "kel",
-        trackBg: isColor ? HUE_BG : c.kgrad,
-        min: isColor ? 0 : k[0],
-        max: isColor ? 360 : k[1],
-        step: isColor ? 1 : 10,
-        get: function () {
-          if (isColor) {
-            var h = c.hs();
-            return h ? h[0] : 0;
-          }
-          return c.kelvin();
-        },
-        fmt: function (v) {
-          return isColor ? Math.round(v) + "°" : Math.round(v) + " K";
-        },
-        live: function (v) {
-          c.push(data(v));
-        },
-        commit: function (v) {
-          c.push(data(v));
-        },
-        onTap: function (t) {
-          if (c.color && c.white && t && t.closest(".ic")) {
-            mode = isColor ? "white" : "color";
-            withSlive(draw);
-          }
-        },
-      })
-    );
-  }
-  draw();
 }
 
 /* The colour a saved colour or white temperature shows. */
@@ -607,13 +527,12 @@ function lightsMasterToggle(ids) {
   if (plain.length) call("light", "turn_on", { entity_id: plain });
 }
 
-function lightsMasterRow(sid, ids, wheel, name, all, order, meta) {
+function lightsMasterRow(sid, ids, name, all, order, meta) {
   LMASTER[sid] = ids;
   LMASTER_META[sid] = meta || {};
   LMASTER_NAME[sid] = name || "";
   LMASTER_ALL[sid] = !!all;
   LMASTER_ORDER[sid] = order || null;
-  LWHEEL["m:" + sid] = wheel;
   var r = sliderRow({
     icon: "lights",
     name: name || _T("all_lights"),
@@ -738,7 +657,6 @@ function lightPopup(b, id, o) {
   lightPanel(b, lpNodeOf(id, null), {
     id: id,
     room: cp.color || cp.white ? savedRoomOf([id]) : null,
-    sliders: LWHEEL[id] === false,
     ready: o && o.ready,
   });
 }
@@ -748,7 +666,6 @@ function lightsMasterPopup(b, sid) {
   var ids = LMASTER[sid] || [];
   lightPanel(b, lpMasterNode(sid, ids), {
     room: savedRoomOf(lightIndividuals(ids)),
-    sliders: LWHEEL["m:" + sid] === false,
     members: LMASTER_MEMBERS[sid] || null,
     /* The lights row follows the circle: a group is one tile until it is separated (the master's choice). */
     groups: !!(masterSec(sid) || {}).mgl,
@@ -881,17 +798,6 @@ function lightRgb(id) {
   if (a.rgb_color) return a.rgb_color.slice(0, 3);
   if (a.color_temp_kelvin) return kelvinRgb(a.color_temp_kelvin);
   return null;
-}
-
-function kelGrad(id) {
-  return function () {
-    var a = A(id),
-      mn = a.min_color_temp_kelvin || 2000,
-      mx = a.max_color_temp_kelvin || 6500,
-      s = [];
-    for (var i = 0; i <= 6; i++) s.push(cssRgb(kelvinRgb(mn + ((mx - mn) * i) / 6)));
-    return "linear-gradient(90deg," + s.join(",") + ")";
-  };
 }
 
 function lightRaw(id) {

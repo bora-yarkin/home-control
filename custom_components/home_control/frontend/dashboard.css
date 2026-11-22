@@ -34,13 +34,7 @@ main{position:fixed;inset:0;z-index:1;overflow-y:auto;touch-action:pan-y;padding
 .slide{touch-action:pan-y}
 .slide .fill{position:absolute;left:0;top:0;bottom:0;width:0;border-radius:inherit;background:linear-gradient(180deg,var(--f1),var(--f2));z-index:0;transition:width .15s;box-shadow:none!important}
 .slide .fill:after{content:"";position:absolute;right:0;top:12px;bottom:12px;width:3px;border-radius:3px;background:rgba(255,255,255,.7)}
-.slide.hue{background:linear-gradient(90deg,#ff3b3b,#ffb13b,#e6ff3b,#3bff6a,#3bd4ff,#3b5cff,#c23bff,#ff3b8f)}
 .slide.sat{background:linear-gradient(90deg,#fff,#ff9a3b)}
-.slide.kel{background:linear-gradient(90deg,#ffb35c,#fff3e0,#bfd9ff)}
-.slide.track .fill{display:none}
-.slide.track:after{content:"";position:absolute;left:0;right:0;top:0;bottom:0;border-radius:inherit;background:linear-gradient(180deg,rgba(0,0,0,.34),rgba(0,0,0,.14));pointer-events:none;z-index:0}
-.slide .mark{position:absolute;top:8px;bottom:8px;width:5px;margin-left:-2px;border-radius:5px;background:#fff;box-shadow:0 0 10px rgba(0,0,0,.6);z-index:1}
-.slide.track .nm,.slide.track .vl,.slide.track .sb{text-shadow:0 1px 3px rgba(0,0,0,.7);color:#fff}
 .tile{display:flex;align-items:center;gap:12px;min-height:64px;padding:10px 14px 10px 10px;cursor:pointer;user-select:none;margin:0}
 .tile .nm{font-size:var(--fs-l);font-weight:600}
 .tile .sb{font-size:var(--fs-s);color:var(--ink2);margin-top:2px}
@@ -377,7 +371,6 @@ to{background-position:-200% 0}
 .pgrid.accgrid .swc{width:auto}
 .pgrid.accgrid .cap{display:none}
 .pgrid{display:grid;justify-items:center;gap:14px 6px;grid-template-columns:repeat(auto-fill,minmax(46px,1fr))}
-.sheet .slide.track .nm,.sheet .slide.track .vl{text-shadow:0 0 4px rgba(0,0,0,.9),0 1px 4px rgba(0,0,0,.9)}
 .cd{width:14px;height:14px;border-radius:50%;flex:none;border:1.5px solid rgba(255,255,255,.7);box-shadow:0 0 8px rgba(0,0,0,.4);margin-right:8px;display:none}
 .qa.editing{border-style:dashed}
 .sec-h .rnd{order:1;margin-left:8px}
@@ -612,10 +605,7 @@ body.light{--ckfg:#fff;--f-bg:#eef0f3;--f-card:#fff;--f-raise:#f3f5f8;--f-line:#
 /* The colour, saturation and temperature sliders keep their gradient track. */
 /* A selected room tile keeps its highlight (the card colour would otherwise cover it). */
 .room.on{background-color:color-mix(in srgb,var(--acc) 22%,var(--f-card))!important;border-color:color-mix(in srgb,var(--acc) 65%,var(--f-line))!important}
-.pane.slide.hue{background:linear-gradient(90deg,#ff3b3b,#ffb13b,#e6ff3b,#3bff6a,#3bd4ff,#3b5cff,#c23bff,#ff3b8f)!important}
 .pane.slide.sat{background:linear-gradient(90deg,#fff,#ff9a3b)!important}
-.pane.slide.kel{background:linear-gradient(90deg,#ffb35c,#fff3e0,#bfd9ff)!important}
-.pane.slide.track .nm,.pane.slide.track .vl,.pane.slide.track .sb{text-shadow:0 1px 3px rgba(0,0,0,.7);color:#fff}
 .sec-h svg,.sep svg{color:var(--ink2)}
 /* The dock is a rounded square, so its items and the moving selector follow its corners (dock radius minus its padding). */
 .dock .di,.dock .dp{border-radius:var(--r-s)}

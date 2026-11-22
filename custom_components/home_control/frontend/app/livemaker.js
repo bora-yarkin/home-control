@@ -328,7 +328,6 @@ function liveMakerBuild(b) {
     colorNode = lpFind(root, VCOL_GROUP),
     stepper = mk("div");
   lightPanel(b, root, {
-    sliders: false,
     maker: true,
     ready: function (S) {
       LMK.S = S;

@@ -308,15 +308,13 @@ function cssToRgb(s) {
 }
 
 function sliderRow(o) {
-  var r = mk("div", "pill pane slide" + (o.track ? " track " + o.track : ""));
+  var r = mk("div", "pill pane slide");
   r.innerHTML =
     "<div class='fill'></div>" +
-    (o.track ? "<div class='mark'></div>" : "") +
     ic(o.icon) +
     "<span class='tx'><span class='nm'></span><span class='sb'></span></span><span class='vl'></span>";
   r.querySelector(".nm").textContent = o.name;
   var fill = r.querySelector(".fill"),
-    mark = r.querySelector(".mark"),
     sb = r.querySelector(".sb"),
     vl = r.querySelector(".vl");
   var drag = false;
@@ -335,7 +333,6 @@ function sliderRow(o) {
         o.live(v);
       }, wait);
   }
-  if (typeof o.trackBg === "string") r.style.background = o.trackBg;
   function snap(f) {
     var v = o.min + f * (o.max - o.min);
     var st = o.step || 1;
@@ -345,10 +342,9 @@ function sliderRow(o) {
   function paint(v) {
     var f = (v - o.min) / (o.max - o.min);
     f = Math.max(0, Math.min(1, f));
-    if (o.track) mark.style.left = f * 100 + "%";
-    else fill.style.width = f * 100 + "%";
+    fill.style.width = f * 100 + "%";
     vl.textContent = o.fmt ? o.fmt(v) : v;
-    if (o.fillColor && !o.track) {
+    if (o.fillColor) {
       var fc2 = o.fillColor();
       inkRow(r, fc2 ? cssToRgb(fc2) : null, f * 100);
     }
@@ -381,7 +377,6 @@ function sliderRow(o) {
   else r.classList.add("static");
   r.refresh = function () {
     if (o.inert) r.classList.toggle("inert", !!o.inert());
-    if (typeof o.trackBg === "function") r.style.background = o.trackBg();
     if (o.fillColor) {
       var fc = o.fillColor();
       if (fc) {

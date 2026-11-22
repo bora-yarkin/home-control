@@ -192,7 +192,9 @@ test("the pieces are wired: the builder and the move page are popups, the sectio
   assert.match(popups, /glLightsPage\(b\);/);
   const sections = read("sections.js");
   assert.match(sections, /extras\.forEach\(function \(m\) \{\s*masterRows\.push\(\s*edMark\(lightsMasterRow\(secKey\(\) \+ "~" \+ m\.id/);
-  assert.match(read("editor.js"), /showPopup\("lmaster-new:" \+ key, true\);/);
+  assert.match(read("addpopup.js"), /showPopup\("lmaster-add:" \+ f\.rid\.split\("~"\)\[1\] \+ ":" \+ host\.id, true\);/, "the + of a Lights section has Lights master first");
+  assert.match(read("popups.js"), /"lmaster-add": function \(id\)/);
+  assert.doesNotMatch(read("editor.js"), /lm_add_a_lights_master|_T\("lights_master"\)/, "no toggle or add row in the section's settings");
   assert.match(read("glance.js"), /if \(id === "lights"\) glMasterPicks\(b\);/);
   assert.match(read("lights.js"), /masterActionRows\(box, sec, p\[0\]\);/);
   assert.match(readFileSync(new URL("../../custom_components/home_control/frontend/version.json", import.meta.url), "utf8"), /"app\/lightsmasters\.js"/);
@@ -230,4 +232,42 @@ test("the settings of a master are a short page with a row for each part, and th
   const things = read("lightsmasters.js");
   assert.match(things, /"lm_make_own"/);
   for (const part of ["lights", "popup", "scenes", "where"]) assert.ok(read("strings.js").includes('"lm_part_' + part + '"'), part);
+});
+
+test("a Lights master from the + asks auto or manual: auto is the section's own master named All lights, once; manual opens the builder", () => {
+  const l = layout();
+  const w = world(l);
+  const shown = [];
+  w.pill = (icon, title, o) => ({ title, o });
+  w.toast = (m) => shown.push(m);
+  w.showPopup = (k) => shown.push(k);
+  w.closeSheet = () => shown.push("closed");
+  const box = { rows: [], appendChild(r) { this.rows.push(r); } };
+  const sec = l.rooms.bath[0];
+  w.masterAddPage(box, "bath:lights");
+  assert.equal(sec.master, undefined);
+  box.rows[0].o.tap();
+  assert.equal(sec.master, 1);
+  assert.equal(sec.mn, "all_lights", "named All lights");
+  assert.ok(shown.includes("closed"));
+  box.rows[0].o.tap();
+  assert.equal(shown.at(-1), "lm_add_auto_taken", "the section has its automatic master already");
+  box.rows[1].o.tap();
+  assert.equal(shown.at(-1), "lmaster-new:bath:lights");
+});
+
+test("the own master of a section can be deleted: its settings go, the section's lights stay", () => {
+  const l = layout();
+  const sec = l.rooms.bora[0];
+  sec.mn = "All"; sec.mhl = 1; sec.mm = 1; sec.ml = [light("light.bed_2")];
+  const w = world(l);
+  let tap;
+  w.pill = (icon, title, o) => ({ title, o });
+  w.confirmDlg = (q, go) => go();
+  w.closeSheet = () => {};
+  const box = { rows: [], appendChild(r) { this.rows.push(r); } };
+  w.masterActionRows(box, sec, "bora");
+  box.rows.find((r) => r.title === "lm_delete").o.tap();
+  for (const k of ["master", "mn", "mhl", "mm", "ml"]) assert.equal(k in sec, false, k);
+  assert.equal(sec.devs.length, 2);
 });

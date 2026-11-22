@@ -1029,23 +1029,6 @@ function secEditor(b, key) {
           },
         })
       );
-    if (k === "lights")
-      box.appendChild(
-        pill("lights", _T("lights_master"), {
-          on: function () {
-            return !!e.master;
-          },
-          sub: function () {
-            return e.master ? _T("a_light_at_the_top_that_controls_every_") : _T("hidden");
-          },
-          tap: function () {
-            if (e.master) delete e.master;
-            else e.master = 1;
-            save();
-            redrawBox(box, draw);
-          },
-        })
-      );
     if (k === "lights" && e.master)
       box.appendChild(
         pill("edit", _T("lights_master_settings"), {
@@ -1071,54 +1054,7 @@ function secEditor(b, key) {
           })
         );
       });
-      box.appendChild(
-        pill("plus", _T("lm_add_a_lights_master"), {
-          sub: function () {
-            return _T("lm_add_a_lights_master_sub");
-          },
-          tap: function () {
-            showPopup("lmaster-new:" + key, true);
-          },
-        })
-      );
     }
-    if (k === "lights")
-      box.appendChild(
-        pill("palette", _T("colour_circle"), {
-          on: function () {
-            return !e.nowheel;
-          },
-          sub: function () {
-            return e.nowheel ? _T("light_popup_uses_sliders") : _T("light_popup_opens_on_the_wheel");
-          },
-          tap: function () {
-            if (e.nowheel) delete e.nowheel;
-            else e.nowheel = 1;
-            save();
-            redrawBox(box, draw);
-          },
-        })
-      );
-    if (k === "lights")
-      box.appendChild(
-        pill("palette", _T("light_colour_in_popups"), {
-          on: function () {
-            return !e.accent;
-          },
-          sub: function () {
-            return e.accent
-              ? _T("popups_use_the_accent_colour")
-              : _T("popup_sliders_are_filled_with_the_ligh");
-          },
-          tap: function () {
-            if (e.accent) delete e.accent;
-            else e.accent = 1;
-            save();
-            redrawBox(box, draw);
-          },
-        })
-      );
-    if (k === "lights")
     if (k === "energy") {
       box.appendChild(sep(_T("cost"), "plug"));
       box.appendChild(

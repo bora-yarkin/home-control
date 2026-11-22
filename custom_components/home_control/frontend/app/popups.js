@@ -299,6 +299,9 @@ var POPUP_DEFS = {
       },
     };
   },
+  "lmaster-add": function (id) {
+    return { title: _T("lights_master"), icon: "lights", build: function (b) { masterAddPage(b, id); } };
+  },
   "lmaster-new": function (id) {
     return { title: _T("lm_new_master"), icon: "lights", build: function (b) { masterNewPage(b, id); } };
   },

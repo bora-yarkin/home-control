@@ -553,7 +553,6 @@ function cleanLayout(a) {
           });
         };
       o.gl = { o: pk(s.gl.o), h: pk(s.gl.h), c: cs };
-      if (s.gl.f) o.gl.f = 1;
       /* The lights masters the At a glance lights popup shows as rows ("page~master"); the lights of the others are listed one by one. */
       var lm = (Array.isArray(s.gl.lm) ? s.gl.lm : [])
         .filter(function (x, i, r) {
@@ -632,7 +631,7 @@ function cleanLayout(a) {
         var c = cleanLayout([Object.assign({}, h, { k: "lights", master: 1, mm: 1, hide: false, masters: null })])[0];
         if (!c) return;
         seen[h.id] = 1;
-        ["k", "hide", "devs", "w", "t", "i", "when", "and", "lay", "noall", "accent"].forEach(function (x) {
+        ["k", "hide", "devs", "w", "t", "i", "when", "and", "lay", "noall"].forEach(function (x) {
           delete c[x];
         });
         held.push(c);
@@ -645,8 +644,6 @@ function cleanLayout(a) {
           return typeof x === "string" && ENTRE.test(x) && a.indexOf(x) === i;
         })
         .slice(0, 100);
-    if (k === "lights" && s.nowheel) o.nowheel = 1;
-    if (k === "lights" && s.accent) o.accent = 1;
     if (k === "pinned" && Array.isArray(s.pins)) o.pins = cleanPins(s.pins);
     if ((k === "quick" || k === "scenes" || k === "lights") && Array.isArray(s.scn))
       o.scn = s.scn

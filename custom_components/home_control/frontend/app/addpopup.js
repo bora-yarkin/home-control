@@ -194,8 +194,20 @@ function addApplianceEntries(f) {
 function addEntities(f) {
   var items = candidates(ADDDOMS[f.st.dom][1], f.rid, f.st.q, f.st.area),
     shown = items.slice(0, 40);
-  /* Lights only: the first entry makes the checked lights one group. */
+  /* Lights only: the first entry makes a lights master (when it is a Lights section that is being added to), the next one makes the checked lights one group. */
   if (ADDDOMS[f.st.dom][1][0] === "light" && ISADMIN) {
+    var host = f.rid.charAt(0) === "~" ? sectionOfList(f.rid) : null;
+    if (host && host.k === "lights")
+      f.box.appendChild(
+        pill("lights", _T("lights_master"), {
+          sub: function () {
+            return _T("lm_add_item_sub");
+          },
+          tap: function () {
+            showPopup("lmaster-add:" + f.rid.split("~")[1] + ":" + host.id, true);
+          },
+        })
+      );
     var g = pill("lights", _T("lg_light_group"), {
       check: function () {
         return f.st.group;

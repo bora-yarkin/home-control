@@ -533,7 +533,6 @@ function customSection(s) {
     ttl = s.t || ty.t,
     ico = secIcon(s);
   (s.devs || []).forEach(function (d) {
-    if (k === "lights" && d.id) LWHEEL[d.id] = !s.nowheel;
     if (!ed && (d.hide || (d.id && modeOf(d.id).mode === "hide"))) return;
     /* A lights master can leave its lights and the sync out of the section; it keeps them itself. */
     if (!ed && k === "lights" && d.id && masterLeavesOut(s, d)) return;
@@ -568,7 +567,7 @@ function customSection(s) {
   /* Lights master: one light at the top that controls every light of the section (or the lights chosen for it); off unless the section turns it on. While the page is edited it opens its settings. */
   var masterRows = [];
   if (k === "lights" && s.master && mids.length > 1) {
-    var mr = lightsMasterRow(secKey() + "~" + s.id, mids, !s.nowheel, s.mn, s.mall, s.mo, masterMeta(s));
+    var mr = lightsMasterRow(secKey() + "~" + s.id, mids, s.mn, s.mall, s.mo, masterMeta(s));
     masterRows.push(
       edMark(mr, function () {
         showPopup("lmaster-edit:" + secKey() + ":" + s.id, true);
@@ -577,7 +576,7 @@ function customSection(s) {
   }
   extras.forEach(function (m) {
     masterRows.push(
-      edMark(lightsMasterRow(secKey() + "~" + m.id, masterLightIds(m), !m.nowheel, m.mn, m.mall, m.mo, masterMeta(m)), function () {
+      edMark(lightsMasterRow(secKey() + "~" + m.id, masterLightIds(m), m.mn, m.mall, m.mo, masterMeta(m)), function () {
         showPopup("lmaster-edit:" + secKey() + ":" + m.id, true);
       })
     );

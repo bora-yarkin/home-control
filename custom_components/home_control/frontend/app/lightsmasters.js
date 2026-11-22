@@ -2,7 +2,7 @@
    A Lights section has one master of its own (its settings are on the section, see app/mastersettings.js). It can also hold more, in `masters`: each is a holder of the same settings (name `mn`, lights `ml`, power button `mpw`, scenes `scn`, `msrc`, `mf`, `mtop`, and so on) under an id of its own, so everything that works on a master by "page~id" (the popup, its settings, its scenes) works on one that is held. A held master is always manual: the lights are chosen for it, and it never touches the lights of the section that holds it. */
 
 /* The settings a master has, which go with it when it is moved or copied to another section. The two that hide the section's own lights and sync (mhl, mhs) are about the section it was in, so they do not. */
-var LM_KEYS = ["mn", "mall", "mo", "mm", "ml", "mgl", "mtab", "mpw", "mps", "msync", "msyncid", "scn", "msrc", "mf", "mtop", "mgr", "nowheel"];
+var LM_KEYS = ["mn", "mall", "mo", "mm", "ml", "mgl", "mtab", "mpw", "mps", "msync", "msyncid", "scn", "msrc", "mf", "mtop", "mgr"];
 var LM_OWN = LM_KEYS.concat(["mhl", "mhs", "master"]);
 
 /* The sections of a list with the lights masters they hold, for what is kept on both the same way (the scenes a master lists). */
@@ -91,6 +91,39 @@ function allMasters() {
 }
 
 /* ---- making one ---- */
+
+/* What the + of a Lights section asks first when "Lights master" is chosen: an automatic master (the section's own, made from the section's lights and named All lights) or a manual one (the lights are chosen for it). `key` is "page:section". */
+function masterAddPage(b, key) {
+  var p = key.split(":"),
+    host = secById(p[0], p[1]);
+  if (!host || host.k !== "lights") return;
+  var hasOwn = !!host.master;
+  b.appendChild(
+    pill("restart", _T("master_auto"), {
+      sub: function () {
+        return hasOwn ? _T("lm_add_auto_taken") : _T("lm_add_auto_sub");
+      },
+      tap: function () {
+        if (host.master) return toast(_T("lm_add_auto_taken"));
+        host.master = 1;
+        host.mn = _T("all_lights");
+        uiChanged();
+        toast(_T("lm_made"));
+        closeSheet();
+      },
+    })
+  );
+  b.appendChild(
+    pill("plus", _T("master_manual"), {
+      sub: function () {
+        return _T("lm_add_manual_sub");
+      },
+      tap: function () {
+        showPopup("lmaster-new:" + key, true);
+      },
+    })
+  );
+}
 
 /* A lights master made from a lights section's settings or from the master row of the page: it asks for a name and for the lights, and the section is not touched. `key` is "page:section". */
 function masterNewPage(b, key) {
@@ -318,6 +351,27 @@ function masterActionRows(box, sec, scope) {
         },
       })
     );
+  if (!host)
+    box.appendChild(
+      pill("trash", _T("lm_delete"), {
+        sub: function () {
+          return _T("lm_delete_own_sub");
+        },
+        tap: function () {
+          confirmDlg(
+            _T("lm_delete_this_master"),
+            function () {
+              LM_OWN.forEach(function (key) {
+                delete sec[key];
+              });
+              uiChanged();
+              closeSheet();
+            },
+            _T("delete")
+          );
+        },
+      })
+    );
 }
 
 /* ---- At a glance ---- */
@@ -422,13 +476,11 @@ function glLightsPage(b) {
   glLightGroups().forEach(function (g) {
     b.appendChild(sep(g.name, "lights"));
     g.masters.forEach(function (m) {
-      b.appendChild(lightsMasterRow(m.key, m.ids, !m.sec.nowheel, m.sec.mn, m.sec.mall, m.sec.mo, masterMeta(m.sec)));
+      b.appendChild(lightsMasterRow(m.key, m.ids, m.sec.mn, m.sec.mall, m.sec.mo, masterMeta(m.sec)));
     });
     g.lights.forEach(function (id) {
       b.appendChild(
-        lightRow(id, false, function () {
-          return glanceCfg().f;
-        })
+        lightRow(id, false, true)
       );
     });
   });
