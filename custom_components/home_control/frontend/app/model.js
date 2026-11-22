@@ -52,11 +52,39 @@ function zoneLightIds(states, entities) {
   return out;
 }
 
+/* A device of a Home Assistant area as a page holds it, or null when it is not one a page lists on its own. */
+function areaDevice(areaId, id) {
+  var kind = DOMKIND[dom(id)];
+  if (
+    areaIdOf(id) !== areaId ||
+    ["light", "switch", "fan", "climate", "media", "vacuum", "camera"].indexOf(kind) < 0 ||
+    (kind === "camera" && isVacuumMap(id))
+  )
+    return null;
+  var nm = A(id).friendly_name || id;
+  return { id: id, name: nm, icon: defIcon(kind, nm, id), kind: kind };
+}
+
+/* The devices of a Home Assistant area, for suggesting what a page could hold. */
+function areaDevices(areaId) {
+  var h = H(),
+    zones = zoneLightIds(h.states, h.entities),
+    out = [];
+  Object.keys(h.states).forEach(function (id) {
+    var e = h.entities[id];
+    if (zones[id] || (e && (e.entity_category || e.hidden || e.disabled_by))) return;
+    var d = areaDevice(areaId, id);
+    if (d) out.push(d);
+  });
+  return out;
+}
+
 function seedUI() {
   var h = H(),
     rooms = [],
     devs = {},
     stat = {},
+    layoutRooms = {},
     chips = [],
     bats = [],
     all = Object.keys(h.states),
@@ -79,15 +107,8 @@ function seedUI() {
       t = byClass(a.area_id, "temperature"),
       hu = byClass(a.area_id, "humidity");
     ids.forEach(function (id) {
-      var kind = DOMKIND[dom(id)];
-      if (
-        !inArea(a.area_id, id) ||
-        ["light", "switch", "fan", "climate", "media", "vacuum", "camera"].indexOf(kind) < 0 ||
-        (kind === "camera" && isVacuumMap(id))
-      )
-        return;
-      var nm = A(id).friendly_name || id;
-      list.push({ id: id, name: nm, icon: defIcon(kind, nm, id), kind: kind });
+      var d = areaDevice(a.area_id, id);
+      if (d) list.push(d);
     });
     rooms.push({
       id: rid,
@@ -97,6 +118,7 @@ function seedUI() {
       area: a.area_id,
     });
     devs[rid] = list;
+    layoutRooms[rid] = [{ id: "status", k: "status", hide: false }].concat(groupSections(list));
     stat[rid] = [];
     if (t) {
       stat[rid].push({ l: _T("temperature"), id: t, u: TEMPU(), dp: 1 });
@@ -116,7 +138,7 @@ function seedUI() {
     chips: chips.slice(0, 4),
     stat: stat,
     bats: bats.slice(0, 30),
-    layout: { home: [], rooms: {}, cols: {} },
+    layout: { v: 5, home: seedSections("home"), rooms: layoutRooms, cols: {} },
     meta: {
       homeTab: _T("home"),
       homeTitle: _T("app_title"),

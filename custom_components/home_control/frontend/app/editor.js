@@ -779,11 +779,76 @@ function pageDevIds(rid) {
 }
 
 function addRoom() {
-  var id = "r" + Date.now().toString(36).slice(-6);
-  UI.rooms.push({ id: id, name: _T("new_room"), short: "", icon: "home", area: "" });
-  UI.layout.rooms[id] = seedSections("room:" + id);
-  uiChanged();
-  showPopup("manage-details:" + id, true);
+  showPopup("room-new", true);
+}
+
+/* A new page: a name, optionally a Home Assistant room, and whether it starts with sections suggested from what that room has (one for lights, one for media, and so on) or empty. */
+function roomNewPage(b) {
+  var draft = { name: "", area: "", suggest: true },
+    box = mk("div");
+  b.appendChild(box);
+  function areas() {
+    return ["", ...Object.keys(H().areas || {}).sort(function (x, y) {
+      return String(H().areas[x].name).localeCompare(H().areas[y].name);
+    })];
+  }
+  function draw() {
+    box.innerHTML = "";
+    box.appendChild(
+      textRow("home", _T("room_name"), draft.name, function (v) {
+        draft.name = v.slice(0, 40);
+      }, 40)
+    );
+    box.appendChild(
+      dropRow(
+        _T("add_area"),
+        areas(),
+        function () {
+          return draft.area;
+        },
+        function (v) {
+          draft.area = v;
+          if (v && !draft.name) draft.name = (H().areas[v] || {}).name || "";
+          redrawBox(box, draw);
+        },
+        "home",
+        function (v) {
+          return v ? (H().areas[v] || {}).name || v : _T("no_room_in_home_assistant");
+        }
+      )
+    );
+    if (draft.area) {
+      box.appendChild(
+        seg(
+          [
+            ["suggest", _T("rn_suggested")],
+            ["empty", _T("rn_empty")],
+          ],
+          draft.suggest ? "suggest" : "empty",
+          function (v) {
+            draft.suggest = v === "suggest";
+            redrawBox(box, draw);
+          }
+        )
+      );
+      box.appendChild(hintRow(draft.suggest ? _T("rn_suggested_hint") : _T("rn_empty_hint")));
+    }
+    box.appendChild(
+      pill("check", _T("rn_create"), {
+        tap: function () {
+          var id = "r" + Date.now().toString(36).slice(-6),
+            sections = draft.area && draft.suggest ? groupSections(areaDevices(draft.area)) : [];
+          if (!sections.length) sections = [{ id: "main", k: "devs", hide: false, devs: [] }];
+          UI.rooms.push({ id: id, name: draft.name || _T("new_room"), short: "", icon: "home", area: draft.area });
+          UI.layout.rooms[id] = [{ id: "status", k: "status", hide: false }].concat(sections);
+          uiChanged();
+          toast(_T("rn_created"));
+          closeSheet();
+        },
+      })
+    );
+  }
+  draw();
 }
 
 function secEditor(b, key) {
@@ -822,7 +887,8 @@ function secEditor(b, key) {
   var box = mk("div");
   b.appendChild(box);
   function draw() {
-    var k = e.k || "devs";
+    var k = e.k || "devs",
+      ty = SECTYPES[k] || SECTYPES.devs;
     box.appendChild(
       pill("check", _T("show_this_section"), {
         on: function () {

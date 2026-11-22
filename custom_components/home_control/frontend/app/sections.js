@@ -150,6 +150,30 @@ function seedSections(scope) {
       }).concat([{ id: "main", k: "devs", hide: false, devs: [] }]);
 }
 
+/* Sections for a list of devices, one for each of what they are (lights, media, climate, controls, sensors, other devices; cameras as a camera section), named and iconned for it. Only the ones that have devices. */
+function groupSections(list) {
+  var G = [
+      ["lights", "lights", "lights", ["light"]],
+      ["media", "media", "tv", ["media"]],
+      ["climate", "climate", "ac", ["climate", "fan"]],
+      ["controls", "controls", "tune", ["number", "select", "button", "cover", "lock"]],
+      ["sensors", "sensors", "thermo", ["sensor"]],
+      ["other", "other_devices", "plug", ["switch", "vacuum", "special"]],
+    ],
+    out = [];
+  G.forEach(function (g) {
+    var devs = list.filter(function (d) {
+      return g[3].indexOf(d.kind) >= 0;
+    });
+    if (devs.length) out.push({ id: g[0], k: "devs", t: _T(g[1]), i: g[2], hide: false, devs: devs });
+  });
+  var cams = list.filter(function (d) {
+    return d.kind === "camera";
+  });
+  if (cams.length) out.push({ id: "camera", k: "camera", hide: false, devs: cams });
+  return out;
+}
+
 function secOrder(scope) {
   var arr = scope === "home" ? UI.layout.home : UI.layout.rooms[scope.slice(5)];
   if (!arr) {

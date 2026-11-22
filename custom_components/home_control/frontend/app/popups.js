@@ -297,6 +297,9 @@ var POPUP_DEFS = {
       },
     };
   },
+  "room-new": function (id) {
+    return { title: _T("add_room"), icon: "plus", build: roomNewPage };
+  },
   "lmaster-add": function (id) {
     return { title: _T("lights_master"), icon: "lights", build: function (b) { masterAddPage(b, id); } };
   },
