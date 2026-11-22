@@ -24,6 +24,7 @@ var SECTYPES = {
       d: _T("section_d"),
       own: 1,
       noun: _T("device_2"),
+      add: "devices",
     },
     camera: {
       t: _T("camera"),
