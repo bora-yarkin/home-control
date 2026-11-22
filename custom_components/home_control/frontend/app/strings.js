@@ -705,6 +705,8 @@ var EN = {
   "stg_idx_photos": "Wall mode photos",
   "stg_idx_effects_file": "Import an effects file",
   "stg_idx_users": "Standard users",
+  "nt_alerts": "Alerts",
+  "nt_send_to": "Send to",
   "stg_group_display": "Display",
   "stg_group_dashboard": "Dashboard",
   "stg_group_people": "People",

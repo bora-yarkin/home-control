@@ -232,7 +232,6 @@ function watchEdit(b, id) {
 }
 
 function watchSection(box, redraw) {
-  box.appendChild(sep(_T("nw_alerts_for_any_entity"), "alert"));
   watchRules().forEach(function (w) {
     box.appendChild(
       swRow("alert", w.name || (w.e ? A(w.e).friendly_name || w.e : _T("nw_new_alert")), {
@@ -496,7 +495,7 @@ function notifyPage(b) {
     var hint = mk("div", "hint");
     hint.textContent = _T("notifications_are_sent_by_home_assis");
     box.appendChild(hint);
-    box.appendChild(sep(_T("smart_alerts"), "alert"));
+    box.appendChild(sep(_T("nt_alerts"), "alert"));
     Object.keys(NRULES).forEach(function (k) {
       var r = nrule(k),
         n = NRULES[k];
@@ -535,26 +534,7 @@ function notifyPage(b) {
     watchSection(box, function () {
       redrawBox(box, draw);
     });
-    box.appendChild(sep(_T("worn_parts"), "vac"));
-    box.appendChild(hintRow(_T("filters_brushes_ink_and_similar_part")));
-    box.appendChild(
-      seg(
-        [
-          ["5", "5%"],
-          ["10", "10%"],
-          ["15", "15%"],
-          ["20", "20%"],
-          ["25", "25%"],
-        ],
-        String(partsLow()),
-        function (v) {
-          STORE.cfg = cleanCfg(Object.assign({}, STORE.cfg, { partsLow: +v }));
-          storeChanged();
-          redrawBox(box, draw);
-        }
-      )
-    );
-    box.appendChild(sep(_T("devices_that_can_receive"), "bell"));
+    box.appendChild(sep(_T("nt_send_to"), "bell"));
     var ts = notifyTargets();
     if (!ts.length)
       box.appendChild(
@@ -678,6 +658,21 @@ function nruleEdit(b, k) {
           );
         });
       }
+    }
+    if (k === "vacuum") {
+      box.appendChild(sep(_T("worn_parts"), "vac"));
+      box.appendChild(hintRow(_T("filters_brushes_ink_and_similar_part")));
+      box.appendChild(
+        seg(
+          [["5", "5%"], ["10", "10%"], ["15", "15%"], ["20", "20%"], ["25", "25%"]],
+          String(partsLow()),
+          function (v) {
+            STORE.cfg = cleanCfg(Object.assign({}, STORE.cfg, { partsLow: +v }));
+            storeChanged();
+            redrawBox(box, draw);
+          }
+        )
+      );
     }
     if (k === "offline") {
       box.appendChild(sep(_T("offline_for"), "clock"));
