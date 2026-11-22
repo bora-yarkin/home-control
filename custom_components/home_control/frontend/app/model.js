@@ -501,7 +501,7 @@ function cleanUI(u) {
   o.layout.cols = {};
   ["home"].concat(Object.keys(ids)).forEach(function (k) {
     var c = u.layout && u.layout.cols && u.layout.cols[k];
-    if (c === 1 || c === 2 || c === 3) o.layout.cols[k] = c;
+    if (c === 1 || c === 2 || c === 3 || c === 4) o.layout.cols[k] = c;
   });
   devIndex(o);
   return o;
@@ -517,7 +517,6 @@ function cleanLayout(a) {
     var k = typeof s.k === "string" && SECTYPES[s.k] ? s.k : "devs",
       ty = SECTYPES[k],
       o = { id: s.id, k: k, hide: !!s.hide };
-    if (s.w === "full" || s.w === "half") o.w = s.w;
     if (typeof s.t === "string" && s.t && s.t.length <= 40) o.t = s.t;
     if (iconOk(s.i)) o.i = s.i;
     if (k === "glance" && s.gl && typeof s.gl === "object") {
@@ -571,8 +570,7 @@ function cleanLayout(a) {
       wh.is.length <= 40
     )
       o.when = { id: wh.id, is: wh.is, not: !!wh.not };
-    if (s.lay === "grid2" || s.lay === "grid3" || (k === "pinned" && s.lay === "list"))
-      o.lay = s.lay;
+    if (layCols(s.lay)) o.lay = s.lay;
     if (k === "chart" && (s.r === "6h" || s.r === "24h" || s.r === "7d" || s.r === "30d"))
       o.r = s.r;
     if (k === "energy") {
@@ -589,7 +587,6 @@ function cleanLayout(a) {
       /^[a-z0-9_-]{1,24}:[a-z][a-z0-9_]{1,14}$/.test(s.ref)
     )
       o.ref = s.ref;
-    if (k === "lights" && s.noall) o.noall = 1;
     if (k === "lights" && s.master) o.master = 1;
     if (k === "lights" && s.master && typeof s.mn === "string" && s.mn.trim()) o.mn = s.mn.trim().slice(0, 40);
     if (k === "lights" && s.master && s.mall) o.mall = 1;
@@ -630,7 +627,7 @@ function cleanLayout(a) {
         var c = cleanLayout([Object.assign({}, h, { k: "lights", master: 1, mm: 1, hide: false, masters: null })])[0];
         if (!c) return;
         seen[h.id] = 1;
-        ["k", "hide", "devs", "w", "t", "i", "when", "and", "lay", "noall"].forEach(function (x) {
+        ["k", "hide", "devs", "t", "i", "when", "and", "lay"].forEach(function (x) {
           delete c[x];
         });
         held.push(c);

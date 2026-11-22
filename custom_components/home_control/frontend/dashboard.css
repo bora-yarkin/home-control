@@ -553,7 +553,8 @@ body.editing main{padding-top:calc(94px + env(safe-area-inset-top,0px))}
 .gridl{display:grid;gap:var(--sp)}
 .gridl.g2{grid-template-columns:repeat(2,1fr)}
 .gridl.g3{grid-template-columns:repeat(3,1fr)}
-@media(max-width:480px){.gridl.g3{grid-template-columns:repeat(2,1fr)}
+.gridl.g4{grid-template-columns:repeat(4,1fr)}
+@media(max-width:480px){.gridl.g3,.gridl.g4{grid-template-columns:repeat(2,1fr)}
 }
 .gridl>.pill{margin:0}
 .gridl.lp-pg>:last-child:nth-child(odd){grid-column:1/-1}

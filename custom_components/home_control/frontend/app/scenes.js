@@ -557,7 +557,7 @@ function scenesSection(room, extra) {
     if (k === key) return;
     key = k;
     dyn.innerHTML = "";
-    dyn.className = e.lay === "grid2" ? "gridl g2" : e.lay === "grid3" ? "gridl g3" : "";
+    dyn.className = layCols(e.lay) > 1 ? "gridl g" + layCols(e.lay) : "";
     var mine = secScenes(e),
       ents = extra ? extra(e) : [];
     function sceneRows(list) {

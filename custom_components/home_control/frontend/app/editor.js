@@ -700,20 +700,22 @@ function editPageSettings(b, key) {
       );
     box.appendChild(sep(_T("columns"), "home"));
     box.appendChild(
-      seg(
-        [
-          ["0", _T("automatic")],
-          ["1", "1"],
-          ["2", "2"],
-          ["3", "3"],
-        ],
-        String((UI.layout.cols || {})[room || "home"] || 0),
+      dropRow(
+        _T("sections_side_by_side"),
+        ["0", "1", "2", "3", "4"],
+        function () {
+          return String((UI.layout.cols || {})[room || "home"] || 0);
+        },
         function (v) {
           UI.layout.cols = UI.layout.cols || {};
           if (v === "0") delete UI.layout.cols[room || "home"];
           else UI.layout.cols[room || "home"] = +v;
           uiChanged();
           redrawBox(box, draw);
+        },
+        "tune",
+        function (v) {
+          return v === "0" ? _T("automatic") : v;
         }
       )
     );
@@ -897,22 +899,6 @@ function secEditor(b, key) {
       })
     );
     box.appendChild(
-      seg(
-        [
-          ["auto", _T("automatic")],
-          ["full", _T("full_width")],
-          ["half", _T("half_width")],
-        ],
-        e.w || "auto",
-        function (v) {
-          if (v === "auto") delete e.w;
-          else e.w = v;
-          save();
-          redrawBox(box, draw);
-        }
-      )
-    );
-    box.appendChild(
       pill("check", _T("show_this_section"), {
         on: function () {
           return !e.hide;
@@ -968,23 +954,6 @@ function secEditor(b, key) {
           })
         );
     }
-    if (k === "lights")
-      box.appendChild(
-        pill("power", _T("turn_all_off_button"), {
-          on: function () {
-            return !e.noall;
-          },
-          sub: function () {
-            return e.noall ? _T("hidden") : _T("shown_next_to_the_title_while_a_ligh");
-          },
-          tap: function () {
-            if (e.noall) delete e.noall;
-            else e.noall = 1;
-            save();
-            redrawBox(box, draw);
-          },
-        })
-      );
     if (k === "energy") {
       box.appendChild(sep(_T("cost"), "plug"));
       box.appendChild(
@@ -1057,20 +1026,25 @@ function secEditor(b, key) {
         "quick",
       ].indexOf(k) >= 0
     ) {
-      var dl0 = k === "pinned" ? "grid2" : k === "quick" ? "grid4" : "list",
-        opts = [
-          ["list", _T("list")],
-          ["grid2", _T("2_columns")],
-          ["grid3", _T("3_columns")],
-        ].concat(k === "quick" ? [["grid4", _T("4_columns")]] : []);
       box.appendChild(sep(_T("layout"), "tune"));
       box.appendChild(
-        seg(opts, e.lay || dl0, function (v) {
-          if (v === dl0) delete e.lay;
-          else e.lay = v;
-          save();
-          redrawBox(box, draw);
-        })
+        dropRow(
+          _T("columns"),
+          ["auto", "list", "grid2", "grid3", "grid4"],
+          function () {
+            return e.lay || "auto";
+          },
+          function (v) {
+            if (v === "auto") delete e.lay;
+            else e.lay = v;
+            save();
+            redrawBox(box, draw);
+          },
+          "tune",
+          function (v) {
+            return v === "auto" ? _T("automatic") : String(layCols(v));
+          }
+        )
       );
     }
     if (k === "chart")

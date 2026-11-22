@@ -49,3 +49,26 @@ test("every file of the dashboard is valid JavaScript, so one slip in a long lis
     assert.doesNotThrow(() => new Script(text, { filename: f }), f);
   }
 });
+
+test("columns: a page has Auto or 1 to 4 sections side by side, a section has Auto or 1 to 4 columns of items, and there is no section width or all-off button", () => {
+  const editor = read("editor.js");
+  assert.match(editor, /\["0", "1", "2", "3", "4"\]/);
+  assert.match(editor, /\["auto", "list", "grid2", "grid3", "grid4"\]/);
+  assert.doesNotMatch(editor, /half_width|turn_all_off_button|noall/);
+  const model = read("model.js");
+  assert.match(model, /c === 1 \|\| c === 2 \|\| c === 3 \|\| c === 4/);
+  assert.match(model, /if \(layCols\(s\.lay\)\) o\.lay = s\.lay;/);
+  assert.doesNotMatch(model, /s\.w\b|noall/);
+  assert.doesNotMatch(read("sections.js"), /secWide|noall|turn_all_lights/);
+  const vm = require_vm();
+  const ctx = vm.createContext({});
+  vm.runInContext(read("sections.js").match(/function layCols\(lay\) \{[\s\S]*?\n\}/)[0], ctx);
+  assert.equal(ctx.layCols("list"), 1);
+  assert.equal(ctx.layCols("grid4"), 4);
+  assert.equal(ctx.layCols("nonsense"), 0);
+});
+
+function require_vm() {
+  return globalThis.__vm || (globalThis.__vm = vmModule);
+}
+import vmModule from "node:vm";

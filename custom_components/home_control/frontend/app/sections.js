@@ -260,7 +260,7 @@ function pageCols(sc) {
 function colCount(h) {
   var w = window.innerWidth,
     pc = h._pc || 0,
-    max = w >= 1100 ? 3 : w >= 760 ? 2 : 1,
+    max = w >= 1500 ? 4 : w >= 1100 ? 3 : w >= 760 ? 2 : 1,
     n = pc ? Math.min(pc, max) : Math.min(2, max);
   return Math.max(1, Math.min(n, h._items.length));
 }
@@ -287,8 +287,9 @@ function secI(id, def) {
   return e && e.i && iconOk(e.i) ? e.i : def;
 }
 
-function secWide(s, def) {
-  return s.w === "full" ? true : s.w === "half" ? false : def;
+/* How many columns of items a section's layout says (list is one); 0 when the section decides. */
+function layCols(lay) {
+  return { list: 1, grid2: 2, grid3: 3, grid4: 4 }[lay] || 0;
 }
 
 var SECICONS = [
@@ -448,7 +449,7 @@ function secList(scope) {
     outer.push(liveOf(el));
     if (!ok) ruleMark(el);
     if (s.hide) hideMark(el);
-    list.push({ el: el, wide: secWide(s, !!(SECTYPES[secKindOf(s)] || {}).wide), id: s.id });
+    list.push({ el: el, wide: !!(SECTYPES[secKindOf(s)] || {}).wide, id: s.id });
   });
   return list;
 }
@@ -590,8 +591,8 @@ function customSection(s) {
       g.appendChild(r);
     });
     body = [g];
-  } else if (s.lay === "grid2" || s.lay === "grid3") {
-    var gl = mk("div", "gridl " + (s.lay === "grid2" ? "g2" : "g3"));
+  } else if (layCols(s.lay) > 1) {
+    var gl = mk("div", "gridl g" + layCols(s.lay));
     rows.forEach(function (r) {
       gl.appendChild(r);
     });
@@ -599,35 +600,6 @@ function customSection(s) {
   }
   if (add) body.push(add);
   var sx = section(ttl, ico, body);
-  /* Lights: one tap turns off every light in the section, or, when all of them are off, turns them on as they were. */
-  if (k === "lights" && !ed && !s.noall) {
-    var ids = src
-        .filter(function (d) {
-          return d.id && dom(d.id) === "light";
-        })
-        .map(function (d) {
-          return d.id;
-        }),
-      ao = mk("div", "rnd pane sm secact", svg("power"));
-    ao.setAttribute("role", "button");
-    ao.addEventListener("click", function () {
-      if (countOn(lightUnits(ids)) > 0) {
-        call("light", "turn_off", { entity_id: ids });
-        toast(_T("turning_the_lights_off"));
-        return;
-      }
-      lightsBack(lightUnits(ids));
-      toast(_T("turning_the_lights_on"));
-    });
-    sx.firstChild.appendChild(ao);
-    reg(function () {
-      var on = countOn(lightUnits(ids)) > 0,
-        label = on ? _T("turn_all_lights_off") : _T("turn_all_lights_on");
-      ao.classList.toggle("on", on);
-      ao.title = label;
-      ao.setAttribute("aria-label", label);
-    });
-  }
   return sx;
 }
 
