@@ -255,23 +255,33 @@ window.HomeControl = {
 
 var PLUGINS_LOADED = {};
 
-/* Loads the script of each plus integration that has one, once, for administrators only: what a plugin adds is for the people who change things. */
+/* Loads the script of each plus integration that has one, once, for administrators only: what a plugin adds is for the people who change things. Returns a promise that is done when every script has loaded or failed, so that the page can wait for them: what a plugin registers (scenes, devices, sync) changes what is drawn, and a page drawn before it and again after it showed what is not there, then took it away, and played the lights' animations twice. */
 function pluginsLoad() {
-  if (!ISADMIN) return;
-  HA.plugins().then(
+  var admin = false;
+  try {
+    admin = !!H().user.is_admin;
+  } catch (e) {}
+  if (!admin) return Promise.resolve();
+  return HA.plugins().then(
     function (list) {
-      (Array.isArray(list) ? list : []).forEach(function (p) {
-        if (PLUGINS_LOADED[p.id] || !/^\/[a-z0-9_]+_static\/[A-Za-z0-9_.\/-]+\.js$/.test(p.menu) || p.menu.indexOf("..") >= 0) return;
-        PLUGINS_LOADED[p.id] = true;
-        var s = document.createElement("script");
-        s.src = p.menu + (p.version ? "?v=" + encodeURIComponent(p.version) : "");
-        s.async = false;
-        /* What the plugin registered (scenes, devices, styles) was not there when the page was first drawn: draw it again once it is. */
-        s.onload = function () {
-          if (BOOTED) rerender();
-        };
-        document.head.appendChild(s);
-      });
+      return Promise.all(
+        (Array.isArray(list) ? list : []).map(function (p) {
+          if (PLUGINS_LOADED[p.id] || !/^\/[a-z0-9_]+_static\/[A-Za-z0-9_.\/-]+\.js$/.test(p.menu) || p.menu.indexOf("..") >= 0) return null;
+          PLUGINS_LOADED[p.id] = true;
+          return new Promise(function (done) {
+            var s = document.createElement("script");
+            s.src = p.menu + (p.version ? "?v=" + encodeURIComponent(p.version) : "");
+            s.async = false;
+            /* A plugin that arrives after the page was drawn (it was slow) is drawn in then. */
+            s.onload = function () {
+              if (BOOTED) rerender();
+              done();
+            };
+            s.onerror = done;
+            document.head.appendChild(s);
+          });
+        })
+      );
     },
     function () {}
   );

@@ -39,8 +39,15 @@ function start() {
       body.appendChild(mk("div", "sec-h", _T("still_waiting_for_the_saved_dashboard")));
     }
   }, 15000);
-  /* The saved dashboard, the person's choices and the registries are all asked for now and together; the page is drawn when the last is in. */
-  Promise.all([initTheme(), initStore(), HA.ready()]).then(function () {
+  /* The saved dashboard, the person's choices, the registries and the plugins are all asked for now and together; the page is drawn when the last is in. */
+  /* The plugins are waited for too (at most 4 seconds): what they register is part of the first drawing. */
+  var plugins = Promise.race([
+    pluginsLoad(),
+    new Promise(function (res) {
+      setTimeout(res, 4000);
+    }),
+  ]).catch(function () {});
+  Promise.all([initTheme(), initStore(), HA.ready(), plugins]).then(function () {
     clearTimeout(waiting);
     clearLoadRetries();
     boot();
@@ -56,7 +63,6 @@ function boot() {
   initSearchBtn();
   roomOffInit();
   fxLoad();
-  pluginsLoad();
   offlineInit();
   setInterval(function () {
     if (
