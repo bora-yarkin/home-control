@@ -19,10 +19,23 @@ function sceneIds(area) {
     });
 }
 
+/* Whether a scene has any of these tags. */
+function sceneHasTag(sc, tags) {
+  return (sc.tags || []).some(function (t) {
+    return (tags || []).indexOf(t) >= 0;
+  });
+}
+
+/* The scenes a scenes section shows: the ones chosen for it, then those with a tag it takes in (a scene of any page), less those it leaves out by tag. */
 function secScenes(e) {
-  return (e.scn || []).map(sceneById).filter(function (sc) {
+  var out = (e.scn || []).map(sceneById).filter(function (sc) {
     return sc && sceneAllowed(sc);
   });
+  if (e.stag)
+    STORE.scenes.forEach(function (sc) {
+      if (out.indexOf(sc) < 0 && sceneHasTag(sc, e.stag) && !sceneHasTag(sc, e.xtag) && sceneAllowed(sc)) out.push(sc);
+    });
+  return out;
 }
 
 function scnToggle(e, id) {
@@ -46,7 +59,7 @@ function pruneSceneRefs() {
     ok[x.id] = 1;
   });
   allSectionLists().forEach(function (l) {
-    l.forEach(function (s) {
+    secsAndMasters(l).forEach(function (s) {
       if (s.scn)
         s.scn = s.scn.filter(function (id) {
           return ok[id];
@@ -62,7 +75,7 @@ function pruneSceneRefs() {
 /* Whether a section of some page lists the scene. A scene taken off every page is still saved (it is under "Existing scenes" when adding one). */
 function sceneShown(id) {
   return allSectionLists().some(function (l) {
-    return l.some(function (s) {
+    return secsAndMasters(l).some(function (s) {
       return (s.scn || []).indexOf(id) >= 0;
     });
   });
@@ -271,16 +284,6 @@ function swatch(p, o) {
   return e;
 }
 
-function withSlive(fn) {
-  var prev = CUR;
-  CUR = SLIVE;
-  try {
-    fn();
-  } finally {
-    CUR = prev;
-  }
-}
-
 /* scenes */
 function sceneById(sid) {
   for (var i = 0; i < STORE.scenes.length; i++)
@@ -397,6 +400,8 @@ function runScene(sc) {
     liveToggle(sc);
     return;
   }
+  /* An auto scene gives the lights of its page its colours at random; a lights master plays it on its own lights. */
+  if (sc.auto) return autoScenePlay(sc, lightUnits(sc.room === "home" ? allLights() : ROOMLIGHTS[sc.room] || []));
   var f = filterActs(compileScene(sc)),
     ids = actionIds(f.acts);
   if (!ids.length && !f.acts.some(function (a) { return a.live; })) {
@@ -519,6 +524,21 @@ function sceneActive(sc) {
 
 function sceneRow(sc) {
   if (sc.live) return liveRow(sc);
+  if (sc.auto)
+    return edMark(
+      pill(sc.icon || "scene", sc.name, {
+        sub: function () {
+          return _T("auto_scene") + " · " + sc.auto.colors.length + " " + _T("auto_colours").toLowerCase();
+        },
+        tap: function () {
+          runScene(sc);
+        },
+        pin: { kind: "cscene", sid: sc.id, name: sc.name, icon: sc.icon || "scene", room: TITLES[sc.room] },
+      }),
+      function () {
+        autoSceneEdit(sc);
+      }
+    );
   return edMark(
     pill(sc.icon || "scene", sc.name, {
       on: function () {
@@ -557,7 +577,7 @@ function scenesSection(room, extra) {
     if (k === key) return;
     key = k;
     dyn.innerHTML = "";
-    dyn.className = e.lay === "grid2" ? "gridl g2" : e.lay === "grid3" ? "gridl g3" : "";
+    dyn.className = layCols(e.lay) > 1 ? "gridl g" + layCols(e.lay) : "";
     var mine = secScenes(e),
       ents = extra ? extra(e) : [];
     function sceneRows(list) {
@@ -634,7 +654,7 @@ function scenesSection(room, extra) {
           return x.id;
         });
         ids.splice(t, 0, ids.splice(f, 1)[0]);
-        e.hord = ids;
+        e.pord = ids;
         uiChanged();
       });
     }
@@ -754,10 +774,10 @@ function devRowRaw(d) {
   return null;
 }
 
-/* The scenes a plugin owns, in the order the administrator gave them (the section's hord); the ones not in it follow. */
+/* The scenes a plugin owns, in the order the administrator gave them (the section's pord); the ones not in it follow. */
 function sceneKindOrder(e, items) {
   var pos = {};
-  (e.hord || []).forEach(function (id, i) {
+  (e.pord || []).forEach(function (id, i) {
     pos[id] = i;
   });
   return items.slice().sort(function (x, y) {

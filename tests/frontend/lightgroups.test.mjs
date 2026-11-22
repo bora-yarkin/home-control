@@ -406,6 +406,7 @@ test("the list offers lights that stand for others as groups (a Hue room lists n
     pageDevIds: () => ({}),
     isVacuumMap: () => false,
     pluginDeviceKind: () => null,
+    pluginIsGroup: (id) => !!states[id].attributes.is_hue_group,
     areaName: () => "",
     areaIdOf: () => "",
     norm: (t) => String(t).toLowerCase(),

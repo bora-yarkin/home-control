@@ -103,7 +103,7 @@ function pinsSection() {
   });
   /* An empty Pinned section is only shown while editing, where it offers "Add item". */
   if (!a.length && !editing()) return null;
-  var g = mk("div", e.lay === "list" ? "gridl" : e.lay === "grid3" ? "gridl g3" : "grid2");
+  var g = mk("div", layCols(e.lay) === 1 ? "gridl" : layCols(e.lay) > 1 ? "gridl g" + layCols(e.lay) : "grid2");
   a.forEach(function (r, i) {
     g.appendChild(
       edDel(
@@ -163,7 +163,7 @@ function quickActions() {
       tiles = [];
     if (e.lay)
       g.style.gridTemplateColumns =
-        "repeat(" + (e.lay === "grid3" ? 3 : e.lay === "grid2" ? 2 : 1) + ",minmax(0,1fr))";
+        "repeat(" + (layCols(e.lay) || 1) + ",minmax(0,1fr))";
     mine.forEach(function (sc) {
       var el = mk(
         "div",
@@ -185,7 +185,8 @@ function quickActions() {
       });
       edDel(
         edMark(el, function () {
-          staticOpen(sc.room, sc);
+          if (sc.auto) autoSceneEdit(sc);
+          else staticOpen(sc.room, sc);
         }),
         function () {
           scnToggle(e, sc.id);

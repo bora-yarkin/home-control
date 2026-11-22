@@ -232,6 +232,8 @@ function cleanScene(s) {
     return null;
   var live = s.live ? cleanLive(s.live) : null;
   if (s.live && !live) return null;
+  var auto = s.auto ? cleanAuto(s.auto) : null;
+  if (s.auto && !auto) return null;
   var acts = [];
   (Array.isArray(s.acts) ? s.acts : []).slice(0, 20).forEach(function (a) {
     if (a && typeof a.live === "string" && /^[a-z0-9_-]{1,24}$/.test(a.live)) {
@@ -269,51 +271,39 @@ function cleanScene(s) {
     acts: acts,
   };
   if (live) out.live = live;
+  if (auto) out.auto = auto;
+  var tags = cleanTags(s.tags);
+  if (tags.length) out.tags = tags;
   return out;
 }
 
-/* Pinned items, quick actions and scenes used to be one shared list each. From layout v4 every section holds its own:
- pins in the section, scene ids in the section (the scenes themselves stay in one library). An older store is converted once. */
-function migrateData(o, v) {
-  var ui = o.ui;
-  if (!ui || !ui.layout || ui.layout.v >= 4) return;
-  var pages = [["home", ui.layout.home]].concat(
-      Object.keys(ui.layout.rooms).map(function (k) {
-        return [k, ui.layout.rooms[k]];
-      })
-    ),
-    pinsGiven = false;
-
-  pages.forEach(function (pg) {
-    pg[1].forEach(function (s) {
-      if (s.k === "quick" || s.k === "scenes") {
-        if (!s.scn)
-          s.scn = o.scenes
-            .filter(function (x) {
-              return x.room === pg[0];
-            })
-            .map(function (x) {
-              return x.id;
-            });
-      }
-      if (s.k === "pinned" && !s.pins) {
-        if (pg[0] === "home" && !pinsGiven) {
-          pinsGiven = true;
-          s.pins = cleanPins(v && v.pins);
-        } else s.pins = [];
-      }
-    });
+/* An auto scene: up to ten colours, each a colour (h, s) or a white (k) with a brightness (b, 1 to 100). */
+function cleanAuto(a) {
+  if (!a || typeof a !== "object" || !Array.isArray(a.colors)) return null;
+  var colors = [];
+  a.colors.slice(0, 40).forEach(function (c) {
+    if (!c || typeof c !== "object" || colors.length >= 10) return;
+    var o = {};
+    if (typeof c.k === "number" && c.k >= 1500 && c.k <= 9000) o.k = Math.round(c.k);
+    else if (typeof c.h === "number" && typeof c.s === "number" && c.h >= 0 && c.h <= 360 && c.s >= 0 && c.s <= 100) {
+      o.h = Math.round(c.h);
+      o.s = Math.round(c.s);
+    } else return;
+    o.b = typeof c.b === "number" ? Math.max(1, Math.min(100, Math.round(c.b))) : 100;
+    colors.push(o);
   });
-  ui.layout.v = 4;
-  devIndex(ui);
+  return colors.length ? { colors: colors } : null;
 }
 
-/* Older copies of the dashboard still read the pins list, so the first pinned section on Home is kept there too. */
-function legacyPins() {
-  var s = ((UI && UI.layout.home) || []).filter(function (x) {
-    return x.k === "pinned";
-  })[0];
-  return s && s.pins ? s.pins : [];
+/* Every tag any scene has, once, in order: the tags of the home. A tag nobody uses any more is not here. */
+function sceneTags() {
+  var out = [];
+  STORE.scenes.forEach(function (sc) {
+    (sc.tags || []).forEach(function (t) {
+      if (out.indexOf(t) < 0) out.push(t);
+    });
+  });
+  return out.sort();
 }
 
 function cleanStore(v) {
@@ -327,9 +317,8 @@ function cleanStore(v) {
     ui: cleanUI(v && v.ui),
     access: cleanAccess(v && v.access),
     notify: cleanNotify(v && v.notify),
-    cfg: cleanCfg(v && v.cfg, v && v.features),
+    cfg: cleanCfg(v && v.cfg),
     icons: cleanIcons(v && v.icons),
-    pins: cleanPins(v && v.pins),
   };
   if (v && v.presets && typeof v.presets === "object")
     Object.keys(v.presets).forEach(function (id) {
@@ -378,26 +367,20 @@ function cleanStore(v) {
       })
       .slice(0, 16)
       .map(Math.round);
-  migrateData(o, v);
   return o;
 }
 
-/* Automatic backups used to be a feature switch; an old saved value is carried over once. */
-function cleanCfg(c, legacy) {
+function cleanCfg(c) {
   var o = {
     rb: {},
     gx: {},
     mediaCtl: false,
-    backupKeep: 5,
-    backupEvery: 6,
-    autobackup: !!(legacy && legacy.autobackup === true),
     partsLow: 15,
     alertOff: [],
     wallPhotos: [],
     wallOff: [],
   };
   if (c && typeof c === "object") {
-    if (typeof c.autobackup === "boolean") o.autobackup = c.autobackup;
     if (c.mediaCtl === true) o.mediaCtl = true;
     if (c.rb && typeof c.rb === "object")
       Object.keys(c.rb)
@@ -426,8 +409,6 @@ function cleanCfg(c, legacy) {
       o.alertOff = c.alertOff.filter(function (k, i, a) {
         return ALERT_KEYS.indexOf(k) >= 0 && a.indexOf(k) === i;
       });
-    if ([3, 5, 10, 20].indexOf(c.backupKeep) >= 0) o.backupKeep = c.backupKeep;
-    if ([1, 6, 24].indexOf(c.backupEvery) >= 0) o.backupEvery = c.backupEvery;
     /* The photos of the wall screen, and which of them are switched off (kept in the gallery, not shown): `wallOff` lists positions in `wallPhotos`; a photo that is dropped as
        invalid takes its place in that list with it. */
     if (Array.isArray(c.wallPhotos)) {
@@ -482,7 +463,6 @@ function storeSave() {
     return;
   }
   STORE.ui = UI;
-  STORE.pins = legacyPins();
   var prevJ = STORE_JSON;
   STORE_JSON = JSON.stringify(STORE);
   if (EDIT && !EDSKIP && prevJ && prevJ !== STORE_JSON) {
@@ -499,7 +479,6 @@ function storeSave() {
       } catch (e) {}
     }
     LOGSKIP = false;
-    if (prevJ) bkAdd(prevJ, false);
   }
   STORE_SAVED = Date.now();
   HA.data

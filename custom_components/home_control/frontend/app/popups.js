@@ -17,7 +17,7 @@ function popupDef(key) {
     var inner = d.build;
     d.build = function (b) {
       inner(b);
-      if (ISADMIN && PREFS.adv && !(UIDEV[ent] && UIDEV[ent].noadv) && advList(ent).length) {
+      if (ISADMIN && advList(ent).length) {
         var n = advList(ent).length;
         b.appendChild(
           pill("tune", _T("advanced_settings"), {
@@ -161,12 +161,8 @@ var POPUP_DEFS = {
       },
     };
   },
-  "manage-autobackup": function (id) {
-    return { title: _T("automatic_backups"), icon: "sd", build: bkAutoPage };
-  },
-  "manage-wallphotos": function (id) {
-    return { title: _T("screensaver_photos"), icon: "media", build: wallPhotosPage };
-  },
+
+
   "lscene": function (id) {
     var ls = sceneById(id);
     return {
@@ -179,6 +175,12 @@ var POPUP_DEFS = {
   },
   "live-edit": function (id) {
     return liveMakerDef();
+  },
+  "scene-auto": function (id) {
+    return { title: AUTOED && !AUTOED.isNew ? _T("auto_edit_title") : _T("auto_new_title"), icon: "scene", build: autoSceneEditor };
+  },
+  "scene-tags": function (id) {
+    return { title: _T("auto_tags_row"), icon: "tune", build: sceneTagsPage };
   },
   "scene-new": function (id) {
     return {
@@ -286,6 +288,30 @@ var POPUP_DEFS = {
         lightsMasterSettings(b, id);
       },
     };
+  },
+  "lmaster-part": function (id) {
+    var part = id.split(":")[0],
+      key = id.slice(part.length + 1),
+      sec = secById(key.split(":")[0], key.split(":")[1]);
+    return {
+      title: ((sec && sec.mn) || _T("lights_master")) + " · " + _T("lm_part_" + part),
+      icon: "lights",
+      build: function (b) {
+        lightsMasterSettings(b, key, part);
+      },
+    };
+  },
+  "room-new": function (id) {
+    return { title: _T("add_room"), icon: "plus", build: roomNewPage };
+  },
+  "lmaster-add": function (id) {
+    return { title: _T("lights_master"), icon: "lights", build: function (b) { masterAddPage(b, id); } };
+  },
+  "lmaster-new": function (id) {
+    return { title: _T("lm_new_master"), icon: "lights", build: function (b) { masterNewPage(b, id); } };
+  },
+  "lmaster-move": function (id) {
+    return { title: _T("lm_move_or_copy"), icon: "swap", build: function (b) { masterMovePage(b, id); } };
   },
   "lmaster-lights": function (id) {
     return { title: _T("master_choose_lights"), icon: "lights", build: function (b) { masterLightsPage(b, id); } };
@@ -514,9 +540,7 @@ var POPUP_DEFS = {
   "manage-backup": function (id) {
     return { title: _T("backup_and_restore"), icon: "sd", build: backupPage };
   },
-  "manage-check": function (id) {
-    return { title: _T("layout_check"), icon: "tune", build: checkPage };
-  },
+
   "manage-about": function (id) {
     return { title: _T("about_and_diagnostics"), icon: "info", build: aboutPage };
   },
@@ -538,9 +562,6 @@ var POPUP_DEFS = {
         roomAccessList(b, id);
       },
     };
-  },
-  "manage-access": function (id) {
-    return { title: _T("users_and_access"), icon: "lock", build: accessRoot };
   },
   "access-user": function (id) {
     return {
@@ -603,15 +624,6 @@ var POPUP_DEFS = {
       },
     };
   },
-  "sec-type": function (id) {
-    return {
-      title: _T("section_type"),
-      icon: "tune",
-      build: function (b) {
-        secTypePage(b, id);
-      },
-    };
-  },
   "manage-header": function (id) {
     var hr = roomById(id);
     return {
@@ -630,6 +642,9 @@ var POPUP_DEFS = {
         hitemPage(b, +id);
       },
     };
+  },
+  "lgroups": function (id) {
+    return { title: _T("lgs_title"), icon: "lights", build: lgroupsPage };
   },
   "lgnew": function (id) {
     return {
@@ -768,22 +783,7 @@ var POPUP_DEFS = {
       title: _T("lights"),
       icon: "lights",
       build: function (b) {
-        UI.rooms.forEach(function (r) {
-          var ls = r.hide
-            ? []
-            : (ROOMLIGHTS[r.id] || []).filter(function (i) {
-                return !gxOff("lights", i);
-              });
-          if (!ls.length) return;
-          b.appendChild(sep(r.name, "lights"));
-          ls.forEach(function (id) {
-            b.appendChild(
-              lightRow(id, false, function () {
-                return glanceCfg().f;
-              })
-            );
-          });
-        });
+        glLightsPage(b);
       },
     };
   },

@@ -15,12 +15,10 @@ function initLG() {
 /* ---- per-user appearance ---- */
 var PREFS = {
   theme: "dark",
-  a11y: false,
   wall: false,
   wallIdle: 120,
   wallMode: "clock",
   wallDim: true,
-  adv: true,
   pinHdr: true,
   hdrSize: "",
   startView: "",
@@ -31,7 +29,7 @@ var PREFS = {
 function mergePrefs(v) {
   if (!v || typeof v !== "object") return;
   if (v.theme === "dark" || v.theme === "light" || v.theme === "auto") PREFS.theme = v.theme;
-  ["a11y", "wall", "wallDim", "adv", "pinHdr"].forEach(function (k) {
+  ["wall", "wallDim", "pinHdr"].forEach(function (k) {
     if (typeof v[k] === "boolean") PREFS[k] = v[k];
   });
   if (typeof v.wallIdle === "number" && v.wallIdle >= 30 && v.wallIdle <= 3600)
@@ -240,7 +238,7 @@ function appearancePage(b) {
     );
     box.appendChild(
       dropRow(
-        _T("header_size"),
+        _T("header_size_mine"),
         ["page", "regular", "slim"],
         function () {
           return PREFS.hdrSize || "page";
@@ -259,23 +257,12 @@ function appearancePage(b) {
     box.appendChild(
       prefPill("pin", _T("pinned_header"), "pinHdr", _T("keeps_the_header_in_view_while_you_scr"))
     );
-    box.appendChild(sep(_T("accessibility"), "info"));
-    box.appendChild(
-      prefPill(
-        "keyboard",
-        _T("keyboard_and_screen_reader"),
-        "a11y",
-        _T("tab_to_every_control_enter_or_space_")
-      )
-    );
   }
   redrawBox(box, draw);
 }
 
 /* ---- keyboard and screen-reader support ---- */
-/* Keyboard support switches on by itself the first time Tab is pressed (or always, from Appearance). Tab then stays inside an open sheet. */
-var KBD = false;
-
+/* Keyboard use always works: every control can be reached with Tab and pressed with Enter or Space, and has a spoken label. Tab stays inside an open sheet. */
 function sheetTrap(e) {
   var sh = SHEET && SHEET.sh;
   if (!sh) return;
@@ -293,7 +280,6 @@ function sheetTrap(e) {
 }
 
 function a11yScan() {
-  if (!PREFS.a11y && !KBD) return;
   var n = document.querySelectorAll(".pill:not(.static),.tile,.rnd,.rbtn,.qa,.di,.sel,.room,.opt");
   for (var i = 0; i < n.length; i++) {
     var e = n[i];

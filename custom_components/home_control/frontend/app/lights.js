@@ -79,16 +79,6 @@ function lightOn(id) {
   call("light", "turn_on", d);
 }
 
-/* Turns lights on as they were: a light with its own turn-on settings gets them, the others come back as they last were. */
-function lightsBack(ids) {
-  var plain = [];
-  ids.forEach(function (id) {
-    if (lightDefault(id)) lightOn(id);
-    else plain.push(id);
-  });
-  if (plain.length) call("light", "turn_on", { entity_id: plain });
-}
-
 var LNAME = {};
 
 /* Text on a lit light row is chosen from what is actually under it: the colour of the light where the fill reaches, the page background where it does not. */
@@ -153,38 +143,15 @@ function inkRow(r, rgb, p) {
 /* The accent every device on a page uses when it is on. */
 var PAGEFILL = "color-mix(in srgb,var(--acc) 45%,var(--f-card))";
 
-/* Whether popups fill a light's sliders with its own colour. The Lights section it is in can turn that off (flag accent); then popups use the accent like the page. */
-function popFill(id) {
-  var s = lightsSectionOf(id);
-  return !(s && s.accent);
-}
-
-/* The Lights section a light is listed in, if any. */
-function lightsSectionOf(id) {
-  var found = null;
-  allSectionLists().forEach(function (l) {
-    l.forEach(function (s) {
-      if (found || s.k !== "lights") return;
-      if (
-        (s.devs || []).some(function (d) {
-          return d.id === id;
-        })
-      )
-        found = s;
-    });
-  });
-  return found;
-}
-
 /* A fill colour for a popup slider: the light's colour (rgb() says which) or the accent. */
 function popFillOf(ids, rgb) {
   return function () {
     var c = rgb();
-    return c ? (popFill(ids[0]) ? cssRgb(c) : PAGEFILL) : null;
+    return c ? cssRgb(c) : null;
   };
 }
 
-/* The colours of a light that has more than one: the zones of a light made of zones, or the colour zone and the white zone of a split light. Null when one colour tells it all. */
+/* The colours of a light made of zones. Null when one colour tells it all. */
 function lightStops(id) {
   var z = A(id).zone_colors;
   /* A light set to a white temperature is that one colour, the same as any other light at that temperature, not the (slightly different) colours its zones are reported in. */
@@ -193,10 +160,6 @@ function lightStops(id) {
     return z.map(function (c) {
       return liveXyRgb(c[0], c[1]);
     });
-  if ((UIDEV[id] || {}).split) {
-    var m = lzone(id);
-    if (m.hs && m.k) return [hsv2rgb(m.hs[0], m.hs[1]), kelvinRgb(m.k)];
-  }
   return null;
 }
 
@@ -312,7 +275,7 @@ function lightRow(id, showRoom, inPopup) {
     var rgb = lightRgb(id),
       la = A(id);
     r._lc = on ? rgb || WARMWHITE : null;
-    var full = typeof inPopup === "function" ? inPopup() : inPopup && popFill(id);
+    var full = typeof inPopup === "function" ? inPopup() : !!inPopup;
     r._ink = full ? r._lc : on ? cssToRgb(PAGEFILL) : null;
     if (full) tintEl(r, r._lc);
     else tintIcon(r, r._lc);
@@ -347,117 +310,8 @@ function lightRow(id, showRoom, inPopup) {
   return r;
 }
 
-/* A light shown as split (one bar with a colour zone and a white zone) keeps what was last set for each zone, because Home Assistant reports only the zone used last. Its commands are spaced out, since the Razer bar can freeze when it gets them in quick succession. */
-var LMEM = {},
-  LSEND = {};
-
-function lzone(id) {
-  var m = LMEM[id];
-  if (!m) {
-    m = deviceGet("db_lzone_" + id, {});
-    LMEM[id] = m;
-  }
-  var a = A(id),
-    ch = false;
-  if (a.hs_color && JSON.stringify(a.hs_color) !== JSON.stringify(m.hs)) {
-    m.hs = a.hs_color;
-    ch = true;
-  }
-  if (a.color_temp_kelvin && a.color_temp_kelvin !== m.k) {
-    m.k = a.color_temp_kelvin;
-    ch = true;
-  }
-  if (ch) deviceSet("db_lzone_" + id, m);
-  return m;
-}
-
 function lightPush(id, data) {
-  if (!(UIDEV[id] || {}).split) {
-    callLive(id, "light", "turn_on", data);
-    return;
-  }
-  var s = (LSEND[id] = LSEND[id] || { at: 0, q: [], busy: false });
-  function ty(x) {
-    return "hs_color" in x ? "c" : "color_temp_kelvin" in x ? "w" : "b";
-  }
-  s.q = s.q.filter(function (x) {
-    return ty(x) !== ty(data);
-  });
-  s.q.push(data);
-  if (s.busy) return;
-  s.busy = true;
-  (function next() {
-    var d = s.q.shift();
-    if (!d) {
-      s.busy = false;
-      return;
-    }
-    setTimeout(
-      function () {
-        s.at = Date.now();
-        call("light", "turn_on", d);
-        next();
-      },
-      Math.max(0, s.at + 1500 - Date.now())
-    );
-  })();
-}
-
-/* Which lights have the colour circle on press and hold: lights of a Lights section follow the section's setting. */
-var LWHEEL = {};
-
-var HUE_BG =
-  "linear-gradient(90deg,hsl(0,100%,55%),hsl(60,100%,50%),hsl(120,100%,45%),hsl(180,100%,45%),hsl(240,100%,60%),hsl(300,100%,55%),hsl(360,100%,55%))";
-
-/* Colour and white temperature share one slider (used where the Lights section turns the colour circle off). Tapping its icon switches between them. While dragging, the light follows. 'c' describes what is controlled: color and white (what it can do), colorNow(), hs(), kelvin(), krange(), kgrad, icon, wheel, and push(data) which sends a change to the light or lights. */
-function lightColourRow(box, c) {
-  var mode = c.color && c.white ? (c.colorNow() ? "color" : "white") : c.color ? "color" : "white";
-  function sat() {
-    var h = c.hs();
-    return h && h[1] >= 30 ? h[1] : 100;
-  }
-  function data(v) {
-    return mode === "color" ? { hs_color: [v, sat()] } : { color_temp_kelvin: v };
-  }
-  function draw() {
-    box.innerHTML = "";
-    var isColor = mode === "color",
-      k = c.krange();
-    box.appendChild(
-      sliderRow({
-        icon: isColor ? "palette" : "thermo",
-        name: isColor ? _T("colour") : _T("white_temperature"),
-        track: isColor ? "hue" : "kel",
-        trackBg: isColor ? HUE_BG : c.kgrad,
-        min: isColor ? 0 : k[0],
-        max: isColor ? 360 : k[1],
-        step: isColor ? 1 : 10,
-        get: function () {
-          if (isColor) {
-            var h = c.hs();
-            return h ? h[0] : 0;
-          }
-          return c.kelvin();
-        },
-        fmt: function (v) {
-          return isColor ? Math.round(v) + "°" : Math.round(v) + " K";
-        },
-        live: function (v) {
-          c.push(data(v));
-        },
-        commit: function (v) {
-          c.push(data(v));
-        },
-        onTap: function (t) {
-          if (c.color && c.white && t && t.closest(".ic")) {
-            mode = isColor ? "white" : "color";
-            withSlive(draw);
-          }
-        },
-      })
-    );
-  }
-  draw();
+  callLive(id, "light", "turn_on", data);
 }
 
 /* The colour a saved colour or white temperature shows. */
@@ -607,13 +461,26 @@ function lightsMasterToggle(ids) {
   if (plain.length) call("light", "turn_on", { entity_id: plain });
 }
 
-function lightsMasterRow(sid, ids, wheel, name, all, order, meta) {
+/* The effects and syncs playing on any light of a master: { effects: lights that run an effect, syncs: the switches that stop a sync }. */
+function masterPlaying(ids) {
+  var out = { effects: [], syncs: [] };
+  lightUnits(ids).forEach(function (u) {
+    var syn = pluginPlays(u);
+    if (syn && out.syncs.indexOf(syn.entity) < 0) out.syncs.push(syn.entity);
+    if (V_(u) === "on")
+      lightEffectLights(u).forEach(function (e) {
+        if (out.effects.indexOf(e) < 0) out.effects.push(e);
+      });
+  });
+  return out;
+}
+
+function lightsMasterRow(sid, ids, name, all, order, meta) {
   LMASTER[sid] = ids;
   LMASTER_META[sid] = meta || {};
   LMASTER_NAME[sid] = name || "";
   LMASTER_ALL[sid] = !!all;
   LMASTER_ORDER[sid] = order || null;
-  LWHEEL["m:" + sid] = wheel;
   var r = sliderRow({
     icon: "lights",
     name: name || _T("all_lights"),
@@ -630,7 +497,10 @@ function lightsMasterRow(sid, ids, wheel, name, all, order, meta) {
       return countOn(lightUnits(ids)) ? v + "%" : _T("off");
     },
     sub: function () {
-      return countOn(lightUnits(ids)) + " / " + lightUnits(ids).length;
+      var gone = lightUnits(ids).filter(function (u) {
+        return V_(u) === "unavailable";
+      }).length;
+      return countOn(lightUnits(ids)) + " / " + lightUnits(ids).length + (gone ? " · " + gone + " " + _T("unavailable").toLowerCase() : "");
     },
     on: function () {
       return countOn(lightUnits(ids)) > 0;
@@ -646,12 +516,30 @@ function lightsMasterRow(sid, ids, wheel, name, all, order, meta) {
       showPopup("lmaster:" + sid, true);
     },
     onTap: function (t) {
-      if (t && t.closest(".ic")) lightsMasterToggle(ids);
-      else showPopup("lmaster:" + sid, true);
+      if (t && t.closest(".ic")) {
+        /* While any light of the master plays an effect or a sync, the icon is a stop button for those. */
+        var fx = masterPlaying(ids);
+        if (fx.effects.length || fx.syncs.length) {
+          fx.syncs.forEach(function (e) {
+            call("switch", "turn_off", { entity_id: e });
+          });
+          if (fx.effects.length) call("light", "turn_on", { entity_id: fx.effects, effect: "off" });
+        } else lightsMasterToggle(ids);
+      } else showPopup("lmaster:" + sid, true);
     },
   });
   function tint() {
     tintIcon(r, avgLight(lightUnits(ids).filter(isOn)));
+    var playing = masterPlaying(ids),
+      on = playing.effects.length > 0 || playing.syncs.length > 0,
+      icon = r.querySelector(".ic");
+    if (!icon) return;
+    icon.classList.toggle("fx", on);
+    if (on && !icon.querySelector(".ic-stop")) icon.appendChild(mk("span", "ic-stop", "<i></i>"));
+    if (!on) {
+      var stop = icon.querySelector(".ic-stop");
+      if (stop) stop.remove();
+    }
   }
   reg(tint);
   tint();
@@ -660,7 +548,8 @@ function lightsMasterRow(sid, ids, wheel, name, all, order, meta) {
 }
 
 /* The settings of a section's lights master, opened from the page editor ("scope:section", as for a section): its name, whether it changes the whole room, and the order of the lights in its row. */
-function lightsMasterSettings(b, key) {
+/* The settings of a lights master: a short page with one row for each part of it (`part` empty), and a page of its own for each part. */
+function lightsMasterSettings(b, key, part) {
   var p = key.split(":"),
     sec = secById(p[0], p[1]);
   if (!sec) return;
@@ -669,59 +558,72 @@ function lightsMasterSettings(b, key) {
   function lightIds() {
     return masterLightIds(sec);
   }
-  /* The lights as the row shows them now: by name, or in the owner's order. */
-  function shown() {
-    var node = lpMasterNode(sec.id, lightIds());
-    return lpSortLights(lpLeaves(node), sec.mo || null);
+  function part_(name, icon, sub) {
+    return pill(icon, _T("lm_part_" + name), {
+      sub: function () {
+        return typeof sub === "function" ? sub() : _T("lm_part_" + name + "_sub");
+      },
+      tap: function () {
+        showPopup("lmaster-part:" + name + ":" + key, true);
+      },
+    });
   }
   function draw() {
     box.innerHTML = "";
-    box.appendChild(
-      textRow("edit", _T("all_lights"), sec.mn || "", function (v) {
-        if (v) sec.mn = v.slice(0, 40);
-        else delete sec.mn;
-        uiChanged();
-      }, 40)
-    );
+    if (!part) {
+      box.appendChild(
+        textRow("edit", _T("all_lights"), sec.mn || "", function (v) {
+          if (v) sec.mn = v.slice(0, 40);
+          else delete sec.mn;
+          uiChanged();
+        }, 40)
+      );
+      box.appendChild(
+        part_("lights", "lights", function () {
+          return lightIds().length + " " + _T("lights").toLowerCase() + " · " + (sec.mm ? _T("master_manual") : _T("master_auto"));
+        })
+      );
+      box.appendChild(
+        visiblePill(
+          function () {
+            return !sec.mhide;
+          },
+          function () {
+            if (sec.mhide) delete sec.mhide;
+            else sec.mhide = 1;
+            uiChanged();
+          }
+        )
+      );
+      box.appendChild(part_("popup", "tune"));
+      box.appendChild(
+        pill("lights", _T("lgs_title"), {
+          sub: function () {
+            return _T("lgs_sub");
+          },
+          tap: function () {
+            showPopup("lgroups", true);
+          },
+        })
+      );
+      box.appendChild(part_("scenes", "scene"));
+      box.appendChild(part_("where", "home"));
+      masterActionRows(box, sec, p[0]);
+      return;
+    }
+    if (part === "popup") return masterPopupRows(box, sec, p[0], draw);
+    if (part === "scenes") return mscSourceRows(box, sec, p[0], draw);
+    if (part === "where") {
+      masterSectionRows(box, sec);
+      masterGlanceRows(box, sec, draw);
+      return;
+    }
     box.appendChild(
       flagPill("lights", _T("master_changes_the_whole_room"), sec, "mall", function (on) {
         return on ? _T("every_light_of_the_section_even_those_") : _T("only_the_lights_that_are_on_or_all_if_none_is");
       })
     );
     masterModeRows(box, sec, p[0], draw);
-    masterPopupRows(box, sec, p[0], draw);
-    mscSourceRows(box, sec, p[0], draw);
-    box.appendChild(sep(_T("order_of_the_lights"), "drag"));
-    box.appendChild(hintRow(sec.mo ? _T("drag_a_light_to_move_it_the_row_follows_this_order") : _T("the_lights_are_in_alphabetical_order_drag_one_to_set_your_own")));
-    var nodes = shown(),
-      rows = nodes.map(function (n) {
-        var r = pill(n.icon || "light", n.name, {
-          sub: function () {
-            return n.key;
-          },
-        });
-        box.appendChild(r);
-        return r;
-      });
-    makeSortable(box, rows, function (from, to) {
-      var keys = nodes.map(function (n) {
-        return n.key;
-      });
-      keys.splice(to, 0, keys.splice(from, 1)[0]);
-      sec.mo = keys;
-      uiChanged();
-      setTimeout(draw, 250);
-    });
-    if (sec.mo)
-      box.appendChild(
-        pill("restart", _T("back_to_alphabetical_order"), {
-          tap: function () {
-            delete sec.mo;
-            uiChanged();
-            draw();
-          },
-        })
-      );
   }
   draw();
 }
@@ -746,7 +648,6 @@ function lightPopup(b, id, o) {
   lightPanel(b, lpNodeOf(id, null), {
     id: id,
     room: cp.color || cp.white ? savedRoomOf([id]) : null,
-    sliders: LWHEEL[id] === false,
     ready: o && o.ready,
   });
 }
@@ -756,7 +657,6 @@ function lightsMasterPopup(b, sid) {
   var ids = LMASTER[sid] || [];
   lightPanel(b, lpMasterNode(sid, ids), {
     room: savedRoomOf(lightIndividuals(ids)),
-    sliders: LWHEEL["m:" + sid] === false,
     members: LMASTER_MEMBERS[sid] || null,
     /* The lights row follows the circle: a group is one tile until it is separated (the master's choice). */
     groups: !!(masterSec(sid) || {}).mgl,
@@ -860,10 +760,16 @@ function lightsAll(room) {
   return lightUnits(ROOMLIGHTS[room] || []);
 }
 
+/* Every light of the visible rooms, and of the lights masters of the pages (a light taken out of a room's section but kept by a master is still a light of the house), each once. */
 function allLights() {
   var out = [];
   Object.keys(ROOMLIGHTS).forEach(function (r) {
     lightsAll(r).forEach(function (x) {
+      if (out.indexOf(x) < 0) out.push(x);
+    });
+  });
+  allMasters().forEach(function (m) {
+    lightUnits(m.ids).forEach(function (x) {
       if (out.indexOf(x) < 0) out.push(x);
     });
   });
@@ -883,17 +789,6 @@ function lightRgb(id) {
   if (a.rgb_color) return a.rgb_color.slice(0, 3);
   if (a.color_temp_kelvin) return kelvinRgb(a.color_temp_kelvin);
   return null;
-}
-
-function kelGrad(id) {
-  return function () {
-    var a = A(id),
-      mn = a.min_color_temp_kelvin || 2000,
-      mx = a.max_color_temp_kelvin || 6500,
-      s = [];
-    for (var i = 0; i <= 6; i++) s.push(cssRgb(kelvinRgb(mn + ((mx - mn) * i) / 6)));
-    return "linear-gradient(90deg," + s.join(",") + ")";
-  };
 }
 
 function lightRaw(id) {

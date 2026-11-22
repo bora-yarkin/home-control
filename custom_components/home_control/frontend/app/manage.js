@@ -455,10 +455,9 @@ function devAt(key) {
 
 /* The section a "~page~section" list id names. */
 function sectionOfList(rid) {
-  var p = rid.split("~"),
-    arr = p[1] === "home" ? UI.layout.home : UI.layout.rooms[p[1]] || [];
-  for (var i = 0; i < arr.length; i++) if (arr[i].id === p[2]) return arr[i];
-  return null;
+  var p = rid.split("~");
+  /* also a lights master that a section holds (its lights are devices of its own) */
+  return p[1] === "home" || UI.layout.rooms[p[1]] ? secById(p[1], p[2]) : null;
 }
 
 function devList(rid) {
@@ -467,6 +466,8 @@ function devList(rid) {
     if (!s) return [];
     /* "~page~section~ml" is the lights chosen for the section's lights master (they are devices too: the same popup edits them). */
     if (rid.split("~")[3] === "ml") return (s.ml = s.ml || []);
+    /* "~page~section~lx" holds lights of the master that no list has, kept so their settings open from the master. */
+    if (rid.split("~")[3] === "lx") return (s.lx = s.lx || []);
     return (s.devs = s.devs || []);
   }
   return UI.devs[rid] || [];
@@ -582,7 +583,7 @@ function areaName(id) {
 /* A light that stands for other lights: a group made in Home Assistant (it lists its lights), or a Hue room or zone (which lists Hue lights and may list no entities). */
 function isLightGroup(id) {
   var a = A(id);
-  return dom(id) === "light" && (!!a.is_hue_group || (Array.isArray(a.entity_id) && a.entity_id.length > 0));
+  return dom(id) === "light" && (pluginIsGroup(id) || (Array.isArray(a.entity_id) && a.entity_id.length > 0));
 }
 
 function candidates(doms, roomId, q, areaId) {
@@ -787,18 +788,15 @@ function roomDetails(b, rid) {
   b.appendChild(box);
   function draw() {
     box.appendChild(
-      pill("lock", _T("hide_room"), {
-        on: function () {
-          return !!r.hide;
+      visiblePill(
+        function () {
+          return !r.hide;
         },
-        sub: function () {
-          return r.hide ? _T("hidden_from_the_app") : _T("visible");
-        },
-        tap: function () {
+        function () {
           r.hide = !r.hide;
           uiChanged();
-        },
-      })
+        }
+      )
     );
     box.appendChild(
       pill("trash", _T("delete_room"), {
@@ -876,7 +874,7 @@ function iconSuggestions(d) {
 }
 
 /* The settings popup of a device on a page: the device as it will look, tabs for what can be changed, and the tab's content. Every change is made at once (with Undo), in every tab.
-   The tabs are built by devLookTab, devOptionsTab, devPlaceTab and devMoreTab; each is given a context `c`: { d: the device, key, list: the list it is in, i: its place, box: the tab's
+   The two tabs, Appearance and Behaviour, are built by devLookTab and devBehaviourTab; each is given a context `c`: { d: the device, key, list: the list it is in, i: its place, box: the tab's
    content, redraw(): draws the tab again, preview(): draws the device on top again }. */
 function devManage(b, key) {
   var p = key.split(":"),
@@ -905,9 +903,7 @@ function devManage(b, key) {
   b.appendChild(tabsBox);
   b.appendChild(box);
   function drawTabs() {
-    var tabs = [["look", _T("dp_look")]];
-    if (devHasOptions(d)) tabs.push(["options", _T("dp_options")]);
-    tabs.push(["place", _T("dp_placement")], ["more", _T("dp_more")]);
+    var tabs = [["look", _T("dp_appearance")], ["behave", _T("dp_behaviour")]];
     if (!tabs.some(function (t) { return t[0] === cur; })) cur = "look";
     tabsBox.innerHTML = "";
     tabsBox.appendChild(
@@ -920,18 +916,11 @@ function devManage(b, key) {
   }
   function draw() {
     if (cur === "look") devLookTab(c);
-    else if (cur === "options") devOptionsTab(c);
-    else if (cur === "place") devPlaceTab(c);
-    else devMoreTab(c);
+    else devBehaviourTab(c);
   }
   c.preview();
   drawTabs();
   c.redraw();
-}
-
-/* Whether a device has settings of its own kind (the Options tab). */
-function devHasOptions(d) {
-  return ["light", "media", "climate", "vacuum", "camera", "appliance", "remote", "lock"].indexOf(d.kind) >= 0 || !!devSetupKind(d);
 }
 
 /* A name is offered in shorter and plainer forms: the entity's name without the room in front of it. */
@@ -988,18 +977,35 @@ function devLookTab(c) {
       c.preview();
     })
   );
+  /* How it is drawn, for the kinds that have a choice. */
+  if (d.kind === "climate" && d.id)
+    c.box.appendChild(flagPill("thermo", _T("thermostat_dial"), d, "dial", function () { return _T("a_round_dial_instead_of_the_slider_i"); }));
+  if (d.kind === "vacuum" && d.id && vacMapEnt(d.id)) devVacuumMapOptions(c);
+  if (d.kind === "media" && d.id) devMediaOptions(c);
 }
 
-/* Options: what belongs to the kind of device, in the order of the kinds' own settings, then the set-up of devices that need one. */
-function devOptionsTab(c) {
+/* Behaviour: what belongs to the kind of device (its own settings, its set-up), whether it is shown, where it is, and what it is. */
+function devBehaviourTab(c) {
   var d = c.d,
     box = c.box;
   profileSettings(box, d, c.key);
   if (d.kind === "appliance")
-    box.appendChild(pill("tune", _T("ap_set_up"), { tap: function () { showPopup("ap-edit:" + d.aid, true); } }));
+    box.appendChild(
+      pill("tune", _T("set_up_this_device"), {
+        sub: function () {
+          return _T("kit_appliance_sub");
+        },
+        tap: function () {
+          showPopup("ap-edit:" + d.aid, true);
+        },
+      })
+    );
   if (d.kind === "remote")
     box.appendChild(
-      pill("media", _T("rm_edit_buttons"), {
+      pill("tune", _T("set_up_this_device"), {
+        sub: function () {
+          return _T("kit_remote_sub");
+        },
         tap: function () {
           RM.edit[d.rid] = true;
           showPopup("remote:" + d.rid, true);
@@ -1017,10 +1023,6 @@ function devOptionsTab(c) {
         },
       })
     );
-  if (d.kind === "climate" && d.id)
-    box.appendChild(flagPill("thermo", _T("thermostat_dial"), d, "dial", function () { return _T("a_round_dial_instead_of_the_slider_i"); }));
-  if (d.kind === "vacuum" && d.id && vacMapEnt(d.id)) devVacuumMapOptions(c);
-  if (d.kind === "media" && d.id) devMediaOptions(c);
   if (d.kind === "light" && d.id) devLightOptions(c);
   if (devSetupKind(d))
     box.appendChild(
@@ -1039,6 +1041,7 @@ function devOptionsTab(c) {
         return on ? _T("asks_with_a_slider") : _T("asks_with_confirm");
       }, true)
     );
+  devPlaceRows(c);
 }
 
 /* How a vacuum's map is drawn. The choices are kept in d.map and the key is dropped when it is back to its default. */
@@ -1071,6 +1074,24 @@ function devVacuumMapOptions(c) {
   segField(box, _T("room_names"), [["11", _T("small")], ["", _T("medium")], ["16", _T("large")], ["19", _T("extra_large")]], mp.ls ? String(mp.ls) : "", function (v) {
     mset("ls", v ? +v : undefined);
   });
+  box.appendChild(flag("target", _T("show_the_robot_s_trail"), "tr", _T("the_path_of_the_current_or_last_clea"), _T("no_trail_is_drawn")));
+  /* The rest of how the map is drawn is under one row, so the map has three settings to begin with. */
+  var open = c.mapMore === true;
+  box.appendChild(
+    pill("tune", _T("advanced_map_style"), {
+      sub: function () {
+        return open ? _T("on_cap") : _T("off");
+      },
+      on: function () {
+        return open;
+      },
+      tap: function () {
+        c.mapMore = !open;
+        c.redraw();
+      },
+    })
+  );
+  if (!open) return;
   if (mp.m) {
     segField(box, _T("room_fill"), [["0", _T("none")], ["30", _T("soft")], ["", _T("medium")], ["130", _T("strong")]], mp.fa === undefined ? "" : String(mp.fa), function (v) {
       mset("fa", v === "" ? undefined : +v);
@@ -1082,7 +1103,6 @@ function devVacuumMapOptions(c) {
       mset("lc", v);
     });
   }
-  box.appendChild(flag("target", _T("show_the_robot_s_trail"), "tr", _T("the_path_of_the_current_or_last_clea"), _T("no_trail_is_drawn")));
   box.appendChild(flag("lock", _T("no_go_zones"), "nz", _T("the_robot_s_forbidden_areas_and_virt"), _T("no_go_zones_are_not_drawn")));
   if (mp.tr) {
     segField(box, _T("trail_colour"), [["", _T("accent_colour")], ["ink", _T("text_colour")]], mp.tc || "", function (v) {
@@ -1119,16 +1139,10 @@ function devMediaOptions(c) {
   );
 }
 
-/* A light's own settings: separate colour and white, which controls it shows, and what it does when it is turned on from the app. */
+/* A light's own settings: which controls it shows, and what it does when it is turned on from the app. */
 function devLightOptions(c) {
   var d = c.d,
     box = c.box;
-  if (lightRaw(d.id).color && lightRaw(d.id).white)
-    box.appendChild(
-      flagPill("palette", _T("separate_colour_and_white"), d, "split", function (on) {
-        return on ? _T("colour_back_and_white_front_are_sepa") : _T("one_set_of_controls_the_light_follow");
-      })
-    );
   box.appendChild(sep(_T("light_features"), "light"));
   box.appendChild(hintRow(_T("hide_controls_this_light_doesn_t_rea")));
   [
@@ -1178,39 +1192,48 @@ function devLightOptions(c) {
   if (custom) box.appendChild(hintRow(_T("saved_turn_on_state") + ": " + lightDefaultText(d.id)));
 }
 
-/* Placement: move it to another section, hide it in the app, take it off the page. */
-function devPlaceTab(c) {
-  var d = c.d;
-  devMove(c.box, c.key);
-  c.box.appendChild(
-    flagPill("lock", _T("hide_in_the_app"), d, "hide", function (on) {
-      return on ? _T("hidden") : _T("visible");
-    })
-  );
-  c.box.appendChild(
-    pill("trash", _T("remove_from_the_room"), {
-      tap: function () {
-        confirmDlg(_T("remove") + d.name + _T("from_this_room_it_stays_in_home_assi"), function () {
-          c.list.splice(c.i, 1);
+/* Whether it is shown, which section it is in, and taking it off the page; and what it is. A light a lights master keeps (not a device of a section) has none of the first three. */
+function devPlaceRows(c) {
+  var d = c.d,
+    held = c.key.split(":")[0].split("~")[3] === "lx";
+  if (!held) {
+    c.box.appendChild(sep(_T("dp_in_the_section"), "home"));
+    c.box.appendChild(
+      visiblePill(
+        function () {
+          return !d.hide;
+        },
+        function () {
+          d.hide = !d.hide;
           uiChanged();
-          popBack();
-        });
-      },
-    })
-  );
-}
-
-/* More: what the device is, and whether its popup ends with the Advanced settings button. */
-function devMoreTab(c) {
-  var d = c.d;
+        }
+      )
+    );
+    c.box.appendChild(
+      pill("swap", _T("move_to_another_section"), {
+        sub: function () {
+          return _T("move_to_another_section_sub");
+        },
+        tap: function () {
+          showPopup("manage-move:" + c.key, true);
+        },
+      })
+    );
+    c.box.appendChild(
+      pill("trash", _T("remove_from_the_section"), {
+        tap: function () {
+          confirmDlg(_T("remove") + d.name + _T("from_this_section_it_stays_in_home_ass"), function () {
+            c.list.splice(c.i, 1);
+            uiChanged();
+            popBack();
+          });
+        },
+      })
+    );
+  }
+  c.box.appendChild(sep(_T("dp_what_it_is"), "info"));
   c.box.appendChild(entRow(_T("type"), function () { return KINDLAB[d.kind]; }));
   if (d.id) c.box.appendChild(entRow(_T("entity"), function () { return d.id; }));
-  if (d.id && advList(d.id).length)
-    c.box.appendChild(
-      flagPill("tune", _T("advanced_settings_button"), d, "noadv", function (on) {
-        return on ? _T("shown_at_the_bottom_of_its_popup") : _T("hidden");
-      }, true)
-    );
 }
 
 function devMove(b, key) {

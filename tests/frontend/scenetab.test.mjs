@@ -15,10 +15,10 @@ const fn = (src, name) => {
   return src.slice(at, src.indexOf("\n}\n", at) + 3);
 };
 const tab = read("scenetab.js");
-const SRC = ["mscSection", "mscItems", "mscKindLabel", "mscFoldersChange", "mscTop"].map((n) => fn(tab, n)).join("\n") + "\nvar MSC_DEFAULT_SRC = [\"hue\"];";
+const SRC = ["mscSection", "mscItems", "mscKindLabel", "mscFoldersChange", "mscTop"].map((n) => fn(tab, n)).join("\n") + "\nvar MSC_DEFAULT_SRC = [\"plugin\"];";
 
 function world(section = {}, extra = {}) {
-  const e = { id: "lights", k: "lights", master: 1, ...section };
+  const e = { id: "lights", k: "devs", master: 1, ...section };
   const stored = [
     { id: "c1", name: "Movie", room: "r1", acts: [] },
     { id: "l1", name: "Aurora", room: "r1", live: { palette: [] } },
@@ -26,6 +26,8 @@ function world(section = {}, extra = {}) {
   ];
   const states = { "scene.bath_dim": { attributes: { friendly_name: "Bathroom Dim" } } };
   const sandbox = {
+    sceneHasTag: () => false,
+    cleanTags: () => [],
     secById: (scope, sid) => (scope === "r1" && sid === "lights" ? e : sid === "sc" ? { id: "sc", k: "scenes", scn: ["c2"] } : null),
     STORE: { scenes: stored },
     sceneById: (id) => stored.find((s) => s.id === id) || null,
@@ -58,7 +60,7 @@ test("with nothing chosen the scenes are the Hue scenes of the lights' areas, an
   const { w } = world({ scn: ["c1", "l1"] });
   const items = w.mscItems({ root: { key: "m:r1~lights" } });
   assert.deepEqual(keys(items), ["c1", "l1", "scene.bath_dim"]);
-  assert.deepEqual(plain(items.map((x) => x.kind)), ["classic", "live", "hue"], "each says what kind it is");
+  assert.deepEqual(plain(items.map((x) => x.kind)), ["classic", "live", "plugin"], "each says what kind it is");
   assert.equal(items[2].name, "Dim", "the area's name is left out of a Hue scene's name");
 });
 
@@ -99,16 +101,16 @@ test("a folder that loses its last scene is gone, and a scene that no longer exi
 
 test("the section keeps its sources, folders and order through the layout clean-up, and drops what is not valid", () => {
   const model = read("model.js");
-  const at = model.indexOf('if (k === "lights") {\n      /* The scenes page');
+  const at = model.indexOf('if (k === "devs") {\n      /* The scenes page');
   assert.ok(at > 0);
   const body = model.slice(at, model.indexOf('if (k === "scenes") {', at));
   const run = (s) => {
     const o = {};
-    vm.runInNewContext(`(function(s,o,k){${body}})(s,o,k)`, { s, o, k: "lights" });
+    vm.runInNewContext(`(function(s,o,k){${body}})(s,o,k)`, { s, o, k: "devs", cleanTags: (l) => (Array.isArray(l) ? l.filter((x) => typeof x === "string" && x) : []) });
     return plain(o);
   };
   assert.deepEqual(run({ msrc: ["hue", "page", "sec:a1", "sec:Bad Id", "hue"], mf: [{ id: "f1", n: "X", s: ["c1", "scene.a", "bad key!"] }, { id: "no id!", n: "Y", s: ["c1"] }, { id: "f2", n: "Z", s: [] }], mtop: ["c1", "f:f1", "x y"] }), {
-    msrc: ["hue", "page", "sec:a1"],
+    msrc: ["plugin", "page", "sec:a1"],
     mf: [{ id: "f1", n: "X", s: ["c1", "scene.a"] }],
     mtop: ["c1", "f:f1"],
   });
@@ -151,8 +153,8 @@ test("a still scene has no stop on its picture, and tapping it again while it is
   };
   assert.deepEqual(run({ kind: "classic", sc: {} }, true), [["light", "turn_off", { entity_id: ["light.a", "light.b"] }]], "a classic scene that is on: off");
   assert.deepEqual(run({ kind: "classic", sc: {} }, false), ["run"], "not on: it runs");
-  assert.deepEqual(run({ kind: "hue", id: "scene.x", dyn: false }, true), [["light", "turn_off", { entity_id: ["light.a", "light.b"] }]], "a still Hue scene that is on: off");
-  assert.deepEqual(run({ kind: "hue", id: "scene.x", dyn: true }, true), ["toggle"], "a moving one stops");
+  assert.deepEqual(run({ kind: "plugin", id: "scene.x", dyn: false }, true), [["light", "turn_off", { entity_id: ["light.a", "light.b"] }]], "a still Hue scene that is on: off");
+  assert.deepEqual(run({ kind: "plugin", id: "scene.x", dyn: true }, true), ["toggle"], "a moving one stops");
 });
 
 test("the pen and dots of the scene that plays stay put when the rows are made again, and a folder that opens slides the page only as far as it needs", () => {

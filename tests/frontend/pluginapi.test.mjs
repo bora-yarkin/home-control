@@ -30,7 +30,7 @@ function page(extra = {}) {
   return { sandbox, log, HC: sandbox.window.HomeControl };
 }
 
-const documented = ["version", "hass", "attrs", "state", "isOn", "registry", "isAdmin", "call", "callRaw", "toggle", "toast", "refresh", "el", "icon", "row", "count", "confirm", "open", "back", "closeLayer", "guard", "popGuard", "sheet", "t", "addStrings", "registerPage", "registerSettings", "registerAreaHooks", "editing", "room", "serviceResponse", "addStyles", "registerSceneKind", "registerSceneMaker", "registerSceneImport", "registerDeviceKind", "registerPlayback", "registerLightStyle"];
+const documented = ["version", "hass", "attrs", "state", "isOn", "registry", "isAdmin", "call", "callRaw", "toggle", "toast", "refresh", "el", "icon", "row", "count", "confirm", "open", "back", "closeLayer", "guard", "popGuard", "sheet", "t", "addStrings", "registerPage", "registerSettings", "registerAreaHooks", "editing", "room", "serviceResponse", "addStyles", "registerSceneKind", "registerSceneMaker", "registerSceneImport", "registerDeviceKind", "registerGroupCheck", "registerPlayback", "registerLightStyle"];
 const documentedUi = ["attachSlide", "briControl", "callLive", "cap", "closeSheet", "cssRgb", "cssToRgb", "deviceGet", "deviceSet", "dom", "dropRow", "ic", "inkRow", "kelvinRgb", "lightMembers", "liveStopOn", "liveXyRgb", "pinPop", "pop", "sep", "sliderRow", "switchPill", "pageFill"];
 const documentedScenes = ["hidden", "setHidden", "importFrom", "editLights"];
 const documentedAreas = ["open", "openExternal", "editor", "rebuild", "roomLights", "clamp", "identifyOff"];
@@ -96,20 +96,32 @@ test("an area a plugin owns is edited with its hooks, and the hooks of every plu
   assert.deepEqual(plain(sandbox.pluginAreaOwner()), {}, "no area, no owner");
 });
 
-test("a plugin's script is loaded once, for administrators, and only from its own static folder", async () => {
+test("a plugin's script is loaded once, for administrators, only from its own static folder, and the page can wait until each has loaded or failed", async () => {
   const added = [];
+  let admin = true;
   const { sandbox } = page({
-    HA: { plugins: () => Promise.resolve([{ id: "hue_plus", menu: "/hue_plus_static/menu.js", version: "1.2" }, { id: "evil", menu: "https://evil.example/x.js" }, { id: "up", menu: "/up_static/../x.js" }, { id: "hue_plus", menu: "/hue_plus_static/menu.js" }]) },
-    document: { createElement: () => ({}), head: { appendChild: (s) => added.push(s.src) } },
+    H: () => ({ user: { is_admin: admin } }),
+    BOOTED: false,
+    rerender: () => added.push("rerender"),
+    HA: { plugins: () => Promise.resolve([{ id: "hue_plus", menu: "/hue_plus_static/menu.js", version: "1.2" }, { id: "evil", menu: "https://evil.example/x.js" }, { id: "up", menu: "/up_static/../x.js" }, { id: "hue_plus", menu: "/hue_plus_static/menu.js" }, { id: "slow", menu: "/slow_static/menu.js" }]) },
+    document: { createElement: () => ({}), head: { appendChild: (s) => added.push(s) } },
   });
-  sandbox.pluginsLoad();
+  let done = false;
+  const waiting = sandbox.pluginsLoad().then(() => (done = true));
   await new Promise((r) => setImmediate(r));
-  assert.deepEqual(added, ["/hue_plus_static/menu.js?v=1.2"]);
-  sandbox.ISADMIN = false;
+  assert.deepEqual(added.map((s) => s.src), ["/hue_plus_static/menu.js?v=1.2", "/slow_static/menu.js"]);
+  assert.equal(done, false, "not done while a script is still on its way");
+  added[0].onload();
+  await new Promise((r) => setImmediate(r));
+  assert.equal(done, false);
+  added[1].onerror();
+  await waiting;
+  assert.equal(done, true, "a script that failed does not hold the page");
+  assert.equal(added.includes("rerender"), false, "before the first drawing there is nothing to draw again");
+  admin = false;
   sandbox.PLUGINS_LOADED = {};
-  sandbox.pluginsLoad();
-  await new Promise((r) => setImmediate(r));
-  assert.equal(added.length, 1, "nothing is loaded for someone who is not an administrator");
+  await sandbox.pluginsLoad();
+  assert.equal(added.length, 2, "nothing is loaded for someone who is not an administrator");
 });
 
 test("a scene kind, a device kind, a playback and a style a plugin registered are found for the entities they match, and for no others", () => {

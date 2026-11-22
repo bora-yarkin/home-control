@@ -2,11 +2,16 @@
 
 /* Pinned items, quick actions and scenes belong to the section that shows them; a scene is stored once in the library and sections list its id. */
 function secById(scope, sid) {
-  return (
-    secOrder(scopeKey(scope)).filter(function (x) {
-      return x.id === sid;
-    })[0] || null
-  );
+  var list = secOrder(scopeKey(scope));
+  for (var i = 0; i < list.length; i++) {
+    if (list[i].id === sid) return list[i];
+    /* a lights master held by a section (app/lightsmasters.js) is found by its own id, with the settings of a master as a section has them */
+    var held = (list[i].masters || []).filter(function (m) {
+      return m.id === sid;
+    })[0];
+    if (held) return held;
+  }
+  return null;
 }
 
 /* ---- Section types ----
@@ -14,59 +19,12 @@ function secById(scope, sid) {
  deleted from the page editor, and device-owning types hold their own list of widgets. */
 var SECTYPES = {
     devs: {
-      t: _T("devices_2"),
-      i: "plug",
-      d: _T("any_mix_of_lights_media_climate_and_"),
-      own: 1,
-      noun: _T("widget"),
-    },
-    lights: {
-      t: _T("lights"),
-      i: "lights",
-      d: _T("lights_with_one_button_to_turn_them_"),
-      own: 1,
-      noun: _T("light_2"),
-      add: "lights",
-    },
-    media: {
-      t: _T("media"),
-      i: "tv",
-      d: _T("tvs_speakers_and_remotes"),
-      own: 1,
-      noun: _T("media_player"),
-      add: "media",
-    },
-    climate: {
-      t: _T("climate"),
-      i: "ac",
-      d: _T("air_conditioners_and_fans"),
-      own: 1,
-      noun: _T("climate_device"),
-      add: "climate",
-    },
-    controls: {
-      t: _T("controls"),
+      t: _T("section"),
       i: "tune",
-      d: _T("numbers_selects_buttons_scripts_cove"),
-      own: 1,
-      noun: _T("control"),
-      add: "controls",
-    },
-    sensors: {
-      t: _T("sensors"),
-      i: "thermo",
-      d: _T("sensor_readings_and_states"),
-      own: 1,
-      noun: _T("sensor"),
-      add: "sensors",
-    },
-    other: {
-      t: _T("other_devices"),
-      i: "plug",
-      d: _T("switches_vacuums_and_anything_else"),
+      d: _T("section_d"),
       own: 1,
       noun: _T("device_2"),
-      add: "other",
+      add: "devices",
     },
     camera: {
       t: _T("camera"),
@@ -126,15 +84,6 @@ var SECTYPES = {
       one: 1,
       wide: 1,
     },
-    quick: {
-      t: _T("quick_actions_2"),
-      i: "scene",
-      d: _T("one_tap_scenes"),
-      wide: 1,
-      own: 1,
-      noun: _T("device_2"),
-      add: "controls",
-    },
     rooms: { t: _T("rooms"), i: "home", d: _T("links_to_every_page"), one: 1 },
     glance: {
       t: _T("at_a_glance"),
@@ -145,51 +94,44 @@ var SECTYPES = {
     pinned: { t: _T("pinned"), i: "pin", d: _T("your_favourite_devices"), wide: 1 },
     link: { t: _T("linked_section"), i: "swap", d: _T("shows_a_section_from_another_page") },
   },
+  /* What the sections of layout 4 and earlier are called now: [name, icon, kind they become]. Quick actions are Scenes. */
+  LEGACY_SECTYPES = {
+    lights: [_T("lights"), "lights"],
+    media: [_T("media"), "tv"],
+    climate: [_T("climate"), "ac"],
+    controls: [_T("controls"), "tune"],
+    sensors: [_T("sensors"), "thermo"],
+    other: [_T("other_devices"), "plug"],
+    quick: [_T("quick_actions_2"), "scene", "scenes"],
+  },
+  /* The order the Add section list shows them in, by what they are for. */
   SEC_PICK = [
     "devs",
-    "lights",
-    "media",
-    "climate",
-    "controls",
-    "sensors",
-    "other",
-    "camera",
-    "read",
+    "glance",
+    "rooms",
+    "alerts",
+    "chips",
+    "status",
+    "scenes",
+    "pinned",
     "chart",
+    "read",
     "note",
     "security",
     "energy",
+    "camera",
     "cameras",
-    "status",
-    "scenes",
-    "alerts",
-    "chips",
-    "quick",
-    "rooms",
-    "glance",
-    "pinned",
     "link",
   ],
-  /* The sections a new page starts with (also what an old layout is converted from). */
+  /* The sections a new Home page starts with. */
   HOME_TPL = [
     ["alerts", "alerts"],
-    ["climate", "chips"],
-    ["quick", "quick"],
-    ["rooms", "rooms"],
     ["glance", "glance"],
-    ["pinned", "pinned"],
+    ["rooms", "rooms"],
+    ["scenes", "scenes"],
   ],
-  ROOM_TPL = [
-    "status",
-    "camera",
-    "lights",
-    "scenes",
-    "media",
-    "climate",
-    "controls",
-    "sensors",
-    "other",
-  ];
+  /* A new room page starts with its status tiles and one empty Section (suggested sections are offered when a room is made, see suggestSections). */
+  ROOM_TPL = ["status"];
 
 function secName(s) {
   return s.t || (SECTYPES[s.k] || SECTYPES.devs).t;
@@ -205,10 +147,32 @@ function seedSections(scope) {
         return { id: x[0], k: x[1], hide: false };
       })
     : ROOM_TPL.map(function (id) {
-        var o = { id: id, k: id, hide: false };
-        if (SECTYPES[id].own) o.devs = [];
-        return o;
-      });
+        return { id: id, k: id, hide: false };
+      }).concat([{ id: "main", k: "devs", hide: false, devs: [] }]);
+}
+
+/* Sections for a list of devices, one for each of what they are (lights, media, climate, controls, sensors, other devices; cameras as a camera section), named and iconned for it. Only the ones that have devices. */
+function groupSections(list) {
+  var G = [
+      ["lights", "lights", "lights", ["light"]],
+      ["media", "media", "tv", ["media"]],
+      ["climate", "climate", "ac", ["climate", "fan"]],
+      ["controls", "controls", "tune", ["number", "select", "button", "cover", "lock"]],
+      ["sensors", "sensors", "thermo", ["sensor"]],
+      ["other", "other_devices", "plug", ["switch", "vacuum", "special"]],
+    ],
+    out = [];
+  G.forEach(function (g) {
+    var devs = list.filter(function (d) {
+      return g[3].indexOf(d.kind) >= 0;
+    });
+    if (devs.length) out.push({ id: g[0], k: "devs", t: _T(g[1]), i: g[2], hide: false, devs: devs });
+  });
+  var cams = list.filter(function (d) {
+    return d.kind === "camera";
+  });
+  if (cams.length) out.push({ id: "camera", k: "camera", hide: false, devs: cams });
+  return out;
 }
 
 function secOrder(scope) {
@@ -225,26 +189,6 @@ function setSecOrder(scope, arr) {
   else UI.layout.rooms[scope.slice(5)] = arr;
 }
 
-function secOf(d) {
-  return (
-    {
-      light: "lights",
-      media: "media",
-      climate: "climate",
-      fan: "climate",
-      switch: "other",
-      vacuum: "other",
-      special: "other",
-      sensor: "sensors",
-      number: "controls",
-      select: "controls",
-      button: "controls",
-      cover: "controls",
-      lock: "controls",
-    }[d.kind] || "other"
-  );
-}
-
 var COLS = [];
 
 /* Two columns only when the block has two or more sections; a half-width section with no partner spans the row. */
@@ -255,7 +199,7 @@ function pageCols(sc) {
 function colCount(h) {
   var w = window.innerWidth,
     pc = h._pc || 0,
-    max = w >= 1100 ? 3 : w >= 760 ? 2 : 1,
+    max = w >= 1500 ? 4 : w >= 1100 ? 3 : w >= 760 ? 2 : 1,
     n = pc ? Math.min(pc, max) : Math.min(2, max);
   return Math.max(1, Math.min(n, h._items.length));
 }
@@ -282,8 +226,9 @@ function secI(id, def) {
   return e && e.i && iconOk(e.i) ? e.i : def;
 }
 
-function secWide(s, def) {
-  return s.w === "full" ? true : s.w === "half" ? false : def;
+/* How many columns of items a section's layout says (list is one); 0 when the section decides. */
+function layCols(lay) {
+  return { list: 1, grid2: 2, grid3: 3, grid4: 4 }[lay] || 0;
 }
 
 var SECICONS = [
@@ -443,7 +388,7 @@ function secList(scope) {
     outer.push(liveOf(el));
     if (!ok) ruleMark(el);
     if (s.hide) hideMark(el);
-    list.push({ el: el, wide: secWide(s, !!(SECTYPES[secKindOf(s)] || {}).wide), id: s.id });
+    list.push({ el: el, wide: !!(SECTYPES[secKindOf(s)] || {}).wide, id: s.id });
   });
   return list;
 }
@@ -528,13 +473,9 @@ function customSection(s) {
     ttl = s.t || ty.t,
     ico = secIcon(s);
   (s.devs || []).forEach(function (d) {
-    if (k === "lights" && d.id) LWHEEL[d.id] = !s.nowheel;
     if (!ed && (d.hide || (d.id && modeOf(d.id).mode === "hide"))) return;
     /* A lights master can leave its lights and the sync out of the section; it keeps them itself. */
-    if (!ed && k === "lights" && s.master && d.id) {
-      var pk = pluginDeviceKind(d.id);
-      if (pk ? pk.sync && s.mhs : d.kind === "light" && s.mhl) return;
-    }
+    if (!ed && k === "devs" && d.id && masterLeavesOut(s, d)) return;
     var r = k === "read" ? (d.id ? readTile(d) : null) : devRow(d);
     if (!r && ed) r = k === "read" ? readTile(d) : pill(d.icon || "plug", d.name, {});
     if (!r) return;
@@ -558,18 +499,29 @@ function customSection(s) {
       rows.length > 0
     );
   }
-  var mids = k === "lights" && s.master ? masterLightIds(s) : [];
+  var mids = k === "devs" && s.master ? masterLightIds(s) : [];
+  /* More lights masters held by the section (app/lightsmasters.js): each with the lights chosen for it, shown while the page is edited too so it can be opened. */
+  var extras = k === "devs" ? (s.masters || []).filter(function (m) { return masterLightIds(m).length > (ed ? 0 : 1) && (ed || !m.mhide); }) : [];
   /* A lights master keeps its section on the page when it has hidden every row of it: the master is the section then. */
-  if (!rows.length && !ed && !(s.master && mids.length > 1)) return null;
+  if (!rows.length && !ed && !(s.master && mids.length > 1) && !extras.length) return null;
   /* Lights master: one light at the top that controls every light of the section (or the lights chosen for it); off unless the section turns it on. While the page is edited it opens its settings. */
-  if (k === "lights" && s.master && mids.length > 1) {
-    var mr = lightsMasterRow(secKey() + "~" + s.id, mids, !s.nowheel, s.mn, s.mall, s.mo, masterMeta(s));
-    rows.unshift(
+  var masterRows = [];
+  if (k === "devs" && s.master && mids.length > 1 && (ed || !s.mhide)) {
+    var mr = lightsMasterRow(secKey() + "~" + s.id, mids, s.mn, s.mall, s.mo, masterMeta(s));
+    masterRows.push(
       edMark(mr, function () {
         showPopup("lmaster-edit:" + secKey() + ":" + s.id, true);
       })
     );
   }
+  extras.forEach(function (m) {
+    masterRows.push(
+      edMark(lightsMasterRow(secKey() + "~" + m.id, masterLightIds(m), m.mn, m.mall, m.mo, masterMeta(m)), function () {
+        showPopup("lmaster-edit:" + secKey() + ":" + m.id, true);
+      })
+    );
+  });
+  rows = masterRows.concat(rows);
   var body = rows;
   if (k === "read") {
     var g = mk("div", "glance");
@@ -578,8 +530,8 @@ function customSection(s) {
       g.appendChild(r);
     });
     body = [g];
-  } else if (s.lay === "grid2" || s.lay === "grid3") {
-    var gl = mk("div", "gridl " + (s.lay === "grid2" ? "g2" : "g3"));
+  } else if (layCols(s.lay) > 1) {
+    var gl = mk("div", "gridl g" + layCols(s.lay));
     rows.forEach(function (r) {
       gl.appendChild(r);
     });
@@ -587,35 +539,6 @@ function customSection(s) {
   }
   if (add) body.push(add);
   var sx = section(ttl, ico, body);
-  /* Lights: one tap turns off every light in the section, or, when all of them are off, turns them on as they were. */
-  if (k === "lights" && !ed && !s.noall) {
-    var ids = src
-        .filter(function (d) {
-          return d.id && dom(d.id) === "light";
-        })
-        .map(function (d) {
-          return d.id;
-        }),
-      ao = mk("div", "rnd pane sm secact", svg("power"));
-    ao.setAttribute("role", "button");
-    ao.addEventListener("click", function () {
-      if (countOn(lightUnits(ids)) > 0) {
-        call("light", "turn_off", { entity_id: ids });
-        toast(_T("turning_the_lights_off"));
-        return;
-      }
-      lightsBack(lightUnits(ids));
-      toast(_T("turning_the_lights_on"));
-    });
-    sx.firstChild.appendChild(ao);
-    reg(function () {
-      var on = countOn(lightUnits(ids)) > 0,
-        label = on ? _T("turn_all_lights_off") : _T("turn_all_lights_on");
-      ao.classList.toggle("on", on);
-      ao.title = label;
-      ao.setAttribute("aria-label", label);
-    });
-  }
   return sx;
 }
 

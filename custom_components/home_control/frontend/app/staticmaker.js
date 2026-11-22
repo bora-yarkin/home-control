@@ -12,7 +12,7 @@ function staticOpen(room, sc, target, start) {
 
 /* What the editor compares to know whether there is anything to lose. */
 function staticSnapshot(d) {
-  return JSON.stringify({ name: String(d.name || "").trim(), icon: d.icon || "", others: d.others, acts: d.acts });
+  return JSON.stringify({ name: String(d.name || "").trim(), icon: d.icon || "", others: d.others, acts: d.acts, tags: d.tags || [] });
 }
 
 function staticDirty() {
@@ -245,6 +245,10 @@ function sceneEditor(b) {
         },
       })
     );
+    if (ISADMIN) {
+      box.appendChild(sep(_T("auto_tags"), "tune"));
+      box.appendChild(sceneTagsRow(d));
+    }
     box.appendChild(sep(SCD.room === "home" ? _T("everything_else_in_the_home") : _T("everything_else_in_this_room"), "power"));
     box.appendChild(
       seg(
@@ -303,6 +307,7 @@ function staticSave(leave) {
     icon: d.icon,
     others: d.others,
     acts: d.acts,
+    tags: d.tags,
   });
   if (!sc) {
     toast(_T("couldn_t_save_this_scene"));

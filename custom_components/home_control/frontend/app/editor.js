@@ -409,12 +409,7 @@ function resetPage(sc) {
     }
   } else
     devs.forEach(function (d) {
-      var want = d.kind === "camera" ? "camera" : secOf(d),
-        t =
-          fresh.filter(function (x) {
-            return x.id === want;
-          })[0] || fresh[fresh.length - 1];
-      t.devs.push(d);
+      secForDevice(fresh, d).devs.push(d);
     });
   old.forEach(function (x) {
     if (!x.pins && !x.scn) return;
@@ -473,123 +468,52 @@ function secAdd(sc, k) {
   return e;
 }
 
-/* Changes a section to another type; widgets stay when both types hold widgets. */
-function secSetKind(sc, sid, v, done) {
-  var arr = secOrder(sc),
-    e = arr.filter(function (x) {
-      return x.id === sid;
-    })[0],
-    to = SECTYPES[v];
-  if (!e || !to || e.k === v) return done && done();
-  if (
-    to.one &&
-    arr.some(function (x) {
-      return x !== e && x.k === v;
-    })
-  ) {
-    toast(_T("this_page_already_has_one"));
-    return;
-  }
-  function go() {
-    e.k = v;
-    if (v !== "link") delete e.ref;
-    if (to.own) {
-      if (!e.devs) e.devs = [];
-    } else delete e.devs;
-    if (v === "chart") {
-      if (!e.r) e.r = "24h";
-    } else delete e.r;
-    if (v !== "note") delete e.txt;
-    if ((!to.own && v !== "pinned") || v === "read" || v === "camera") delete e.lay;
-    setSecOrder(sc, arr);
-    uiChanged();
-    if (done) done();
-  }
-  if (!to.own && (e.devs || []).length) confirmDlg(_T("changing_the_type_removes_the_widget"), go);
-  else go();
-}
+/* The kinds of section there are, by what they are for, for the Add section list. */
+var SEC_GROUPS = [
+  ["sec_group_section", "tune", ["devs"]],
+  ["sec_group_overview", "home", ["glance", "rooms", "alerts", "chips", "status"]],
+  ["sec_group_scenes", "scene", ["scenes", "pinned"]],
+  ["sec_group_information", "info", ["chart", "read", "note", "security", "energy"]],
+  ["sec_group_cameras", "cam", ["camera", "cameras"]],
+  ["sec_group_tools", "swap", ["link"]],
+];
 
 function secTypesPage(b, scopeId) {
   var sc = scopeKey(scopeId),
     have = secOrder(sc);
   b.appendChild(mkHint(_T("choose_what_the_new_section_shows_yo")));
-  SEC_PICK.forEach(function (k) {
-    var ty = SECTYPES[k],
-      ex = ty.one
-        ? have.filter(function (x) {
-            return x.k === k;
-          })[0]
-        : null;
-    if (ex && !ex.hide) return;
-    if (ex) {
+  SEC_GROUPS.forEach(function (g) {
+    b.appendChild(sep(_T(g[0]), g[1]));
+    g[2].forEach(function (k) {
+      var ty = SECTYPES[k],
+        ex = ty.one
+          ? have.filter(function (x) {
+              return x.k === k;
+            })[0]
+          : null;
       b.appendChild(
         pill(ty.i, ty.t, {
           sub: function () {
-            return _T("already_on_this_page_hidden_tap_to_s");
+            return ex ? (ex.hide ? _T("already_on_this_page_hidden_tap_to_s") : _T("already_on_this_page")) : ty.d;
           },
           tap: function () {
-            ex.hide = false;
-            setSecOrder(sc, have);
-            uiChanged();
-            closeSheet();
+            if (ex) {
+              if (!ex.hide) return toast(_T("this_page_already_has_one"));
+              ex.hide = false;
+              setSecOrder(sc, have);
+              uiChanged();
+              closeSheet();
+              return;
+            }
+            var e = secAdd(sc, k);
+            if (!e) return;
+            STACK.pop();
+            CURRENT = null;
+            showPopup("manage-sec:" + scopeId + ":" + e.id, true);
           },
         })
       );
-      return;
-    }
-    b.appendChild(
-      pill(ty.i, ty.t, {
-        sub: function () {
-          return ty.d;
-        },
-        tap: function () {
-          var e = secAdd(sc, k);
-          if (!e) return;
-          STACK.pop();
-          CURRENT = null;
-          showPopup("manage-sec:" + scopeId + ":" + e.id, true);
-        },
-      })
-    );
-  });
-}
-
-function secTypePage(b, key) {
-  var p = key.split(":"),
-    scopeId = p[0],
-    sid = p[1],
-    sc = scopeKey(scopeId),
-    arr = secOrder(sc),
-    e = arr.filter(function (x) {
-      return x.id === sid;
-    })[0];
-  if (!e) return;
-  SEC_PICK.forEach(function (k) {
-    var ty = SECTYPES[k];
-    if (
-      ty.one &&
-      arr.some(function (x) {
-        return x !== e && x.k === k;
-      })
-    )
-      return;
-    b.appendChild(
-      pill(ty.i, ty.t, {
-        on: function () {
-          return e.k === k;
-        },
-        sub: function () {
-          return ty.d;
-        },
-        tap: function () {
-          secSetKind(sc, sid, k, function () {
-            STACK.pop();
-            CURRENT = null;
-            showPopup("manage-sec:" + key, false);
-          });
-        },
-      })
-    );
+    });
   });
 }
 
@@ -666,10 +590,6 @@ function editPageSettings(b, key) {
     box = mk("div");
   b.appendChild(box);
   function draw() {
-    var o = secOrder(sc),
-      hid = o.filter(function (s) {
-        return s.hide;
-      });
     if (room) {
       box.appendChild(
         pill("edit", _T("room_details"), {
@@ -704,64 +624,26 @@ function editPageSettings(b, key) {
       );
     box.appendChild(sep(_T("columns"), "home"));
     box.appendChild(
-      seg(
-        [
-          ["0", _T("automatic")],
-          ["1", "1"],
-          ["2", "2"],
-          ["3", "3"],
-        ],
-        String((UI.layout.cols || {})[room || "home"] || 0),
+      dropRow(
+        _T("sections_side_by_side"),
+        ["0", "1", "2", "3", "4"],
+        function () {
+          return String((UI.layout.cols || {})[room || "home"] || 0);
+        },
         function (v) {
           UI.layout.cols = UI.layout.cols || {};
           if (v === "0") delete UI.layout.cols[room || "home"];
           else UI.layout.cols[room || "home"] = +v;
           uiChanged();
           redrawBox(box, draw);
+        },
+        "tune",
+        function (v) {
+          return v === "0" ? _T("automatic") : v;
         }
       )
     );
     box.appendChild(hintRow(_T("on_wide_screens_phones_always_use_on")));
-    box.appendChild(sep(_T("hidden_sections"), "lock"));
-    if (!hid.length) {
-      box.appendChild(hintRow(_T("none_hide_a_section_from_its_setting")));
-    }
-    hid.forEach(function (s) {
-      box.appendChild(
-        pill("plus", secName(s), {
-          sub: function () {
-            return _T("hidden_tap_to_show_it_again");
-          },
-          tap: function () {
-            s.hide = false;
-            setSecOrder(sc, o);
-            uiChanged();
-            redrawBox(box, draw);
-          },
-        })
-      );
-    });
-    box.appendChild(sep(_T("export_and_import"), "sd"));
-    box.appendChild(
-      pill("sd", _T("export_this_page"), {
-        sub: function () {
-          return _T("export_this_page_sub");
-        },
-        tap: function () {
-          pageExportFile(sc);
-        },
-      })
-    );
-    box.appendChild(
-      pill("plus", _T("import_a_page"), {
-        sub: function () {
-          return _T("import_a_page_sub");
-        },
-        tap: function () {
-          pageImportFile(sc);
-        },
-      })
-    );
     box.appendChild(sep(_T("start_over"), "restart"));
     box.appendChild(
       pill("restart", _T("reset_sections"), {
@@ -847,17 +729,29 @@ var ADDPRE = null,
 /* Rooms grouped by their Home Assistant floor (lowest level first), keeping the dashboard's room order inside each floor.
  Returns null when everything is on one floor, so the Home page then shows a single grid as before. */
 /* Widgets live inside sections. These put a device on a page (into its first section of the matching type, creating one if needed) or take devices off. */
-function addDevToPage(room, d) {
-  var arr = secOrder("room:" + room),
-    want = d.kind === "camera" ? "camera" : secOf(d),
-    s = arr.filter(function (x) {
-      return x.k === want;
-    })[0];
+/* The section of a page a device goes into when no section was chosen: one that already holds a device of its kind, else the first Section, else a new one. */
+function secForDevice(arr, d) {
+  var secs = arr.filter(function (x) {
+    return x.k === "devs";
+  });
+  var same = secs.filter(function (x) {
+    return (x.devs || []).some(function (y) {
+      return y.kind === d.kind;
+    });
+  })[0];
+  var s = same || secs[0];
   if (!s) {
-    s = { id: newSecId(arr), k: want, hide: false, devs: [] };
+    s = { id: newSecId(arr), k: "devs", hide: false, devs: [] };
     arr.push(s);
   }
-  (s.devs = s.devs || []).push(d);
+  if (!s.devs) s.devs = [];
+  return s;
+}
+
+function addDevToPage(room, d) {
+  var arr = secOrder("room:" + room),
+    s = secForDevice(arr, d);
+  s.devs.push(d);
   return { rid: "~" + room + "~" + s.id, i: s.devs.length - 1 };
 }
 
@@ -885,11 +779,76 @@ function pageDevIds(rid) {
 }
 
 function addRoom() {
-  var id = "r" + Date.now().toString(36).slice(-6);
-  UI.rooms.push({ id: id, name: _T("new_room"), short: "", icon: "home", area: "" });
-  UI.layout.rooms[id] = seedSections("room:" + id);
-  uiChanged();
-  showPopup("manage-details:" + id, true);
+  showPopup("room-new", true);
+}
+
+/* A new page: a name, optionally a Home Assistant room, and whether it starts with sections suggested from what that room has (one for lights, one for media, and so on) or empty. */
+function roomNewPage(b) {
+  var draft = { name: "", area: "", suggest: true },
+    box = mk("div");
+  b.appendChild(box);
+  function areas() {
+    return ["", ...Object.keys(H().areas || {}).sort(function (x, y) {
+      return String(H().areas[x].name).localeCompare(H().areas[y].name);
+    })];
+  }
+  function draw() {
+    box.innerHTML = "";
+    box.appendChild(
+      textRow("home", _T("room_name"), draft.name, function (v) {
+        draft.name = v.slice(0, 40);
+      }, 40)
+    );
+    box.appendChild(
+      dropRow(
+        _T("add_area"),
+        areas(),
+        function () {
+          return draft.area;
+        },
+        function (v) {
+          draft.area = v;
+          if (v && !draft.name) draft.name = (H().areas[v] || {}).name || "";
+          redrawBox(box, draw);
+        },
+        "home",
+        function (v) {
+          return v ? (H().areas[v] || {}).name || v : _T("no_room_in_home_assistant");
+        }
+      )
+    );
+    if (draft.area) {
+      box.appendChild(
+        seg(
+          [
+            ["suggest", _T("rn_suggested")],
+            ["empty", _T("rn_empty")],
+          ],
+          draft.suggest ? "suggest" : "empty",
+          function (v) {
+            draft.suggest = v === "suggest";
+            redrawBox(box, draw);
+          }
+        )
+      );
+      box.appendChild(hintRow(draft.suggest ? _T("rn_suggested_hint") : _T("rn_empty_hint")));
+    }
+    box.appendChild(
+      pill("check", _T("rn_create"), {
+        tap: function () {
+          var id = "r" + Date.now().toString(36).slice(-6),
+            sections = draft.area && draft.suggest ? groupSections(areaDevices(draft.area)) : [];
+          if (!sections.length) sections = [{ id: "main", k: "devs", hide: false, devs: [] }];
+          UI.rooms.push({ id: id, name: draft.name || _T("new_room"), short: "", icon: "home", area: draft.area });
+          UI.layout.rooms[id] = [{ id: "status", k: "status", hide: false }].concat(sections);
+          uiChanged();
+          toast(_T("rn_created"));
+          closeSheet();
+        },
+      })
+    );
+  }
+  draw();
 }
 
 function secEditor(b, key) {
@@ -931,44 +890,15 @@ function secEditor(b, key) {
     var k = e.k || "devs",
       ty = SECTYPES[k] || SECTYPES.devs;
     box.appendChild(
-      pill(ty.i, ty.t, {
-        sub: function () {
-          return _T("section_type_tap_to_change_it");
-        },
-        tap: function () {
-          showPopup("sec-type:" + key, true);
-        },
-      })
-    );
-    box.appendChild(
-      seg(
-        [
-          ["auto", _T("automatic")],
-          ["full", _T("full_width")],
-          ["half", _T("half_width")],
-        ],
-        e.w || "auto",
-        function (v) {
-          if (v === "auto") delete e.w;
-          else e.w = v;
-          save();
-          redrawBox(box, draw);
-        }
-      )
-    );
-    box.appendChild(
-      pill("check", _T("show_this_section"), {
-        on: function () {
+      visiblePill(
+        function () {
           return !e.hide;
         },
-        sub: function () {
-          return e.hide ? _T("hidden") : _T("visible");
-        },
-        tap: function () {
+        function () {
           e.hide = !e.hide;
           save();
-        },
-      })
+        }
+      )
     );
     ruleControls(
       box,
@@ -1012,88 +942,6 @@ function secEditor(b, key) {
           })
         );
     }
-    if (k === "lights")
-      box.appendChild(
-        pill("power", _T("turn_all_off_button"), {
-          on: function () {
-            return !e.noall;
-          },
-          sub: function () {
-            return e.noall ? _T("hidden") : _T("shown_next_to_the_title_while_a_ligh");
-          },
-          tap: function () {
-            if (e.noall) delete e.noall;
-            else e.noall = 1;
-            save();
-            redrawBox(box, draw);
-          },
-        })
-      );
-    if (k === "lights")
-      box.appendChild(
-        pill("lights", _T("lights_master"), {
-          on: function () {
-            return !!e.master;
-          },
-          sub: function () {
-            return e.master ? _T("a_light_at_the_top_that_controls_every_") : _T("hidden");
-          },
-          tap: function () {
-            if (e.master) delete e.master;
-            else e.master = 1;
-            save();
-            redrawBox(box, draw);
-          },
-        })
-      );
-    if (k === "lights" && e.master)
-      box.appendChild(
-        pill("edit", _T("lights_master_settings"), {
-          sub: function () {
-            return _T("name_whole_room_and_the_order_of_the_lights");
-          },
-          tap: function () {
-            showPopup("lmaster-edit:" + key, true);
-          },
-        })
-      );
-    if (k === "lights")
-      box.appendChild(
-        pill("palette", _T("colour_circle"), {
-          on: function () {
-            return !e.nowheel;
-          },
-          sub: function () {
-            return e.nowheel ? _T("light_popup_uses_sliders") : _T("light_popup_opens_on_the_wheel");
-          },
-          tap: function () {
-            if (e.nowheel) delete e.nowheel;
-            else e.nowheel = 1;
-            save();
-            redrawBox(box, draw);
-          },
-        })
-      );
-    if (k === "lights")
-      box.appendChild(
-        pill("palette", _T("light_colour_in_popups"), {
-          on: function () {
-            return !e.accent;
-          },
-          sub: function () {
-            return e.accent
-              ? _T("popups_use_the_accent_colour")
-              : _T("popup_sliders_are_filled_with_the_ligh");
-          },
-          tap: function () {
-            if (e.accent) delete e.accent;
-            else e.accent = 1;
-            save();
-            redrawBox(box, draw);
-          },
-        })
-      );
-    if (k === "lights")
     if (k === "energy") {
       box.appendChild(sep(_T("cost"), "plug"));
       box.appendChild(
@@ -1153,33 +1001,27 @@ function secEditor(b, key) {
     }
     /* Sections that list items can show them in one, two or three columns. Pinned items and quick actions already had a default shape (2 columns, 4 tiles), which stays when nothing is chosen. */
     if (
-      [
-        "devs",
-        "lights",
-        "media",
-        "climate",
-        "controls",
-        "sensors",
-        "other",
-        "scenes",
-        "pinned",
-        "quick",
-      ].indexOf(k) >= 0
+      ["devs", "scenes", "pinned"].indexOf(k) >= 0
     ) {
-      var dl0 = k === "pinned" ? "grid2" : k === "quick" ? "grid4" : "list",
-        opts = [
-          ["list", _T("list")],
-          ["grid2", _T("2_columns")],
-          ["grid3", _T("3_columns")],
-        ].concat(k === "quick" ? [["grid4", _T("4_columns")]] : []);
       box.appendChild(sep(_T("layout"), "tune"));
       box.appendChild(
-        seg(opts, e.lay || dl0, function (v) {
-          if (v === dl0) delete e.lay;
-          else e.lay = v;
-          save();
-          redrawBox(box, draw);
-        })
+        dropRow(
+          _T("columns"),
+          ["auto", "list", "grid2", "grid3", "grid4"],
+          function () {
+            return e.lay || "auto";
+          },
+          function (v) {
+            if (v === "auto") delete e.lay;
+            else e.lay = v;
+            save();
+            redrawBox(box, draw);
+          },
+          "tune",
+          function (v) {
+            return v === "auto" ? _T("automatic") : String(layCols(v));
+          }
+        )
       );
     }
     if (k === "chart")
@@ -1266,6 +1108,10 @@ function secEditor(b, key) {
           true
         )
       );
+    if (k === "scenes")
+      sceneTagSectionRows(box, e, function () {
+        redrawBox(box, draw);
+      });
     if (k === "quick" || k === "scenes")
       box.appendChild(
         pill("scene", _T("scenes_in_this_section"), {
@@ -1287,6 +1133,10 @@ function secEditor(b, key) {
             c.t = (e.t || ty.t).slice(0, 36) + " 2";
             order.splice(order.indexOf(e) + 1, 0, c);
             setSecOrder(sk, order);
+            /* the lights masters it holds are copies with ids of their own */
+            (c.masters || []).forEach(function (m) {
+              m.id = masterNewId(sk === "home" ? "home" : sk.slice(5));
+            });
             uiChanged();
             toast(_T("section_duplicated"));
           },

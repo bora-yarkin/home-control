@@ -125,10 +125,6 @@ function lpCap(n, mode) {
   });
 }
 
-function lpSplit(e) {
-  return !!(UIDEV[e] || {}).split;
-}
-
 /* A light does not report its colour or white temperature while it is off, so where it was last seen is kept (in this browser, across visits) to show its marker there instead of in the middle. */
 var LPMEM = lpMemLoad(),
   lpMemT = 0,
@@ -148,10 +144,10 @@ function lpRemember(e, key, v) {
   }, 1500);
 }
 
-/* Colour and white temperature as a light has them (or had them last); a light with separate zones (split) keeps what was last set for each zone. */
+/* Colour and white temperature as a light has them (or had them last). */
 function lpHs(e) {
   var a = A(e),
-    v = lpSplit(e) ? lzone(e).hs : a.hs_color;
+    v = a.hs_color;
   /* A light that reports only an xy colour (the zones of a gradient light) is placed by that colour. */
   if (!v && a.xy_color && V_(e) === "on") v = liveXyHs(a.xy_color[0], a.xy_color[1]);
   if (v) lpRemember(e, "hs", v);
@@ -160,7 +156,7 @@ function lpHs(e) {
 }
 
 function lpKelvin(e) {
-  var v = lpSplit(e) ? lzone(e).k : A(e).color_temp_kelvin;
+  var v = A(e).color_temp_kelvin;
   if (v) lpRemember(e, "k", v);
   else v = (LPMEM[e] || {}).k;
   return v || null;
@@ -186,26 +182,30 @@ function lpWhiteWheel() {
 function lpKrange(n) {
   var c = lpCap(n, "white");
   if (!c.length) return [2000, 6500];
-  var a = A(c.filter(isOn)[0] || c[0]);
-  return [a.min_color_temp_kelvin || 2000, a.max_color_temp_kelvin || 6500];
+  /* What every one of the lights can show: the highest of the lowest and the lowest of the highest. A group helper that does not know its lights' range says 1000 to 20000, and one light like that, as the first, put every marker on the wheel in the wrong place (a light dropped at the cool end is held at its own 6535 and the marker went back to a place a third of the way down). */
+  var lo = 0,
+    hi = Infinity;
+  c.forEach(function (e) {
+    var a = A(e);
+    lo = Math.max(lo, a.min_color_temp_kelvin || 0);
+    hi = Math.min(hi, a.max_color_temp_kelvin || Infinity);
+  });
+  if (lo > 0 && hi > lo && hi < Infinity) return [lo, hi];
+  var a0 = A(c.filter(isOn)[0] || c[0]);
+  return [a0.min_color_temp_kelvin || 2000, a0.max_color_temp_kelvin || 6500];
 }
 
 /* Sends a colour or a white temperature to what a node stands for. */
 function lpPush(n, mode, data) {
   var t = lpCap(n, mode);
   if (!t.length) return;
-  if (t.length === 1 && lpSplit(t[0])) {
-    var d = Object.assign({ entity_id: t[0] }, data);
-    lightPush(t[0], d);
-    return;
-  }
   callLive("lp:" + n.key + ":" + mode, "light", "turn_on", Object.assign({ entity_id: t }, data));
 }
 
 /* ---- the circles ---- */
 
 /* Where a light puts its marker on a circle of radius R: at its colour, or at its white temperature (the height). A light with no value yet waits near the middle, spread around it so the markers do not hide each other. 'i' of 'count' is the marker's place among them. */
-function lpSpot(mode, ref, R, krange, i, count) {
+function lpSpot(mode, ref, R, krange, i, count, kelvin) {
   var many = count > 1;
   if (mode === "color") {
     var h = ref ? lpHs(ref) : null;
@@ -217,9 +217,24 @@ function lpSpot(mode, ref, R, krange, i, count) {
     var spread = (2 * Math.PI * i) / count;
     return [R + (many ? 0.16 * R * Math.sin(spread) : 0), R - (many ? 0.16 * R * Math.cos(spread) : 0)];
   }
-  var kv = ref ? lpKelvin(ref) : null,
+  var kv = kelvin || (ref ? lpKelvin(ref) : null),
     y = kv ? Math.max(0, Math.min(2 * R, ((kv - krange[0]) / (krange[1] - krange[0])) * 2 * R)) : R;
   return [R, y];
+}
+
+/* The white temperature a marker stands for: the average of its lights that are on and can show one (a group whose lights run at different temperatures sits between them, not on the first), or null. */
+function lpMeanKelvin(n, mode) {
+  if (mode === "color") return null;
+  var sum = 0,
+    count = 0;
+  lightIndividuals(lpCap(n, mode)).forEach(function (e) {
+    var k = isOn(e) ? lpKelvin(e) : null;
+    if (k) {
+      sum += k;
+      count++;
+    }
+  });
+  return count ? sum / count : null;
 }
 
 /* Markers that would sit on top of each other (lights with the same colour) are moved a little apart, so each can be seen and picked; on the white wheel, where a light's place across means nothing, they are moved sideways. */
@@ -509,7 +524,7 @@ function lpCircle(S, mode) {
   function start() {
     var R = circ.clientWidth / 2,
       pts = marks.map(function (m, i) {
-        return lpSpot(mode, ref(m.n), R, krange, i, marks.length);
+        return lpSpot(mode, ref(m.n), R, krange, i, marks.length, lpMeanKelvin(m.n, mode));
       });
     if (marks.length > 1) lpApart(pts, R, !isColor);
     if (hold && Date.now() > hold.until) hold = null;
@@ -858,6 +873,7 @@ function lpCircle(S, mode) {
       })
     )
       return;
+    if (!bub && S.resplit()) return S.rebuild();
     start();
   });
   requestAnimationFrame(build);
@@ -875,12 +891,16 @@ function lpLook(e) {
     xy: a.xy_color || null,
     k: a.color_temp_kelvin || null,
     mode: a.color_mode,
+    /* what the light is doing beyond its colour: an effect, or a live scene's moving palette */
+    fx: a.effect && a.effect !== "off" ? a.effect : "",
+    dyn: !!a.dynamics && a.dynamics !== "none",
   };
 }
 
-/* Whether two lights look the same: both off, or the same colour (or white temperature) at about the same brightness. */
+/* Whether two lights look the same: both off, or the same colour (or white temperature) at about the same brightness, doing the same (a still colour, the same effect, or a moving palette): a light on an effect or in a live scene is not one with a light that only shows a colour, however close the colours are at the moment. */
 function lpSameLook(x, y) {
   if (x.off || y.off) return !!x.off && !!y.off;
+  if ((x.fx || "") !== (y.fx || "") || !!x.dyn !== !!y.dyn) return false;
   if (x.b != null && y.b != null && Math.abs(x.b - y.b) >= 8) return false;
   if (x.mode === "color_temp" && y.mode === "color_temp" && x.k && y.k) return Math.abs(x.k - y.k) < 150;
   if (x.xy && y.xy) return Math.hypot(x.xy[0] - y.xy[0], x.xy[1] - y.xy[1]) < 0.012;
@@ -899,12 +919,10 @@ function lpNodeLook(n) {
   return first;
 }
 
-/* A panel whose groups are single lights (S.hier) opens with its lights apart, the ones that look the same sharing a marker; a group is never opened by itself, however its lights look. */
-function lpHierInit(S, root) {
-  if (!root.kids || lpNodeLook(root)) return;
-  S.ex[root.key] = true;
+/* The lights of a list that look the same share a marker (a virtual node, kept apart from one the person made, which has no `auto`); the rest stay on their own. */
+function lpJoinAlike(S, kids) {
   var groups = [];
-  root.kids.forEach(function (k) {
+  kids.forEach(function (k) {
     var l = lpNodeLook(k),
       g = l
         ? groups.filter(function (x) {
@@ -915,8 +933,20 @@ function lpHierInit(S, root) {
     else groups.push({ look: l, kids: [k] });
   });
   groups.forEach(function (g) {
-    if (g.kids.length > 1) S.joined.push(S.makeVirtual(g.kids, g.kids[0].icon));
+    if (g.kids.length > 1) {
+      var v = S.makeVirtual(g.kids, g.kids[0].icon);
+      v.auto = true;
+      S.joined.push(v);
+    }
   });
+}
+
+/* A panel whose groups are single lights (S.hier) opens with its lights apart, the ones that look the same sharing a marker; a group is never opened by itself, however its lights look. */
+function lpHierInit(S, root) {
+  if (!root.kids) return;
+  if (lpNodeLook(root)) return S.auto.push(root);
+  S.ex[root.key] = true;
+  lpJoinAlike(S, root.kids);
 }
 
 /* The lights row of a panel whose groups are single lights: the lights of the whole, a group as one tile. What is separated on the wheel does not change it: a light taken out of a group on the wheel is still in its group here. */
@@ -926,22 +956,10 @@ function lpTrayUnits(S) {
 
 /* A panel opens showing what the lights really do: a group whose lights look the same stays one marker; when they differ it opens separated, and the lights that look the same stay together as one marker. */
 function lpAutoSplit(S, n) {
-  if (!n.kids || lpNodeLook(n)) return;
+  if (!n.kids) return;
+  if (lpNodeLook(n)) return S.auto.push(n);
   S.ex[n.key] = true;
-  var groups = [];
-  n.kids.forEach(function (k) {
-    var l = lpNodeLook(k),
-      g = l
-        ? groups.filter(function (x) {
-            return x.look && lpSameLook(x.look, l);
-          })[0]
-        : null;
-    if (g) g.kids.push(k);
-    else groups.push({ look: l, kids: [k] });
-  });
-  groups.forEach(function (g) {
-    if (g.kids.length > 1) S.joined.push(S.makeVirtual(g.kids, g.kids[0].icon));
-  });
+  lpJoinAlike(S, n.kids);
   n.kids.forEach(function (k) {
     lpAutoSplit(S, k);
   });
@@ -958,6 +976,10 @@ function lpState(root, both, groups) {
     sel: null,
     subs: [],
     joined: [],
+    /* what was left whole at the opening because its lights looked the same (looked at again by resplit) */
+    auto: [],
+    /* the person took lights out of a marker or joined them: what is together or apart is then theirs, and only what the panel put together itself is taken apart (resplit) */
+    touched: false,
     jn: 0,
     from: null,
     pop: null,
@@ -992,6 +1014,7 @@ function lpState(root, both, groups) {
   };
   /* A light was dragged out of its group's circle: it is on its own, the rest of the group stays together. */
   S.detach = function (g, kid) {
+    S.touched = true;
     if (S.hier) return S.pullOut(kid);
     var gone = lpLeaves(kid),
       rest = lpOpenKids(g).filter(function (k) {
@@ -1016,6 +1039,7 @@ function lpState(root, both, groups) {
   };
   /* A panel whose groups are single lights: one light (or group) is taken out of the marker it is in and has a marker of its own. A group that holds it is opened where it stands (the others of it stay together, with whatever they were together with). */
   S.pullOut = function (kid) {
+    S.touched = true;
     var chain = [];
     for (var p = kid.parent; p; p = p.parent) chain.unshift(p);
     chain.forEach(function (a) {
@@ -1049,6 +1073,7 @@ function lpState(root, both, groups) {
   };
   /* Dropping one marker on another, in a panel whose groups are single lights: they share one marker; a group that has all its lights in it is whole again, and so on up to the whole. */
   S.joinHier = function (a, b) {
+    S.touched = true;
     var kids = [],
       gone = [];
     [a, b].forEach(function (n) {
@@ -1093,6 +1118,89 @@ function lpState(root, both, groups) {
     }
     S.pop = [S.sel];
     S.rebuild();
+  };
+  /* What is together on the wheel follows what the lights do, the same on every screen that shows them: a panel the person has not changed by hand is arranged again from what the lights look like now, as it was when it opened (lights that stopped looking alike are apart, lights that came to look alike are together). One that they changed keeps their arrangement, and only what the panel put together itself is taken apart. An arrangement has to be the same on two checks before it is taken, so lights that cross a limit for a moment do not shake the wheel. Returns whether the wheel has to be made again. */
+  function arrangement() {
+    return (
+      Object.keys(S.ex)
+        .filter(function (k) {
+          return S.ex[k];
+        })
+        .sort()
+        .join(",") +
+      "|" +
+      lpVisible(S)
+        .map(function (n) {
+          /* a marker made of several is told by its lights: its own key is new every time it is made */
+          return n.virtual
+            ? "[" +
+                n.kids
+                  .map(function (k) {
+                    return k.key;
+                  })
+                  .join(",") +
+                "]"
+            : n.key;
+        })
+        .join(",")
+    );
+  }
+  S.resplit = function () {
+    var changed = false;
+    if (!S.touched) {
+      var ex0 = S.ex,
+        joined0 = S.joined,
+        auto0 = S.auto,
+        was = arrangement();
+      S.ex = {};
+      S.joined = [];
+      S.auto = [];
+      if (S.hier) lpHierInit(S, S.root);
+      else lpAutoSplit(S, S.root);
+      var now = arrangement();
+      S.ex = ex0;
+      S.joined = joined0;
+      S.auto = auto0;
+      if (now === was) S.pending = null;
+      else if (S.pending !== now) S.pending = now;
+      else {
+        S.pending = null;
+        S.ex = {};
+        S.joined = [];
+        S.auto = [];
+        if (S.hier) lpHierInit(S, S.root);
+        else lpAutoSplit(S, S.root);
+        changed = true;
+      }
+    } else {
+      S.auto = S.auto.filter(function (n) {
+        if (S.ex[n.key]) return false;
+        if (lpNodeLook(n)) return true;
+        if (S.hier) lpHierInit(S, n);
+        else lpAutoSplit(S, n);
+        changed = true;
+        return false;
+      });
+      /* A marker the panel made of lights that looked the same, one of which changed: the others that still look the same stay together. */
+      S.joined.slice().forEach(function (v) {
+        if (!v.auto) return;
+        var first = null;
+        var alike = v.kids.every(function (k) {
+          var l = lpNodeLook(k);
+          if (!l) return false;
+          first = first || l;
+          return lpSameLook(first, l);
+        });
+        if (alike) return;
+        S.joined = S.joined.filter(function (x) {
+          return x !== v;
+        });
+        lpJoinAlike(S, v.kids);
+        changed = true;
+      });
+    }
+    if (changed && S.sel && !lpFindIn(S, S.sel)) S.sel = null;
+    return changed;
   };
   S.rebuild = function () {
     S.popNow = S.pop;
@@ -1142,6 +1250,7 @@ function lpState(root, both, groups) {
     var open = [];
     for (var p = n.parent; p; p = p.parent) if (p.kids && !S.ex[p.key]) open.push(p);
     if (!open.length) return S.select(n.key);
+    S.touched = true;
     open.forEach(function (p) {
       S.ex[p.key] = true;
     });
@@ -1154,6 +1263,7 @@ function lpState(root, both, groups) {
   /* Dropping one marker on another: they become one marker that moves together. When that makes all the lights of a separated group, the group is whole again. */
   S.join = function (a, b) {
     if (S.maker) return; /* the colours of a live scene are not joined to one another or to lights */
+    S.touched = true;
     if (S.hier) return S.joinHier(a, b);
     var kids = [],
       gone = [];
@@ -1919,6 +2029,7 @@ function lpDynamicLights() {
 
 /* What one light is doing, in a word for the line under its name: Sync (a plugin says a sync plays on it), the effect it runs, Dynamics (a scene's colours moving), or Static (one colour). Nothing while it is off. */
 function lpLightDoing(e, dyn) {
+  if (V_(e) === "unavailable") return _T("unavailable");
   var on = V_(e) === "on";
   if (pluginPlays(e)) return _T("tile_sync");
   if (!on) return "";
@@ -1928,6 +2039,32 @@ function lpLightDoing(e, dyn) {
   /* the bridge says a light plays a scene's colours (Hue's `dynamics` is "none" when it does not) */
   if (own.dynamics && own.dynamics !== "none") return _T("tile_dynamics");
   return dyn[e] || dyn[lpFxLight(e)] ? _T("tile_dynamics") : _T("tile_static");
+}
+
+/* The line under the mode: the brightness the lights that are on run at (their average) and the temperature of those that run a white (their average). Nothing while they are all off. */
+function lpTileLevels(n) {
+  var on = lightIndividuals(n.cmd).filter(isOn);
+  if (!on.length) return "";
+  var bri = 0;
+  on.forEach(function (e) {
+    bri += briNow(e);
+  });
+  var ks = on
+    .map(function (e) {
+      var a = A(e);
+      return a.color_mode === "color_temp" && a.color_temp_kelvin ? a.color_temp_kelvin : 0;
+    })
+    .filter(Boolean);
+  var words = [Math.round(bri / on.length / 2.55) + "%"];
+  if (ks.length)
+    words.push(
+      Math.round(
+        ks.reduce(function (a, b) {
+          return a + b;
+        }, 0) / ks.length
+      ) + _T("k").replace(/[\s·]+/g, "")
+    );
+  return words.join(" · ");
 }
 
 /* The same for a tile: what all its lights do, or Mixed when they do not do the same. */
@@ -1970,7 +2107,7 @@ function lpTrayStruct(S, list, depth) {
     var item = { n: n };
     /* A group opens by itself, once, when its lights are not running alike; after that it is as it was left. */
     if (lpIsGroup(n) && S.trayEx[n.key] === undefined) S.trayEx[n.key] = !lpNodeLook(n);
-    if (lpIsGroup(n) && S.trayEx[n.key]) item.kids = lpTrayStruct(S, lpSortLights(n.kids, null), (depth || 0) + 1);
+    if (lpIsGroup(n) && S.trayEx[n.key]) item.kids = lpTrayStruct(S, lpSortLights(n.kids, S.root.order), (depth || 0) + 1);
     return item;
   });
 }
@@ -2006,6 +2143,7 @@ function lpTray(S) {
     var dyn = lpDynamicLights();
     tiles.forEach(function (t) {
       if (t.sub) t.sub.textContent = lpTileDoing(t.n, dyn);
+      if (t.lv) t.lv.textContent = lpTileLevels(t.n);
       var on = countOn(t.n.cmd) > 0,
         grp = S.hier && lpIsGroup(t.n),
         cs = on ? (grp && lpGroupColours(t.n)) || lpTileColours(t.n) : null,
@@ -2226,6 +2364,8 @@ function lpTray(S) {
     el.appendChild(nm);
     var doing = mk("div", "lp-ts");
     el.appendChild(doing);
+    var levels = mk("div", "lp-ts lp-tl");
+    el.appendChild(levels);
     el.appendChild(sw);
     el.addEventListener("click", function () {
       S.reveal(n);
@@ -2255,7 +2395,7 @@ function lpTray(S) {
       el.appendChild(rm);
     }
     (parent || tray).appendChild(el);
-    tiles.push({ n: n, el: el, fxl: el.firstChild, sub: doing });
+    tiles.push({ n: n, el: el, fxl: el.firstChild, sub: doing, lv: levels });
   }
   S.subs.push({
     build: function () {
@@ -2614,45 +2754,10 @@ function lpBrightnessRow(S) {
   });
 }
 
-/* The old colour / white slider, for a Lights section that has the colour wheel turned off. */
-function lpSliders(b, root, colorOk, whiteOk) {
-  var box = mk("div"),
-    ref = function (mode) {
-      var c = lpCap(root, mode);
-      return c.filter(isOn)[0] || c[0];
-    };
-  b.appendChild(box);
-  lightColourRow(box, {
-    color: colorOk,
-    white: whiteOk,
-    icon: root.icon,
-    wheel: false,
-    colorNow: function () {
-      var r = lpCap(root, "color").filter(isOn)[0];
-      return !!r && LP_COLOUR_MODES.indexOf(A(r).color_mode) >= 0;
-    },
-    hs: function () {
-      var r = ref("color");
-      return (r && lpHs(r)) || null;
-    },
-    kelvin: function () {
-      var r = ref("white");
-      return r ? lpKelvin(r) : null;
-    },
-    krange: function () {
-      return lpKrange(root);
-    },
-    kgrad: whiteOk ? kelGrad(lpCap(root, "white")[0]) : "",
-    push: function (d) {
-      lpPush(root, "hs_color" in d ? "color" : "white", d);
-    },
-  });
-}
-
 /* The white temperatures saved for every light. Until one is added or removed here, they are the whites already saved as presets of lights. */
 /* ---- the panel ---- */
 
-/* 'root' is the node tree of what the popup controls. 'o': room (the room whose saved colours are shown, or null for none), and sliders (the colour wheel is turned off for this light or section: the old colour slider is shown instead). */
+/* 'root' is the node tree of what the popup controls. 'o': room (the room whose saved colours are shown, or null for none). */
 function lightPanel(b, root, o) {
   var colorOk = lpCap(root, "color").length > 0,
     whiteOk = lpCap(root, "white").length > 0,
@@ -2665,12 +2770,11 @@ function lightPanel(b, root, o) {
   S.restore = LPBACK && LPBACK.root === root.key ? LPBACK : null;
   LPBACK = null;
   if (o.ready) o.ready(S);
-  if (any && !o.sliders) lpStage(S, b);
+  if (any) lpStage(S, b);
   else {
     S.bsl = lpBrightnessRow(S);
     b.appendChild(S.bsl);
   }
-  if (any && o.sliders) lpSliders(b, root, colorOk, whiteOk);
   if (any && o.room) {
     var pbox = mk("div"),
       pwrap = mk("div", "lp-collapsible");

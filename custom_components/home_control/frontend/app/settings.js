@@ -1,86 +1,6 @@
 /* Settings: the category list, the about page, data settings and the layout check. */
 
 /* about */
-/* Layout check: measures the open page and the open sheet for controls that overlap, spill out or are clipped, so a visual slip is found without anyone having to spot it. */
-function lcBox(e) {
-  var r = e.getBoundingClientRect(),
-    cs = getComputedStyle(e);
-  return r.width > 6 && r.height > 6 && cs.visibility !== "hidden" && cs.display !== "none"
-    ? r
-    : null;
-}
-
-function lcFixed(e) {
-  for (var p = e; p && p !== document.body; p = p.parentElement) {
-    var pos = getComputedStyle(p).position;
-    if (pos === "fixed" || pos === "sticky") return true;
-  }
-  return false;
-}
-
-function lcAudit(root, label) {
-  var out = [],
-    sel = ".pane,.pill,.qa,.rnd,.sqw,.seg",
-    vw = window.innerWidth,
-    els = [].slice.call(root.querySelectorAll(sel)).filter(function (e) {
-      return !e.parentElement.closest(sel) && lcBox(e);
-    }),
-    rs = els.map(function (e) {
-      return { e: e, r: e.getBoundingClientRect() };
-    });
-  function nm(e) {
-    return e.textContent.trim().replace(/\s+/g, " ").slice(0, 26);
-  }
-  rs.forEach(function (x) {
-    if (x.r.right > vw + 1 || x.r.left < -1)
-      out.push(label + ": " + nm(x.e) + " " + _T("goes_past_the_screen_edge"));
-  });
-  for (var i = 0; i < rs.length; i++)
-    for (var j = i + 1; j < rs.length; j++) {
-      var a = rs[i].r,
-        b = rs[j].r,
-        ox = Math.min(a.right, b.right) - Math.max(a.left, b.left),
-        oy = Math.min(a.bottom, b.bottom) - Math.max(a.top, b.top);
-      if (ox > 6 && oy > 6 && !lcFixed(rs[i].e) && !lcFixed(rs[j].e))
-        out.push(label + ": " + nm(rs[i].e) + " " + _T("overlaps") + " " + nm(rs[j].e));
-    }
-  [].forEach.call(root.querySelectorAll(".nm,.sb,.vl"), function (e) {
-    if (
-      lcBox(e) &&
-      e.scrollWidth > e.clientWidth + 2 &&
-      getComputedStyle(e).textOverflow !== "ellipsis"
-    )
-      out.push(label + ": " + nm(e) + " " + _T("is_cut_off"));
-  });
-  return out;
-}
-
-function lcRun() {
-  var res = lcAudit(document.getElementById("body"), _T("page")),
-    sh = document.querySelector(".sheet");
-  if (sh) res = res.concat(lcAudit(sh, _T("open_sheet")));
-  if (document.documentElement.scrollWidth > window.innerWidth + 2)
-    res.push(_T("the_page_scrolls_sideways"));
-  return res;
-}
-
-function checkPage(b) {
-  var res = lcRun();
-  if (!res.length) {
-    b.appendChild(
-      pill("check", _T("no_layout_problems_found"), {
-        sub: function () {
-          return _T("checked_the_page_and_the_open_sheet");
-        },
-      })
-    );
-    return;
-  }
-  res.slice(0, 30).forEach(function (t) {
-    b.appendChild(pill("alert", t, {}));
-  });
-}
-
 function aboutPage(b) {
   var h = H(),
     n = function (f) {
@@ -90,7 +10,7 @@ function aboutPage(b) {
     };
   b.appendChild(
     entRow(_T("page"), function () {
-      return BUILD;
+      return appVersion();
     })
   );
   b.appendChild(
@@ -153,16 +73,6 @@ function aboutPage(b) {
   );
   b.appendChild(sep(_T("actions"), "restart"));
   b.appendChild(
-    pill("tune", _T("check_the_layout"), {
-      sub: function () {
-        return _T("looks_for_overlapping_or_cut_off_con");
-      },
-      tap: function () {
-        showPopup("manage-check", true);
-      },
-    })
-  );
-  b.appendChild(
     pill("restart", _T("reload_from_home_assistant"), {
       sub: function () {
         return _T("fetches_the_saved_settings_again");
@@ -180,15 +90,32 @@ function aboutPage(b) {
 
 var CATS = [
   ["appearance", _T("appearance"), "appearance", "palette"],
+  ["wall", _T("wall_mode"), "stg-wall", "tv"],
   ["dev", _T("devices_2"), "stg-dev", "plug"],
+  ["lgroups", _T("lgs_title"), "lgroups", "lights"],
   ["areas", _T("areas"), "stg-areas", "target"],
   ["effects", _T("effects"), "stg-effects", "sparkle"],
   ["access", _T("users_and_access"), "stg-access", "lock"],
-  ["hist", _T("history"), "stg-hist", "clock"],
   ["notify", _T("notifications"), "stg-notify", "bell"],
-  ["wall", _T("wall_mode"), "stg-wall", "tv"],
+  ["hist", _T("history"), "stg-hist", "clock"],
   ["data", _T("backup_and_about"), "stg-data", "sd"],
 ];
+
+/* The five groups Settings is in: what a category belongs to. A category a plugin adds is under Plugins. */
+var CAT_GROUPS = [
+  ["display", "stg_group_display", ["appearance", "wall"]],
+  ["dashboard", "stg_group_dashboard", ["dev", "lgroups", "areas", "effects"]],
+  ["people", "stg_group_people", ["access", "notify"]],
+  ["data", "stg_group_data", ["hist", "data"]],
+  ["plugins", "stg_group_plugins", null],
+];
+
+function catGroup(id) {
+  var g = CAT_GROUPS.filter(function (x) {
+    return x[2] && x[2].indexOf(id) >= 0;
+  })[0];
+  return g ? g[0] : "plugins";
+}
 
 /* A line under each settings category: what is inside, or its current state. */
 function stgNavSub(id) {
@@ -197,6 +124,7 @@ function stgNavSub(id) {
   if (id === "wall")
     return PREFS.wall ? _T("on_2") + " · " + Math.round(PREFS.wallIdle / 60) + " min" : _T("off");
   if (id === "dev") return _T("new_devices_and_devices_that_are_not");
+  if (id === "lgroups") return _T("lgs_sub");
   if (id === "areas") return _T("where_the_lights_are_for_live_scenes");
   if (id === "effects") return _T("the_effects_of_your_lights_and_files_to_ad");
   if (id === "access") return _T("who_can_do_what");
@@ -214,15 +142,21 @@ var STG_INDEX = [
   [_T("appearance"), _T("appearance_look_theme_accent_colour"), "appearance", null],
   [_T("wall_mode"), _T("wall_mode_screensaver_clock_photos_d"), "wall", null],
   [_T("devices_2"), _T("devices_new_add_lights"), "dev", null],
+  [_T("lgs_title"), "light groups helper group lights combine make new", "lgroups", null],
   [_T("areas"), "areas rooms lights placement live scenes entertainment", "areas", null],
   [_T("effects"), "effects catalogue import file json groups calibration brands", "effects", null],
   [_T("users_and_access"), "access users permissions confirm hide read only", "access", null],
   [_T("history"), "history log changes undo", "hist", null],
   [_T("notifications"), "notifications alerts battery offline", "notify", null],
   [_T("backup_and_about"), "backup about diagnostics", "data", null],
-  [_T("automatic_backups"), "snapshots restore automatic", "data", "manage-autobackup"],
-  [_T("change_log"), "changes undo who", "data", "manage-log"],
+  [_T("change_log"), "changes undo who edit history", "data", "manage-log"],
   [_T("backup_and_restore"), "download export import restore", "data", "manage-backup"],
+  [_T("stg_idx_header"), "header clock greeting size weather people slim names page", "dev", "manage-names"],
+  [_T("stg_idx_batteries"), "batteries battery low tracked", "notify", "manage-bats"],
+  [_T("stg_idx_alerts"), "alerts any entity notification rule washer door", "notify", "stg-notify"],
+  [_T("stg_idx_photos"), "wall photos screensaver gallery night dim idle", "wall", "stg-wall"],
+  [_T("stg_idx_effects_file"), "effects file import json example syntax", "effects", "stg-effects"],
+  [_T("stg_idx_users"), "standard users rooms devices rules pin display size", "access", "stg-access"],
 ];
 
 /* Settings: a list of categories, each opening as its own popup page. The search box finds a category or one of its pages. */
@@ -239,31 +173,37 @@ function settingsRoot(b) {
   b.appendChild(w);
   b.appendChild(res);
   b.appendChild(list);
-  list.appendChild(
-    pill("edit", _T("edit_this_page"), {
-      sub: function () {
-        return _T("add_move_and_change_what_this_page_s");
-      },
-      tap: function () {
-        EDIT = true;
-        closeSheet();
-        render();
-      },
-    })
-  );
-  CATS.filter(function (c) {
-    return !c[4] || c[4]();
-  }).forEach(function (c) {
-    list.appendChild(
-      pill(c[3], c[1], {
-        sub: function () {
-          return stgNavSub(c[0]);
-        },
-        tap: function () {
-          showPopup(c[2], true);
-        },
-      })
-    );
+  CAT_GROUPS.forEach(function (g) {
+    var cats = CATS.filter(function (c) {
+      return catGroup(c[0]) === g[0] && (!c[4] || c[4]());
+    });
+    if (g[0] === "dashboard") {
+      list.appendChild(sep(_T(g[1]), "home"));
+      list.appendChild(
+        pill("edit", _T("edit_this_page"), {
+          sub: function () {
+            return _T("add_move_and_change_what_this_page_s");
+          },
+          tap: function () {
+            EDIT = true;
+            closeSheet();
+            render();
+          },
+        })
+      );
+    } else if (cats.length) list.appendChild(sep(_T(g[1]), "home"));
+    cats.forEach(function (c) {
+      list.appendChild(
+        pill(c[3], c[1], {
+          sub: function () {
+            return stgNavSub(c[0]);
+          },
+          tap: function () {
+            showPopup(c[2], true);
+          },
+        })
+      );
+    });
   });
   inp.addEventListener("input", function () {
     var q = inp.value.trim().toLowerCase(),
@@ -385,20 +325,10 @@ function stgData(b) {
       "manage-backup",
     ],
     [
-      "sd",
-      _T("automatic_backups"),
-      function () {
-        return bkOn()
-          ? _T("on_cap") + " · " + bkCfg().keep + " " + _T("snapshots_lower")
-          : _T("off");
-      },
-      "manage-autobackup",
-    ],
-    [
       "info",
       _T("about_and_diagnostics"),
       function () {
-        return BUILD + " · Home Assistant " + ((H().config && H().config.version) || "");
+        return (appVersion() ? appVersion() + " · " : "") + "Home Assistant " + ((H().config && H().config.version) || "");
       },
       "manage-about",
     ],

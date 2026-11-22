@@ -175,7 +175,7 @@ function glanceCfg() {
       return x.k === "glance";
     })[0],
     g = (e && e.gl) || {};
-  return { o: g.o || [], h: g.h || [], c: g.c || [], f: !!g.f };
+  return { o: g.o || [], h: g.h || [], c: g.c || [], lm: g.lm || [] };
 }
 
 function glanceSave(fn) {
@@ -333,21 +333,18 @@ function glancePage(b, id) {
         glWord(c);
       box.appendChild(hn);
       box.appendChild(
-        pill("check", _T("show_this_tile"), {
-          on: function () {
+        visiblePill(
+          function () {
             return glanceCfg().h.indexOf(id) < 0;
           },
-          sub: function () {
-            return glanceCfg().h.indexOf(id) < 0 ? _T("visible") : _T("hidden");
-          },
-          tap: function () {
+          function () {
             glanceSave(function (x) {
               var i = x.h.indexOf(id);
               if (i >= 0) x.h.splice(i, 1);
               else x.h.push(id);
             });
-          },
-        })
+          }
+        )
       );
       box.appendChild(
         pill("trash", _T("delete_this_tile"), {
@@ -372,42 +369,21 @@ function glancePage(b, id) {
     return;
   }
   b.appendChild(
-    pill("check", _T("show_this_tile"), {
-      on: function () {
+    visiblePill(
+      function () {
         return glanceCfg().h.indexOf(id) < 0;
       },
-      sub: function () {
-        return glanceCfg().h.indexOf(id) < 0 ? _T("visible") : _T("hidden");
-      },
-      tap: function () {
+      function () {
         glanceSave(function (x) {
           var i = x.h.indexOf(id);
           if (i >= 0) x.h.splice(i, 1);
           else x.h.push(id);
         });
-      },
-    })
+      }
+    )
   );
   if (id === "media") b.appendChild(mediaCtlPill());
-  if (id === "lights")
-    b.appendChild(
-      pill("palette", _T("light_colour_in_popups"), {
-        on: function () {
-          return glanceCfg().f;
-        },
-        sub: function () {
-          return glanceCfg().f
-            ? _T("popup_sliders_are_filled_with_the_ligh")
-            : _T("popups_use_the_accent_colour");
-        },
-        tap: function () {
-          glanceSave(function (x) {
-            if (x.f) delete x.f;
-            else x.f = 1;
-          });
-        },
-      })
-    );
+  if (id === "lights") glMasterPicks(b);
   if (id === "lights")
     gxPage(
       b,
@@ -417,6 +393,11 @@ function glancePage(b, id) {
         Object.keys(ROOMLIGHTS).forEach(function (r) {
           if (!rm && ROOMLIGHTS[r].indexOf(i) >= 0) rm = TITLES[r] || "";
         });
+        /* a light only a lights master has is under the page of the master */
+        if (!rm)
+          allMasters().forEach(function (m) {
+            if (!rm && lightUnits(m.ids).indexOf(i) >= 0) rm = m.page || "";
+          });
         return { id: i, name: entName(i), icon: "light", room: rm };
       })
     );

@@ -17,7 +17,6 @@ from .engine import Engine
 from .hass_driver import HassDriver
 from .identify import Identifier
 from .library import Library
-from .migration import take_over_saved_scenes
 from .providers import Providers
 from .resolve import attach_unique_ids
 
@@ -50,10 +49,7 @@ async def _load_library(hass: HomeAssistant, store: Store[dict[str, Any]]) -> Li
     stored = await store.async_load()
     if stored is None:
         library = Library()
-        taken = await take_over_saved_scenes(hass, library)
         await store.async_save(library.as_json())
-        if taken:
-            _LOGGER.info("Took over %d saved scenes and areas from the previous owner", taken)
         return library
     library, problems = Library.restore(stored)
     if problems:

@@ -8,13 +8,13 @@ function mscSection(root) {
       .replace(/^m:/, "")
       .split("~"),
     e = at.length === 2 ? secById(at[0], at[1]) : null;
-  return e && e.k === "lights" ? { scope: at[0], e: e } : null;
+  return e && e.k === "devs" ? { scope: at[0], e: e } : null;
 }
 
 /* Where the scenes of a section come from when it has not chosen: the Hue scenes of its lights' areas, as the Effects page used to list them. */
-var MSC_DEFAULT_SRC = ["hue"];
+var MSC_DEFAULT_SRC = ["plugin"];
 
-/* The scenes of the section, each as { key, kind: "hue" | "live" | "classic", id, name, sc }: the ones made from its + first, then the sources it has chosen. */
+/* The scenes of the section, each as { key, kind: "plugin" | "live" | "classic", id, name, sc }: the ones made from its + first, then the sources it has chosen. */
 function mscItems(S) {
   var ref = mscSection(S.root);
   if (!ref) return [];
@@ -25,12 +25,16 @@ function mscItems(S) {
   function add(key, kind, name, sc) {
     if (seen[key]) return;
     /* A Hue scene is named after its room ("Bathroom Dim"); the page's name, or the area's, is left out as in a scenes section. */
-    if (kind === "hue") name = sceneShortName(name, { name: page.name, area: page.area }, e);
+    if (kind === "plugin") name = sceneShortName(name, { name: page.name, area: page.area }, e);
     seen[key] = 1;
     out.push({ key: key, kind: kind, id: key, name: name, sc: sc || null });
   }
   function stored(sc) {
-    add(sc.id, sc.live ? "live" : "classic", sc.name, sc);
+    add(sc.id, sc.auto ? "auto" : sc.live ? "live" : "classic", sc.name, sc);
+  }
+  /* What a source brings in leaves out the scenes with a tag the master leaves out. */
+  function sourced(sc) {
+    if (!sceneHasTag(sc, e.mxt)) stored(sc);
   }
   (e.scn || [])
     .map(sceneById)
@@ -39,25 +43,29 @@ function mscItems(S) {
     })
     .forEach(stored);
   (e.msrc || MSC_DEFAULT_SRC).forEach(function (src) {
-    if (src === "hue")
+    if (src === "plugin")
       lpFxOf(S.root).scenes.forEach(function (id) {
-        add(id, "hue", A(id).friendly_name || A(id).name || id);
+        add(id, "plugin", A(id).friendly_name || A(id).name || id);
       });
     else if (src === "page")
       STORE.scenes
         .filter(function (sc) {
           return (ref.scope === "home" || sc.room === ref.scope) && sceneAllowed(sc);
         })
-        .forEach(stored);
-    else if (src.indexOf("sec:") === 0) {
+        .forEach(sourced);
+    else if (src.indexOf("tag:") === 0) {
+      STORE.scenes.forEach(function (sc) {
+        if (sceneHasTag(sc, [src.slice(4)]) && sceneAllowed(sc)) sourced(sc);
+      });
+    } else if (src.indexOf("sec:") === 0) {
       /* The scenes of a scenes section of the page, as it shows them now. */
       var other = secById(ref.scope, src.slice(4)),
         more = other && other.k === "scenes" && ref.scope !== "home" ? lightingScenesExtra(ref.scope) : null;
       if (!other || other.k !== "scenes") return;
-      secScenes(other).forEach(stored);
+      secScenes(other).forEach(sourced);
       if (more)
         (more(other) || []).forEach(function (x) {
-          if (x.kind) add(x.id, "hue", A(x.id).friendly_name || A(x.id).name || x.id);
+          if (x.kind) add(x.id, "plugin", A(x.id).friendly_name || A(x.id).name || x.id);
         });
     }
   });
@@ -65,7 +73,7 @@ function mscItems(S) {
 }
 
 function mscKindLabel(it) {
-  return it.kind === "hue" ? _T("scene_kind_hue") : it.kind === "live" ? _T("live_scene") : _T("classic_scene");
+  return it.kind === "plugin" ? _T("scene_kind_plugin") || _T("scene_source_fallback") : it.kind === "auto" ? _T("auto_scene") : it.kind === "live" ? _T("live_scene") : _T("classic_scene");
 }
 
 /* The colours of a scene's round tile: a Hue scene's from the bridge, a live scene's palette, a classic scene's lights. cb gets the CSS colours (a Hue scene's come later). */
@@ -75,12 +83,12 @@ function mscColours(it, cb) {
     var hs = c.hs || [c.h, c.s];
     return hs && typeof hs[0] === "number" ? cssRgb(hsv2rgb(hs[0], hs[1])) : null;
   }
-  if (it.kind === "hue") {
+  if (it.kind === "plugin") {
     var kind = pluginSceneKind(it.id);
     if (kind && kind.palette) kind.palette(it.id, cb);
     return;
   }
-  var list = it.kind === "live" ? (it.sc.live && it.sc.live.palette) || [] : (it.sc.acts || []).map(function (a) {
+  var list = it.kind === "auto" ? it.sc.auto.colors : it.kind === "live" ? (it.sc.live && it.sc.live.palette) || [] : (it.sc.acts || []).map(function (a) {
       return a.col;
     });
   cb(
@@ -94,19 +102,21 @@ function mscColours(it, cb) {
 }
 
 function mscActive(it) {
-  if (it.kind === "hue") {
+  if (it.kind === "plugin") {
     var kind = pluginSceneKind(it.id);
     return !!(kind && kind.active(it.id));
   }
+  if (it.kind === "auto") return false;
   return it.kind === "live" ? !!liveRun(it.sc) : sceneActive(it.sc);
 }
 
 function mscDynamic(it) {
-  return it.kind === "live" || (it.kind === "hue" && !!pluginSceneKind(it.id).dynamic(it.id));
+  return it.kind === "live" || (it.kind === "plugin" && !!pluginSceneKind(it.id).dynamic(it.id));
 }
 
 /* Starts it (or stops it, when it plays and can be stopped), on the lights of the master. A still scene that is on is switched off by tapping it again: it has nothing to stop, so the lights go off. */
 function mscPlay(S, it) {
+  if (it.kind === "auto") return autoScenePlay(it.sc, S.root.cmd);
   if (it.kind === "live") return liveToggle(it.sc);
   if (!mscDynamic(it) && mscActive(it)) return call("light", "turn_off", { entity_id: S.root.cmd });
   if (it.kind === "classic") return runScene(it.sc);
@@ -123,7 +133,8 @@ function mscPlay(S, it) {
 /* Opens the page that edits it, over the panel: the panel comes back when it is left, on this page. */
 function mscEdit(S, it) {
   LPBACK = { root: S.root.key, mode: S.mode, sel: S.sel };
-  if (it.kind === "live") liveMakerEdit(it.sc);
+  if (it.kind === "auto") autoSceneEdit(it.sc);
+  else if (it.kind === "live") liveMakerEdit(it.sc);
   else if (it.kind === "classic") staticOpen(it.sc.room, it.sc);
   else showPopup(pluginSceneKind(it.id).popup + ":" + it.id, true);
 }
@@ -134,7 +145,7 @@ function mscMore(S, it, ref, redraw) {
     fold = (ref.e.mf || []).filter(function (f) {
       return f.s.indexOf(it.key) >= 0;
     })[0],
-    kind = it.kind === "hue" ? pluginSceneKind(it.id) : null;
+    kind = it.kind === "plugin" ? pluginSceneKind(it.id) : null;
   if (fold)
     list.push({
       label: _T("scene_take_out_of_folder"),
@@ -160,12 +171,12 @@ function mscMore(S, it, ref, redraw) {
         redraw();
       },
     });
-  if (it.kind === "hue" ? kind && kind.remove : true)
+  if (it.kind === "plugin" ? kind && kind.remove : true)
     list.push({
       label: _T("delete_scene"),
       danger: true,
       fn: function () {
-        if (it.kind === "hue")
+        if (it.kind === "plugin")
           confirmDlg(_T("delete_scene") + ": " + it.name + "?", function () {
             Promise.resolve(kind.remove(it.id)).then(redraw);
           });
@@ -790,7 +801,8 @@ function mscSourceRows(box, sec, scope, redraw) {
   }
   box.appendChild(sep(_T("scenes_in_the_light_popup"), "palette"));
   box.appendChild(hintRow(_T("scenes_in_the_light_popup_hint")));
-  box.appendChild(row("hue", _T("scene_source_hue"), _T("scene_source_hue_sub")));
+  /* The scenes a plugin owns (Hue Plus brings the words for them, and the scenes). */
+  if (PLUGIN_SCENE_KINDS.length) box.appendChild(row("plugin", _T("scene_source_plugin") || _T("scene_source_fallback"), _T("scene_source_plugin_sub") || _T("scene_source_fallback_sub")));
   box.appendChild(row("page", _T("scene_source_page"), _T("scene_source_page_sub")));
   var n = 0;
   secOrder(scopeKey(scope)).forEach(function (s) {
@@ -798,5 +810,14 @@ function mscSourceRows(box, sec, scope, redraw) {
     n++;
     box.appendChild(row("sec:" + s.id, s.t || _T("scenes") + (n > 1 ? " " + n : ""), _T("scene_source_section_sub")));
   });
+  /* Scenes by tag: take in the scenes that have a tag, whatever page they are on, and leave out the tagged ones the sources would bring. */
+  var tags = sceneTags();
+  if (tags.length) {
+    box.appendChild(sep(_T("tags_take_in"), "tune"));
+    tags.forEach(function (t) {
+      box.appendChild(row("tag:" + t, t, _T("tags_take_in_sub")));
+    });
+    sceneTagLeaveOutRows(box, sec, "mxt", redraw);
+  }
   return src;
 }

@@ -13,7 +13,7 @@ const fn = (name) => {
   assert.ok(at >= 0, `${name} exists`);
   return panel.slice(at, panel.indexOf("\n}\n", at) + 3);
 };
-const SRC = ["lpFrontier", "lpLeaves", "lpOpenKids", "lpCount", "lpFind", "lpFindIn", "lpVisible", "lpShownOf", "lpHolds", "lpLook", "lpSameLook", "lpNodeLook", "lpHierInit", "lpTrayUnits", "lpSortLights", "lpIsGroup", "lpTrayStruct", "lpTraySig", "lpGroupColours", "lpState"].map(fn).join("\n");
+const SRC = ["lpFrontier", "lpLeaves", "lpOpenKids", "lpCount", "lpFind", "lpFindIn", "lpVisible", "lpShownOf", "lpHolds", "lpLook", "lpSameLook", "lpNodeLook", "lpJoinAlike", "lpHierInit", "lpTrayUnits", "lpSortLights", "lpIsGroup", "lpTrayStruct", "lpTraySig", "lpGroupColours", "lpState"].map(fn).join("\n");
 
 // The lights: a floor lamp group (L, R) and the Iris look the same; the ceiling light does not.
 const looks = { "light.l": "warm", "light.r": "warm", "light.iris": "warm", "light.ceil": "blue" };
@@ -249,4 +249,126 @@ test("tapping an opened group again closes it, and the arrow between has no back
 test("opening a group slides the row so the group and its lights are in view, and closing one slides it back with the rest instead of letting the browser pull it in", () => {
   assert.match(panel, /if \(end > tray\.scrollLeft \+ tray\.clientWidth\) scrollTrayTo\(Math\.max\(0, Math\.min\(end - tray\.clientWidth, leftIn\(tileEl\) - 8\)\), LP_SLIDE\.duration\);/);
   assert.match(panel, /after = Math\.max\(0, tray\.scrollWidth - shift - tray\.clientWidth\);\s*if \(tray\.scrollLeft > after\) scrollTrayTo\(after, LP_SLIDE\.duration\);/);
+});
+
+test("lights that run differently do not share a marker, however close their colours are: an effect, a moving palette and a still colour are three things", () => {
+  const states = {
+    "light.still": { state: "on", attributes: { brightness: 100, xy_color: [0.5, 0.4], color_mode: "xy", effect: "off", dynamics: "none" } },
+    "light.still2": { state: "on", attributes: { brightness: 102, xy_color: [0.502, 0.4], color_mode: "xy", effect: "off", dynamics: "none" } },
+    "light.fire": { state: "on", attributes: { brightness: 100, xy_color: [0.5, 0.4], color_mode: "xy", effect: "fire", dynamics: "none" } },
+    "light.moving": { state: "on", attributes: { brightness: 100, xy_color: [0.5, 0.4], color_mode: "xy", effect: "off", dynamics: "dynamic_palette" } },
+    "light.moving2": { state: "on", attributes: { brightness: 100, xy_color: [0.501, 0.4], color_mode: "xy", effect: "off", dynamics: "dynamic_palette" } },
+  };
+  const sandbox = { isOn: (e) => states[e].state === "on", A: (e) => states[e].attributes };
+  vm.createContext(sandbox);
+  vm.runInContext(["lpLook", "lpSameLook"].map(fn).join("\n"), sandbox);
+  const same = (a, b) => sandbox.lpSameLook(sandbox.lpLook(a), sandbox.lpLook(b));
+  assert.equal(same("light.still", "light.still2"), true, "two lights that show the same colour");
+  assert.equal(same("light.still", "light.fire"), false, "an effect is not a still colour");
+  assert.equal(same("light.still", "light.moving"), false, "a live scene is not a still colour");
+  assert.equal(same("light.fire", "light.moving"), false);
+  assert.equal(same("light.moving", "light.moving2"), true, "two lights in a live scene at the same colour at the moment");
+});
+
+test("lights put in one marker because they looked alike are taken apart when one of them changes (on the second check), put together again when they look alike again, and what the person made stays", () => {
+  for (const id of Object.keys(looks)) looks[id] = "warm";
+  looks["light.ceil"] = "blue";
+  const { S, sandbox, nodes } = build();
+  assert.equal(S.resplit(), false, "nothing changed: nothing to take apart");
+  looks["light.iris"] = "blue";
+  assert.equal(S.resplit(), false, "the first check only notes it, so a light that crosses a limit for a moment does not shake the wheel");
+  assert.equal(S.resplit(), true, "the Iris no longer looks like the floor lamps");
+  assert.deepEqual(keys(sandbox.lpVisible(S).filter((n) => n.virtual)[0].kids), ["light.iris", "light.ceil"], "the floor lamps are on their own, and the Iris is with the ceiling light, which it now looks like");
+  looks["light.iris"] = "warm";
+  S.resplit();
+  assert.equal(S.resplit(), true, "and when it looks like them again they are together again, as when the panel opens");
+  assert.equal(sandbox.lpVisible(S).filter((n) => n.virtual).length, 1);
+  // a panel the person has changed by hand keeps what they made, and only takes apart what it put together itself
+  S.touched = true;
+  const handmade = S.makeVirtual([nodes.floor, nodes.ceil], "light");
+  S.joined = [handmade];
+  assert.equal(S.resplit(), false, "dropped on one another by the person: it stays, whatever the colours are");
+  assert.ok(S.joined.includes(handmade));
+  assert.match(panel, /if \(!bub && S\.resplit\(\)\) return S\.rebuild\(\);/, "the circle checks it whenever the lights change, but never while a circle of lights is open or a finger is on it");
+});
+
+test("a whole room left as one marker because every light looked alike opens into the lights when one of them changes", () => {
+  for (const id of Object.keys(looks)) looks[id] = "warm";
+  const { S, sandbox, nodes } = build();
+  assert.deepEqual(keys(sandbox.lpVisible(S)), ["m:x"], "everything alike: one marker");
+  assert.equal(S.resplit(), false);
+  looks["light.ceil"] = "blue";
+  S.resplit();
+  assert.equal(S.resplit(), true, "the ceiling light stopped looking like the rest");
+  assert.equal(S.ex[nodes.root.key], true, "the whole is opened where it was");
+  assert.deepEqual(keys(sandbox.lpVisible(S).filter((n) => !n.virtual)), ["light.ceil"], "the ceiling light has its own marker, the others stay together");
+});
+
+test("when one light of a marker changes the others that still look alike stay together, they do not all fall apart", () => {
+  for (const id of Object.keys(looks)) looks[id] = "warm";
+  const { S, sandbox } = build();
+  assert.deepEqual(keys(sandbox.lpVisible(S)), ["m:x"]);
+  looks["light.iris"] = "blue";
+  S.resplit();
+  assert.equal(S.resplit(), true);
+  const shown = sandbox.lpVisible(S);
+  assert.deepEqual(keys(shown.filter((n) => n.virtual)[0].kids), ["light.floor", "light.ceil"], "the floor lamps and the ceiling light still run alike");
+  assert.ok(keys(shown).includes("light.iris"), "the Iris has a marker of its own");
+});
+
+test("two screens that show the same lights arrange the wheel the same, whatever each saw before: the arrangement follows what the lights do", () => {
+  for (const id of Object.keys(looks)) looks[id] = "warm";
+  const open = build(); // a screen that was open when the lights changed
+  looks["light.iris"] = "blue";
+  open.S.resplit();
+  open.S.resplit();
+  const fresh = build(); // a screen that opens now
+  const sig = (w) => sandbox_sig(w);
+  function sandbox_sig(w) {
+    return w.sandbox.lpVisible(w.S).map((n) => (n.virtual ? "[" + keys(n.kids).join(",") + "]" : n.key)).join("|");
+  }
+  assert.equal(sig(open), sig(fresh), "the screen that was open follows the lights to what a screen that opens now shows");
+  looks["light.iris"] = "warm";
+  looks["light.ceil"] = "blue";
+});
+
+test("the white range of a marker or a wheel is what every one of its lights can show, so a group helper that reports 1000 to 20000 does not put every marker in the wrong place", () => {
+  const range = {
+    "light.group": [1000, 20000],
+    "light.a": [2000, 6535],
+    "light.b": [2237, 6535],
+  };
+  const sandbox = {
+    isOn: () => true,
+    lpCap: (n) => n.cmd,
+    A: (e) => ({ min_color_temp_kelvin: range[e][0], max_color_temp_kelvin: range[e][1] }),
+  };
+  vm.createContext(sandbox);
+  vm.runInContext(fn("lpKrange"), sandbox);
+  assert.deepEqual(Array.from(sandbox.lpKrange({ cmd: ["light.group", "light.a", "light.b"] })), [2237, 6535], "the lights' common range, whatever order they come in");
+  assert.deepEqual(Array.from(sandbox.lpKrange({ cmd: ["light.group"] })), [1000, 20000], "a light alone has its own range");
+  range["light.b"] = [6600, 7000];
+  assert.deepEqual(Array.from(sandbox.lpKrange({ cmd: ["light.a", "light.b"] })), [2000, 6535], "lights with nothing in common: the first one's range, as before");
+});
+
+test("under the mode a tile says the brightness its lights that are on run at and the temperature of those on a white; nothing while they are off", () => {
+  const A = {
+    "light.a": { brightness: 255, color_mode: "color_temp", color_temp_kelvin: 2700 },
+    "light.b": { brightness: 128, color_mode: "color_temp", color_temp_kelvin: 3500 },
+    "light.c": { brightness: 128, color_mode: "hs" },
+  };
+  const sandbox = {
+    A: (e) => A[e],
+    briNow: (e) => A[e].brightness,
+    isOn: (e) => e !== "light.off",
+    lightIndividuals: (l) => l,
+    _T: (k) => (k === "k" ? " K · " : k),
+  };
+  vm.createContext(sandbox);
+  vm.runInContext(fn("lpTileLevels"), sandbox);
+  assert.equal(sandbox.lpTileLevels({ cmd: ["light.a"] }), "100% · 2700K");
+  assert.equal(sandbox.lpTileLevels({ cmd: ["light.a", "light.b"] }), "75% · 3100K");
+  assert.equal(sandbox.lpTileLevels({ cmd: ["light.c"] }), "50%", "a colour has no temperature");
+  assert.equal(sandbox.lpTileLevels({ cmd: ["light.off"] }), "");
+  assert.match(panel, /if \(t\.lv\) t\.lv\.textContent = lpTileLevels\(t\.n\);/);
 });

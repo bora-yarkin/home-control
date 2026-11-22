@@ -595,7 +595,7 @@ function classicSettingsByUnit(lights, room) {
     out = [];
   lightUnits(ROOMLIGHTS[room] || []).forEach(function (u) {
     var members = A(u).entity_id;
-    if (!Array.isArray(members) || members.length < 2 || A(u).is_hue_group || by[u]) return;
+    if (!Array.isArray(members) || members.length < 2 || pluginIsGroup(u) || by[u]) return;
     var first = by[members[0]];
     if (
       first &&

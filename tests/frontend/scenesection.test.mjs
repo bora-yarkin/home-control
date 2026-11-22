@@ -123,7 +123,7 @@ test("the section's source, chosen scenes and hidden scenes are kept by the layo
   const body = model.slice(at, model.indexOf("if (ty.own) {", at));
   const run = (s) => {
     const o = {};
-    vm.runInNewContext(`(function(s,o,k){${body}})(s,o,k)`, { s, o, k: "scenes" });
+    vm.runInNewContext(`(function(s,o,k){${body}})(s,o,k)`, { s, o, k: "scenes", cleanTags: (l) => (Array.isArray(l) ? l.filter((x) => typeof x === "string" && x) : []) });
     return plain(o);
   };
   assert.deepEqual(run({ sarea: "bath", sents: ["scene.a", "scene.a", "light.x"], hscn: [] }), { sarea: "bath", sents: ["scene.a"], hscn: [] });

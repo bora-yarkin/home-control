@@ -168,6 +168,8 @@ test("the first layout of a home leaves a vacuum's map camera out of the rooms a
     A: () => ({}),
     defIcon: () => "x",
     TEMPU: () => "°C",
+    groupSections: () => [],
+    seedSections: () => [],
     _T: (k) => k,
   };
   vm.createContext(sandbox);

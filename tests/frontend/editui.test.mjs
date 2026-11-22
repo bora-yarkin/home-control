@@ -47,15 +47,15 @@ test("an add row is shown only while its section is empty", () => {
   assert.match(css, /\.ed-add-soft\{display:none\}/, "and the style sheet hides a soft row");
 });
 
-test("a device from the page's Add goes to the first section of its kind, one is made when there is none, and where it went is given back", () => {
-  const rooms = { living: [{ id: "lights", k: "lights", devs: [{ id: "light.a" }] }] };
-  const s = piece("editor.js", "function addDevToPage", "function allSectionLists", {
+test("a device from the page's Add goes to the Section that already holds its kind, else the first Section, and one is made when there is none; where it went is given back", () => {
+  const rooms = { living: [{ id: "a", k: "devs", devs: [{ id: "light.a", kind: "light" }] }, { id: "b", k: "devs", devs: [{ id: "switch.x", kind: "switch" }] }], bare: [{ id: "st", k: "status" }] };
+  const s = piece("editor.js", "function secForDevice", "function allSectionLists", {
     secOrder: (sc) => rooms[sc.slice(5)],
-    secOf: (d) => (d.kind === "light" ? "lights" : "other"),
     newSecId: (arr) => "s" + arr.length,
   });
-  assert.deepEqual(plain(s.addDevToPage("living", { id: "light.b", kind: "light" })), { rid: "~living~lights", i: 1 });
-  assert.deepEqual(rooms.living[0].devs.map((d) => d.id), ["light.a", "light.b"]);
-  assert.deepEqual(plain(s.addDevToPage("living", { id: "switch.c", kind: "switch" })), { rid: "~living~s1", i: 0 }, "a new section of its kind");
-  assert.equal(rooms.living.length, 2);
+  assert.deepEqual(plain(s.addDevToPage("living", { id: "switch.c", kind: "switch" })), { rid: "~living~b", i: 1 }, "where a switch already is");
+  assert.deepEqual(plain(s.addDevToPage("living", { id: "light.b", kind: "light" })), { rid: "~living~a", i: 1 });
+  assert.deepEqual(plain(s.addDevToPage("living", { id: "fan.f", kind: "fan" })), { rid: "~living~a", i: 2 }, "no section of its kind: the first Section");
+  assert.deepEqual(plain(s.addDevToPage("bare", { id: "light.c", kind: "light" })), { rid: "~bare~s1", i: 0 }, "a Section is made");
+  assert.equal(rooms.bare.length, 2);
 });

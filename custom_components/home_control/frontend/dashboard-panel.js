@@ -59,6 +59,11 @@ class DashboardPanel extends HTMLElement {
     this._started = false;
   }
 
+  /* Home Assistant gives the panel its config: the version of the integration, shown in Settings. */
+  set panel(value) {
+    window.HC_RELEASE = String((value && value.config && value.config.release) || "");
+  }
+
   set hass(value) {
     this._hass = value;
     if (window.HA) window.HA.attach(value);

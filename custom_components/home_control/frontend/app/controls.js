@@ -1,7 +1,6 @@
 /* Any entity as a compact piece of a popup, so a device with many entities is a few tidy groups and not a column of rows: a tile to set it (a choice, a number with minus and plus, an
    on/off tile, a press), a list of readings (label and value on one line each), and a fold that keeps the rest out of sight until it is asked for. Nothing here knows a device or a brand. */
 
-var CTL_SETTABLE = ["select", "input_select", "number", "input_number", "switch", "input_boolean", "button", "input_button", "script"];
 
 /* A number to set: its name, its value, and minus and plus. `uiStep` is the step a tap takes (the entity's own step when it has none to give). Taps made close together are one command. */
 function numberTile(id, label, o) {

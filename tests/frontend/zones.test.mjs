@@ -43,6 +43,8 @@ test("a new dashboard puts the main light of a gradient tube on its page and not
     defIcon: () => "light",
     areaIdOf: (id) => entities[id].area_id,
     TEMPU: () => "C",
+    groupSections: () => [],
+    seedSections: () => [],
     _T: (k) => k,
   });
   vm.runInContext(readFileSync(new URL("model.js", APP), "utf8"), context);
