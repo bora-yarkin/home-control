@@ -556,9 +556,6 @@ var POPUP_DEFS = {
       },
     };
   },
-  "manage-access": function (id) {
-    return { title: _T("users_and_access"), icon: "lock", build: accessRoot };
-  },
   "access-user": function (id) {
     return {
       title: accName(id),
@@ -747,15 +744,6 @@ var POPUP_DEFS = {
       icon: "plus",
       build: function (b) {
         remoteBtnPage(b, id);
-      },
-    };
-  },
-  "manage-move": function (id) {
-    return {
-      title: _T("move_to_room"),
-      icon: "swap",
-      build: function (b) {
-        devMove(b, id);
       },
     };
   },

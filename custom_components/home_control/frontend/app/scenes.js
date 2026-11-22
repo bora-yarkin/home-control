@@ -271,16 +271,6 @@ function swatch(p, o) {
   return e;
 }
 
-function withSlive(fn) {
-  var prev = CUR;
-  CUR = SLIVE;
-  try {
-    fn();
-  } finally {
-    CUR = prev;
-  }
-}
-
 /* scenes */
 function sceneById(sid) {
   for (var i = 0; i < STORE.scenes.length; i++)

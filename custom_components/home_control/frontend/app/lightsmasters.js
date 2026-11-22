@@ -274,12 +274,6 @@ function masterMovePage(b, key) {
   draw();
 }
 
-/* The rows of a master's settings that are about the master as a thing of its own: where it is shown in At a glance, moving and copying it, and (for one that a section holds) deleting it. */
-function masterThingRows(box, sec, scope, redraw) {
-  masterGlanceRows(box, sec, redraw);
-  masterActionRows(box, sec, scope);
-}
-
 /* Where the master is listed in At a glance. */
 function masterGlanceRows(box, sec, redraw) {
   box.appendChild(sep(_T("lm_in_at_a_glance"), "lights"));

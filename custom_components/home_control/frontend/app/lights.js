@@ -79,16 +79,6 @@ function lightOn(id) {
   call("light", "turn_on", d);
 }
 
-/* Turns lights on as they were: a light with its own turn-on settings gets them, the others come back as they last were. */
-function lightsBack(ids) {
-  var plain = [];
-  ids.forEach(function (id) {
-    if (lightDefault(id)) lightOn(id);
-    else plain.push(id);
-  });
-  if (plain.length) call("light", "turn_on", { entity_id: plain });
-}
-
 var LNAME = {};
 
 /* Text on a lit light row is chosen from what is actually under it: the colour of the light where the fill reaches, the page background where it does not. */

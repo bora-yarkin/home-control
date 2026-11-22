@@ -15,7 +15,7 @@ function lights(ui, attrs = {}) {
   const timers = [];
   const log = { editors: [], restored: [], changed: 0, toasts: [] };
   const src = read("lights.js");
-  const code = src.slice(src.indexOf("function lightDefault"), src.indexOf("/* Turns lights on as they were"));
+  const code = src.slice(src.indexOf("function lightDefault"), src.indexOf("var LNAME = {};"));
   const sandbox = vm.createContext({
     UI: ui,
     A: (id) => attrs[id] || {},

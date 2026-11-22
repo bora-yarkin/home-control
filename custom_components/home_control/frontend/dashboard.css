@@ -658,11 +658,6 @@ body.pinhdr:not(.editing) .wrap::before{content:"";position:fixed;top:0;left:0;r
 .lw-x{position:absolute;right:8px;top:8px;width:22px;height:22px;border-radius:50%;background:rgba(0,0,0,.55);display:flex;align-items:center;justify-content:center;color:#fff}
 .lw-x svg{width:12px;height:12px;fill:none;stroke:currentColor;stroke-width:2;stroke-linecap:round}
 /* Live scenes: the palette row of the editor. */
-.lv-pal{display:flex;flex-wrap:wrap;gap:10px;margin:0 0 var(--sp)}
-.lv-sw{width:38px;height:38px;border-radius:50%;border:2px solid var(--f-line2);cursor:pointer;flex:none;display:flex;align-items:center;justify-content:center;color:var(--ink2);box-sizing:border-box}
-.lv-sw.picked{border-color:var(--ink);box-shadow:0 0 0 2px var(--f-sheet),0 0 0 4px var(--ink)}
-.lv-sw.add{background:var(--f-card)}
-.lv-sw svg{width:18px;height:18px;fill:none;stroke:currentColor;stroke-width:2;stroke-linecap:round}
 /* Areas: the room in isometric view, lights on poles, and the lights of the room as cards. */
 .ae-c{position:relative;width:100%;margin:0 0 var(--sp);touch-action:none}
 .ae-room{display:block;width:100%;height:auto;touch-action:none;user-select:none;-webkit-user-select:none}
@@ -985,7 +980,6 @@ body.pinhdr:not(.editing) .wrap::before{content:"";position:fixed;top:0;left:0;r
 /* spaced with margins, not gap: Safari leaves a flex container's gap out of its content width, which cut the last light off */
 .lp-tg{display:flex;align-items:stretch;flex:0 0 auto;min-width:0}
 .lp-tg>*+*{margin-left:10px}
-.lp-tg.lp-slide{overflow:hidden;min-width:0}
 .lp-tcol{flex:0 0 30px;width:30px;display:flex;align-items:center;justify-content:center;color:var(--ink2);cursor:pointer;transition:color .2s}
 .lp-tcol:hover{color:var(--ink)}
 .lp-tcol svg{width:22px;height:22px;fill:none;stroke:currentColor;stroke-width:2;stroke-linecap:round;stroke-linejoin:round;transform-origin:50% 50%}
