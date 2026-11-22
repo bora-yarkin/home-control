@@ -28,6 +28,19 @@ function masterHost(scope, id) {
   );
 }
 
+/* Whether a lights section leaves a row out because one of its masters (its own, or one it holds) has the light, or the sync, and is set to keep it. */
+function masterLeavesOut(s, d) {
+  var pk = pluginDeviceKind(d.id);
+  /* the section's own master leaves out every light row of the section; a held one only the lights it has */
+  function leaves(m, own) {
+    if (pk) return !!(pk.sync && m.mhs);
+    return d.kind === "light" && !!m.mhl && (own || masterLightIds(m).indexOf(d.id) >= 0);
+  }
+  return (!!s.master && leaves(s, true)) || (s.masters || []).some(function (m) {
+    return leaves(m, false);
+  });
+}
+
 /* An id for a master that no section or master of the page has. */
 function masterNewId(scope) {
   var id;
@@ -156,6 +169,26 @@ function masterTransfer(scope, id, target, copy) {
   return h;
 }
 
+/* A master a section holds becomes the section's own master: it takes the place of the section's own master settings (which are gone), and the section's own lights are as it was before: automatic masters can be chosen again. */
+function masterMakeOwn(host, id) {
+  var h = host.masters.filter(function (m) {
+    return m.id === id;
+  })[0];
+  if (!h) return;
+  LM_OWN.forEach(function (k) {
+    delete host[k];
+  });
+  LM_OWN.forEach(function (k) {
+    if (h[k] !== undefined && h[k] !== null) host[k] = JSON.parse(JSON.stringify(h[k]));
+  });
+  host.master = 1;
+  host.masters = host.masters.filter(function (m) {
+    return m.id !== id;
+  });
+  if (!host.masters.length) delete host.masters;
+  uiChanged();
+}
+
 /* Where to move or copy a master: "page:master". */
 function masterMovePage(b, key) {
   var p = key.split(":"),
@@ -239,6 +272,24 @@ function masterThingRows(box, sec, scope, redraw) {
       },
     })
   );
+  if (host)
+    box.appendChild(
+      pill("restart", _T("lm_make_own"), {
+        sub: function () {
+          return _T("lm_make_own_sub");
+        },
+        tap: function () {
+          confirmDlg(
+            _T("lm_make_own_confirm"),
+            function () {
+              masterMakeOwn(host, sec.id);
+              closeSheet();
+            },
+            _T("lm_make_own")
+          );
+        },
+      })
+    );
   if (host)
     box.appendChild(
       pill("trash", _T("lm_delete"), {

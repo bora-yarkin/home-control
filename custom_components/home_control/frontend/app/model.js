@@ -632,7 +632,7 @@ function cleanLayout(a) {
         var c = cleanLayout([Object.assign({}, h, { k: "lights", master: 1, mm: 1, hide: false, masters: null })])[0];
         if (!c) return;
         seen[h.id] = 1;
-        ["k", "hide", "devs", "w", "t", "i", "when", "and", "lay", "noall", "accent", "mhl", "mhs"].forEach(function (x) {
+        ["k", "hide", "devs", "w", "t", "i", "when", "and", "lay", "noall", "accent"].forEach(function (x) {
           delete c[x];
         });
         held.push(c);

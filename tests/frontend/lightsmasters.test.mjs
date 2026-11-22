@@ -77,7 +77,7 @@ test("a lights section holds more masters, each always manual, with ids that no 
   assert.equal(held[0].mgr, "ha");
   assert.equal(held[0].mn, "Bathroom");
   assert.deepEqual(held[0].ml.map((m) => m.id), ["light.bath_1", "light.bath_2"]);
-  for (const x of ["devs", "t", "k", "masters", "mhl", "hide"]) assert.equal(x in held[0], false, x + " is not a master's");
+  for (const x of ["devs", "t", "k", "masters", "hide"]) assert.equal(x in held[0], false, x + " is not a master's");
   assert.equal(held[1].mm, 1, "chosen lights, whatever it said");
   assert.equal(held[1].mpw, "scene");
   assert.equal(out[0].master, 1, "the section's own master is as it was");
@@ -200,4 +200,24 @@ test("the pieces are wired: the builder and the move page are popups, the sectio
 
 test("a section that is duplicated gives the masters it holds ids of their own, so none of them is lost as a repeated id", () => {
   assert.match(read("editor.js"), /\(c\.masters \|\| \[\]\)\.forEach\(function \(m\) \{\s*m\.id = masterNewId\(sk === "home" \? "home" : sk\.slice\(5\)\);/);
+});
+
+test("a master that a section holds can hide its lights from the section, and can become the section's own master again", () => {
+  const l = layout();
+  const sec = l.rooms.bora[0];
+  sec.masters = [{ id: "bath", master: 1, mm: 1, mn: "Bathroom", ml: [light("light.bed_2")], mhl: 1 }];
+  const w = world(l);
+  w.pluginDeviceKind = () => null;
+  assert.equal(w.masterLeavesOut(sec, light("light.bed_2")), true, "the light the held master has is left out of the section");
+  assert.equal(w.masterLeavesOut(sec, light("light.bed_1")), false, "the section's other lights stay");
+  sec.masters[0].mhl = 0;
+  assert.equal(w.masterLeavesOut(sec, light("light.bed_2")), false, "and with the setting off nothing is left out");
+  sec.masters[0].mhl = 1;
+  w.masterMakeOwn(sec, "bath");
+  assert.equal(sec.masters, undefined, "it is not held any more");
+  assert.equal(sec.mn, "Bathroom");
+  assert.equal(sec.mm, 1);
+  assert.equal(sec.master, 1);
+  delete sec.mm;
+  assert.equal(plain(w.masterLightIds(sec).sort()).join(), "light.bed_1,light.bed_2", "and it can be automatic again");
 });

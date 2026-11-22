@@ -199,8 +199,8 @@ function masterPopupRows(box, sec, scope, redraw) {
       })
     );
   }
-  /* The section can leave out what the master has: only in the section, the master keeps them (a master a section holds has none of the section's lights). */
-  if (!masterHost(scope, sec.id)) {
+  /* The section can leave out what the master has: only in the section, the master keeps them. */
+  {
     box.appendChild(sep(_T("master_in_section"), "lights"));
     box.appendChild(
       flagPill("lights", _T("master_hide_lights"), sec, "mhl", function (on) {

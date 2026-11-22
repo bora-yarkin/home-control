@@ -536,10 +536,7 @@ function customSection(s) {
     if (k === "lights" && d.id) LWHEEL[d.id] = !s.nowheel;
     if (!ed && (d.hide || (d.id && modeOf(d.id).mode === "hide"))) return;
     /* A lights master can leave its lights and the sync out of the section; it keeps them itself. */
-    if (!ed && k === "lights" && s.master && d.id) {
-      var pk = pluginDeviceKind(d.id);
-      if (pk ? pk.sync && s.mhs : d.kind === "light" && s.mhl) return;
-    }
+    if (!ed && k === "lights" && d.id && masterLeavesOut(s, d)) return;
     var r = k === "read" ? (d.id ? readTile(d) : null) : devRow(d);
     if (!r && ed) r = k === "read" ? readTile(d) : pill(d.icon || "plug", d.name, {});
     if (!r) return;
