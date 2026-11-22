@@ -501,12 +501,12 @@ function customSection(s) {
   }
   var mids = k === "devs" && s.master ? masterLightIds(s) : [];
   /* More lights masters held by the section (app/lightsmasters.js): each with the lights chosen for it, shown while the page is edited too so it can be opened. */
-  var extras = k === "devs" ? (s.masters || []).filter(function (m) { return masterLightIds(m).length > (ed ? 0 : 1); }) : [];
+  var extras = k === "devs" ? (s.masters || []).filter(function (m) { return masterLightIds(m).length > (ed ? 0 : 1) && (ed || !m.mhide); }) : [];
   /* A lights master keeps its section on the page when it has hidden every row of it: the master is the section then. */
   if (!rows.length && !ed && !(s.master && mids.length > 1) && !extras.length) return null;
   /* Lights master: one light at the top that controls every light of the section (or the lights chosen for it); off unless the section turns it on. While the page is edited it opens its settings. */
   var masterRows = [];
-  if (k === "devs" && s.master && mids.length > 1) {
+  if (k === "devs" && s.master && mids.length > 1 && (ed || !s.mhide)) {
     var mr = lightsMasterRow(secKey() + "~" + s.id, mids, s.mn, s.mall, s.mo, masterMeta(s));
     masterRows.push(
       edMark(mr, function () {

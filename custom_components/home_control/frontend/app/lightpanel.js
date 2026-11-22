@@ -2029,6 +2029,7 @@ function lpDynamicLights() {
 
 /* What one light is doing, in a word for the line under its name: Sync (a plugin says a sync plays on it), the effect it runs, Dynamics (a scene's colours moving), or Static (one colour). Nothing while it is off. */
 function lpLightDoing(e, dyn) {
+  if (V_(e) === "unavailable") return _T("unavailable");
   var on = V_(e) === "on";
   if (pluginPlays(e)) return _T("tile_sync");
   if (!on) return "";

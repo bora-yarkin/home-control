@@ -637,6 +637,9 @@ var POPUP_DEFS = {
       },
     };
   },
+  "lgroups": function (id) {
+    return { title: _T("lgs_title"), icon: "lights", build: lgroupsPage };
+  },
   "lgnew": function (id) {
     return {
       title: _T("lg_new_group"),

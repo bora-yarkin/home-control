@@ -103,3 +103,44 @@ test("every object says whether it is shown with the same row, Visible, On or Of
   for (const f of ["editor.js", "glance.js", "manage.js"]) assert.match(read(f), /visiblePill\(/, f);
   assert.doesNotMatch(read("manage.js"), /hide_room/);
 });
+
+test("the lights chosen for a master are lights of the page: room counts, everything-off and conditions see them once, also when no section lists them", () => {
+  const w = world();
+  const o = { rooms: [{ id: "r" }], layout: { rooms: { r: [
+    { id: "a", k: "devs", devs: [light("light.a")], master: 1, mm: 1, ml: [light("light.a"), light("light.only")] },
+    { id: "b", k: "devs", devs: [], masters: [{ id: "mx", master: 1, mm: 1, ml: [light("light.held"), light("light.only")] }] },
+  ] } } };
+  w.devIndex(o);
+  assert.deepEqual(plain(o.devs.r.map((d) => d.id)), ["light.a", "light.only", "light.held"]);
+});
+
+test("a master can be hidden as a whole (mhide), and is then left out of the page, the At a glance popup and the search", () => {
+  const w = world();
+  const out = plain(w.cleanLayout([{ id: "mn", k: "devs", devs: [], master: 1, mhide: 1 }]));
+  assert.equal(out[0].mhide, 1);
+  assert.match(read("sections.js"), /\(ed \|\| !m\.mhide\)/);
+  assert.match(read("search.js"), /if \(m\.sec\.mhide\) return;/);
+  assert.match(read("lightsmasters.js"), /!m\.sec\.mhide/);
+});
+
+test("a master is found by search as \"Name Master\", and each of its lights as \"Name Master · Light\", which switches only that light", () => {
+  const search = read("search.js");
+  assert.match(search, /lm_master_word/);
+  assert.match(search, /mn \+ " · " \+ LNAME\[id\]\[0\], r: m\.page, i: LNAME\[id\]\[1\] \|\| "lights", k: "light", v: id/);
+  assert.match(search, /showPopup\("lmaster:" \+ x\.v, true\)/);
+});
+
+test("the icon of a master is a stop button while any of its lights plays an effect or a sync, and the row and tiles say which light is unavailable", () => {
+  const lights = read("lights.js");
+  assert.match(lights, /function masterPlaying\(ids\)/);
+  assert.match(lights, /fx\.syncs\.forEach[\s\S]*effect: "off"/);
+  assert.match(lights, /unavailable"\)\.toLowerCase\(\)/);
+  assert.match(read("lightpanel.js"), /if \(V_\(e\) === "unavailable"\) return _T\("unavailable"\);/);
+});
+
+test("Light groups have a page in Settings and in the master's settings, and a group made there is not put in a section", () => {
+  assert.match(read("settings.js"), /\["lgroups", _T\("lgs_title"\), "lgroups", "lights"\]/);
+  assert.match(read("lights.js"), /showPopup\("lgroups", true\)/);
+  assert.match(read("lightgroups.js"), /if \(f\.o\.rid\) placeDevice/);
+  assert.match(read("popups.js"), /"lgroups": function/);
+});

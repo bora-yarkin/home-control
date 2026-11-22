@@ -461,6 +461,20 @@ function lightsMasterToggle(ids) {
   if (plain.length) call("light", "turn_on", { entity_id: plain });
 }
 
+/* The effects and syncs playing on any light of a master: { effects: lights that run an effect, syncs: the switches that stop a sync }. */
+function masterPlaying(ids) {
+  var out = { effects: [], syncs: [] };
+  lightUnits(ids).forEach(function (u) {
+    var syn = pluginPlays(u);
+    if (syn && out.syncs.indexOf(syn.entity) < 0) out.syncs.push(syn.entity);
+    if (V_(u) === "on")
+      lightEffectLights(u).forEach(function (e) {
+        if (out.effects.indexOf(e) < 0) out.effects.push(e);
+      });
+  });
+  return out;
+}
+
 function lightsMasterRow(sid, ids, name, all, order, meta) {
   LMASTER[sid] = ids;
   LMASTER_META[sid] = meta || {};
@@ -483,7 +497,10 @@ function lightsMasterRow(sid, ids, name, all, order, meta) {
       return countOn(lightUnits(ids)) ? v + "%" : _T("off");
     },
     sub: function () {
-      return countOn(lightUnits(ids)) + " / " + lightUnits(ids).length;
+      var gone = lightUnits(ids).filter(function (u) {
+        return V_(u) === "unavailable";
+      }).length;
+      return countOn(lightUnits(ids)) + " / " + lightUnits(ids).length + (gone ? " · " + gone + " " + _T("unavailable").toLowerCase() : "");
     },
     on: function () {
       return countOn(lightUnits(ids)) > 0;
@@ -499,12 +516,30 @@ function lightsMasterRow(sid, ids, name, all, order, meta) {
       showPopup("lmaster:" + sid, true);
     },
     onTap: function (t) {
-      if (t && t.closest(".ic")) lightsMasterToggle(ids);
-      else showPopup("lmaster:" + sid, true);
+      if (t && t.closest(".ic")) {
+        /* While any light of the master plays an effect or a sync, the icon is a stop button for those. */
+        var fx = masterPlaying(ids);
+        if (fx.effects.length || fx.syncs.length) {
+          fx.syncs.forEach(function (e) {
+            call("switch", "turn_off", { entity_id: e });
+          });
+          if (fx.effects.length) call("light", "turn_on", { entity_id: fx.effects, effect: "off" });
+        } else lightsMasterToggle(ids);
+      } else showPopup("lmaster:" + sid, true);
     },
   });
   function tint() {
     tintIcon(r, avgLight(lightUnits(ids).filter(isOn)));
+    var playing = masterPlaying(ids),
+      on = playing.effects.length > 0 || playing.syncs.length > 0,
+      icon = r.querySelector(".ic");
+    if (!icon) return;
+    icon.classList.toggle("fx", on);
+    if (on && !icon.querySelector(".ic-stop")) icon.appendChild(mk("span", "ic-stop", "<i></i>"));
+    if (!on) {
+      var stop = icon.querySelector(".ic-stop");
+      if (stop) stop.remove();
+    }
   }
   reg(tint);
   tint();
@@ -548,7 +583,29 @@ function lightsMasterSettings(b, key, part) {
           return lightIds().length + " " + _T("lights").toLowerCase() + " · " + (sec.mm ? _T("master_manual") : _T("master_auto"));
         })
       );
+      box.appendChild(
+        visiblePill(
+          function () {
+            return !sec.mhide;
+          },
+          function () {
+            if (sec.mhide) delete sec.mhide;
+            else sec.mhide = 1;
+            uiChanged();
+          }
+        )
+      );
       box.appendChild(part_("popup", "tune"));
+      box.appendChild(
+        pill("lights", _T("lgs_title"), {
+          sub: function () {
+            return _T("lgs_sub");
+          },
+          tap: function () {
+            showPopup("lgroups", true);
+          },
+        })
+      );
       box.appendChild(part_("scenes", "scene"));
       box.appendChild(part_("where", "home"));
       masterActionRows(box, sec, p[0]);

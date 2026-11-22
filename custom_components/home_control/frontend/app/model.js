@@ -635,6 +635,7 @@ function cleanLayout(a) {
         });
       if (lx.length) o.lx = lx;
       if (s.mgl) o.mgl = 1;
+      if (s.mhide) o.mhide = 1;
       if (["color", "white", "fx", "scenes", "sync"].indexOf(s.mtab) >= 0) o.mtab = s.mtab;
       if (s.mhl) o.mhl = 1;
       if (s.mhs) o.mhs = 1;
@@ -752,8 +753,21 @@ function devIndex(o) {
   o.rooms.forEach(function (r) {
     var l = [];
     ((o.layout.rooms || {})[r.id] || []).forEach(function (s) {
+      var have = {};
       (s.devs || []).forEach(function (d) {
+        if (d.id) have[d.id] = 1;
         l.push(d);
+      });
+      /* The lights chosen for a lights master (its own, or one the section holds) are lights of the page too: room counts, the room's everything-off and conditions see them, also when no section lists them. */
+      (s.mm ? s.ml || [] : []).concat(
+        (s.masters || []).reduce(function (a, m) {
+          return a.concat(m.ml || []);
+        }, [])
+      ).forEach(function (d) {
+        if (d && d.id && !have[d.id] && !l.some(function (x) { return x.id === d.id; })) {
+          have[d.id] = 1;
+          l.push(d);
+        }
       });
     });
     idx[r.id] = l;

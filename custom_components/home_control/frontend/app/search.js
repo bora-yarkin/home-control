@@ -29,6 +29,21 @@ function searchItems() {
     else if (d.kind === "camera") it.push({ n: d.name, r: rn, i: i, k: "go", v: d.room });
     else it.push({ n: d.name, r: rn, i: i, k: "pop", v: devPop(d) });
   });
+  /* A lights master is found like a light: by its name and the word Master, and each of its lights as "Master · Light", which switches only that light. */
+  allMasters().forEach(function (m) {
+    if (m.sec.mhide) return;
+    var mn = (m.sec.mn || _T("all_lights")) + " " + _T("lm_master_word");
+    LMASTER[m.key] = m.ids;
+    LMASTER_META[m.key] = masterMeta(m.sec);
+    LMASTER_NAME[m.key] = m.sec.mn || "";
+    LMASTER_ALL[m.key] = !!m.sec.mall;
+    LMASTER_ORDER[m.key] = m.sec.mo || null;
+    it.push({ n: mn, r: m.page, i: "lights", k: "lmaster", v: m.key });
+    lightUnits(m.ids).forEach(function (id) {
+      if (!LNAME[id] || (!ISADMIN && modeOf(id).mode === "view")) return;
+      it.push({ n: mn + " · " + LNAME[id][0], r: m.page, i: LNAME[id][1] || "lights", k: "light", v: id });
+    });
+  });
   if (BATLIST.length)
     it.push({ n: _T("batteries"), r: _T("overview"), i: "battery", k: "pop", v: "g-batteries" });
   UI.rooms.forEach(function (r) {
@@ -78,6 +93,15 @@ function searchRow(x) {
     });
   }
   if (x.k === "light") return lightRow(x.v, true);
+  if (x.k === "lmaster")
+    return pill(x.i, x.n, {
+      sub: function () {
+        return x.r;
+      },
+      tap: function () {
+        showPopup("lmaster:" + x.v, true);
+      },
+    });
   if (x.k === "toggle")
     return pill(x.i, x.n, {
       on: function () {

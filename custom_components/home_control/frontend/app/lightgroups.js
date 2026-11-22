@@ -272,7 +272,8 @@ function lgSave(f, leave) {
   if (f.isNew) {
     toast(_T("lg_making"));
     work = HA.lightGroups.create(name, d.lights, { hide_members: !!d.hide, all: !!d.all }).then(function (made) {
-      placeDevice(f.o.rid, { id: made.entity_id, name: name, icon: d.icon, kind: "light" });
+      /* Made from the light groups page, it is not put in a section: it is a light of Home Assistant, and a lights master can have it. */
+      if (f.o.rid) placeDevice(f.o.rid, { id: made.entity_id, name: name, icon: d.icon, kind: "light" });
       uiChanged();
     });
   } else {
@@ -338,6 +339,47 @@ function lgLoad(f) {
       lgFailed(f, err);
       f.redraw();
     });
+}
+
+/* Settings, Light groups: every light that stands for other lights, its lights, and a button to make a new group (a Home Assistant helper). A group opens in the same form as from a light's settings. */
+function lgroupsPage(b) {
+  var box = mk("div");
+  b.appendChild(box);
+  function draw() {
+    box.appendChild(hintRow(_T("lgs_hint")));
+    box.appendChild(
+      pill("plus", _T("lg_new_group"), {
+        sub: function () {
+          return _T("lgs_new_sub");
+        },
+        tap: function () {
+          LGNEW = { rid: "", lights: [] };
+          showPopup("lgnew", true);
+        },
+      })
+    );
+    var groups = Object.keys(H().states)
+      .filter(function (id) {
+        return dom(id) === "light" && lgMembers(id).length > 0;
+      })
+      .sort(function (x, y) {
+        return String(A(x).friendly_name || x).localeCompare(A(y).friendly_name || y);
+      });
+    if (!groups.length) box.appendChild(pill("info", _T("lgs_none"), {}));
+    groups.forEach(function (id) {
+      box.appendChild(
+        pill((LNAME[id] || [])[1] || "lights", A(id).friendly_name || id, {
+          sub: function () {
+            return cntS(lgMembers(id).length, _T("light"), _T("lights")) + " · " + id;
+          },
+          tap: function () {
+            showPopup("lgroup:" + id, true);
+          },
+        })
+      );
+    });
+  }
+  draw();
 }
 
 function lgPage(b, entity) {
