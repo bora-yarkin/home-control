@@ -238,7 +238,7 @@ function appearancePage(b) {
     );
     box.appendChild(
       dropRow(
-        _T("header_size"),
+        _T("header_size_mine"),
         ["page", "regular", "slim"],
         function () {
           return PREFS.hdrSize || "page";

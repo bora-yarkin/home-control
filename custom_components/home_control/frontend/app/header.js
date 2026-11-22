@@ -165,7 +165,7 @@ var HLAB = {
 function hdrPage(box, m) {
   m.hdr = m.hdr || [];
   function draw() {
-    box.appendChild(sep(_T("header_size"), "tune"));
+    box.appendChild(sep(_T("header_size_page"), "tune"));
     box.appendChild(
       seg(
         [

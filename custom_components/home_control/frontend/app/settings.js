@@ -90,15 +90,31 @@ function aboutPage(b) {
 
 var CATS = [
   ["appearance", _T("appearance"), "appearance", "palette"],
+  ["wall", _T("wall_mode"), "stg-wall", "tv"],
   ["dev", _T("devices_2"), "stg-dev", "plug"],
   ["areas", _T("areas"), "stg-areas", "target"],
   ["effects", _T("effects"), "stg-effects", "sparkle"],
   ["access", _T("users_and_access"), "stg-access", "lock"],
-  ["hist", _T("history"), "stg-hist", "clock"],
   ["notify", _T("notifications"), "stg-notify", "bell"],
-  ["wall", _T("wall_mode"), "stg-wall", "tv"],
+  ["hist", _T("history"), "stg-hist", "clock"],
   ["data", _T("backup_and_about"), "stg-data", "sd"],
 ];
+
+/* The five groups Settings is in: what a category belongs to. A category a plugin adds is under Plugins. */
+var CAT_GROUPS = [
+  ["display", "stg_group_display", ["appearance", "wall"]],
+  ["dashboard", "stg_group_dashboard", ["dev", "areas", "effects"]],
+  ["people", "stg_group_people", ["access", "notify"]],
+  ["data", "stg_group_data", ["hist", "data"]],
+  ["plugins", "stg_group_plugins", null],
+];
+
+function catGroup(id) {
+  var g = CAT_GROUPS.filter(function (x) {
+    return x[2] && x[2].indexOf(id) >= 0;
+  })[0];
+  return g ? g[0] : "plugins";
+}
 
 /* A line under each settings category: what is inside, or its current state. */
 function stgNavSub(id) {
@@ -130,8 +146,14 @@ var STG_INDEX = [
   [_T("history"), "history log changes undo", "hist", null],
   [_T("notifications"), "notifications alerts battery offline", "notify", null],
   [_T("backup_and_about"), "backup about diagnostics", "data", null],
-  [_T("change_log"), "changes undo who", "data", "manage-log"],
+  [_T("change_log"), "changes undo who edit history", "data", "manage-log"],
   [_T("backup_and_restore"), "download export import restore", "data", "manage-backup"],
+  [_T("stg_idx_header"), "header clock greeting size weather people slim names page", "dev", "manage-names"],
+  [_T("stg_idx_batteries"), "batteries battery low tracked", "notify", "manage-bats"],
+  [_T("stg_idx_alerts"), "alerts any entity notification rule washer door", "notify", "stg-notify"],
+  [_T("stg_idx_photos"), "wall photos screensaver gallery night dim idle", "wall", "stg-wall"],
+  [_T("stg_idx_effects_file"), "effects file import json example syntax", "effects", "stg-effects"],
+  [_T("stg_idx_users"), "standard users rooms devices rules pin display size", "access", "stg-access"],
 ];
 
 /* Settings: a list of categories, each opening as its own popup page. The search box finds a category or one of its pages. */
@@ -148,31 +170,37 @@ function settingsRoot(b) {
   b.appendChild(w);
   b.appendChild(res);
   b.appendChild(list);
-  list.appendChild(
-    pill("edit", _T("edit_this_page"), {
-      sub: function () {
-        return _T("add_move_and_change_what_this_page_s");
-      },
-      tap: function () {
-        EDIT = true;
-        closeSheet();
-        render();
-      },
-    })
-  );
-  CATS.filter(function (c) {
-    return !c[4] || c[4]();
-  }).forEach(function (c) {
-    list.appendChild(
-      pill(c[3], c[1], {
-        sub: function () {
-          return stgNavSub(c[0]);
-        },
-        tap: function () {
-          showPopup(c[2], true);
-        },
-      })
-    );
+  CAT_GROUPS.forEach(function (g) {
+    var cats = CATS.filter(function (c) {
+      return catGroup(c[0]) === g[0] && (!c[4] || c[4]());
+    });
+    if (g[0] === "dashboard") {
+      list.appendChild(sep(_T(g[1]), "home"));
+      list.appendChild(
+        pill("edit", _T("edit_this_page"), {
+          sub: function () {
+            return _T("add_move_and_change_what_this_page_s");
+          },
+          tap: function () {
+            EDIT = true;
+            closeSheet();
+            render();
+          },
+        })
+      );
+    } else if (cats.length) list.appendChild(sep(_T(g[1]), "home"));
+    cats.forEach(function (c) {
+      list.appendChild(
+        pill(c[3], c[1], {
+          sub: function () {
+            return stgNavSub(c[0]);
+          },
+          tap: function () {
+            showPopup(c[2], true);
+          },
+        })
+      );
+    });
   });
   inp.addEventListener("input", function () {
     var q = inp.value.trim().toLowerCase(),

@@ -201,19 +201,13 @@ function wallSettings(b) {
       box.appendChild(
         prefPill("moon", _T("dim_at_night"), "wallDim", _T("darker_screen_and_clock_while_the_su"))
       );
-      if (ISADMIN)
-        box.appendChild(
-          pill("media", _T("screensaver_photos"), {
-            sub: function () {
-              var n = ((STORE.cfg && STORE.cfg.wallPhotos) || []).length,
-                u = wallActive().length;
-              return n ? cntS(n, _T("photo"), _T("photos")) + (u < n ? " · " + u + " " + _T("in_use_word") : "") : _T("none_yet");
-            },
-            tap: function () {
-              showPopup("manage-wallphotos", true);
-            },
-          })
-        );
+      /* The photos are on this page, under the choice of photos: the gallery, a photo can be used or not, and an address can be added. */
+      if (ISADMIN && PREFS.wallMode === "photo") {
+        box.appendChild(sep(_T("screensaver_photos"), "media"));
+        var gallery = mk("div");
+        box.appendChild(gallery);
+        wallPhotosPage(gallery);
+      }
       if (
         PREFS.wallMode === "photo" &&
         !wallActive().length

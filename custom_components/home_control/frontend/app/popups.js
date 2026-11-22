@@ -162,9 +162,7 @@ var POPUP_DEFS = {
     };
   },
 
-  "manage-wallphotos": function (id) {
-    return { title: _T("screensaver_photos"), icon: "media", build: wallPhotosPage };
-  },
+
   "lscene": function (id) {
     var ls = sceneById(id);
     return {
