@@ -243,7 +243,12 @@ function masterMovePage(b, key) {
 
 /* The rows of a master's settings that are about the master as a thing of its own: where it is shown in At a glance, moving and copying it, and (for one that a section holds) deleting it. */
 function masterThingRows(box, sec, scope, redraw) {
-  var host = masterHost(scope, sec.id);
+  masterGlanceRows(box, sec, redraw);
+  masterActionRows(box, sec, scope);
+}
+
+/* Where the master is listed in At a glance. */
+function masterGlanceRows(box, sec, redraw) {
   box.appendChild(sep(_T("lm_in_at_a_glance"), "lights"));
   box.appendChild(
     seg(
@@ -261,7 +266,11 @@ function masterThingRows(box, sec, scope, redraw) {
     )
   );
   box.appendChild(hintRow(sec.mgr === "ha" ? _T("lm_room_in_home_assistant_hint") : _T("lm_room_of_the_page_hint")));
-  box.appendChild(sep(_T("lm_this_master"), "lights"));
+}
+
+/* Moving, copying and (for one a section holds) making it the section's own master or deleting it. */
+function masterActionRows(box, sec, scope) {
+  var host = masterHost(scope, sec.id);
   box.appendChild(
     pill("swap", _T("lm_move_or_copy"), {
       sub: function () {

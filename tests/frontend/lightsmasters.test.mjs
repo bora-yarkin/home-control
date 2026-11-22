@@ -194,7 +194,7 @@ test("the pieces are wired: the builder and the move page are popups, the sectio
   assert.match(sections, /extras\.forEach\(function \(m\) \{\s*masterRows\.push\(\s*edMark\(lightsMasterRow\(secKey\(\) \+ "~" \+ m\.id/);
   assert.match(read("editor.js"), /showPopup\("lmaster-new:" \+ key, true\);/);
   assert.match(read("glance.js"), /if \(id === "lights"\) glMasterPicks\(b\);/);
-  assert.match(read("lights.js"), /masterThingRows\(box, sec, p\[0\], draw\);/);
+  assert.match(read("lights.js"), /masterActionRows\(box, sec, p\[0\]\);/);
   assert.match(readFileSync(new URL("../../custom_components/home_control/frontend/version.json", import.meta.url), "utf8"), /"app\/lightsmasters\.js"/);
 });
 
@@ -220,4 +220,14 @@ test("a master that a section holds can hide its lights from the section, and ca
   assert.equal(sec.master, 1);
   delete sec.mm;
   assert.equal(plain(w.masterLightIds(sec).sort()).join(), "light.bed_1,light.bed_2", "and it can be automatic again");
+});
+
+test("the settings of a master are a short page with a row for each part, and the move, make-own and delete rows are on it, not far down a long list", () => {
+  const lights = read("lights.js");
+  for (const part of ["lights", "popup", "scenes", "where"]) assert.match(lights, new RegExp('part_\\("' + part + '"'));
+  assert.match(lights, /if \(!part\) \{[\s\S]*masterActionRows\(box, sec, p\[0\]\);\s*return;/);
+  assert.match(read("popups.js"), /"lmaster-part": function \(id\)/);
+  const things = read("lightsmasters.js");
+  assert.match(things, /"lm_make_own"/);
+  for (const part of ["lights", "popup", "scenes", "where"]) assert.ok(read("strings.js").includes('"lm_part_' + part + '"'), part);
 });

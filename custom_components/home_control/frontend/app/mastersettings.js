@@ -199,20 +199,6 @@ function masterPopupRows(box, sec, scope, redraw) {
       })
     );
   }
-  /* The section can leave out what the master has: only in the section, the master keeps them. */
-  {
-    box.appendChild(sep(_T("master_in_section"), "lights"));
-    box.appendChild(
-      flagPill("lights", _T("master_hide_lights"), sec, "mhl", function (on) {
-        return on ? _T("master_hide_lights_on") : _T("master_hide_lights_off");
-      })
-    );
-    box.appendChild(
-      flagPill("syncring", _T("master_hide_sync"), sec, "mhs", function (on) {
-        return on ? _T("master_hide_sync_on") : _T("master_hide_sync_off");
-      })
-    );
-  }
   var syncs = masterSyncDevices();
   if (syncs.length) {
     box.appendChild(
@@ -239,6 +225,21 @@ function masterPopupRows(box, sec, scope, redraw) {
         )
       );
   }
+}
+
+/* The settings that are about the section the master is in: the section can leave out what the master has, only in the section (the master keeps them). */
+function masterSectionRows(box, sec) {
+  box.appendChild(sep(_T("master_in_section"), "lights"));
+  box.appendChild(
+    flagPill("lights", _T("master_hide_lights"), sec, "mhl", function (on) {
+      return on ? _T("master_hide_lights_on") : _T("master_hide_lights_off");
+    })
+  );
+  box.appendChild(
+    flagPill("syncring", _T("master_hide_sync"), sec, "mhs", function (on) {
+      return on ? _T("master_hide_sync_on") : _T("master_hide_sync_off");
+    })
+  );
 }
 
 /* Choosing the lights of a manual master: every light of Home Assistant, searched by name and filtered by area; a tap adds or takes out. */

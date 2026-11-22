@@ -660,7 +660,8 @@ function lightsMasterRow(sid, ids, wheel, name, all, order, meta) {
 }
 
 /* The settings of a section's lights master, opened from the page editor ("scope:section", as for a section): its name, whether it changes the whole room, and the order of the lights in its row. */
-function lightsMasterSettings(b, key) {
+/* The settings of a lights master: a short page with one row for each part of it (`part` empty), and a page of its own for each part. */
+function lightsMasterSettings(b, key, part) {
   var p = key.split(":"),
     sec = secById(p[0], p[1]);
   if (!sec) return;
@@ -674,24 +675,50 @@ function lightsMasterSettings(b, key) {
     var node = lpMasterNode(sec.id, lightIds());
     return lpSortLights(lpLeaves(node), sec.mo || null);
   }
+  function part_(name, icon, sub) {
+    return pill(icon, _T("lm_part_" + name), {
+      sub: function () {
+        return typeof sub === "function" ? sub() : _T("lm_part_" + name + "_sub");
+      },
+      tap: function () {
+        showPopup("lmaster-part:" + name + ":" + key, true);
+      },
+    });
+  }
   function draw() {
     box.innerHTML = "";
-    box.appendChild(
-      textRow("edit", _T("all_lights"), sec.mn || "", function (v) {
-        if (v) sec.mn = v.slice(0, 40);
-        else delete sec.mn;
-        uiChanged();
-      }, 40)
-    );
+    if (!part) {
+      box.appendChild(
+        textRow("edit", _T("all_lights"), sec.mn || "", function (v) {
+          if (v) sec.mn = v.slice(0, 40);
+          else delete sec.mn;
+          uiChanged();
+        }, 40)
+      );
+      box.appendChild(
+        part_("lights", "lights", function () {
+          return lightIds().length + " " + _T("lights").toLowerCase() + " · " + (sec.mm ? _T("master_manual") : _T("master_auto"));
+        })
+      );
+      box.appendChild(part_("popup", "tune"));
+      box.appendChild(part_("scenes", "scene"));
+      box.appendChild(part_("where", "home"));
+      masterActionRows(box, sec, p[0]);
+      return;
+    }
+    if (part === "popup") return masterPopupRows(box, sec, p[0], draw);
+    if (part === "scenes") return mscSourceRows(box, sec, p[0], draw);
+    if (part === "where") {
+      masterSectionRows(box, sec);
+      masterGlanceRows(box, sec, draw);
+      return;
+    }
     box.appendChild(
       flagPill("lights", _T("master_changes_the_whole_room"), sec, "mall", function (on) {
         return on ? _T("every_light_of_the_section_even_those_") : _T("only_the_lights_that_are_on_or_all_if_none_is");
       })
     );
     masterModeRows(box, sec, p[0], draw);
-    masterPopupRows(box, sec, p[0], draw);
-    mscSourceRows(box, sec, p[0], draw);
-    masterThingRows(box, sec, p[0], draw);
     box.appendChild(sep(_T("order_of_the_lights"), "drag"));
     box.appendChild(hintRow(sec.mo ? _T("drag_a_light_to_move_it_the_row_follows_this_order") : _T("the_lights_are_in_alphabetical_order_drag_one_to_set_your_own")));
     var nodes = shown(),

@@ -287,6 +287,18 @@ var POPUP_DEFS = {
       },
     };
   },
+  "lmaster-part": function (id) {
+    var part = id.split(":")[0],
+      key = id.slice(part.length + 1),
+      sec = secById(key.split(":")[0], key.split(":")[1]);
+    return {
+      title: ((sec && sec.mn) || _T("lights_master")) + " · " + _T("lm_part_" + part),
+      icon: "lights",
+      build: function (b) {
+        lightsMasterSettings(b, key, part);
+      },
+    };
+  },
   "lmaster-new": function (id) {
     return { title: _T("lm_new_master"), icon: "lights", build: function (b) { masterNewPage(b, id); } };
   },
