@@ -492,9 +492,9 @@ function cleanUI(u) {
     if (typeof b === "string" && DEVRE.test(b) && o.bats.indexOf(b) < 0) o.bats.push(b);
   });
   var lv = u.layout && u.layout.v,
-    cur = lv >= 3 ? { home: u.layout.home, rooms: u.layout.rooms || {} } : migrateLayout(u, ids);
-  o.layout.v = lv >= 4 ? 4 : 3;
-  o.layout.home = cleanLayout(cur.home);
+    cur = lv >= 4 ? { home: u.layout.home, rooms: u.layout.rooms || {} } : { home: null, rooms: {} };
+  o.layout.v = 4;
+  o.layout.home = cleanLayout(cur.home || seedSections("home"));
   Object.keys(ids).forEach(function (rid) {
     o.layout.rooms[rid] = cleanLayout(cur.rooms[rid] || seedSections("room:" + rid));
   });
@@ -596,12 +596,7 @@ function cleanLayout(a) {
         o.mm = 1;
         o.ml = (Array.isArray(s.ml) ? s.ml : [])
           .slice(0, 100)
-          .map(function (m) {
-            /* the first form kept { id, n, i } */
-            if (m && !m.kind && typeof m.id === "string")
-              m = { id: m.id, name: m.name || m.n || m.id.split(".")[1].replace(/_/g, " "), icon: m.icon || m.i || "light", kind: "light" };
-            return cleanDev(m);
-          })
+          .map(cleanDev)
           .filter(function (c, i, a) {
             return c && c.kind === "light" && c.id && a.findIndex(function (x) { return x && x.id === c.id; }) === i;
           });
@@ -715,61 +710,7 @@ function cleanLayout(a) {
   return out;
 }
 
-/* Layouts saved before sections became data (v3): the built-in sections are written out explicitly and each room's devices move into them. */
-function oldOrder(saved, def) {
-  var out = [],
-    seen = {};
-  (Array.isArray(saved) ? saved : []).forEach(function (s) {
-    if (!s || typeof s.id !== "string" || seen[s.id]) return;
-    var custom = def.indexOf(s.id) < 0 && /^c[a-z0-9]{3,10}$/.test(s.id);
-    if (!custom && def.indexOf(s.id) < 0) return;
-    seen[s.id] = 1;
-    out.push(s);
-  });
-  def.forEach(function (id) {
-    if (!seen[id]) out.push({ id: id });
-  });
-  return out;
-}
-
-function migrateLayout(u, ids) {
-  var lay = u.layout || {},
-    hdef = HOME_TPL.map(function (x) {
-      return x[0];
-    }),
-    home = oldOrder(lay.home, hdef).map(function (s) {
-      var t = HOME_TPL.filter(function (x) {
-          return x[0] === s.id;
-        })[0],
-        n = Object.assign({}, s);
-      n.k = t ? t[1] : SECTYPES[s.k] ? s.k : "devs";
-      delete n.custom;
-      return n;
-    }),
-    rooms = {};
-  Object.keys(ids).forEach(function (rid) {
-    var arr = oldOrder((lay.rooms || {})[rid], ROOM_TPL).map(function (s) {
-      var n = Object.assign({}, s),
-        b = ROOM_TPL.indexOf(s.id) >= 0;
-      n.k = b ? s.id : SECTYPES[s.k] ? s.k : "devs";
-      delete n.custom;
-      if (b && SECTYPES[n.k].own) n.devs = [];
-      return n;
-    });
-    (u.devs && Array.isArray(u.devs[rid]) ? u.devs[rid] : []).forEach(function (d) {
-      if (!d) return;
-      var want = d.kind === "camera" ? "camera" : secOf(d),
-        t = arr.filter(function (x) {
-          return x.id === want;
-        })[0];
-      if (t) t.devs.push(d);
-    });
-    rooms[rid] = arr;
-  });
-  return { home: home, rooms: rooms };
-}
-
-/* The devices of a page are whatever its sections hold. UI.devs is rebuilt from them; it is saved only so that a copy of the dashboard from before sections still opens a migrated store. */
+/* The devices of a page are whatever its sections hold. UI.devs is rebuilt from them; it is saved with the layout for the code that looks a page's devices up by room. */
 function devIndex(o) {
   var idx = {};
   o.rooms.forEach(function (r) {

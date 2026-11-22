@@ -180,21 +180,12 @@ def hue_plus_file(hass, hass_storage, key="hue_plus.scenes.bridge1"):
     hass_storage[key] = json.loads(json.dumps(HUE_PLUS_SAVED))
 
 
-async def test_the_first_start_takes_over_the_scenes_and_areas_hue_plus_saved_and_leaves_its_file_alone(hass, hass_storage):
-    hue_plus_file(hass, hass_storage)
-    await setup_home_control(hass)
-    library = await call(hass, "get_library", response=True)
-    assert [a["id"] for a in library["areas"]] == ["room"] and [s["id"] for s in library["scenes"]] == ["evening"]
-    assert hass_storage["hue_plus.scenes.bridge1"] == HUE_PLUS_SAVED
-    assert hass_storage["home_control.live"]["data"]["scenes"]["evening"]["area"] == "room"
-
-
-async def test_a_second_start_takes_over_nothing_more(hass, hass_storage):
-    hass_storage["home_control.live"] = {"version": 1, "minor_version": 1, "key": "home_control.live", "data": {"scenes": {}, "areas": {}}}
+async def test_the_first_start_begins_with_an_empty_library_and_does_not_read_hue_plus_files(hass, hass_storage):
     hue_plus_file(hass, hass_storage)
     await setup_home_control(hass)
     library = await call(hass, "get_library", response=True)
     assert library["areas"] == [] and library["scenes"] == []
+    assert hass_storage["hue_plus.scenes.bridge1"] == HUE_PLUS_SAVED
 
 
 # --- the plus-integration contract (D-13) -----------------------------------------------------------------------------------------

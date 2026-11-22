@@ -1,5 +1,5 @@
 /* What a Lights section's lights master can be set to beyond its name: which lights it controls (the section's own, or lights chosen for it, with their names and icons), what its power button does (switch the lights, or run a scene), and whether its light popup has the sync tab. The master is named "page~section" everywhere (the same section id is on every page).
-   What the section keeps (app/model.js): mm (manual lights), ml (the chosen lights: { id, n (name), i (icon) }), mpw ("scene": the power button runs a scene), mps (the key of that scene, see scenetab.js), msync (the sync tab is on) and msyncid (which sync, when there are several). */
+   What the section keeps (app/model.js): mm (manual lights), ml (the chosen lights, devices like those of a section: { id, name, icon, kind }), mpw ("scene": the power button runs a scene), mps (the key of that scene, see scenetab.js), msync (the sync tab is on) and msyncid (which sync, when there are several). */
 
 /* The section of a lights master, by its name. */
 function masterSec(sid) {

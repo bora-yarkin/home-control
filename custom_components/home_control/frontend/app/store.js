@@ -272,50 +272,6 @@ function cleanScene(s) {
   return out;
 }
 
-/* Pinned items, quick actions and scenes used to be one shared list each. From layout v4 every section holds its own:
- pins in the section, scene ids in the section (the scenes themselves stay in one library). An older store is converted once. */
-function migrateData(o, v) {
-  var ui = o.ui;
-  if (!ui || !ui.layout || ui.layout.v >= 4) return;
-  var pages = [["home", ui.layout.home]].concat(
-      Object.keys(ui.layout.rooms).map(function (k) {
-        return [k, ui.layout.rooms[k]];
-      })
-    ),
-    pinsGiven = false;
-
-  pages.forEach(function (pg) {
-    pg[1].forEach(function (s) {
-      if (s.k === "quick" || s.k === "scenes") {
-        if (!s.scn)
-          s.scn = o.scenes
-            .filter(function (x) {
-              return x.room === pg[0];
-            })
-            .map(function (x) {
-              return x.id;
-            });
-      }
-      if (s.k === "pinned" && !s.pins) {
-        if (pg[0] === "home" && !pinsGiven) {
-          pinsGiven = true;
-          s.pins = cleanPins(v && v.pins);
-        } else s.pins = [];
-      }
-    });
-  });
-  ui.layout.v = 4;
-  devIndex(ui);
-}
-
-/* Older copies of the dashboard still read the pins list, so the first pinned section on Home is kept there too. */
-function legacyPins() {
-  var s = ((UI && UI.layout.home) || []).filter(function (x) {
-    return x.k === "pinned";
-  })[0];
-  return s && s.pins ? s.pins : [];
-}
-
 function cleanStore(v) {
   var o = {
     v: 1,
@@ -329,7 +285,6 @@ function cleanStore(v) {
     notify: cleanNotify(v && v.notify),
     cfg: cleanCfg(v && v.cfg),
     icons: cleanIcons(v && v.icons),
-    pins: cleanPins(v && v.pins),
   };
   if (v && v.presets && typeof v.presets === "object")
     Object.keys(v.presets).forEach(function (id) {
@@ -378,7 +333,6 @@ function cleanStore(v) {
       })
       .slice(0, 16)
       .map(Math.round);
-  migrateData(o, v);
   return o;
 }
 
@@ -475,7 +429,6 @@ function storeSave() {
     return;
   }
   STORE.ui = UI;
-  STORE.pins = legacyPins();
   var prevJ = STORE_JSON;
   STORE_JSON = JSON.stringify(STORE);
   if (EDIT && !EDSKIP && prevJ && prevJ !== STORE_JSON) {

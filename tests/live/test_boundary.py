@@ -14,9 +14,8 @@ from pathlib import Path
 LIVE = Path(__file__).resolve().parents[2] / "custom_components" / "home_control" / "live"
 
 # Connect the package to Home Assistant; every other module is pure.
-THIN = {"__init__", "setup", "services", "spec", "websocket", "hass_driver", "providers", "resolve", "actions", "migration"}
-# The one-time takeover of what Hue Plus saved (D-12) is the only file that names a brand; it goes when every install has moved over.
-BRAND_EXEMPT = {"migration"}
+THIN = {"__init__", "setup", "services", "spec", "websocket", "hass_driver", "providers", "resolve", "actions"}
+BRAND_EXEMPT = set()
 # What the thin files may take from outside the package (relative to home_control).
 ALLOWED_OUTSIDE = {"const", "service_support", "fieldspec", "effects"}
 BRANDS = re.compile(r"hue_plus|hue plus|philips|govee|tuya|ikea", re.IGNORECASE)  # a brand, not the colour term "hue"

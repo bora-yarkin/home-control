@@ -101,8 +101,8 @@ test("the section keeps its mode, chosen lights, power button and sync through t
     return plain(o);
   };
   assert.deepEqual(
-    run({ master: 1, mm: 1, ml: [{ id: "light.a", name: "Desk", icon: "lamp", kind: "light" }, { id: "light.a", name: "Again", kind: "light" }, { id: "switch.x", name: "Plug", kind: "switch" }, { id: "light.b", n: "Bed", i: "bed" }, { id: "light.c" }], mpw: "scene", mps: "scene.read", msync: 1, msyncid: "switch.sync", mhl: 1, mhs: 1, mgl: 1, mtab: "scenes" }),
-    { mm: 1, ml: [{ id: "light.a", name: "Desk", icon: "lamp", kind: "light" }, { id: "light.b", name: "Bed", icon: "bed", kind: "light" }, { id: "light.c", name: "c", icon: "light", kind: "light" }], mgl: 1, mtab: "scenes", mhl: 1, mhs: 1, mpw: "scene", mps: "scene.read", msync: 1, msyncid: "switch.sync" }
+    run({ master: 1, mm: 1, ml: [{ id: "light.a", name: "Desk", icon: "lamp", kind: "light" }, { id: "light.a", name: "Again", kind: "light" }, { id: "switch.x", name: "Plug", kind: "switch" }, { id: "light.b", name: "Bed", icon: "bed", kind: "light" }, { id: "light.c" }], mpw: "scene", mps: "scene.read", msync: 1, msyncid: "switch.sync", mhl: 1, mhs: 1, mgl: 1, mtab: "scenes" }),
+    { mm: 1, ml: [{ id: "light.a", name: "Desk", icon: "lamp", kind: "light" }, { id: "light.b", name: "Bed", icon: "bed", kind: "light" }, ], mgl: 1, mtab: "scenes", mhl: 1, mhs: 1, mpw: "scene", mps: "scene.read", msync: 1, msyncid: "switch.sync" }
   );
   assert.deepEqual(run({ master: 1, mpw: "other", mps: "scene.read", ml: [{ id: "light.a" }] }), {}, "automatic keeps no list, and an unknown power mode is the default");
 });
