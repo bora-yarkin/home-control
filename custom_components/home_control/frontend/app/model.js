@@ -351,7 +351,6 @@ function cleanDev(d) {
   if (d.dial && d.kind === "climate") c.dial = 1;
   if (d.art && d.kind === "media") c.art = 1;
   if (d.nonp && d.kind === "media" && !c.art) c.nonp = 1;
-  if (d.noadv) c.noadv = 1;
   if (d.noslide && d.kind === "lock") c.noslide = 1;
   if (d.kind === "vacuum" && d.map && typeof d.map === "object") {
     var m = {};
@@ -627,6 +626,14 @@ function cleanLayout(a) {
             return c && c.kind === "light" && c.id && a.findIndex(function (x) { return x && x.id === c.id; }) === i;
           });
       }
+      /* Lights a master shows that no section or chosen list holds as a device (a group's own lights, for example): kept as devices so that their settings open from the master. */
+      var lx = (Array.isArray(s.lx) ? s.lx : [])
+        .slice(0, 100)
+        .map(cleanDev)
+        .filter(function (c, i, a) {
+          return c && c.kind === "light" && c.id && a.findIndex(function (x) { return x && x.id === c.id; }) === i;
+        });
+      if (lx.length) o.lx = lx;
       if (s.mgl) o.mgl = 1;
       if (["color", "white", "fx", "scenes", "sync"].indexOf(s.mtab) >= 0) o.mtab = s.mtab;
       if (s.mhl) o.mhl = 1;
@@ -800,7 +807,7 @@ function applyUI() {
   });
   secs.forEach(function (arr) {
     arr.forEach(function (s) {
-      (s.devs || []).forEach(function (d) {
+      (s.devs || []).concat(s.lx || []).forEach(function (d) {
         if (d.kind === "light" && d.id && !LNAME[d.id]) LNAME[d.id] = [d.name, d.icon || "light"];
       });
     });

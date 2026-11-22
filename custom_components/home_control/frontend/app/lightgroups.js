@@ -80,7 +80,7 @@ function lgForm(b, o) {
     if (row.refresh) row.refresh();
     tabsBox.innerHTML = "";
     tabsBox.appendChild(
-      seg([["look", _T("dp_look")], ["lights", _T("lg_lights")], ["behaviour", _T("lg_behaviour")]], f.st.tab, function (v) {
+      seg([["look", _T("dp_appearance")], ["lights", _T("lg_lights")], ["behaviour", _T("lg_behaviour")]], f.st.tab, function (v) {
         f.st.tab = v;
         f.drawShell();
         swapContent(f.box, content);

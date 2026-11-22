@@ -83,3 +83,23 @@ test("the Add section list has every kind, grouped, and a kind that exists once 
   assert.match(editor, /already_on_this_page/);
   assert.doesNotMatch(editor, /secSetKind|secTypePage/, "a section does not change type");
 });
+
+test("lights a master shows that nothing else holds as a device are kept as devices (lx), only lights, once each, so their settings open from the master", () => {
+  const w = world();
+  const out = plain(w.cleanLayout([{ id: "mn", k: "devs", devs: [], master: 1, lx: [light("light.g1"), light("light.g1"), { id: "switch.x", name: "X", icon: "plug", kind: "switch" }, light("light.g2")] }]));
+  assert.deepEqual(out[0].lx.map((d) => d.id), ["light.g1", "light.g2"]);
+});
+
+test("a device has two tabs, Appearance and Behaviour; visibility, moving and removing are in Behaviour; the per-device Advanced settings button and the setting that hid it are gone", () => {
+  const manage = read("manage.js");
+  assert.match(manage, /\["look", _T\("dp_appearance"\)\], \["behave", _T\("dp_behaviour"\)\]/);
+  assert.match(manage, /function devPlaceRows\(c\)/);
+  assert.doesNotMatch(manage, /noadv|devPlaceTab|devMoreTab|devOptionsTab/);
+  assert.doesNotMatch(read("popups.js") + read("camera.js") + read("appearance.js"), /PREFS\.adv|noadv/);
+});
+
+test("every object says whether it is shown with the same row, Visible, On or Off", () => {
+  assert.match(read("widgets.js"), /function visiblePill\(isOn, toggle\)/);
+  for (const f of ["editor.js", "glance.js", "manage.js"]) assert.match(read(f), /visiblePill\(/, f);
+  assert.doesNotMatch(read("manage.js"), /hide_room/);
+});

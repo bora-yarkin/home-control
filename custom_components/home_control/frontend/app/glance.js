@@ -333,21 +333,18 @@ function glancePage(b, id) {
         glWord(c);
       box.appendChild(hn);
       box.appendChild(
-        pill("check", _T("show_this_tile"), {
-          on: function () {
+        visiblePill(
+          function () {
             return glanceCfg().h.indexOf(id) < 0;
           },
-          sub: function () {
-            return glanceCfg().h.indexOf(id) < 0 ? _T("visible") : _T("hidden");
-          },
-          tap: function () {
+          function () {
             glanceSave(function (x) {
               var i = x.h.indexOf(id);
               if (i >= 0) x.h.splice(i, 1);
               else x.h.push(id);
             });
-          },
-        })
+          }
+        )
       );
       box.appendChild(
         pill("trash", _T("delete_this_tile"), {
@@ -372,21 +369,18 @@ function glancePage(b, id) {
     return;
   }
   b.appendChild(
-    pill("check", _T("show_this_tile"), {
-      on: function () {
+    visiblePill(
+      function () {
         return glanceCfg().h.indexOf(id) < 0;
       },
-      sub: function () {
-        return glanceCfg().h.indexOf(id) < 0 ? _T("visible") : _T("hidden");
-      },
-      tap: function () {
+      function () {
         glanceSave(function (x) {
           var i = x.h.indexOf(id);
           if (i >= 0) x.h.splice(i, 1);
           else x.h.push(id);
         });
-      },
-    })
+      }
+    )
   );
   if (id === "media") b.appendChild(mediaCtlPill());
   if (id === "lights") glMasterPicks(b);

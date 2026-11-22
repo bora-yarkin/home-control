@@ -19,7 +19,6 @@ var PREFS = {
   wallIdle: 120,
   wallMode: "clock",
   wallDim: true,
-  adv: true,
   pinHdr: true,
   hdrSize: "",
   startView: "",
@@ -30,7 +29,7 @@ var PREFS = {
 function mergePrefs(v) {
   if (!v || typeof v !== "object") return;
   if (v.theme === "dark" || v.theme === "light" || v.theme === "auto") PREFS.theme = v.theme;
-  ["wall", "wallDim", "adv", "pinHdr"].forEach(function (k) {
+  ["wall", "wallDim", "pinHdr"].forEach(function (k) {
     if (typeof v[k] === "boolean") PREFS[k] = v[k];
   });
   if (typeof v.wallIdle === "number" && v.wallIdle >= 30 && v.wallIdle <= 3600)

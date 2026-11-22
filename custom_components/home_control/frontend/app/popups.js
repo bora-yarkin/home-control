@@ -17,7 +17,7 @@ function popupDef(key) {
     var inner = d.build;
     d.build = function (b) {
       inner(b);
-      if (ISADMIN && PREFS.adv && !(UIDEV[ent] && UIDEV[ent].noadv) && advList(ent).length) {
+      if (ISADMIN && advList(ent).length) {
         var n = advList(ent).length;
         b.appendChild(
           pill("tune", _T("advanced_settings"), {
@@ -738,6 +738,15 @@ var POPUP_DEFS = {
       icon: "plus",
       build: function (b) {
         remoteBtnPage(b, id);
+      },
+    };
+  },
+  "manage-move": function (id) {
+    return {
+      title: _T("move_to_room"),
+      icon: "swap",
+      build: function (b) {
+        devMove(b, id);
       },
     };
   },

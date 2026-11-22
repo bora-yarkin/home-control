@@ -521,7 +521,18 @@ function hintRow(text) {
 }
 
 /* A row that switches one yes/no setting of an object, kept as a flag that is there when it is on (and removed when it is off, so saved settings stay small). `sub(on)` words the state;
-   `inverted` is for a flag that names the exception (noadv: "no advanced button"), where the row is on while the flag is absent. Every change is saved at once. */
+   `inverted` is for a flag that names the exception (noslide: "no slider"), where the row is on while the flag is absent. Every change is saved at once. */
+/* The one way every object says whether it is shown: a row "Visible", On or Off. `isOn()` says whether it is shown now and `toggle()` flips it. */
+function visiblePill(isOn, toggle) {
+  return pill("eye", _T("visible"), {
+    on: isOn,
+    sub: function () {
+      return isOn() ? _T("on_cap") : _T("off");
+    },
+    tap: toggle,
+  });
+}
+
 function flagPill(icon, title, obj, key, sub, inverted) {
   function on() {
     return inverted ? !obj[key] : !!obj[key];

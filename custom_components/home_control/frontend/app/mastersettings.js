@@ -29,10 +29,9 @@ function masterLightIds(sec) {
 /* The names and icons of the lights of a manual master: { entity: { n, i } }. */
 function masterMeta(sec) {
   var out = {};
-  if (sec.mm)
-    (sec.ml || []).forEach(function (m) {
-      out[m.id] = { n: m.name || "", i: m.icon || "" };
-    });
+  (sec.mm ? sec.ml || [] : []).concat(sec.lx || []).forEach(function (m) {
+    if (!out[m.id]) out[m.id] = { n: m.name || "", i: m.icon || "" };
+  });
   return out;
 }
 
@@ -136,10 +135,30 @@ function masterLightList(box, sec, scope, redraw) {
   var root = lpMasterNode(sid, masterLightIds(sec)),
     own = {};
   /* The lights a tap edits (name, icon, which controls it shows): the chosen ones of a manual master, the section's own devices of an automatic one. */
-  var ownRid = sec.mm ? "~" + scope + "~" + sec.id + "~ml" : "~" + scope + "~" + sec.id;
+  var base = "~" + scope + "~" + sec.id,
+    ownRid = sec.mm ? base + "~ml" : base;
   (sec.mm ? sec.ml || [] : sec.devs || []).forEach(function (m) {
     if (m.id) own[m.id] = m;
   });
+  /* Any light of the list opens its settings (name, icon, features, turn-on state, and for a group its group settings). A light the master has no record of gets one, in `lx`. */
+  function editLight(n) {
+    return function () {
+      var rid = ownRid,
+        d = own[n.key];
+      if (!d) {
+        d = (sec.lx || []).filter(function (x) {
+          return x.id === n.key;
+        })[0];
+        rid = base + "~lx";
+        if (!d) {
+          d = { id: n.key, name: n.name, icon: n.icon || "light", kind: "light" };
+          sec.lx = (sec.lx || []).concat([d]);
+          uiChanged();
+        }
+      }
+      devEditor(rid, d)();
+    };
+  }
   box.appendChild(sep(_T("order_of_the_lights"), "drag"));
   box.appendChild(hintRow(sec.mo ? _T("drag_a_light_to_move_it_the_row_follows_this_order") : _T("the_lights_are_in_alphabetical_order_drag_one_to_set_your_own")));
   /* Putting the lights of one list in a new order keeps the order of every other list. */
@@ -159,7 +178,7 @@ function masterLightList(box, sec, scope, redraw) {
     nodes.forEach(function (n) {
       var wrap = mk("div", "ml-item"),
         group = sec.mgl && lpIsGroup(n),
-        edit = own[n.key] ? devEditor(ownRid, own[n.key]) : null,
+        edit = n.key.indexOf("light.") === 0 ? editLight(n) : null,
         row = pill(n.icon || "light", n.name, {
           sub: function () {
             return group ? lpCount(n) + " " + _T("lights").toLowerCase() : n.key;

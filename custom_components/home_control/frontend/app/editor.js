@@ -890,18 +890,15 @@ function secEditor(b, key) {
     var k = e.k || "devs",
       ty = SECTYPES[k] || SECTYPES.devs;
     box.appendChild(
-      pill("check", _T("show_this_section"), {
-        on: function () {
+      visiblePill(
+        function () {
           return !e.hide;
         },
-        sub: function () {
-          return e.hide ? _T("hidden") : _T("visible");
-        },
-        tap: function () {
+        function () {
           e.hide = !e.hide;
           save();
-        },
-      })
+        }
+      )
     );
     ruleControls(
       box,
