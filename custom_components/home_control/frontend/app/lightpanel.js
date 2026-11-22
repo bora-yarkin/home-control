@@ -186,8 +186,17 @@ function lpWhiteWheel() {
 function lpKrange(n) {
   var c = lpCap(n, "white");
   if (!c.length) return [2000, 6500];
-  var a = A(c.filter(isOn)[0] || c[0]);
-  return [a.min_color_temp_kelvin || 2000, a.max_color_temp_kelvin || 6500];
+  /* What every one of the lights can show: the highest of the lowest and the lowest of the highest. A group helper that does not know its lights' range says 1000 to 20000, and one light like that, as the first, put every marker on the wheel in the wrong place (a light dropped at the cool end is held at its own 6535 and the marker went back to a place a third of the way down). */
+  var lo = 0,
+    hi = Infinity;
+  c.forEach(function (e) {
+    var a = A(e);
+    lo = Math.max(lo, a.min_color_temp_kelvin || 0);
+    hi = Math.min(hi, a.max_color_temp_kelvin || Infinity);
+  });
+  if (lo > 0 && hi > lo && hi < Infinity) return [lo, hi];
+  var a0 = A(c.filter(isOn)[0] || c[0]);
+  return [a0.min_color_temp_kelvin || 2000, a0.max_color_temp_kelvin || 6500];
 }
 
 /* Sends a colour or a white temperature to what a node stands for. */
@@ -904,13 +913,10 @@ function lpNodeLook(n) {
   return first;
 }
 
-/* A panel whose groups are single lights (S.hier) opens with its lights apart, the ones that look the same sharing a marker; a group is never opened by itself, however its lights look. */
-function lpHierInit(S, root) {
-  if (!root.kids) return;
-  if (lpNodeLook(root)) return S.auto.push(root);
-  S.ex[root.key] = true;
+/* The lights of a list that look the same share a marker (a virtual node, kept apart from one the person made, which has no `auto`); the rest stay on their own. */
+function lpJoinAlike(S, kids) {
   var groups = [];
-  root.kids.forEach(function (k) {
+  kids.forEach(function (k) {
     var l = lpNodeLook(k),
       g = l
         ? groups.filter(function (x) {
@@ -927,6 +933,14 @@ function lpHierInit(S, root) {
       S.joined.push(v);
     }
   });
+}
+
+/* A panel whose groups are single lights (S.hier) opens with its lights apart, the ones that look the same sharing a marker; a group is never opened by itself, however its lights look. */
+function lpHierInit(S, root) {
+  if (!root.kids) return;
+  if (lpNodeLook(root)) return S.auto.push(root);
+  S.ex[root.key] = true;
+  lpJoinAlike(S, root.kids);
 }
 
 /* The lights row of a panel whose groups are single lights: the lights of the whole, a group as one tile. What is separated on the wheel does not change it: a light taken out of a group on the wheel is still in its group here. */
@@ -939,24 +953,7 @@ function lpAutoSplit(S, n) {
   if (!n.kids) return;
   if (lpNodeLook(n)) return S.auto.push(n);
   S.ex[n.key] = true;
-  var groups = [];
-  n.kids.forEach(function (k) {
-    var l = lpNodeLook(k),
-      g = l
-        ? groups.filter(function (x) {
-            return x.look && lpSameLook(x.look, l);
-          })[0]
-        : null;
-    if (g) g.kids.push(k);
-    else groups.push({ look: l, kids: [k] });
-  });
-  groups.forEach(function (g) {
-    if (g.kids.length > 1) {
-      var v = S.makeVirtual(g.kids, g.kids[0].icon);
-      v.auto = true;
-      S.joined.push(v);
-    }
-  });
+  lpJoinAlike(S, n.kids);
   n.kids.forEach(function (k) {
     lpAutoSplit(S, k);
   });
@@ -1122,20 +1119,23 @@ function lpState(root, both, groups) {
       changed = true;
       return false;
     });
-    var keep = S.joined.filter(function (v) {
-      if (!v.auto) return true;
+    /* A marker the panel made of lights that looked the same, one of which changed: the others that still look the same stay together. */
+    S.joined.slice().forEach(function (v) {
+      if (!v.auto) return;
       var first = null;
-      return v.kids.every(function (k) {
+      var alike = v.kids.every(function (k) {
         var l = lpNodeLook(k);
         if (!l) return false;
         first = first || l;
         return lpSameLook(first, l);
       });
-    });
-    if (keep.length !== S.joined.length) {
-      S.joined = keep;
+      if (alike) return;
+      S.joined = S.joined.filter(function (x) {
+        return x !== v;
+      });
+      lpJoinAlike(S, v.kids);
       changed = true;
-    }
+    });
     if (changed && S.sel && !lpFindIn(S, S.sel)) S.sel = null;
     return changed;
   };

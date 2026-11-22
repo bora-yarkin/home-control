@@ -13,7 +13,7 @@ const fn = (name) => {
   assert.ok(at >= 0, `${name} exists`);
   return panel.slice(at, panel.indexOf("\n}\n", at) + 3);
 };
-const SRC = ["lpFrontier", "lpLeaves", "lpOpenKids", "lpCount", "lpFind", "lpFindIn", "lpVisible", "lpShownOf", "lpHolds", "lpLook", "lpSameLook", "lpNodeLook", "lpHierInit", "lpTrayUnits", "lpSortLights", "lpIsGroup", "lpTrayStruct", "lpTraySig", "lpGroupColours", "lpState"].map(fn).join("\n");
+const SRC = ["lpFrontier", "lpLeaves", "lpOpenKids", "lpCount", "lpFind", "lpFindIn", "lpVisible", "lpShownOf", "lpHolds", "lpLook", "lpSameLook", "lpNodeLook", "lpJoinAlike", "lpHierInit", "lpTrayUnits", "lpSortLights", "lpIsGroup", "lpTrayStruct", "lpTraySig", "lpGroupColours", "lpState"].map(fn).join("\n");
 
 // The lights: a floor lamp group (L, R) and the Iris look the same; the ceiling light does not.
 const looks = { "light.l": "warm", "light.r": "warm", "light.iris": "warm", "light.ceil": "blue" };
@@ -295,4 +295,42 @@ test("a whole room left as one marker because every light looked alike opens int
   assert.equal(S.ex[nodes.root.key], true, "the whole is opened where it was");
   assert.deepEqual(keys(sandbox.lpVisible(S).filter((n) => !n.virtual)), ["light.ceil"], "the ceiling light has its own marker, the others stay together");
   looks["light.ceil"] = "blue";
+});
+
+test("when one light of a marker changes the others that still look alike stay together, they do not all fall apart", () => {
+  for (const id of Object.keys(looks)) looks[id] = "warm";
+  const { S, sandbox, nodes } = build();
+  assert.deepEqual(keys(sandbox.lpVisible(S)), ["m:x"]);
+  looks["light.iris"] = "blue";
+  assert.equal(S.resplit(), true);
+  const shown = sandbox.lpVisible(S);
+  assert.deepEqual(keys(shown.filter((n) => n.virtual)[0].kids), ["light.floor", "light.ceil"], "the floor lamps and the ceiling light still run alike");
+  assert.ok(keys(shown).includes("light.iris"), "the Iris has a marker of its own");
+  looks["light.ceil"] = "blue";
+  looks["light.iris"] = "warm";
+  // the marker of the floor lamps and the ceiling light: the ceiling light changes
+  assert.equal(S.resplit(), true);
+  assert.equal(sandbox.lpVisible(S).filter((n) => n.virtual).length, 0, "two lights that were together and one of them changed: each has a marker");
+  looks["light.ceil"] = "blue";
+  looks["light.iris"] = "warm";
+  void nodes;
+});
+
+test("the white range of a marker or a wheel is what every one of its lights can show, so a group helper that reports 1000 to 20000 does not put every marker in the wrong place", () => {
+  const range = {
+    "light.group": [1000, 20000],
+    "light.a": [2000, 6535],
+    "light.b": [2237, 6535],
+  };
+  const sandbox = {
+    isOn: () => true,
+    lpCap: (n) => n.cmd,
+    A: (e) => ({ min_color_temp_kelvin: range[e][0], max_color_temp_kelvin: range[e][1] }),
+  };
+  vm.createContext(sandbox);
+  vm.runInContext(fn("lpKrange"), sandbox);
+  assert.deepEqual(Array.from(sandbox.lpKrange({ cmd: ["light.group", "light.a", "light.b"] })), [2237, 6535], "the lights' common range, whatever order they come in");
+  assert.deepEqual(Array.from(sandbox.lpKrange({ cmd: ["light.group"] })), [1000, 20000], "a light alone has its own range");
+  range["light.b"] = [6600, 7000];
+  assert.deepEqual(Array.from(sandbox.lpKrange({ cmd: ["light.a", "light.b"] })), [2000, 6535], "lights with nothing in common: the first one's range, as before");
 });
