@@ -691,6 +691,7 @@ function lightsMasterSettings(b, key) {
     masterModeRows(box, sec, p[0], draw);
     masterPopupRows(box, sec, p[0], draw);
     mscSourceRows(box, sec, p[0], draw);
+    masterThingRows(box, sec, p[0], draw);
     box.appendChild(sep(_T("order_of_the_lights"), "drag"));
     box.appendChild(hintRow(sec.mo ? _T("drag_a_light_to_move_it_the_row_follows_this_order") : _T("the_lights_are_in_alphabetical_order_drag_one_to_set_your_own")));
     var nodes = shown(),
@@ -860,10 +861,16 @@ function lightsAll(room) {
   return lightUnits(ROOMLIGHTS[room] || []);
 }
 
+/* Every light of the visible rooms, and of the lights masters of the pages (a light taken out of a room's section but kept by a master is still a light of the house), each once. */
 function allLights() {
   var out = [];
   Object.keys(ROOMLIGHTS).forEach(function (r) {
     lightsAll(r).forEach(function (x) {
+      if (out.indexOf(x) < 0) out.push(x);
+    });
+  });
+  allMasters().forEach(function (m) {
+    lightUnits(m.ids).forEach(function (x) {
       if (out.indexOf(x) < 0) out.push(x);
     });
   });

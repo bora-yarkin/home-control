@@ -175,7 +175,7 @@ function glanceCfg() {
       return x.k === "glance";
     })[0],
     g = (e && e.gl) || {};
-  return { o: g.o || [], h: g.h || [], c: g.c || [], f: !!g.f };
+  return { o: g.o || [], h: g.h || [], c: g.c || [], f: !!g.f, lm: g.lm || [] };
 }
 
 function glanceSave(fn) {
@@ -408,6 +408,7 @@ function glancePage(b, id) {
         },
       })
     );
+  if (id === "lights") glMasterPicks(b);
   if (id === "lights")
     gxPage(
       b,
@@ -417,6 +418,11 @@ function glancePage(b, id) {
         Object.keys(ROOMLIGHTS).forEach(function (r) {
           if (!rm && ROOMLIGHTS[r].indexOf(i) >= 0) rm = TITLES[r] || "";
         });
+        /* a light only a lights master has is under the page of the master */
+        if (!rm)
+          allMasters().forEach(function (m) {
+            if (!rm && lightUnits(m.ids).indexOf(i) >= 0) rm = m.page || "";
+          });
         return { id: i, name: entName(i), icon: "light", room: rm };
       })
     );

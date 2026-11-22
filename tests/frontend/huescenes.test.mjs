@@ -30,6 +30,7 @@ function page(extra = {}) {
     toast: (t) => log.toasts.push(t),
     pluginSceneKind: () => null,
     allSectionLists: () => [],
+    secsAndMasters: (l) => l,
     liveRun: () => false,
     liveCall: (...a) => log.stops.push(a),
     liveForget: (...a) => log.forgot.push(a),

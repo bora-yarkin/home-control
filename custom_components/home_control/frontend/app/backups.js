@@ -160,7 +160,7 @@ function bkAutoPage(b) {
 function pageExportJSON(sc) {
   var secs = JSON.parse(JSON.stringify(secOrder(sc))),
     ids = {};
-  secs.forEach(function (s) {
+  secsAndMasters(secs).forEach(function (s) {
     (s.scn || []).forEach(function (i) {
       ids[i] = 1;
     });
@@ -241,7 +241,7 @@ function pageParse(sc, text) {
   });
   var secs = cleanLayout(j.sections);
   if (!secs.length) return { problem: _T("that_page_has_no_sections") };
-  secs.forEach(function (s) {
+  secsAndMasters(secs).forEach(function (s) {
     if (s.scn)
       s.scn = s.scn
         .map(function (i) {

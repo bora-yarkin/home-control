@@ -287,6 +287,12 @@ var POPUP_DEFS = {
       },
     };
   },
+  "lmaster-new": function (id) {
+    return { title: _T("lm_new_master"), icon: "lights", build: function (b) { masterNewPage(b, id); } };
+  },
+  "lmaster-move": function (id) {
+    return { title: _T("lm_move_or_copy"), icon: "swap", build: function (b) { masterMovePage(b, id); } };
+  },
   "lmaster-lights": function (id) {
     return { title: _T("master_choose_lights"), icon: "lights", build: function (b) { masterLightsPage(b, id); } };
   },
@@ -768,22 +774,7 @@ var POPUP_DEFS = {
       title: _T("lights"),
       icon: "lights",
       build: function (b) {
-        UI.rooms.forEach(function (r) {
-          var ls = r.hide
-            ? []
-            : (ROOMLIGHTS[r.id] || []).filter(function (i) {
-                return !gxOff("lights", i);
-              });
-          if (!ls.length) return;
-          b.appendChild(sep(r.name, "lights"));
-          ls.forEach(function (id) {
-            b.appendChild(
-              lightRow(id, false, function () {
-                return glanceCfg().f;
-              })
-            );
-          });
-        });
+        glLightsPage(b);
       },
     };
   },

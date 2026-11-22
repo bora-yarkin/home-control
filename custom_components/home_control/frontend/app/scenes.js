@@ -46,7 +46,7 @@ function pruneSceneRefs() {
     ok[x.id] = 1;
   });
   allSectionLists().forEach(function (l) {
-    l.forEach(function (s) {
+    secsAndMasters(l).forEach(function (s) {
       if (s.scn)
         s.scn = s.scn.filter(function (id) {
           return ok[id];
@@ -62,7 +62,7 @@ function pruneSceneRefs() {
 /* Whether a section of some page lists the scene. A scene taken off every page is still saved (it is under "Existing scenes" when adding one). */
 function sceneShown(id) {
   return allSectionLists().some(function (l) {
-    return l.some(function (s) {
+    return secsAndMasters(l).some(function (s) {
       return (s.scn || []).indexOf(id) >= 0;
     });
   });

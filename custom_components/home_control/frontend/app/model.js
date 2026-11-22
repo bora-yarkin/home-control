@@ -554,6 +554,13 @@ function cleanLayout(a) {
         };
       o.gl = { o: pk(s.gl.o), h: pk(s.gl.h), c: cs };
       if (s.gl.f) o.gl.f = 1;
+      /* The lights masters the At a glance lights popup shows as rows ("page~master"); the lights of the others are listed one by one. */
+      var lm = (Array.isArray(s.gl.lm) ? s.gl.lm : [])
+        .filter(function (x, i, r) {
+          return typeof x === "string" && /^[a-z0-9_-]{1,24}~[a-z][a-z0-9_]{1,14}$/.test(x) && r.indexOf(x) === i;
+        })
+        .slice(0, 40);
+      if (lm.length) o.gl.lm = lm;
     }
     var wh = s.when;
     if (
@@ -614,6 +621,23 @@ function cleanLayout(a) {
       }
       if (s.msync) o.msync = 1;
       if (typeof s.msyncid === "string" && ENTRE.test(s.msyncid)) o.msyncid = s.msyncid;
+      /* The room the At a glance lights popup lists it under: the room of the page it is on (not set), or the Home Assistant room of its lights. */
+      if (s.mgr === "ha") o.mgr = "ha";
+    }
+    /* More lights masters in the section, each a holder of the same settings under an id of its own (see app/lightsmasters.js). They are always manual: the lights are chosen for them. */
+    if (k === "lights" && Array.isArray(s.masters)) {
+      var held = [];
+      s.masters.slice(0, 12).forEach(function (h) {
+        if (!h || typeof h.id !== "string" || !/^[a-z][a-z0-9_]{1,14}$/.test(h.id) || seen[h.id]) return;
+        var c = cleanLayout([Object.assign({}, h, { k: "lights", master: 1, mm: 1, hide: false, masters: null })])[0];
+        if (!c) return;
+        seen[h.id] = 1;
+        ["k", "hide", "devs", "w", "t", "i", "when", "and", "lay", "noall", "accent", "mhl", "mhs"].forEach(function (x) {
+          delete c[x];
+        });
+        held.push(c);
+      });
+      if (held.length) o.masters = held;
     }
     if (k === "lights" && s.master && Array.isArray(s.mo))
       o.mo = s.mo

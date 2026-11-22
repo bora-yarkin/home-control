@@ -1057,6 +1057,31 @@ function secEditor(b, key) {
           },
         })
       );
+    if (k === "lights") {
+      /* More lights masters in the section, each with the lights chosen for it (app/lightsmasters.js). */
+      (e.masters || []).forEach(function (m) {
+        box.appendChild(
+          pill("lights", m.mn || _T("all_lights"), {
+            sub: function () {
+              return cntS((m.ml || []).length, _T("light_2"), _T("lights").toLowerCase());
+            },
+            tap: function () {
+              showPopup("lmaster-edit:" + key.split(":")[0] + ":" + m.id, true);
+            },
+          })
+        );
+      });
+      box.appendChild(
+        pill("plus", _T("lm_add_a_lights_master"), {
+          sub: function () {
+            return _T("lm_add_a_lights_master_sub");
+          },
+          tap: function () {
+            showPopup("lmaster-new:" + key, true);
+          },
+        })
+      );
+    }
     if (k === "lights")
       box.appendChild(
         pill("palette", _T("colour_circle"), {
@@ -1287,6 +1312,10 @@ function secEditor(b, key) {
             c.t = (e.t || ty.t).slice(0, 36) + " 2";
             order.splice(order.indexOf(e) + 1, 0, c);
             setSecOrder(sk, order);
+            /* the lights masters it holds are copies with ids of their own */
+            (c.masters || []).forEach(function (m) {
+              m.id = masterNewId(sk === "home" ? "home" : sk.slice(5));
+            });
             uiChanged();
             toast(_T("section_duplicated"));
           },

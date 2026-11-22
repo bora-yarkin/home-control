@@ -2,11 +2,16 @@
 
 /* Pinned items, quick actions and scenes belong to the section that shows them; a scene is stored once in the library and sections list its id. */
 function secById(scope, sid) {
-  return (
-    secOrder(scopeKey(scope)).filter(function (x) {
-      return x.id === sid;
-    })[0] || null
-  );
+  var list = secOrder(scopeKey(scope));
+  for (var i = 0; i < list.length; i++) {
+    if (list[i].id === sid) return list[i];
+    /* a lights master held by a section (app/lightsmasters.js) is found by its own id, with the settings of a master as a section has them */
+    var held = (list[i].masters || []).filter(function (m) {
+      return m.id === sid;
+    })[0];
+    if (held) return held;
+  }
+  return null;
 }
 
 /* ---- Section types ----
@@ -559,17 +564,28 @@ function customSection(s) {
     );
   }
   var mids = k === "lights" && s.master ? masterLightIds(s) : [];
+  /* More lights masters held by the section (app/lightsmasters.js): each with the lights chosen for it, shown while the page is edited too so it can be opened. */
+  var extras = k === "lights" ? (s.masters || []).filter(function (m) { return masterLightIds(m).length > (ed ? 0 : 1); }) : [];
   /* A lights master keeps its section on the page when it has hidden every row of it: the master is the section then. */
-  if (!rows.length && !ed && !(s.master && mids.length > 1)) return null;
+  if (!rows.length && !ed && !(s.master && mids.length > 1) && !extras.length) return null;
   /* Lights master: one light at the top that controls every light of the section (or the lights chosen for it); off unless the section turns it on. While the page is edited it opens its settings. */
+  var masterRows = [];
   if (k === "lights" && s.master && mids.length > 1) {
     var mr = lightsMasterRow(secKey() + "~" + s.id, mids, !s.nowheel, s.mn, s.mall, s.mo, masterMeta(s));
-    rows.unshift(
+    masterRows.push(
       edMark(mr, function () {
         showPopup("lmaster-edit:" + secKey() + ":" + s.id, true);
       })
     );
   }
+  extras.forEach(function (m) {
+    masterRows.push(
+      edMark(lightsMasterRow(secKey() + "~" + m.id, masterLightIds(m), !m.nowheel, m.mn, m.mall, m.mo, masterMeta(m)), function () {
+        showPopup("lmaster-edit:" + secKey() + ":" + m.id, true);
+      })
+    );
+  });
+  rows = masterRows.concat(rows);
   var body = rows;
   if (k === "read") {
     var g = mk("div", "glance");

@@ -455,10 +455,9 @@ function devAt(key) {
 
 /* The section a "~page~section" list id names. */
 function sectionOfList(rid) {
-  var p = rid.split("~"),
-    arr = p[1] === "home" ? UI.layout.home : UI.layout.rooms[p[1]] || [];
-  for (var i = 0; i < arr.length; i++) if (arr[i].id === p[2]) return arr[i];
-  return null;
+  var p = rid.split("~");
+  /* also a lights master that a section holds (its lights are devices of its own) */
+  return p[1] === "home" || UI.layout.rooms[p[1]] ? secById(p[1], p[2]) : null;
 }
 
 function devList(rid) {

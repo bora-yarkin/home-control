@@ -82,6 +82,7 @@ function pages({ scenesHere = [] } = {}) {
     UI: { meta: { homeTab: "Home" }, devs: {} },
     UIROOM: { r_kitchen: { name: "Kitchen & Dining" } },
     TITLES: { home: "Home" },
+    secsAndMasters: (l) => l,
     secOrder: () => [{ id: "s1", k: "lights", devs: [], scn: ["sc1"] }, { id: "s2", k: "pins", pins: [{ kind: "cscene", sid: "sc1" }] }],
     cleanScene: (x) => (x && typeof x.id === "string" ? { ...x } : null),
     cleanArea: (x) => (x && x.id ? { ...x } : null),

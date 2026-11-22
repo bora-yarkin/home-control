@@ -111,7 +111,7 @@ test("a section can leave out the master's lights or its sync, only in the secti
   const sections = read("sections.js");
   assert.match(sections, /if \(pk \? pk\.sync && s\.mhs : d\.kind === "light" && s\.mhl\) return;/);
   assert.match(sections, /!ed && k === "lights" && s\.master && d\.id/, "everything is shown while the page is edited");
-  assert.match(sections, /if \(!rows\.length && !ed && !\(s\.master && mids\.length > 1\)\) return null;/, "a master that has hidden every row of its section is still the section");
+  assert.match(sections, /if \(!rows\.length && !ed && !\(s\.master && mids\.length > 1\) && !extras\.length\) return null;/, "a master that has hidden every row of its section is still the section");
   assert.match(read("manage.js"), /rid\.split\("~"\)\[3\] === "ml"/);
   assert.match(src, /devEditor\("~" \+ scope \+ "~" \+ sec\.id \+ "~ml", m\)/);
   assert.doesNotMatch(src, /masterLightPage/);

@@ -74,10 +74,12 @@ function masterPower(sid) {
 /* The settings of the master that are about what it is, drawn into `box` by lightsMasterSettings. `redraw` draws the page again. */
 function masterModeRows(box, sec, scope, redraw) {
   var key = scope + ":" + sec.id,
-    sid = scope + "~" + sec.id;
+    sid = scope + "~" + sec.id,
+    held = !!masterHost(scope, sec.id);
   box.appendChild(sep(_T("master_lights"), "lights"));
-  box.appendChild(
-    seg(
+  /* A master that a section holds always has the lights chosen for it. */
+  function modeSeg() {
+    return seg(
       [
         ["auto", _T("master_auto")],
         ["manual", _T("master_manual")],
@@ -99,8 +101,9 @@ function masterModeRows(box, sec, scope, redraw) {
         uiChanged();
         redraw();
       }
-    )
-  );
+    );
+  }
+  if (!held) box.appendChild(modeSeg());
   box.appendChild(hintRow(sec.mm ? _T("master_manual_hint") : _T("master_auto_hint")));
   box.appendChild(
     flagPill("lights", _T("master_groups_as_one"), sec, "mgl", function (on) {
@@ -196,18 +199,20 @@ function masterPopupRows(box, sec, scope, redraw) {
       })
     );
   }
-  /* The section can leave out what the master has: only in the section, the master keeps them. */
-  box.appendChild(sep(_T("master_in_section"), "lights"));
-  box.appendChild(
-    flagPill("lights", _T("master_hide_lights"), sec, "mhl", function (on) {
-      return on ? _T("master_hide_lights_on") : _T("master_hide_lights_off");
-    })
-  );
-  box.appendChild(
-    flagPill("syncring", _T("master_hide_sync"), sec, "mhs", function (on) {
-      return on ? _T("master_hide_sync_on") : _T("master_hide_sync_off");
-    })
-  );
+  /* The section can leave out what the master has: only in the section, the master keeps them (a master a section holds has none of the section's lights). */
+  if (!masterHost(scope, sec.id)) {
+    box.appendChild(sep(_T("master_in_section"), "lights"));
+    box.appendChild(
+      flagPill("lights", _T("master_hide_lights"), sec, "mhl", function (on) {
+        return on ? _T("master_hide_lights_on") : _T("master_hide_lights_off");
+      })
+    );
+    box.appendChild(
+      flagPill("syncring", _T("master_hide_sync"), sec, "mhs", function (on) {
+        return on ? _T("master_hide_sync_on") : _T("master_hide_sync_off");
+      })
+    );
+  }
   var syncs = masterSyncDevices();
   if (syncs.length) {
     box.appendChild(
@@ -241,6 +246,11 @@ function masterLightsPage(b, key) {
   var p = key.split(":"),
     sec = secById(p[0], p[1]);
   if (!sec) return;
+  masterLightsChooser(b, sec, uiChanged);
+}
+
+/* The list to choose from, for `sec` (a master, or the draft of one that is being made: anything with `ml`). `changed` is called after each choice. */
+function masterLightsChooser(b, sec, changed) {
   var st = { q: "", area: "" },
     box = mk("div"),
     inp = mk("input", "sq"),
@@ -321,7 +331,7 @@ function masterLightsPage(b, key) {
                 return m.id !== id;
               });
             else (sec.ml = sec.ml || []).push(masterDevice(id));
-            uiChanged();
+            changed();
           },
         })
       );
