@@ -305,7 +305,7 @@ function masterPopupRows(box, sec, scope, redraw) {
     box.appendChild(
       pill("scene", _T("master_power_scene_pick"), {
         val: function () {
-          return cur ? cur.name : _T("none");
+          return cur ? cur.name : sec.mps ? A(sec.mps).friendly_name || sec.mps : _T("none");
         },
         tap: function () {
           showPopup("lmaster-pscene:" + key, true);

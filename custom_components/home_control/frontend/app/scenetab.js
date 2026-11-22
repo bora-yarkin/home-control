@@ -790,7 +790,8 @@ function mscSourceRows(box, sec, scope, redraw) {
   }
   box.appendChild(sep(_T("scenes_in_the_light_popup"), "palette"));
   box.appendChild(hintRow(_T("scenes_in_the_light_popup_hint")));
-  box.appendChild(row("hue", _T("scene_source_hue"), _T("scene_source_hue_sub")));
+  /* The scenes a plugin owns (Hue Plus brings the words for them, and the scenes). */
+  if (PLUGIN_SCENE_KINDS.length) box.appendChild(row("hue", _T("scene_source_hue"), _T("scene_source_hue_sub")));
   box.appendChild(row("page", _T("scene_source_page"), _T("scene_source_page_sub")));
   var n = 0;
   secOrder(scopeKey(scope)).forEach(function (s) {
