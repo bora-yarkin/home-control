@@ -117,7 +117,7 @@ test("a classic scene is made from what a static scene sets each light to, not f
   const [room, existing, target, start] = plain(p.log.opened[0]);
   assert.equal(room, "bora");
   assert.equal(existing, null);
-  assert.deepEqual(target, { scope: "bora", sid: "s1" });
+  assert.deepEqual(target, { scope: "bora", sid: "s1", into: "section" });
   assert.equal(start.name, "Desk");
   assert.deepEqual(start.acts, [
     { id: "light.a", on: true, bri: 40, col: { h: 0, s: 100 } },
@@ -238,18 +238,3 @@ test("a classic scene is deleted without the integration being asked about it", 
   assert.deepEqual(plain(p.log.forgot), []);
 });
 
-test("in the list of existing scenes a scene that is on no page has a trash that deletes it, and one that is on a page does not", () => {
-  const box = { kids: [], appendChild(c) { this.kids.push(c); } };
-  const p = page({
-    allSectionLists: () => [[{ scn: ["s1"] }]],
-    mk: () => box,
-    secById: () => ({ id: "sec", scn: ["s1"] }),
-  });
-  p.STORE.scenes = [{ id: "s1", name: "Shown" }, { id: "s2", name: "Hidden" }];
-  p.scnPick({ appendChild() {} }, "room:sec");
-  const by = Object.fromEntries(box.kids.filter((k) => k && k.name).map((r) => [r.name, r]));
-  assert.equal(by.Shown.del, undefined);
-  assert.equal(typeof by.Hidden.del, "function");
-  by.Hidden.del();
-  assert.match(p.log.confirms[0].text, /Hidden/);
-});

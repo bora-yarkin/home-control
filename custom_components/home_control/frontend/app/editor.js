@@ -1067,62 +1067,6 @@ function secEditor(b, key) {
           },
         })
       );
-    /* Where a scenes section gets its scenes: the page's own area, or any other area (the bathroom's scenes in the bedroom's page). */
-    if (k === "devs" && sk !== "home") {
-      var from = selectTile(
-        _T("scenes_from"),
-        function () {
-          var ids = Object.keys(H().areas || {}).sort(function (x, y) {
-            return String(H().areas[x].name).localeCompare(H().areas[y].name);
-          });
-          return ["room"].concat(ids);
-        },
-        function () {
-          return e.sarea || "room";
-        },
-        function (v) {
-          if (v === "room") delete e.sarea;
-          else e.sarea = v;
-          save();
-          from.refresh();
-        },
-        "home",
-        function (v) {
-          return v === "room" ? _T("scenes_from_this_page") : (H().areas[v] || {}).name || v;
-        }
-      );
-      from.classList.add("selrow");
-      from.refresh();
-      box.appendChild(from);
-    }
-    if (k === "devs" && sk !== "home")
-      box.appendChild(
-        flagPill(
-          "edit",
-          _T("scene_names_without_area"),
-          e,
-          "keepname",
-          function (on) {
-            return on ? _T("scene_names_without_area_on") : _T("scene_names_without_area_off");
-          },
-          true
-        )
-      );
-    if (k === "devs")
-      sceneTagSectionRows(box, e, function () {
-        redrawBox(box, draw);
-      });
-    if (k === "devs")
-      box.appendChild(
-        pill("scene", _T("scenes_in_this_section"), {
-          sub: function () {
-            return String(secScenes(e).length);
-          },
-          tap: function () {
-            showPopup("pick-scene:" + key, true);
-          },
-        })
-      );
     box.appendChild(sep(_T("this_section"), "home"));
     if (!ty.one)
       box.appendChild(

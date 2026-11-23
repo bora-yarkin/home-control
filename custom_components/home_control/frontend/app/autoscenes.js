@@ -193,8 +193,7 @@ function autoSceneSave() {
   });
   STORE.scenes.push(sc);
   if (AUTOED.isNew && AUTOED.target) {
-    var te = secById(AUTOED.target.scope, AUTOED.target.sid);
-    if (te) scnToggle(te, sc.id);
+    sceneTargetAdd(AUTOED.target, sc.id);
   }
   uiChanged();
   toast(_T("scene_saved"));
@@ -296,36 +295,90 @@ function scenePages() {
   return pages;
 }
 
-/* A scenes section's sources, as a master's. */
-function sceneTagSectionRows(box, e, redraw) {
-  box.appendChild(sep(_T("scenes_in_this_section"), "scene"));
+/* The dropdown for the areas whose scenes are shown: `key` names the list on `obj` (mpa on a master, areas on a collection of scenes). None chosen is the areas of the page or of the lights; "-" says none. */
+function sceneAreasTile(obj, key, noneText) {
+  var areas = Object.keys(H().areas || {}).sort(function (x, y) {
+    return String(H().areas[x].name).localeCompare(H().areas[y].name);
+  });
+  return multiTile(
+    _T("src_areas"),
+    function () {
+      return [["-", _T("none")]].concat(
+        areas.map(function (a) {
+          return [a, H().areas[a].name];
+        })
+      );
+    },
+    function (v) {
+      return (obj[key] || []).indexOf(v) >= 0;
+    },
+    function (v) {
+      var cur = (obj[key] || []).slice(),
+        at = cur.indexOf(v);
+      if (v === "-") cur = at >= 0 ? [] : ["-"];
+      else {
+        cur = cur.filter(function (x) {
+          return x !== "-";
+        });
+        at = cur.indexOf(v);
+        if (at >= 0) cur.splice(at, 1);
+        else cur.push(v);
+      }
+      if (cur.length) obj[key] = cur;
+      else delete obj[key];
+      uiChanged();
+    },
+    "home",
+    function () {
+      var m = obj[key] || [];
+      if (m.indexOf("-") >= 0) return _T("none");
+      return m.length
+        ? m
+            .map(function (a) {
+              return (H().areas[a] || {}).name || a;
+            })
+            .join(", ")
+        : noneText;
+    }
+  );
+}
+
+/* The settings of a collection of scenes (a device of a Section): the areas, the rooms and the tags it takes its scenes from, and whether the area's name stays in their names. */
+function sceneCollectionSettings(box, d) {
+  box.appendChild(sep(_T("scene_collection_sources"), "scene"));
+  box.appendChild(sceneAreasTile(d, "areas", _T("src_page_area")));
   sceneSourceTiles(
     box,
     {
       get: function () {
-        return (e.spage || []).slice();
+        return (d.spage || []).slice();
       },
       set: function (ids) {
-        if (ids.length) e.spage = ids;
-        else delete e.spage;
+        if (ids.length) d.spage = ids;
+        else delete d.spage;
         uiChanged();
       },
     },
     {
       inc: function () {
-        return (e.stag || []).slice();
+        return (d.stag || []).slice();
       },
       exc: function () {
-        return (e.xtag || []).slice();
+        return (d.xtag || []).slice();
       },
       set: function (inc, exc) {
-        if (inc.length) e.stag = inc;
-        else delete e.stag;
-        if (exc.length) e.xtag = exc;
-        else delete e.xtag;
+        if (inc.length) d.stag = inc;
+        else delete d.stag;
+        if (exc.length) d.xtag = exc;
+        else delete d.xtag;
         uiChanged();
       },
     }
+  );
+  box.appendChild(
+    flagPill("edit", _T("scene_names_without_area"), d, "keepname", function (on) {
+      return on ? _T("scene_names_without_area_on") : _T("scene_names_without_area_off");
+    }, true)
   );
 }
 

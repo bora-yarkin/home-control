@@ -200,7 +200,7 @@ function camControls(box, id) {
       }
     );
   }
-  if (ISADMIN && advList(id).length) {
+  if (ISADMIN && !(UIDEV[id] && UIDEV[id].noadv) && advList(id).length) {
     var br = mk("div", "cbtr"),
       sb = mk("div", "rnd pane", svg("cog"));
     sb.setAttribute("role", "button");

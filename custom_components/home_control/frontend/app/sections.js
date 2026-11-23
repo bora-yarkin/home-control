@@ -492,9 +492,7 @@ function customSection(s) {
   /* More lights masters held by the section (app/lightsmasters.js): each with the lights chosen for it, shown while the page is edited too so it can be opened. */
   var extras = k === "devs" ? (s.masters || []).filter(function (m) { return masterLightIds(m).length > (ed ? 0 : 1) && (ed || !m.mhide); }) : [];
   /* A lights master keeps its section on the page when it has hidden every row of it: the master is the section then. */
-  /* The scenes of a Section (app/scenes.js): the ones made for it, those of pages and tags, the scene entities added to it. */
-  var sceneBlock = k === "devs" && sectionHasScenes(s) ? scenesBlock(pageKey(), lightingScenesExtra(pageKey())) : null;
-  if (!rows.length && !ed && !(s.master && mids.length > 1) && !extras.length && !sceneBlock) return null;
+  if (!rows.length && !ed && !(s.master && mids.length > 1) && !extras.length) return null;
   /* Lights master: one light at the top that controls every light of the section (or the lights chosen for it); off unless the section turns it on. While the page is edited it opens its settings. */
   var masterRows = [];
   if (k === "devs" && s.master && mids.length > 1 && (ed || !s.mhide)) {
@@ -528,7 +526,6 @@ function customSection(s) {
     });
     body = [gl];
   }
-  if (sceneBlock) body.push(sceneBlock);
   if (add) body.push(add);
   var sx = section(ttl, ico, body);
   return sx;

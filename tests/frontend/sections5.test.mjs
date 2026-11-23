@@ -56,8 +56,7 @@ test("quick actions are scenes, and the kinds that are not devices stay as they 
   const w = world();
   const out = plain(w.cleanLayout([{ id: "quick", k: "quick", scn: ["a"] }, { id: "glance", k: "glance" }, { id: "rooms", k: "rooms" }, { id: "alerts", k: "alerts" }, { id: "nt", k: "note", txt: "hi" }]));
   assert.deepEqual(out.map((s) => s.k), ["devs", "glance", "rooms", "alerts", "note"]);
-  assert.deepEqual(out[0].scn, ["a"]);
-  assert.equal(out[0].scs, undefined, "quick actions were not a scenes section");
+  assert.deepEqual(out[0].devs.map((d) => d.kind + ":" + d.sid), ["cscene:a"], "its scenes are devices of the Section");
   assert.equal(out[4].txt, "hi");
 });
 
@@ -94,12 +93,13 @@ test("lights a master shows that nothing else holds as a device are kept as devi
   assert.deepEqual(out[0].lx.map((d) => d.id), ["light.g1", "light.g2"]);
 });
 
-test("a device has two tabs, Appearance and Behaviour; visibility, moving and removing are in Behaviour; the per-device Advanced settings button and the setting that hid it are gone", () => {
+test("a device has two tabs, Appearance and Behaviour; visibility, moving and removing are in Behaviour; the Advanced settings button of a device is in Behaviour", () => {
   const manage = read("manage.js");
   assert.match(manage, /\["look", _T\("dp_appearance"\)\], \["behave", _T\("dp_behaviour"\)\]/);
   assert.match(manage, /function devPlaceRows\(c\)/);
-  assert.doesNotMatch(manage, /noadv|devPlaceTab|devMoreTab|devOptionsTab/);
-  assert.doesNotMatch(read("popups.js") + read("camera.js") + read("appearance.js"), /PREFS\.adv|noadv/);
+  assert.doesNotMatch(manage, /devPlaceTab|devMoreTab|devOptionsTab/);
+  assert.match(manage, /"noadv"/, "the Advanced settings button can be switched off for a device");
+  assert.doesNotMatch(read("appearance.js"), /adv:/);
 });
 
 test("every object says whether it is shown with the same row, Visible, On or Off", () => {

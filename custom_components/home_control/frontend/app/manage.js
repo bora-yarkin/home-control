@@ -340,6 +340,9 @@ var KINDLAB = {
   button: _T("button"),
   cover: _T("cover"),
   lock: _T("lock_2"),
+  scene: _T("scene_kind"),
+  cscene: _T("scene_kind"),
+  scenes: _T("scene_collection"),
 };
 
 var ROOMICONS = [
@@ -431,7 +434,7 @@ var DOMKIND = {
   button: "button",
   input_button: "button",
   script: "button",
-  scene: "button",
+  scene: "scene",
   cover: "cover",
   lock: "lock",
 };
@@ -628,7 +631,9 @@ function defIcon(kind, name, id) {
       : "info"
     : kind === "number" || kind === "select"
       ? "tune"
-      : kind === "button"
+      : kind === "scene"
+        ? "scene"
+        : kind === "button"
         ? "play"
         : kind === "cover"
           ? "swap"
@@ -988,6 +993,23 @@ function devLookTab(c) {
 function devBehaviourTab(c) {
   var d = c.d,
     box = c.box;
+  if (d.kind === "scenes") sceneCollectionSettings(box, d);
+  if (d.kind === "cscene") {
+    var made = sceneById(d.sid);
+    if (made)
+      box.appendChild(
+        pill("edit", _T("edit_scene"), {
+          sub: function () {
+            return made.name;
+          },
+          tap: function () {
+            if (made.auto) autoSceneEdit(made);
+            else if (made.live) liveMakerEdit(made);
+            else staticOpen(made.room, made);
+          },
+        })
+      );
+  }
   profileSettings(box, d, c.key);
   if (d.kind === "appliance")
     box.appendChild(
@@ -1231,6 +1253,13 @@ function devPlaceRows(c) {
       })
     );
   }
+  /* The device's popup ends with the Advanced settings button, unless it is switched off here. */
+  if (d.id && advList(d.id).length)
+    c.box.appendChild(
+      flagPill("tune", _T("advanced_settings_button"), d, "noadv", function (on) {
+        return on ? _T("shown_at_the_bottom_of_its_popup") : _T("hidden");
+      }, true)
+    );
   c.box.appendChild(sep(_T("dp_what_it_is"), "info"));
   c.box.appendChild(entRow(_T("type"), function () { return KINDLAB[d.kind]; }));
   if (d.id) c.box.appendChild(entRow(_T("entity"), function () { return d.id; }));

@@ -47,17 +47,6 @@ test("an auto scene keeps up to ten colours, each a colour or a white with a bri
   assert.equal(c.cleanAuto({ colors: [] }), null);
 });
 
-test("a scenes section takes in the scenes with a tag it names, and not the tagged ones it leaves out", () => {
-  const c = sandbox({ sceneAllowed: () => true });
-  const sc = [{ id: "a", tags: ["bath"] }, { id: "b", tags: ["bed"] }, { id: "c", tags: ["bed", "bath"] }, { id: "d" }];
-  c.STORE.scenes = sc;
-  c.sceneById = (id) => sc.find((x) => x.id === id) || null;
-  const ids = (e) => plain(c.secScenes(e)).map((x) => x.id);
-  assert.deepEqual(ids({ scn: ["d"], stag: ["bed"] }), ["d", "b", "c"]);
-  assert.deepEqual(ids({ scn: ["d"], stag: ["bed"], xtag: ["bath"] }), ["d", "b"], "c is also tagged bath");
-  assert.deepEqual(ids({ scn: ["a"], xtag: ["bath"] }), ["a"], "a scene chosen for it is always in");
-});
-
 test("playing an auto scene gives every light one colour of it at random, uses every colour when there are lights enough, and lights that cannot show a colour keep to the brightness", () => {
   const calls = [];
   const ctx = vm.createContext({
@@ -87,20 +76,9 @@ test("auto scenes and tags are wired: the new scene page offers Auto scene, the 
   assert.match(read("staticmaker.js"), /sceneTagsRow\(d\)/);
   assert.match(read("livemaker.js"), /sceneTagsRow\(LMK\)/);
   assert.match(read("scenetab.js"), /sceneSourceTiles\(\s*box,/);
-  assert.match(read("editor.js"), /sceneTagSectionRows\(box, e,/);
+  assert.match(read("manage.js"), /sceneCollectionSettings\(box, d\)/);
   assert.match(read("scenes.js"), /if \(sc\.auto\) return autoScenePlay/);
   assert.ok(JSON.parse(readFileSync(new URL("../../custom_components/home_control/frontend/version.json", import.meta.url), "utf8")).files.includes("app/autoscenes.js"));
-});
-
-test("a scenes section takes in the scenes made for the pages it names, together with the tags, less what it leaves out by tag", () => {
-  const c = sandbox({ sceneAllowed: () => true });
-  const sc = [{ id: "a", room: "bora" }, { id: "b", room: "bath", tags: ["bath"] }, { id: "c", room: "home" }, { id: "d", room: "bora", tags: ["bath"] }];
-  c.STORE.scenes = sc;
-  c.sceneById = (id) => sc.find((x) => x.id === id) || null;
-  const ids = (e) => plain(c.secScenes(e)).map((x) => x.id);
-  assert.deepEqual(ids({ spage: ["bora"] }), ["a", "d"]);
-  assert.deepEqual(ids({ spage: ["bora", "home"], xtag: ["bath"] }), ["a", "c"], "the bathroom-tagged scene of the bedroom is left out");
-  assert.deepEqual(ids({ spage: ["bora"], stag: ["bath"] }), ["a", "b", "d"]);
 });
 
 test("a master takes in the scenes made for any pages it names (page:<id>), and the pages and tags are always on its Scenes settings", () => {
@@ -112,6 +90,6 @@ test("a master takes in the scenes made for any pages it names (page:<id>), and 
   assert.doesNotMatch(tab, /scene_source_page|scene_source_section_sub/, "the older choices are not offered");
   const model = read("model.js");
   assert.match(model, /\^page:\[a-z0-9_-\]\{1,24\}\$/);
-  assert.match(model, /o\.spage = sp/);
-  assert.match(read("autoscenes.js"), /function sceneTagSectionRows[\s\S]*sceneSourceTiles/);
+  assert.match(model, /if \(sp\.length\) c\.spage = sp;/);
+  assert.match(read("autoscenes.js"), /function sceneCollectionSettings[\s\S]*sceneSourceTiles/);
 });

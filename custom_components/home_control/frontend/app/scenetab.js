@@ -802,54 +802,7 @@ function mscSourceRows(box, sec, scope, redraw) {
   box.appendChild(sep(_T("scenes_in_the_light_popup"), "palette"));
   box.appendChild(hintRow(_T("scenes_in_the_light_popup_hint")));
   /* The scenes a plugin owns: the areas whose scenes are shown (none chosen: those of these lights' areas). */
-  if (PLUGIN_SCENE_KINDS.length) {
-    var areas = Object.keys(H().areas || {}).sort(function (x, y) {
-      return String(H().areas[x].name).localeCompare(H().areas[y].name);
-    });
-    box.appendChild(
-      multiTile(
-        _T("scene_source_plugin") || _T("scene_source_fallback"),
-        function () {
-          return [["-", _T("none")]].concat(
-            areas.map(function (a) {
-              return [a, H().areas[a].name];
-            })
-          );
-        },
-        function (v) {
-          return (sec.mpa || []).indexOf(v) >= 0;
-        },
-        function (v) {
-          var cur = (sec.mpa || []).slice(),
-            at = cur.indexOf(v);
-          if (v === "-") cur = at >= 0 ? [] : ["-"];
-          else {
-            cur = cur.filter(function (x) {
-              return x !== "-";
-            });
-            at = cur.indexOf(v);
-            if (at >= 0) cur.splice(at, 1);
-            else cur.push(v);
-          }
-          if (cur.length) sec.mpa = cur;
-          else delete sec.mpa;
-          uiChanged();
-        },
-        "home",
-        function () {
-          var m = sec.mpa || [];
-          if (m.indexOf("-") >= 0) return _T("none");
-          return m.length
-            ? m
-                .map(function (a) {
-                  return (H().areas[a] || {}).name || a;
-                })
-                .join(", ")
-            : _T("src_areas_of_lights");
-        }
-      )
-    );
-  }
+  if (PLUGIN_SCENE_KINDS.length) box.appendChild(sceneAreasTile(sec, "mpa", _T("src_areas_of_lights")));
   sceneSourceTiles(
     box,
     {

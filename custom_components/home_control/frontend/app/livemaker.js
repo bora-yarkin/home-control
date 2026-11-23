@@ -242,8 +242,7 @@ function liveMakerSave(leave) {
     }
   }
   if (LMK.isNew && LMK.target) {
-    var te = secById(LMK.target.scope, LMK.target.sid);
-    if (te) scnToggle(te, sc.id);
+    sceneTargetAdd(LMK.target, sc.id);
   }
   liveMakerEnd();
   /* A scene that is playing takes the new colours and settings at once. */
