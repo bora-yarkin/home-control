@@ -277,6 +277,23 @@ function tvAppsInNowPlaying(id) {
   return !u.nonp && !u.art;
 }
 
+/* Tapping the now-playing card opens the TV's apps and inputs, when they are in the card instead of a row of their own. */
+function tvSourceMenu(media) {
+  return function (row) {
+    var o = tvSourceList(media);
+    if (o.length)
+      openMenu(
+        row,
+        o,
+        A(media).source,
+        function (v) {
+          tvPickSource(media, v);
+        },
+        String
+      );
+  };
+}
+
 function tvSources(id) {
   var r = selectTile(
     _T("apps"),
@@ -296,13 +313,9 @@ function tvSources(id) {
   return r;
 }
 
-/* The TV's own screen brightness: on a Samsung that is its Backlight number (its Brightness number is the black level), shown on the TV's own scale, with the brightness button of the light popup (its slider rises from the button), in the cell under Home. Left empty when the TV has no Backlight number; it does nothing while the TV is off and the number is unavailable. */
-function tvBrightness(media) {
-  var cell = mk("div", "tvbri"),
-    num = sibBy(media, function (e) {
-      return dom(e.entity_id) === "number" && (e.name === "Backlight" || /_backlight$/.test(e.entity_id));
-    });
-  if (!num) return cell;
+/* The round brightness button of the light popup (its slider rises from the button) for any number entity, on the number's own scale: a TV's backlight, a projector's lamp. It does nothing while the number is unavailable. `key` names its live updates. */
+function numberButton(num, key) {
+  var cell = mk("div", "tvbri");
   function range() {
     var a = A(num),
       lo = typeof a.min === "number" ? a.min : 0,
@@ -326,10 +339,10 @@ function tvBrightness(media) {
       lit: usable,
       fmt: toValue,
       live: function (v) {
-        if (usable()) callLive("tv:" + media, "number", "set_value", { entity_id: num, value: toValue(v) });
+        if (usable()) callLive(key, dom(num), "set_value", { entity_id: num, value: toValue(v) });
       },
       commit: function (v) {
-        if (usable()) call("number", "set_value", { entity_id: num, value: toValue(v) });
+        if (usable()) call(dom(num), "set_value", { entity_id: num, value: toValue(v) });
       },
       stage: function () {
         return null;
@@ -339,19 +352,17 @@ function tvBrightness(media) {
   return cell;
 }
 
+/* The TV's own screen brightness: on a Samsung that is its Backlight number (its Brightness number is the black level), in the cell under Home. Left empty when the TV has no Backlight number. */
+function tvBrightness(media) {
+  var num = sibBy(media, function (e) {
+    return dom(e.entity_id) === "number" && (e.name === "Backlight" || /_backlight$/.test(e.entity_id));
+  });
+  return num ? numberButton(num, "tv:" + media) : mk("div", "tvbri");
+}
+
 function samsungRemote(b, remote, media) {
   var inRow = tvAppsInNowPlaying(media);
-  addNowPlaying(
-    b,
-    media,
-    "tv",
-    inRow
-      ? function (row) {
-          var o = tvSourceList(media);
-          if (o.length) openMenu(row, o, A(media).source, function (v) { tvPickSource(media, v); }, String);
-        }
-      : undefined
-  );
+  addNowPlaying(b, media, "tv", inRow ? tvSourceMenu(media) : undefined);
   var r1 = mk(
     "div",
     "rrow"
@@ -814,7 +825,96 @@ function mediaPopup(b, id) {
   else if (k === "apple" && rem)
     appleRemote(b, rem, id, roomTvRemote(id), dv && dv.config_entries && dv.config_entries[0]);
   else if (k === "android" && rem) androidRemote(b, rem, id);
+  else if (Integrations.remote.experimental(tvFamily(id)) && (rem || tvFamily(id) === "webos")) familyRemote(b, id, rem, tvFamily(id));
   else mediaGeneric(b, id, (UIDEV[id] || {}).icon);
+}
+
+/* The key family of a media player's integration (app/integrations.js): Roku, Sony Bravia, Philips, Vizio, Fire TV and LG webOS have a remote built from what their integrations document. */
+function tvFamily(id) {
+  return Integrations.remote.family(((H().entities || {})[id] || {}).platform);
+}
+
+/* A remote for a TV the dashboard has no native remote for: the same layout as the others, with the keys its integration documents, and the media player's own services where it lists none. It says it is experimental. */
+function familyRemote(b, media, remote, fam) {
+  var how = Integrations.remote.how(fam);
+  function key(role) {
+    return Integrations.remote.role(fam, role);
+  }
+  function press(role, hold) {
+    var k = key(role);
+    if (!k) return false;
+    if (how === "webos") call("webostv", "button", { entity_id: media, button: k });
+    else send(remote, k, hold);
+    return true;
+  }
+  /* A role with no key goes to the media player's own service. */
+  function act(role, svc, data) {
+    return function () {
+      if (!press(role) && svc) call("media_player", svc, Object.assign({ entity_id: media }, data || {}));
+    };
+  }
+  b.appendChild(hintRow(_T("tv_remote_experimental")));
+  var inRow = tvAppsInNowPlaying(media);
+  addNowPlaying(b, media, "tv", inRow ? tvSourceMenu(media) : undefined);
+  var r1 = mk("div", "rrow");
+  r1.appendChild(
+    rbtn("power", function () {
+      if (V_(media) === "off") call("media_player", "turn_on", { entity_id: media });
+      else if (!press("power")) call("media_player", "turn_off", { entity_id: media });
+    })
+  );
+  if (!inRow) r1.appendChild(tvSources(media));
+  b.appendChild(r1);
+  var r2 = mk("div", "rrow");
+  if (key("menu"))
+    r2.appendChild(
+      rbtn("cog", function () {
+        press("menu");
+      })
+    );
+  r2.appendChild(rbtn("mute", act("mute", "volume_mute", { is_volume_muted: !A(media).is_volume_muted })));
+  if (remote && Integrations.remote.text(fam, "x") !== null)
+    r2.appendChild(
+      rbtn("keyboard", function () {
+        kbDlg(function (v) {
+          send(remote, Integrations.remote.text(fam, v));
+        });
+      })
+    );
+  b.appendChild(r2);
+  var t = mk("div", "touch pane");
+  swipePad(
+    t,
+    function (d) {
+      press(d);
+    },
+    function () {
+      press("ok");
+    },
+    null,
+    function () {
+      press("ok", 1);
+    }
+  );
+  b.appendChild(t);
+  var r3 = mk("div", "rrow");
+  r3.appendChild(rbtn("back", act("back", "")));
+  r3.appendChild(rbtn("home", act("home", "")));
+  r3.appendChild(rbtn("playpause", act("playpause", "media_play_pause")));
+  b.appendChild(r3);
+  var r4 = mk("div", "rrow"),
+    l = mk("div", "rstack"),
+    rr = mk("div", "rstack");
+  l.appendChild(rbtn("volup", act("volup", "volume_up"), "", true));
+  l.appendChild(rbtn("voldown", act("voldown", "volume_down"), "", true));
+  r4.appendChild(l);
+  r4.appendChild(mk("div"));
+  if (key("chup")) {
+    rr.appendChild(rbtn("chup", act("chup", ""), "CH", true));
+    rr.appendChild(rbtn("chdown", act("chdown", ""), "CH", true));
+    r4.appendChild(rr);
+  }
+  b.appendChild(r4);
 }
 
 function androidRemote(b, remote, media) {

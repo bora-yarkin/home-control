@@ -551,6 +551,14 @@ function buttonRow(d) {
   });
 }
 
+/* Cover features (Home Assistant's CoverEntityFeature): open, close, set position, stop, and the same for the slats (tilt). */
+var CF = { OPEN: 1, CLOSE: 2, POSITION: 4, STOP: 8, OPEN_TILT: 16, CLOSE_TILT: 32, STOP_TILT: 64, TILT_POSITION: 128 };
+
+function coverPos(id) {
+  var p = A(id).current_position;
+  return typeof p === "number" ? p : null;
+}
+
 function coverRow(d) {
   var id = d.id;
   return pill(d.icon || "swap", d.name, {
@@ -558,7 +566,12 @@ function coverRow(d) {
       return ["open", "opening"].indexOf(V_(id)) >= 0;
     },
     val: function () {
-      return cap(V_(id));
+      var p = coverPos(id);
+      return p === null ? cap(V_(id)) : p + "%";
+    },
+    sub: function () {
+      var s = V_(id);
+      return s === "opening" || s === "closing" ? cap(s) : "";
     },
     tap: function () {
       showPopup(devPop(d), true);
@@ -567,6 +580,86 @@ function coverRow(d) {
       toggleDevice(d);
     },
   });
+}
+
+/* The popup of a cover (a blind, a shutter, a curtain, a garage door): the position as a slider when it can be set, the buttons it supports, and the slats' own slider or buttons. */
+function coverPopup(b, id) {
+  var f = A(id).supported_features || 0,
+    nm = (UIDEV[id] || {}).name || A(id).friendly_name || id,
+    ico = (UIDEV[id] || {}).icon || "swap";
+  function slider(name, attr, svc, key) {
+    b.appendChild(
+      sliderRow({
+        icon: ico,
+        name: name,
+        min: 0,
+        max: 100,
+        step: 1,
+        fmt: function (v) {
+          return v + "%";
+        },
+        get: function () {
+          var p = A(id)[attr];
+          return typeof p === "number" ? p : null;
+        },
+        commit: function (v) {
+          var data = { entity_id: id };
+          data[key] = v;
+          call("cover", svc, data);
+        },
+        readonly: V_(id) === "unavailable",
+      })
+    );
+  }
+  if (f & CF.POSITION) slider(_T("position"), "current_position", "set_cover_position", "position");
+  var acts = [];
+  function btn(bit, icon, label, svc) {
+    if (f & bit || (bit === CF.OPEN && !(f & CF.POSITION) && !(f & CF.CLOSE)))
+      acts.push(
+        pill(icon, label, {
+          tap: function () {
+            call("cover", svc, { entity_id: id });
+          },
+        })
+      );
+  }
+  btn(CF.OPEN, "up", _T("open"), "open_cover");
+  btn(CF.STOP, "stop", _T("stop"), "stop_cover");
+  btn(CF.CLOSE, "down", _T("close"), "close_cover");
+  if (acts.length) {
+    var g = mk("div", "ap-grid");
+    acts.forEach(function (a) {
+      g.appendChild(a);
+    });
+    b.appendChild(g);
+  }
+  if (f & (CF.TILT_POSITION | CF.OPEN_TILT | CF.CLOSE_TILT | CF.STOP_TILT)) {
+    b.appendChild(sep(_T("slats"), "swap"));
+    if (f & CF.TILT_POSITION) slider(_T("tilt"), "current_tilt_position", "set_cover_tilt_position", "tilt_position");
+    var tilts = [];
+    [
+      [CF.OPEN_TILT, "up", _T("open"), "open_cover_tilt"],
+      [CF.STOP_TILT, "stop", _T("stop"), "stop_cover_tilt"],
+      [CF.CLOSE_TILT, "down", _T("close"), "close_cover_tilt"],
+    ].forEach(function (t) {
+      if (f & t[0])
+        tilts.push(
+          pill(t[1], t[2], {
+            tap: function () {
+              call("cover", t[3], { entity_id: id });
+            },
+          })
+        );
+    });
+    if (tilts.length) {
+      var tg = mk("div", "ap-grid");
+      tilts.forEach(function (t) {
+        tg.appendChild(t);
+      });
+      b.appendChild(tg);
+    }
+  }
+  readingsBlock(b, id);
 }
 
 function lockRow(d) {

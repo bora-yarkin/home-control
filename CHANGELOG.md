@@ -4,6 +4,14 @@ Format: [Keep a Changelog](https://keepachangelog.com/). Versions follow [semant
 
 ## [Unreleased]
 
+## [0.21.0] - 2026-11-23
+
+### Changed
+- **A remote is used in its popup and built in the device's settings** (*Buttons*): the Use and Edit buttons tab is gone. The builder has a grid of up to 12 columns where each button has its own width and height, gaps, five-way pads, drag to reorder, and ready-made sets of keys for the integration behind a remote entity (Samsung TV, Apple TV, Android TV Remote, Roku, Sony Bravia, Philips, Vizio, Fire TV and LG webOS; the last six are built from their documentation and untested). A button presses an entity, sends a key to a remote entity, controls a media player, selects a source or presses an LG button; keys can repeat while held and have a colour. A picture remote has touch areas with the same actions. The grid also has a touchpad (swipe, tap and hold), the now-playing card (with the apps menu inside it or as a menu of its own), a source menu, a keyboard button for typing on the TV and a slider for a number (a bar, or the round button that opens the slider as on the light popup), so the dashboard's own Samsung remote can be rebuilt from its parts; a key can be held, and a power key can turn the TV on while it is off.
+- **TVs without a native remote get one built from their integration's keys** (Roku, Sony Bravia, Philips, Vizio, Fire TV, LG webOS), marked experimental. Samsung, Apple TV and Android TV keep their own.
+- **Appliances are more flexible**: up to 40 extra rows (any entity that can be read or set, drawn as the right control), each with an optional group heading, a choice of showing on the appliance's page or behind its Details line, and drag to reorder; a name for each slot (a projector's Program is its Source); a *Level or mode* slot; new types Coffee machine, Fridge and Projector (Type is a dropdown now); and a grid of buttons or a picture made with the remote builder, shown under the appliance (a projector's arrows and inputs).
+- **A blind has its own popup**: the position slider when it can be set, open, stop and close, and the slats' slider or buttons; the row shows the position.
+
 ## [0.20.0] - 2026-11-23
 
 ### Changed

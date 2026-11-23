@@ -855,15 +855,35 @@ body.pinhdr:not(.editing) .wrap::before{content:"";position:fixed;top:0;left:0;r
 .rm-hs.sel{outline:2px solid var(--acc);background:color-mix(in srgb,var(--acc) 20%,transparent)}
 .rm-hs:focus-visible{outline:2px solid var(--acc);outline-offset:2px}
 .rm-grip{position:absolute;right:-7px;bottom:-7px;width:18px;height:18px;border-radius:50%;background:var(--acc);border:2px solid #fff;touch-action:none;cursor:nwse-resize}
-/* Custom remotes: a grid of buttons (app/remote.js). */
-.rm-grid{display:grid;grid-template-columns:repeat(var(--rc,3),minmax(0,1fr));gap:var(--sp-s)}
-.rm-t{display:flex;flex-direction:column;align-items:center;justify-content:center;gap:6px;min-height:76px;padding:10px 6px;border-radius:var(--r-m);cursor:pointer;user-select:none;text-align:center;color:var(--ink);transition:transform .08s,opacity .2s}
-.rm-t svg{width:26px;height:26px;fill:none;stroke:currentColor;stroke-width:1.7;stroke-linecap:round;stroke-linejoin:round}
+/* Remotes: a grid of buttons, five-way pads and gaps (app/remote.js). */
+.rm-grid{display:grid;grid-template-columns:repeat(var(--rc,3),minmax(0,1fr));grid-auto-rows:minmax(54px,auto);gap:var(--sp-s)}
+.rm-t{display:flex;flex-direction:column;align-items:center;justify-content:center;gap:4px;min-width:0;padding:6px 4px;border-radius:var(--r-m);cursor:pointer;user-select:none;-webkit-user-select:none;touch-action:manipulation;text-align:center;color:var(--ink);transition:transform .08s,opacity .2s}
+.rm-t:active{transform:scale(.96)}
+.rm-t svg{width:24px;height:24px;flex:none;fill:none;stroke:currentColor;stroke-width:1.7;stroke-linecap:round;stroke-linejoin:round}
 .rm-l{max-width:100%;font-size:var(--fs-s);line-height:1.2;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.rm-t.txt .rm-l{font-size:var(--fs-m);font-weight:600}
 .rm-t.na{opacity:.45}
-.rm-t.ed{outline:1px dashed var(--f-line2,var(--f-line));outline-offset:-4px}
-.rm-t.add{color:var(--ink2)}
+.rm-t.ed,.rm-gap.ed,.rm-dpad.ed{outline:1px dashed var(--f-line2,var(--f-line));outline-offset:-4px}
 .rm-t:focus-visible{outline:2px solid var(--acc);outline-offset:2px}
+.rm-k{border:0}
+.rm-k-red{background:color-mix(in srgb,#e5484d 70%,var(--f-card))}
+.rm-k-green{background:color-mix(in srgb,#30a46c 70%,var(--f-card))}
+.rm-k-yellow{background:color-mix(in srgb,#f5c542 75%,var(--f-card))}
+.rm-k-blue{background:color-mix(in srgb,#3e7bfa 70%,var(--f-card))}
+.rm-gap{min-width:0;border-radius:var(--r-m)}
+.rm-gap.ed{display:flex;align-items:center;justify-content:center;font-size:var(--fs-s);color:var(--ink2)}
+.rm-dpad{display:grid;grid-template-columns:repeat(3,1fr);grid-template-rows:repeat(3,1fr);gap:2px;min-width:0;padding:4px;border-radius:50%;aspect-ratio:1;align-self:center;justify-self:center;width:100%;max-width:100%}
+.rm-dp{display:flex;align-items:center;justify-content:center;min-width:0;cursor:pointer;color:var(--ink);border-radius:50%;user-select:none;-webkit-user-select:none;touch-action:manipulation;transition:background .12s}
+.rm-dp svg{width:24px;height:24px;fill:none;stroke:currentColor;stroke-width:1.8;stroke-linecap:round;stroke-linejoin:round}
+.rm-dp:active{background:color-mix(in srgb,var(--acc) 28%,transparent)}
+.rm-dp-o{background:color-mix(in srgb,var(--ink) 10%,transparent);font-size:var(--fs-m);font-weight:600}
+.rm-dp.none{opacity:.25;pointer-events:none}
+.rm-dp.na{opacity:.4}
+.rm-grid>.touch,.rm-grid>.pill,.rm-grid>.sel,.rm-grid>.art,.rm-grid>.rm-comp{margin:0;min-width:0}
+.rm-grid>.touch{height:auto;min-height:0;align-items:center;padding-bottom:0}
+.rm-grid>.touch.ed{color:var(--ink2)}
+.rm-grid>.touch svg{width:28px;height:28px;fill:none;stroke:currentColor;stroke-width:1.6}
+.rm-dpad:focus-visible,.rm-dp:focus-visible{outline:2px solid var(--acc);outline-offset:2px}
 
 /* The camera's intercom controls and push to talk (app/profiles.js). */
 .cix{position:absolute;left:10px;bottom:10px;display:flex;gap:8px;z-index:3}

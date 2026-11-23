@@ -302,6 +302,17 @@ export function standardSurfaces({ full = true } = {}) {
     if (k) (full ? ["Look", "Options", "Placement", "More"] : ["Look", "Options"]).forEach((t) => list.push({ label: `dev:${id}:${t}`, fn: deviceTab(k, t) }));
   });
   list.push(...pop("ap-edit:apoven01", "appliance:apoven01", "appliance:apwash01", "remote:rmtest01", "remote-btn:rmtest01:0", "lgroup:light.living_room", "light:light.desk_lamp", "light:light.gradient_tube", "media:media_player.living_tv", "vac:vacuum.hallway"));
+  /* The Showcase page: every device of it, its settings and its popup. */
+  if (UI.layout.rooms.showcase) {
+    list.push({ page: "showcase" });
+    UI.layout.rooms.showcase.forEach((s) =>
+      (s.devs || []).forEach((d, i) => {
+        list.push({ label: `showcase:${d.name}:settings`, key: `manage-dev:~showcase~${s.id}:${i}` });
+        const pop = devPop(d);
+        if (pop) list.push({ label: `showcase:${d.name}:popup`, key: pop });
+      }),
+    );
+  }
   list.push({ key: "kwiz:" + deviceKey("media_player.living_tv") });
   list.push({ label: "lgnew", fn: async () => { LGNEW = { rid: "~r_living~lights", lights: ["light.desk_lamp", "light.shelf_strip"] }; showPopup("lgnew", true); } });
   list.push({ key: "manage-add:~r_living~lights", label: "add:lights" }, { key: "manage-add:~r_living~lights", menu: ".sel.selrow", label: "add:type-menu" });

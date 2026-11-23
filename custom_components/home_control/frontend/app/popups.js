@@ -354,6 +354,16 @@ var POPUP_DEFS = {
       },
     };
   },
+  "cover": function (id) {
+    var cv = UIDEV[id] || {};
+    return {
+      title: cv.name || A(id).friendly_name || _T("cover"),
+      icon: cv.icon || "swap",
+      build: function (b) {
+        coverPopup(b, id);
+      },
+    };
+  },
   "fan": function (id) {
     var dv = UIDEV[id] || {};
     return {
@@ -736,6 +746,43 @@ var POPUP_DEFS = {
       icon: "plus",
       build: function (b) {
         remoteBtnPage(b, id);
+      },
+    };
+  },
+  "remote-build": function (id) {
+    var rmd = remoteFind(id);
+    return {
+      title: (rmd ? rmd.name : _T("remote")) + " · " + _T("rm_buttons"),
+      icon: "tune",
+      build: function (b) {
+        remoteBuild(b, id);
+      },
+    };
+  },
+  "remote-keys": function (id) {
+    return {
+      title: _T("rm_add_keys"),
+      icon: "tune",
+      build: function (b) {
+        remoteKeysPage(b, id);
+      },
+    };
+  },
+  "remote-key": function (id) {
+    return {
+      title: _T("rm_choose_a_key"),
+      icon: "play",
+      build: function (b) {
+        remoteKeyPage(b, id);
+      },
+    };
+  },
+  "remote-media": function (id) {
+    return {
+      title: _T("rm_choose_a_control"),
+      icon: "play",
+      build: function (b) {
+        remoteMediaPage(b, id);
       },
     };
   },
@@ -1149,6 +1196,6 @@ function devPop(d) {
     var dk = pluginDeviceKind(d.id);
     return (dk ? dk.pop : "sw") + ":" + d.id;
   }
-  var p = { media: "media:", climate: "ac:", fan: "fan:", vacuum: "vac:" }[d.kind];
+  var p = { media: "media:", climate: "ac:", fan: "fan:", vacuum: "vac:", cover: "cover:" }[d.kind];
   return p ? p + d.id : "dev:" + d.id;
 }

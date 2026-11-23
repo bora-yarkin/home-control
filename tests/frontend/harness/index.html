@@ -13,8 +13,10 @@
 await import("/custom_components/home_control/frontend/dashboard-panel.js?t=" + Date.now());
 import { makeHass } from "./mock-hass.js";
 import { auditSpacing } from "./audit.js";
+import { buildShowcase } from "./showcase.js";
 import { auditLayout, auditSurfaces, prepareKit, snapshotSurfaces, standardSurfaces } from "./layout.js";
 window.auditSpacing = auditSpacing;
+window.buildShowcase = buildShowcase;
 window.auditLayout = auditLayout;
 window.auditSurfaces = auditSurfaces;
 window.prepareKit = prepareKit;
@@ -25,6 +27,8 @@ document.body.appendChild(panel);
 const hass = makeHass(new URLSearchParams(location.search));
 window.__hass = hass;
 panel.hass = hass;
+// The page "Showcase" has a device of every kind (showcase.js) and is opened at start; ?showcase=0 leaves it out.
+if (new URLSearchParams(location.search).get("showcase") !== "0") buildShowcase();
 
 // ?door=ringing | call | security-ringing | security-call shows the call popup of the pretend door station (a camera with a picture), or of a
 // guard desk (no camera picture, only the station's audio-wave picture, and nothing to unlock: `can_unlock: false`). The pictures are stand-ins.

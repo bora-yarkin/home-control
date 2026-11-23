@@ -163,8 +163,7 @@ function addRemoteEntry(f) {
         var d = remoteNew();
         devList(f.rid).push(d);
         uiChanged();
-        RM.edit[d.rid] = true;
-        showPopup("remote:" + d.rid, true);
+        showPopup("remote-build:" + d.rid, true);
       },
     })
   );

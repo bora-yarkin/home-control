@@ -13,6 +13,7 @@ var AP_SLOTS = {
   remaining: { l: "ap_remaining", doms: ["sensor", "input_datetime"], read: true },
   door: { l: "ap_door", doms: ["binary_sensor", "sensor"], read: true },
   permission: { l: "ap_remote_start_allowed", doms: ["binary_sensor", "switch", "input_boolean"], read: true },
+  level: { l: "ap_level", doms: ["number", "input_number", "select", "input_select"] },
 };
 
 /* A type only chooses which slots the editor offers first and the icon: every slot can still be used on any type. */
@@ -21,9 +22,18 @@ var AP_TYPES = {
   washer: { l: "ap_washer", icon: "drop", slots: ["program", "start", "stop", "state", "progress", "remaining", "door", "permission", "temperature", "duration"] },
   dryer: { l: "ap_dryer", icon: "drop", slots: ["program", "start", "stop", "state", "progress", "remaining", "door", "permission", "temperature", "duration"] },
   dishwasher: { l: "ap_dishwasher", icon: "drop", slots: ["program", "start", "stop", "state", "progress", "remaining", "door", "permission", "temperature", "duration"] },
-  other: { l: "ap_appliance", icon: "plug", slots: ["state", "program", "start", "stop", "progress", "remaining", "door", "permission", "temperature", "duration"] },
+  coffee: { l: "ap_coffee", icon: "drop", names: { program: "ap_n_drink", level: "ap_n_strength" }, slots: ["state", "program", "level", "start", "stop", "progress", "remaining", "door", "permission"] },
+  fridge: { l: "ap_fridge", icon: "thermo", names: { temperature: "ap_n_fridge", level: "ap_n_mode" }, slots: ["state", "temperature", "current", "door", "level"] },
+  projector: { l: "ap_projector", icon: "media", names: { program: "ap_n_source", level: "ap_n_picture", temperature: "ap_n_keystone" }, slots: ["state", "program", "level", "start", "stop", "remaining", "temperature"] },
+  other: { l: "ap_appliance", icon: "plug", slots: ["state", "program", "level", "start", "stop", "progress", "remaining", "door", "permission", "temperature", "duration"] },
 };
 var AP_EXTRA_DOMS = ["select", "input_select", "number", "input_number", "switch", "input_boolean", "binary_sensor", "sensor", "button", "input_button", "script"];
+
+/* What a slot is called on this appliance: the name given to it, else the name its type gives, else the general one. */
+function apSlotLabel(ap, k) {
+  var t = AP_TYPES[ap.type] || AP_TYPES.other;
+  return (ap.names && ap.names[k]) || (t.names && t.names[k] ? _T(t.names[k]) : _T(AP_SLOTS[k].l));
+}
 
 function apNew(type) {
   var t = AP_TYPES[type] || AP_TYPES.other;
@@ -275,8 +285,9 @@ function apAllowedText(id) {
 function apSettings(b, ap, dialHasTemperature) {
   var s = ap.slots,
     tiles = [];
-  if (s.program && apHas(s.program)) tiles.push(settingTile(s.program, _T("ap_program")));
-  if (!dialHasTemperature && s.temperature && apHas(s.temperature)) tiles.push(settingTile(s.temperature, _T("ap_temperature")));
+  if (s.program && apHas(s.program)) tiles.push(settingTile(s.program, apSlotLabel(ap, "program")));
+  if (!dialHasTemperature && s.temperature && apHas(s.temperature)) tiles.push(settingTile(s.temperature, apSlotLabel(ap, "temperature")));
+  if (s.level && apHas(s.level)) tiles.push(settingTile(s.level, apSlotLabel(ap, "level")));
   if (s.duration && apHas(s.duration)) {
     var du = s.duration,
       unit = A(du).unit_of_measurement;
@@ -301,24 +312,27 @@ function apSettings(b, ap, dialHasTemperature) {
   b.appendChild(g);
 }
 
-/* Everything else the person added: kept behind one line that says how many there are. What can be set is a grid of tiles, what can only be read is one list. */
+/* Everything else the person added. Rows marked to show on the page are there, under the heading of their group when they have one; the rest are kept behind one line that says how many there are. What can be set is a grid of tiles, what can only be read is one list. */
 function apDetails(b, ap, aid) {
-  var ids = ap.extra
-    .map(function (x) {
-      return x.e;
-    })
-    .filter(apHas);
-  if (!ids.length) return;
-  var names = {};
-  ap.extra.forEach(function (x) {
-    names[x.e] = x.l;
+  var rows = ap.extra.filter(function (x) {
+    return apHas(x.e);
   });
-  foldBlock(b, aid, _T("ap_details"), ids.length, function (body) {
+  if (!rows.length) return;
+  function label(x) {
+    return x.l || A(x.e).friendly_name || x.e;
+  }
+  function show(body, list) {
+    var names = {};
+    list.forEach(function (x) {
+      names[x.e] = label(x);
+    });
     entityGroups(
       body,
-      ids,
+      list.map(function (x) {
+        return x.e;
+      }),
       function (id) {
-        return names[id] || A(id).friendly_name || id;
+        return names[id];
       },
       function (id) {
         return function () {
@@ -326,7 +340,46 @@ function apDetails(b, ap, aid) {
         };
       }
     );
+  }
+  /* Groups keep the order of their first row. */
+  var order = [],
+    byGroup = {};
+  rows
+    .filter(function (x) {
+      return x.o;
+    })
+    .forEach(function (x) {
+      var g = x.g || "";
+      if (!byGroup[g]) {
+        byGroup[g] = [];
+        order.push(g);
+      }
+      byGroup[g].push(x);
+    });
+  order.forEach(function (g) {
+    if (g) b.appendChild(sep(g, "tune"));
+    show(b, byGroup[g]);
   });
+  var rest = rows.filter(function (x) {
+    return !x.o;
+  });
+  if (rest.length)
+    foldBlock(b, aid, _T("ap_details"), rest.length, function (body) {
+      var groups = [],
+        by = {};
+      rest.forEach(function (x) {
+        var g = x.g || "";
+        if (!by[g]) {
+          by[g] = [];
+          groups.push(g);
+        }
+        by[g].push(x);
+      });
+      groups.forEach(function (g) {
+        if (g) body.appendChild(sep(g, "tune"));
+        show(body, by[g]);
+      });
+    });
 }
 
 /* The action: Start while idle, Stop while a program runs; both when the appliance does not say. The reason Start is off is written under it. */
@@ -447,6 +500,10 @@ function apPage(b, aid) {
   apActions(b, ap);
   apSettings(b, ap, dial);
   apDetails(b, ap, aid);
+  if (d.rm && (d.rm.btns.length || (d.rm.v === "i" && d.rm.img))) {
+    b.appendChild(sep(_T("rm_buttons"), "play"));
+    remotePage(b, aid);
+  }
   if (ISADMIN) b.appendChild(pill("tune", _T("ap_set_up"), { tap: function () { showPopup("ap-edit:" + aid, true); } }));
 }
 
@@ -478,17 +535,21 @@ function apEditPage(b, aid) {
     var d = apFind(aid);
     if (!d) return;
     var ap = d.ap;
-    box.appendChild(sep(_T("ap_type"), "plug"));
     box.appendChild(
-      seg(
-        Object.keys(AP_TYPES).map(function (k) {
-          return [k, _T(AP_TYPES[k].l)];
-        }),
-        ap.type,
+      dropRow(
+        _T("ap_type"),
+        Object.keys(AP_TYPES),
+        function () {
+          return ap.type;
+        },
         function (v) {
           ap.type = v;
           uiChanged();
           redrawBox(box, draw);
+        },
+        AP_TYPES[ap.type].icon,
+        function (v) {
+          return _T(AP_TYPES[v].l);
         }
       )
     );
@@ -499,7 +560,7 @@ function apEditPage(b, aid) {
       })
       .forEach(function (k) {
         box.appendChild(
-          pill("plug", _T(AP_SLOTS[k].l), {
+          pill("plug", apSlotLabel(ap, k), {
             sub: function () {
               return ap.slots[k] ? apBoundText(ap.slots[k]) : _T("ap_not_set");
             },
@@ -516,7 +577,7 @@ function apEditPage(b, aid) {
       })
       .forEach(function (k) {
         box.appendChild(
-          pill("plug", _T(AP_SLOTS[k].l), {
+          pill("plug", apSlotLabel(ap, k), {
             sub: function () {
               return apBoundText(ap.slots[k]);
             },
@@ -526,33 +587,54 @@ function apEditPage(b, aid) {
           })
         );
       });
+    /* The rows added beyond the slots: any entity that can be read or set, in the order they are shown (drag to change it). */
+    box.appendChild(sep(_T("ap_rows"), "tune"));
+    var rowEls = [];
     ap.extra.forEach(function (x, i) {
-      box.appendChild(
-        pill("tune", x.l || A(x.e).friendly_name || x.e, {
-          sub: function () {
-            return apBoundText(x.e);
-          },
-          tap: function () {
-            showPopup("ap-extra:" + aid + ":" + i, true);
-          },
-        })
-      );
+      var el = pill(x.o ? "eye" : "tune", x.l || A(x.e).friendly_name || x.e, {
+        sub: function () {
+          return (x.g ? x.g + " · " : "") + apBoundText(x.e);
+        },
+        tap: function () {
+          showPopup("ap-extra:" + aid + ":" + i, true);
+        },
+      });
+      rowEls.push(el);
+      box.appendChild(el);
     });
-    if (ap.extra.length < 12)
-      box.appendChild(
+    if (rowEls.length > 1)
+      makeSortable(box, rowEls, function (from, to) {
+        ap.extra.splice(to, 0, ap.extra.splice(from, 1)[0]);
+        uiChanged();
+        redrawBox(box, draw);
+      });
+    var acts = [];
+    if (ap.extra.length < 40)
+      acts.push(
         pill("plus", _T("ap_add_a_row"), {
           sub: function () {
             return _T("ap_add_a_row_sub");
           },
           tap: function () {
             pickEntity(_T("ap_choose_an_entity"), AP_EXTRA_DOMS, null, function (id) {
-              ap.extra.push({ e: id, l: "" });
+              ap.extra.push({ e: id, l: "", o: 1 });
               uiChanged();
-              redrawBox(box, draw);
             }, null, apChosen(ap));
           },
         })
       );
+    /* Buttons and pictures made with the remote builder: a projector's arrows and inputs, a coffee machine's drinks. */
+    acts.push(
+      pill("play", _T("rm_buttons"), {
+        sub: function () {
+          return d.rm ? cntS(d.rm.btns.length + ((d.rm.img && d.rm.img.hs.length) || 0), _T("rm_button_lc"), _T("rm_buttons_lc")) : _T("ap_buttons_none");
+        },
+        tap: function () {
+          showPopup("remote-build:" + aid, true);
+        },
+      })
+    );
+    stgActions(box, acts);
   }
   draw();
 }
@@ -565,6 +647,22 @@ function apSlotPage(b, key) {
     def = AP_SLOTS[k];
   if (!d || !def) return;
   var s = d.ap.slots;
+  b.appendChild(
+    textRow(
+      "edit",
+      _T("ap_slot_name"),
+      (d.ap.names && d.ap.names[k]) || "",
+      function (v) {
+        d.ap.names = d.ap.names || {};
+        if (v.trim()) d.ap.names[k] = v.trim().slice(0, 24);
+        else delete d.ap.names[k];
+        if (!Object.keys(d.ap.names).length) delete d.ap.names;
+        uiChanged();
+      },
+      24
+    )
+  );
+  b.appendChild(hintRow(_T("ap_slot_name_hint") + apSlotLabel(d.ap, k)));
   b.appendChild(
     pill("plug", s[k] ? A(s[k]).friendly_name || s[k] : _T("ap_not_set"), {
       sub: function () {
@@ -600,24 +698,67 @@ function apExtraPage(b, key) {
     d = apFind(p[0]),
     x = d && d.ap.extra[+p[1]];
   if (!x) return;
-  b.appendChild(
-    textRow(
-      "edit",
-      _T("rm_label"),
-      x.l,
-      function (v) {
-        x.l = v.slice(0, 30);
-        uiChanged();
-      },
-      30
-    )
-  );
-  var clr = pill("trash", _T("ap_clear"), {
-    tap: function () {
-      d.ap.extra.splice(+p[1], 1);
-      uiChanged();
-      popBack();
-    },
-  });
-  stgActions(b, [clr], [clr]);
+  var box = mk("div");
+  b.appendChild(box);
+  function draw() {
+    redrawBox(box, function () {
+      stgIdentity(
+        box,
+        textRow(
+          "edit",
+          _T("rm_label"),
+          x.l,
+          function (v) {
+            x.l = v.slice(0, 30);
+            uiChanged();
+          },
+          30
+        ),
+        textRow(
+          "tune",
+          _T("ap_group"),
+          x.g || "",
+          function (v) {
+            if (v.trim()) x.g = v.trim().slice(0, 24);
+            else delete x.g;
+            uiChanged();
+          },
+          24
+        )
+      );
+      box.appendChild(hintRow(_T("ap_group_hint")));
+      box.appendChild(
+        pill("plug", A(x.e).friendly_name || x.e, {
+          sub: function () {
+            return apBoundText(x.e);
+          },
+        })
+      );
+      box.appendChild(
+        pill("eye", _T("ap_show_on_the_page"), {
+          on: function () {
+            return !!x.o;
+          },
+          sub: function () {
+            return x.o ? _T("on_cap") : _T("ap_behind_details");
+          },
+          tap: function () {
+            if (x.o) delete x.o;
+            else x.o = 1;
+            uiChanged();
+            draw();
+          },
+        })
+      );
+      var clr = pill("trash", _T("ap_clear"), {
+        tap: function () {
+          d.ap.extra.splice(+p[1], 1);
+          uiChanged();
+          popBack();
+        },
+      });
+      stgActions(box, [clr], [clr]);
+    });
+  }
+  draw();
 }

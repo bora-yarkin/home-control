@@ -1011,13 +1011,12 @@ function devBehaviourTab(c) {
     );
   if (d.kind === "remote")
     box.appendChild(
-      pill("tune", _T("set_up_this_device"), {
+      pill("tune", _T("rm_buttons"), {
         sub: function () {
-          return _T("kit_remote_sub");
+          return cntS(d.rm.btns.length + ((d.rm.img && d.rm.img.hs.length) || 0), _T("rm_button_lc"), _T("rm_buttons_lc"));
         },
         tap: function () {
-          RM.edit[d.rid] = true;
-          showPopup("remote:" + d.rid, true);
+          showPopup("remote-build:" + d.rid, true);
         },
       })
     );
