@@ -27,8 +27,8 @@ document.body.appendChild(panel);
 const hass = makeHass(new URLSearchParams(location.search));
 window.__hass = hass;
 panel.hass = hass;
-// ?showcase=1 builds the page "Showcase" with a device of every kind (showcase.js) and opens it.
-if (new URLSearchParams(location.search).get("showcase") === "1") buildShowcase();
+// The page "Showcase" has a device of every kind (showcase.js) and is opened at start; ?showcase=0 leaves it out.
+if (new URLSearchParams(location.search).get("showcase") !== "0") buildShowcase();
 
 // ?door=ringing | call | security-ringing | security-call shows the call popup of the pretend door station (a camera with a picture), or of a
 // guard desk (no camera picture, only the station's audio-wave picture, and nothing to unlock: `can_unlock: false`). The pictures are stand-ins.

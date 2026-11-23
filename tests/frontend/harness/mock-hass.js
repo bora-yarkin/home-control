@@ -46,7 +46,8 @@ function importEffects(content) {
 export function makeHass(query) {
   const withSync = query.get("sync") !== "0";
   const withBox = query.get("box") !== "0";
-  const withShowcase = query.get("showcase") === "1";
+  // The Showcase page (showcase.js) is part of the harness; ?showcase=0 leaves it out.
+  const withShowcase = query.get("showcase") !== "0";
   const withKit = query.get("kit") === "1" || withShowcase;
   // ?many=1: nine white lights of one room at different temperatures, for the wheel that opens a group as a circle of its lights.
   const manyKelvin = query.get("many") === "1" ? [2403, 2702, 3558, 2403, 2702, 3558, 2403, 2702, 3558] : [];
