@@ -561,7 +561,7 @@ function closeMenu(instant) {
     else {
       m.classList.add("out");
       setTimeout(function () {
-        m.remove();
+        if (m !== MENU) m.remove();
       }, 170);
     }
   }

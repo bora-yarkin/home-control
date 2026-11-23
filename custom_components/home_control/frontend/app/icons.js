@@ -471,6 +471,8 @@ function iconPick(list, cur, fn, rec) {
   /* The panel floats over the page like the other dropdowns' menus; nothing under it moves. */
   function openIt() {
     closeMenu(true);
+    /* The panel is reused: it comes back without the closing look it was given. */
+    panel.classList.remove("out", "up");
     panel.style.display = "";
     placeMenu(panel, btn);
     build();

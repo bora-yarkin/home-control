@@ -920,21 +920,7 @@ function devManage(b, key) {
   c.redraw();
 }
 
-/* A name is offered in shorter and plainer forms: the entity's name without the room in front of it. */
-function devNameChoices(d) {
-  var full = (d.id && A(d.id).friendly_name) || d.name,
-    area = d.id ? areaName(d.id) : "",
-    out = [];
-  function add(n) {
-    n = (n || "").trim();
-    if (n && n !== d.name && n.length <= 40 && out.indexOf(n) < 0) out.push(n);
-  }
-  add(full);
-  if (area && full.toLowerCase().indexOf(area.toLowerCase() + " ") === 0) add(full.slice(area.length + 1).replace(/^./, function (ch) { return ch.toUpperCase(); }));
-  return out.slice(0, 3);
-}
-
-/* Who it is: the name (with shorter names offered under it) and the icon, side by side like the other pairs of choices. */
+/* Who it is: the name and the icon, side by side like the other pairs of choices. */
 function devIdentity(c) {
   var d = c.d;
   function rename(v) {
@@ -953,19 +939,6 @@ function devIdentity(c) {
     }, iconSuggestions(d))
   );
   c.box.appendChild(grid);
-  var names = devNameChoices(d);
-  if (names.length) {
-    var nrow = mk("div", "pre");
-    names.forEach(function (n) {
-      var t = mk("div", "rbtn pane keepc");
-      t.textContent = n;
-      t.addEventListener("click", function () {
-        rename(n);
-      });
-      nrow.appendChild(t);
-    });
-    c.box.appendChild(nrow);
-  }
 }
 
 /* How it is drawn, for the kinds that have a choice; a block only when there is one. */
@@ -1232,7 +1205,7 @@ function devPlaceRows(c) {
   if (adv)
     sw.appendChild(
       flagPill("tune", _T("advanced_settings_button"), d, "noadv", function (on) {
-        return on ? _T("shown_at_the_bottom_of_its_popup") : _T("hidden");
+        return on ? _T("on_cap") : _T("off");
       }, true)
     );
   if (sw.children.length) c.box.appendChild(sw);

@@ -5,7 +5,8 @@ var DEVSETUP = {
   ac: {
     label: "ac",
     slots: [
-      { key: "controls", domains: ["switch", "select", "number", "button"], re: /swing|fan|display|light|sleep|quiet|eco|turbo|clean|beep|health|ion|purif|self|timer|mode/i, many: 1, hint: "ac_controls_hint" },
+      { key: "climate", domains: ["climate"], many: 1, hint: "ac_climate_hint" },
+      { key: "controls", domains: ["switch", "select", "number", "button", "input_boolean", "input_select", "input_number", "script"], re: /swing|fan|display|light|sleep|quiet|eco|turbo|clean|beep|health|ion|purif|self|timer|mode|power|temperature|apply/i, many: 1, hint: "ac_controls_hint" },
       { key: "readings", domains: ["sensor", "binary_sensor"], re: /temperature|humidity|power|energy|filter|outdoor|indoor|error|defrost/i, many: 1, hint: "ac_readings_hint" },
     ],
   },
