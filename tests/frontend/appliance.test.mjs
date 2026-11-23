@@ -161,3 +161,28 @@ test("the time left reads from a timestamp or a duration, and says nothing it do
   assert.equal(p.apLeft("sensor.past"), "ap_now");
   assert.equal(p.apLeft("sensor.plain"), "12");
 });
+
+test("an appliance keeps up to 40 rows with a group heading and a show-on-the-page mark, the new types, the level slot, names given to slots, and an optional grid of buttons", () => {
+  const m = model();
+  const rows = Array.from({ length: 50 }, (_, i) => ({ e: "switch.s" + i, l: "Row " + i, g: i === 0 ? "  Screen  " : i === 1 ? "x".repeat(40) : "", o: i === 2 ? 1 : 0 }));
+  const a = plain(m.cleanAppliance({ type: "projector", slots: { level: "select.picture", program: "select.source", temperature: "light.no" }, extra: rows, names: { program: "Source", level: "x".repeat(40), bogus: "no", state: "  " } }));
+  assert.equal(a.type, "projector");
+  assert.deepEqual(a.slots, { program: "select.source", level: "select.picture" });
+  assert.equal(a.extra.length, 40);
+  assert.equal(a.extra[0].g, "Screen");
+  assert.equal(a.extra[1].g.length, 24);
+  assert.deepEqual([a.extra[2].o, "o" in a.extra[3], "g" in a.extra[3]], [1, false, false]);
+  assert.deepEqual(a.names, { program: "Source", level: "x".repeat(24) });
+  for (const t of ["coffee", "fridge", "other"]) assert.equal(m.cleanAppliance({ type: t }).type, t);
+  assert.equal(m.cleanAppliance({ type: "toaster" }).type, "other");
+});
+
+test("an appliance device keeps the grid of buttons made for it, and drops an empty one", () => {
+  const m = model();
+  const dev = (rm) => m.cleanDev({ id: "", aid: "ap1", name: "Projector", icon: "media", kind: "appliance", ap: { type: "projector", slots: {}, extra: [] }, ...(rm ? { rm } : {}) });
+  const kept = plain(dev({ cols: 6, btns: [{ a: { t: "key", e: "remote.ir", c: "UP" }, s: 2, h: 3 }] }));
+  assert.equal(kept.rm.btns.length, 1);
+  assert.equal(kept.rm.btns[0].a.c, "UP");
+  assert.equal("rm" in plain(dev({ cols: 4, btns: [] })), false);
+  assert.equal("rm" in plain(dev()), false);
+});

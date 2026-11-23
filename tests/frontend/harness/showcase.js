@@ -46,6 +46,29 @@ export function showcaseStates() {
     s("media_player.showcase_roku", "on", { friendly_name: "Showcase Roku TV", source: "HDMI 1", source_list: ["HDMI 1", "HDMI 2", "Netflix"], volume_level: 0.3, supported_features: 152461 }),
     s("remote.showcase_roku", "on", { friendly_name: "Showcase Roku TV remote" }),
     s("media_player.showcase_lg", "on", { friendly_name: "Showcase LG TV", source: "HDMI 2", source_list: ["HDMI 1", "HDMI 2", "Live TV"], volume_level: 0.2, supported_features: 152461 }),
+    s("switch.showcase_projector_power", "on", { friendly_name: "Showcase projector Power" }),
+    s("select.showcase_projector_source", "HDMI 1", { friendly_name: "Showcase projector Source", options: ["HDMI 1", "HDMI 2", "USB", "Screen mirroring"] }),
+    s("select.showcase_projector_picture", "Cinema", { friendly_name: "Showcase projector Picture mode", options: ["Cinema", "Bright", "Game", "Eco"] }),
+    s("number.showcase_projector_keystone", "0", { friendly_name: "Showcase projector Keystone", min: -30, max: 30, step: 1 }),
+    s("number.showcase_projector_lamp", "1840", { friendly_name: "Showcase projector Lamp hours", min: 0, max: 5000, step: 1, unit_of_measurement: "h" }),
+    s("sensor.showcase_projector_temp", "46", { friendly_name: "Showcase projector Temperature", unit_of_measurement: "°C", device_class: "temperature" }),
+    s("switch.showcase_projector_freeze", "off", { friendly_name: "Showcase projector Freeze" }),
+    s("remote.showcase_projector_ir", "on", { friendly_name: "Showcase projector infrared" }),
+    s("sensor.showcase_coffee_state", "ready", { friendly_name: "Showcase coffee machine State" }),
+    s("select.showcase_coffee_drink", "Espresso", { friendly_name: "Showcase coffee machine Drink", options: ["Espresso", "Lungo", "Cappuccino", "Latte macchiato", "Hot water"] }),
+    s("select.showcase_coffee_strength", "Medium", { friendly_name: "Showcase coffee machine Strength", options: ["Mild", "Medium", "Strong"] }),
+    s("number.showcase_coffee_amount", "40", { friendly_name: "Showcase coffee machine Amount", min: 20, max: 250, step: 5, unit_of_measurement: "ml" }),
+    s("switch.showcase_coffee_milk", "off", { friendly_name: "Showcase coffee machine Milk" }),
+    s("button.showcase_coffee_start", "unknown", { friendly_name: "Showcase coffee machine Start" }),
+    s("binary_sensor.showcase_coffee_tank", "off", { friendly_name: "Showcase coffee machine Water tank empty", device_class: "problem" }),
+    s("sensor.showcase_coffee_cups", "1280", { friendly_name: "Showcase coffee machine Cups made" }),
+    s("number.showcase_fridge_temp", "4", { friendly_name: "Showcase fridge Fridge temperature", min: 1, max: 8, step: 1, unit_of_measurement: "°C" }),
+    s("number.showcase_fridge_freezer", "-18", { friendly_name: "Showcase fridge Freezer temperature", min: -24, max: -14, step: 1, unit_of_measurement: "°C" }),
+    s("sensor.showcase_fridge_now", "5", { friendly_name: "Showcase fridge Temperature now", unit_of_measurement: "°C", device_class: "temperature" }),
+    s("binary_sensor.showcase_fridge_door", "off", { friendly_name: "Showcase fridge Door", device_class: "door" }),
+    s("switch.showcase_fridge_supercool", "off", { friendly_name: "Showcase fridge Super cool" }),
+    s("switch.showcase_fridge_supercool_freezer", "off", { friendly_name: "Showcase fridge Super freeze" }),
+    s("switch.showcase_fridge_eco", "on", { friendly_name: "Showcase fridge Eco mode" }),
     s("lock.showcase_front", "locked", { friendly_name: "Showcase front door lock" }),
     s("sensor.showcase_temperature", "21.4", { friendly_name: "Showcase temperature", unit_of_measurement: "°C", device_class: "temperature" }),
     s("sensor.showcase_humidity", "48", { friendly_name: "Showcase humidity", unit_of_measurement: "%", device_class: "humidity" }),
@@ -73,7 +96,7 @@ export function showcaseEntities(reg) {
   add("roku", ["media_player.showcase_roku", "remote.showcase_roku"], "roku");
   add("lg", ["media_player.showcase_lg"], "webostv");
   add("cam", ["camera.showcase_garden", "button.showcase_garden_move_left", "button.showcase_garden_move_right", "switch.showcase_garden_privacy", "binary_sensor.showcase_garden_motion"]);
-  ["switch.showcase_plug", "cover.showcase_venetian", "cover.showcase_garage", "cover.showcase_blind", "lock.showcase_front", "sensor.showcase_temperature", "sensor.showcase_humidity", "binary_sensor.showcase_window", "number.showcase_volume", "select.showcase_mode", "button.showcase_reboot", "script.showcase_goodnight", "scene.showcase_relax", "scene.showcase_focus", "light.showcase_lamp", "light.showcase_plain"].forEach((id) =>
+  ["switch.showcase_projector_power", "select.showcase_projector_source", "select.showcase_projector_picture", "number.showcase_projector_keystone", "number.showcase_projector_lamp", "sensor.showcase_projector_temp", "switch.showcase_projector_freeze", "remote.showcase_projector_ir", "sensor.showcase_coffee_state", "select.showcase_coffee_drink", "select.showcase_coffee_strength", "number.showcase_coffee_amount", "switch.showcase_coffee_milk", "button.showcase_coffee_start", "binary_sensor.showcase_coffee_tank", "sensor.showcase_coffee_cups", "number.showcase_fridge_temp", "number.showcase_fridge_freezer", "sensor.showcase_fridge_now", "binary_sensor.showcase_fridge_door", "switch.showcase_fridge_supercool", "switch.showcase_fridge_supercool_freezer", "switch.showcase_fridge_eco", "switch.showcase_plug", "cover.showcase_venetian", "cover.showcase_garage", "cover.showcase_blind", "lock.showcase_front", "sensor.showcase_temperature", "sensor.showcase_humidity", "binary_sensor.showcase_window", "number.showcase_volume", "select.showcase_mode", "button.showcase_reboot", "script.showcase_goodnight", "scene.showcase_relax", "scene.showcase_focus", "light.showcase_lamp", "light.showcase_plain"].forEach((id) =>
     rows.push(reg(id, "showcase", "sc-" + id, "9a".repeat(16), { area_id: null })),
   );
   return rows;
@@ -129,6 +152,53 @@ export async function buildShowcase() {
   ap("dryer", "Showcase dryer", "scdry01", { program: "select.dryer_program", state: "sensor.dryer_operation_state", remaining: "sensor.dryer_remaining_program_time", start: "button.dryer_start", permission: "binary_sensor.dryer_remote_start_allowed" });
   ap("dishwasher", "Showcase dishwasher", "scdish01", { state: "sensor.dishwasher_status", start: "switch.dishwasher_start", door: "binary_sensor.dishwasher_door", remaining: "sensor.dishwasher_time_left", progress: "sensor.dishwasher_progress" });
   ap("other", "Showcase other appliance", "scother01", { state: "sensor.showcase_ac_power" });
+  /* A projector (power, source and picture mode, a button grid with arrows and inputs), a coffee machine and a fridge, to see the appliance builder's rows, groups and buttons. */
+  const proj = w.apNew("projector");
+  proj.name = "Showcase projector";
+  proj.aid = "scproj01";
+  Object.assign(proj.ap.slots, { state: "sensor.showcase_projector_temp", program: "select.showcase_projector_source", level: "select.showcase_projector_picture", start: "switch.showcase_projector_power", temperature: "number.showcase_projector_keystone" });
+  proj.ap.extra = [
+    { e: "switch.showcase_projector_freeze", l: "Freeze", o: 1, g: "Screen" },
+    { e: "number.showcase_projector_keystone", l: "Keystone", o: 1, g: "Screen" },
+    { e: "number.showcase_projector_lamp", l: "Lamp hours", g: "Service" },
+    { e: "sensor.showcase_projector_temp", l: "Temperature", g: "Service" },
+  ];
+  const irp = "remote.showcase_projector_ir";
+  const pk = (c, extra = {}) => ({ t: "key", e: irp, c, ...extra });
+  proj.rm = {
+    cols: 6,
+    btns: [
+      { a: pk("INPUT_HDMI1"), i: "", l: "HDMI 1", s: 2, h: 1 }, { a: pk("INPUT_HDMI2"), i: "", l: "HDMI 2", s: 2, h: 1 }, { a: pk("INPUT_USB"), i: "", l: "USB", s: 2, h: 1 },
+      { a: { t: "gap" }, i: "info", l: "", s: 1, h: 3 },
+      { a: { t: "dpad", u: pk("UP", { r: 1 }), d: pk("DOWN", { r: 1 }), l: pk("LEFT", { r: 1 }), r: pk("RIGHT", { r: 1 }), o: pk("OK") }, i: "info", l: "", s: 4, h: 3 },
+      { a: { t: "gap" }, i: "info", l: "", s: 1, h: 3 },
+      { a: pk("MENU"), i: "cog", l: "Menu", s: 2, h: 1 }, { a: pk("BACK"), i: "back", l: "Back", s: 2, h: 1 }, { a: pk("KEYSTONE"), i: "tune", l: "Keystone", s: 2, h: 1 },
+      { a: pk("FOCUS_PLUS", { r: 1 }), i: "plus", l: "Focus", s: 3, h: 1 }, { a: pk("FOCUS_MINUS", { r: 1 }), i: "minus", l: "Focus", s: 3, h: 1 },
+      { a: pk("ZOOM_PLUS", { r: 1 }), i: "plus", l: "Zoom", s: 3, h: 1 }, { a: pk("ZOOM_MINUS", { r: 1 }), i: "minus", l: "Zoom", s: 3, h: 1 },
+    ],
+  };
+  kit.devs.push(proj);
+  const coffee = w.apNew("coffee");
+  coffee.name = "Showcase coffee machine";
+  coffee.aid = "sccoffee1";
+  Object.assign(coffee.ap.slots, { state: "sensor.showcase_coffee_state", program: "select.showcase_coffee_drink", level: "select.showcase_coffee_strength", start: "button.showcase_coffee_start", door: "binary_sensor.showcase_coffee_tank" });
+  coffee.ap.extra = [
+    { e: "number.showcase_coffee_amount", l: "Amount", o: 1 },
+    { e: "switch.showcase_coffee_milk", l: "Milk", o: 1 },
+    { e: "sensor.showcase_coffee_cups", l: "Cups made", g: "Care" },
+  ];
+  kit.devs.push(coffee);
+  const fridge = w.apNew("fridge");
+  fridge.name = "Showcase fridge";
+  fridge.aid = "scfridge1";
+  Object.assign(fridge.ap.slots, { state: "sensor.showcase_fridge_now", temperature: "number.showcase_fridge_temp", door: "binary_sensor.showcase_fridge_door" });
+  fridge.ap.extra = [
+    { e: "number.showcase_fridge_freezer", l: "Freezer", o: 1, g: "Temperatures" },
+    { e: "switch.showcase_fridge_supercool", l: "Super cool", o: 1, g: "Quick actions" },
+    { e: "switch.showcase_fridge_supercool_freezer", l: "Super freeze", o: 1, g: "Quick actions" },
+    { e: "switch.showcase_fridge_eco", l: "Eco mode", g: "Quick actions" },
+  ];
+  kit.devs.push(fridge);
   const rem = w.remoteNew();
   rem.rid = "screm01";
   rem.name = "Showcase remote";

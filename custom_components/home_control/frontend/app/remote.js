@@ -44,8 +44,9 @@ var RM = { sel: null, keys: null, keysSet: null };
 /* The remote device with this id, wherever the layout keeps it. */
 function remoteFind(rid) {
   var found = null;
+  /* An appliance can carry a remote too: it is found by its own id. */
   function look(d) {
-    if (d.kind === "remote" && d.rid === rid) found = d;
+    if ((d.kind === "remote" && d.rid === rid) || (d.kind === "appliance" && d.aid === rid)) found = d;
   }
   allSectionLists().forEach(function (secs) {
     secs.forEach(function (s) {
@@ -389,8 +390,6 @@ function remotePicture(box, d, edit, redraw) {
         img.hs.push(h);
         RM.sel = { rid: d.rid, i: img.hs.length - 1 };
         uiChanged();
-        popBack();
-        redraw();
       });
     });
   box.appendChild(wrap);
@@ -403,7 +402,7 @@ function remotePage(b, rid) {
   var box = mk("div");
   b.appendChild(box);
   var d = remoteFind(rid);
-  if (!d) return;
+  if (!d || !d.rm) return;
   var rm = d.rm;
   if (rm.v === "i" && rm.img) remotePicture(box, d, false, function () {});
   else if (!rm.btns.length) box.appendChild(hintRow(ISADMIN ? _T("rm_no_buttons_yet_admin") : _T("rm_no_buttons_yet")));
@@ -434,6 +433,7 @@ function remoteBuild(b, rid) {
   function draw() {
     var d = remoteFind(rid);
     if (!d) return;
+    if (!d.rm) d.rm = { cols: 4, btns: [] };
     redrawBox(box, function () {
       var rm = d.rm,
         picture = rm.v === "i";
@@ -506,8 +506,7 @@ function remoteBuild(b, rid) {
             rmChooseAction(function (a) {
               rm.btns.push({ a: a, i: rmDefaultIcon(a), l: "", s: 1, h: 1 });
               uiChanged();
-              popBack();
-              showPopup("remote-btn:" + rid + ":" + (rm.btns.length - 1), false);
+              return "remote-btn:" + rid + ":" + (rm.btns.length - 1);
             });
           },
         }),
@@ -611,17 +610,28 @@ function rmBuildPicture(box, d, redraw) {
 
 /* ---- choosing what a button does ---- */
 
-/* Asks for the entity, then what to do with it (a key for a remote entity, a control or a source for a media player), and gives the action to done. The list of entities is replaced by the next step; done goes back from it. */
+/* Asks for the entity, then what to do with it (a key for a remote entity, a control or a source for a media player), and gives the action to `done`. `done` changes the data and may give the key of a popup to open next;
+   otherwise the popup the choice was started from is drawn again with the change. (The list of entities goes back by itself after its callback, so what follows waits until it has.) */
 function rmChooseAction(done) {
+  function finish(a) {
+    var next = done(a);
+    if (next) showPopup(next, true);
+    else if (CURRENT) showPopup(CURRENT, false);
+  }
   pickEntity(_T("rm_choose_what_the_button_runs"), REMOTE_PICK_DOMS, null, function (id) {
     var d = dom(id);
-    if (d === "remote" || d === "media_player") {
-      RM.keys = { e: id, done: done };
-      showPopup((d === "remote" ? "remote-key:" : "remote-media:") + id, false);
-      return;
-    }
-    popBack();
-    done({ t: "ent", e: id });
+    setTimeout(function () {
+      if (d === "remote" || d === "media_player") {
+        RM.keys = {
+          e: id,
+          done: function (a) {
+            popBack();
+            finish(a);
+          },
+        };
+        showPopup((d === "remote" ? "remote-key:" : "remote-media:") + id, true);
+      } else finish({ t: "ent", e: id });
+    }, 0);
   });
 }
 
@@ -740,8 +750,6 @@ function remoteKeysPage(b, rid) {
             pickEntity(_T("rm_choose_the_remote_entity"), ["remote", "media_player"], null, function (id) {
               st.e = id;
               st.picked = {};
-              popBack();
-              draw();
             });
           },
         })
@@ -934,8 +942,6 @@ function remoteBtnPage(b, key) {
             delete x.e;
             if (!hot && !x.i && !x.l) x.i = rmDefaultIcon(n);
             save();
-            popBack();
-            draw();
           });
         },
       })
@@ -996,8 +1002,6 @@ function remoteBtnPage(b, key) {
             rmChooseAction(function (n) {
               pad[pt[0]] = n;
               save();
-              popBack();
-              draw();
             });
           },
         })

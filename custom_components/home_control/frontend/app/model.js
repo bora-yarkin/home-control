@@ -284,17 +284,32 @@ function cleanAppliance(a) {
       remaining: ["sensor", "input_datetime"],
       door: ["binary_sensor", "sensor"],
       permission: ["binary_sensor", "switch", "input_boolean"],
+      level: ["number", "input_number", "select", "input_select"],
     },
     extraDoms = ["select", "input_select", "number", "input_number", "switch", "input_boolean", "binary_sensor", "sensor", "button", "input_button", "script"],
     out = { type: "other", slots: {}, extra: [] };
-  if (a && ["oven", "washer", "dryer", "dishwasher", "other"].indexOf(a.type) >= 0) out.type = a.type;
+  if (a && ["oven", "washer", "dryer", "dishwasher", "coffee", "fridge", "projector", "other"].indexOf(a.type) >= 0) out.type = a.type;
   Object.keys(slotDoms).forEach(function (k) {
     var e = a && a.slots && a.slots[k];
     if (typeof e === "string" && ENTRE.test(e) && slotDoms[k].indexOf(e.split(".")[0]) >= 0) out.slots[k] = e;
   });
-  (a && Array.isArray(a.extra) ? a.extra : []).slice(0, 12).forEach(function (x) {
-    if (x && typeof x.e === "string" && ENTRE.test(x.e) && extraDoms.indexOf(x.e.split(".")[0]) >= 0)
-      out.extra.push({ e: x.e, l: typeof x.l === "string" ? x.l.slice(0, 30) : "" });
+  /* A name given to a slot on this appliance (a projector's Program is its Source). */
+  if (a && a.names && typeof a.names === "object")
+    Object.keys(slotDoms).forEach(function (k) {
+      var n = a.names[k];
+      if (typeof n === "string" && n.trim()) {
+        out.names = out.names || {};
+        out.names[k] = n.trim().slice(0, 24);
+      }
+    });
+  /* Rows of any entity that can be read or set, each with a label, an optional group heading, and whether it is shown on the appliance's page or behind its Details line. */
+  (a && Array.isArray(a.extra) ? a.extra : []).slice(0, 40).forEach(function (x) {
+    if (x && typeof x.e === "string" && ENTRE.test(x.e) && extraDoms.indexOf(x.e.split(".")[0]) >= 0) {
+      var row = { e: x.e, l: typeof x.l === "string" ? x.l.slice(0, 30) : "" };
+      if (typeof x.g === "string" && x.g.trim()) row.g = x.g.trim().slice(0, 24);
+      if (x.o) row.o = 1;
+      out.extra.push(row);
+    }
   });
   return out;
 }
@@ -405,6 +420,11 @@ function cleanDev(d) {
   if (d.kind === "appliance") {
     c.aid = d.aid;
     c.ap = cleanAppliance(d.ap);
+    /* An appliance can carry a grid of buttons or a picture, made with the remote builder (app/remote.js): a projector's arrows and inputs. */
+    if (d.rm) {
+      var arm = cleanRemote(d.rm);
+      if (arm.btns.length || arm.img) c.rm = arm;
+    }
   }
   if (d.kind === "remote") {
     c.rid = d.rid;
