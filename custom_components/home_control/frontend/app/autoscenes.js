@@ -202,10 +202,9 @@ function autoSceneSave() {
 
 /* ---- tags ---- */
 
-/* The two dropdowns that say where scenes come from, side by side, put in `box`: Rooms and Tags. Rooms are the pages of the dashboard (the scenes made for them) and the rooms of Hue (the areas of Home Assistant that have scenes a plugin owns), each a tick; None clears it. Tags are the tags of the scenes of the rooms ticked (all of them when no page is ticked); a second tap on a tag leaves its scenes out instead. `rooms` is { get(): tokens ("page:<id>", "hue:<area>", "hue:@lights", "hue:@page"), set(tokens), lights (a master: offers the areas of its lights) } and `tags` is { inc(): tags, exc(): tags, set(inc, exc) }. */
+/* The two dropdowns that say where scenes come from, side by side, put in `box`: Rooms and Tags. Rooms are the pages of the dashboard (the scenes made for them); None clears them. Tags are the tags of the scenes of the rooms ticked (all of them when no room is ticked); a second tap on a tag leaves its scenes out instead. When a room ticked has scenes a plugin owns in its Home Assistant area, Tags also offers "Hue": ticked, those scenes are taken in too. `rooms` is { get(): tokens ("page:<id>" for a room, "hue:..." for Hue), set(tokens) } and `tags` is { inc(): tags, exc(): tags, set(inc, exc) }. */
 function sceneSourceTiles(box, rooms, tags) {
   var pages = scenePages(),
-    huer = sceneHueRooms(),
     grid = mk("div", "ap-grid");
   function pageIds() {
     return rooms
@@ -217,7 +216,20 @@ function sceneSourceTiles(box, rooms, tags) {
         return t.slice(5);
       });
   }
-  /* The tags worth offering: those of the scenes of the pages ticked; all of them when none is ticked; and the ones already chosen. */
+  function hueTokens() {
+    return rooms.get().filter(function (t) {
+      return t.indexOf("hue:") === 0;
+    });
+  }
+  /* Hue is offered when a room ticked (any room, when none is) has plugin scenes in its area, and while it is ticked. */
+  function hueOffered() {
+    if (hueTokens().length) return true;
+    var ids = pageIds();
+    return pages.some(function (p) {
+      return (!ids.length || ids.indexOf(p.id) >= 0) && scenePageHueIds(p.id).length;
+    });
+  }
+  /* The tags worth offering: those of the scenes of the rooms ticked; all of them when none is ticked; and the ones already chosen. */
   function tagOptions() {
     var ids = pageIds(),
       out = sceneTags().filter(function (t) {
@@ -233,46 +245,43 @@ function sceneSourceTiles(box, rooms, tags) {
     });
     return out;
   }
-  function nameOf(t) {
-    var p = pages.filter(function (x) { return "page:" + x.id === t; })[0];
-    if (p) return p.name;
-    var h = huer.filter(function (x) { return x[0] === t; })[0];
-    return h ? h[1] : t;
-  }
   grid.appendChild(
     multiTile(
       _T("src_pages"),
       function () {
-        return [["-", _T("none")]]
-          .concat(
-            pages.map(function (p) {
-              return ["page:" + p.id, p.name + " · " + p.count];
-            })
-          )
-          .concat(
-            huer
-              .filter(function (h) {
-                return rooms.lights ? true : h[0] !== "hue:@lights";
-              })
-              .map(function (h) {
-                return [h[0], h[1]];
-              })
-          );
+        return [["-", _T("none")]].concat(
+          pages.map(function (p) {
+            return ["page:" + p.id, p.name + " · " + p.count];
+          })
+        );
       },
       function (v) {
-        return v === "-" ? rooms.get().length === 0 : rooms.get().indexOf(v) >= 0;
+        return v === "-" ? pageIds().length === 0 : pageIds().indexOf(v.slice(5)) >= 0;
       },
       function (v) {
-        var cur = rooms.get().slice(),
-          at = cur.indexOf(v);
+        var cur = pageIds(),
+          id = v.slice(5),
+          at = cur.indexOf(id);
         if (v === "-") cur = [];
         else if (at >= 0) cur.splice(at, 1);
-        else cur.push(v);
-        rooms.set(cur);
+        else cur.push(id);
+        rooms.set(
+          hueTokens().concat(
+            cur.map(function (x) {
+              return "page:" + x;
+            })
+          )
+        );
       },
       "scene",
       function () {
-        var n = rooms.get().map(nameOf);
+        var n = pages
+          .filter(function (p) {
+            return pageIds().indexOf(p.id) >= 0;
+          })
+          .map(function (p) {
+            return p.name;
+          });
         return n.length ? n.join(", ") : _T("none");
       }
     )
@@ -281,7 +290,9 @@ function sceneSourceTiles(box, rooms, tags) {
     multiTile(
       _T("src_tags"),
       function () {
-        return [["-", _T("none")]].concat(
+        var o = [["-", _T("none")]];
+        if (hueOffered()) o.push(["@hue", _T("src_hue")]);
+        return o.concat(
           tagOptions().map(function (t) {
             return [t, t];
           })
@@ -291,11 +302,24 @@ function sceneSourceTiles(box, rooms, tags) {
         return false;
       },
       function (v) {
+        if (v === "@hue") {
+          rooms.set(
+            rooms.get().filter(function (t) {
+              return t.indexOf("hue:") !== 0;
+            }).concat(hueTokens().length ? [] : ["hue:@rooms"])
+          );
+          return;
+        }
         var inc = tags.inc().slice(),
           exc = tags.exc().slice();
         if (v === "-") {
           inc = [];
           exc = [];
+          rooms.set(
+            rooms.get().filter(function (t) {
+              return t.indexOf("hue:") !== 0;
+            })
+          );
         } else if (inc.indexOf(v) >= 0) {
           inc.splice(inc.indexOf(v), 1);
           exc.push(v);
@@ -306,12 +330,14 @@ function sceneSourceTiles(box, rooms, tags) {
       "tune",
       function () {
         var inc = tags.inc(),
-          exc = tags.exc();
-        if (!inc.length && !exc.length) return sceneTags().length ? _T("none") : _T("src_no_tags");
-        return inc.concat(exc.map(function (t) { return "– " + t; })).join(", ");
+          exc = tags.exc(),
+          n = (hueTokens().length ? [_T("src_hue")] : []).concat(inc, exc.map(function (t) { return "– " + t; }));
+        if (!n.length) return sceneTags().length || hueOffered() ? _T("none") : _T("src_no_tags");
+        return n.join(", ");
       },
       function (v) {
-        if (v === "-") return tags.inc().length || tags.exc().length ? 0 : 1;
+        if (v === "@hue") return hueTokens().length ? 1 : 0;
+        if (v === "-") return tags.inc().length || tags.exc().length || hueTokens().length ? 0 : 1;
         return tags.inc().indexOf(v) >= 0 ? 1 : tags.exc().indexOf(v) >= 0 ? 2 : 0;
       }
     )
@@ -320,21 +346,17 @@ function sceneSourceTiles(box, rooms, tags) {
   box.appendChild(hintRow(_T("src_tags_hint")));
 }
 
-/* The rooms of Hue (the areas of Home Assistant with scenes a plugin owns): [token, label]. Only when a plugin owns scenes. */
-function sceneHueRooms() {
-  if (!PLUGIN_SCENE_KINDS.length) return [];
-  var out = [["hue:@lights", _T("src_hue_lights")], ["hue:@page", _T("src_hue_page")]];
-  Object.keys(H().areas || {})
-    .sort(function (x, y) {
-      return String(H().areas[x].name).localeCompare(H().areas[y].name);
+/* The scene entities a plugin owns (Hue) in the Home Assistant area of a page. */
+function scenePageHueIds(pageId) {
+  var area = (UIROOM[pageId] || {}).area;
+  if (!area || !PLUGIN_SCENE_KINDS.length) return [];
+  return sceneIds(area)
+    .map(function (x) {
+      return x[0];
     })
-    .forEach(function (a) {
-      var n = sceneIds(a).filter(function (x) {
-        return !!pluginSceneKind(x[0]);
-      }).length;
-      if (n) out.push(["hue:" + a, H().areas[a].name + " · Hue · " + n]);
+    .filter(function (id) {
+      return !!pluginSceneKind(id);
     });
-  return out;
 }
 
 /* The pages of the dashboard that have scenes made for them, with how many: Home first, then the rooms. */

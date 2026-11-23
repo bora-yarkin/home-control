@@ -550,10 +550,18 @@ function sceneCollectionItems(d) {
     ents = [];
   tokens.forEach(function (x) {
     if (x.indexOf("hue:") !== 0) return;
-    var area = x === "hue:@page" ? room.area : x === "hue:@lights" ? "" : x.slice(4);
-    if (!area) return;
-    sceneIds(area).forEach(function (s) {
-      if (ents.indexOf(s[0]) < 0) ents.push(s[0]);
+    var found =
+      x === "hue:@rooms"
+        ? (pages.length ? pages : scenePages().map(function (p) { return p.id; })).reduce(function (acc, id) {
+            return acc.concat(scenePageHueIds(id));
+          }, [])
+        : x === "hue:@lights"
+          ? []
+          : sceneIds(x === "hue:@page" ? room.area : x.slice(4)).map(function (s) {
+              return s[0];
+            });
+    found.forEach(function (id) {
+      if (ents.indexOf(id) < 0) ents.push(id);
     });
   });
   return { stored: stored, ents: ents };
@@ -579,6 +587,14 @@ function sceneCollectionRow(d) {
       nm = d.keepname ? A(id).friendly_name || id : sceneShortName(A(id).friendly_name || id, ctx, {});
     box.appendChild(sceneEntRow(id, nm, kind ? kind.icon : "scene", null, ctx));
   });
+  if (ISADMIN && CURSEC)
+    box.appendChild(
+      pill("plus", _T("new_scene"), {
+        tap: function () {
+          showPopup("scene-new:" + secKey() + ":" + CURSEC.id + ":s", true);
+        },
+      })
+    );
   if (!box.children.length) return null;
   box.style.gridColumn = "1 / -1";
   return box;

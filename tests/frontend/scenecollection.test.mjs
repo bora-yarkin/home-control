@@ -132,3 +132,25 @@ test("a Section that was marked as showing scenes (layout 5) and chose nothing k
   assert.deepEqual(out.devs[0].spage, ["hue:@page"]);
   assert.equal("scs" in out, false);
 });
+
+test("Hue is a tag of the rooms ticked: its scenes come in only for rooms whose area has Hue scenes, and none are taken in without it", () => {
+  const ctx = vm.createContext({
+    STORE: { scenes: [{ id: "a", room: "bora" }] },
+    UIROOM: { bora: { area: "bedroom" }, bath: { area: "bath" }, kitchen: { area: "kitchen" } },
+    PLUGIN_SCENE_KINDS: [1],
+    pageKey: () => "home",
+    sceneAllowed: () => true,
+    pluginSceneKind: (id) => (id.startsWith("scene.hue") ? { icon: "scene" } : null),
+    sceneIds: (a) => (a === "bedroom" ? [["scene.hue_one"], ["scene.other"]] : a === "bath" ? [["scene.hue_bath"]] : []),
+    scenePages: () => [{ id: "home" }, { id: "bora" }, { id: "bath" }, { id: "kitchen" }],
+    Array, Object,
+  });
+  vm.runInContext(piece("scenes.js", "/* Whether a scene has any of these tags. */", "function scnToggle"), ctx);
+  vm.runInContext(piece("autoscenes.js", "/* The scene entities a plugin owns (Hue)", "/* The pages of the dashboard that have"), ctx);
+  vm.runInContext(piece("scenes.js", "function sceneCollectionItems(d) {", "/* A collection of scenes as a device:"), ctx);
+  const ents = (d) => plain(ctx.sceneCollectionItems(d).ents);
+  assert.deepEqual(ents({ spage: ["page:bora", "hue:@rooms"] }), ["scene.hue_one"], "only Hue scenes of the room ticked");
+  assert.deepEqual(ents({ spage: ["page:bora"] }), [], "no Hue tag: no Hue scenes");
+  assert.deepEqual(ents({ spage: ["hue:@rooms"] }), ["scene.hue_one", "scene.hue_bath"], "no room ticked: the Hue scenes of every room that has some");
+  assert.deepEqual(ctx.scenePageHueIds("kitchen"), [], "a room without Hue scenes offers no Hue tag");
+});

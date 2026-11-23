@@ -45,10 +45,21 @@ function mscItems(S) {
   (e.msrc || MSC_DEFAULT_SRC).forEach(function (src) {
     if (src.indexOf("hue:") === 0) {
       /* The scenes a plugin owns in a room (an area of Home Assistant): of the lights' areas, of the page's area, or of the area named. */
-      var ids =
-        src === "hue:@lights"
+      var picked = (e.msrc || MSC_DEFAULT_SRC)
+          .filter(function (x) {
+            return x.indexOf("page:") === 0;
+          })
+          .map(function (x) {
+            return x.slice(5);
+          }),
+        ids =
+        src === "hue:@lights" || (src === "hue:@rooms" && !picked.length)
           ? lpFxOf(S.root).scenes
-          : sceneIds(src === "hue:@page" ? page.area : src.slice(4))
+          : src === "hue:@rooms"
+            ? picked.reduce(function (acc, id) {
+                return acc.concat(scenePageHueIds(id));
+              }, [])
+            : sceneIds(src === "hue:@page" ? page.area : src.slice(4))
               .map(function (x) {
                 return x[0];
               })
@@ -811,7 +822,6 @@ function mscSourceRows(box, sec, scope, redraw) {
           return x.indexOf("page:") !== 0 && x.indexOf("hue:") !== 0;
         }, tokens);
       },
-      lights: true,
     },
     {
       inc: function () {

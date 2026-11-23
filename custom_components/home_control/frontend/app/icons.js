@@ -299,15 +299,15 @@ function iconPick(list, cur, fn, rec) {
     shown = 0,
     io = null,
     q = "";
-  var btn = mk("div", "pill pane");
+  var btn = mk("div", "sel selrow pane");
   function paintBtn() {
     btn.innerHTML =
       ic(cur && iconOk(cur) ? cur : "info") +
       "<span class='tx'><span class='nm'></span><span class='sb'></span></span><span class='chev'>" +
       svg("chev") +
       "</span>";
-    btn.querySelector(".nm").textContent = cur ? iconLabel(cur) : _T("choose_an_icon");
-    btn.querySelector(".sb").textContent = _T("tap_to_see_all_icons");
+    btn.querySelector(".nm").textContent = _T("icon");
+    btn.querySelector(".sb").textContent = cur ? iconLabel(cur) : _T("choose_an_icon");
   }
   paintBtn();
   var panel = mk("div", "idd-panel pane");
