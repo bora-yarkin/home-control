@@ -413,8 +413,8 @@ body.editing .sec{border:1.5px dashed var(--edge);border-radius:var(--r-m);paddi
 body.editing .sec>.sec-h{margin-top:10px}
 .toast.act{pointer-events:auto}
 .tact{margin-left:14px;font-weight:600;color:var(--aE);cursor:pointer}
-.idd-panel{margin:6px 0 12px;border-radius:var(--r-row);padding:6px;background:var(--f-raise);border:1px solid var(--f-line)}
-.idd-list{max-height:340px;overflow-y:auto;margin-top:6px;overscroll-behavior:contain}
+.menu.idd-panel{max-height:none;overflow:visible;padding:8px}
+.idd-list{max-height:min(46vh,320px);overflow-y:auto;margin-top:6px;overscroll-behavior:contain}
 .idd-h{padding:10px 14px 4px;font-size:var(--fs-s);font-weight:600;letter-spacing:.06em;text-transform:uppercase;color:var(--ink2)}
 .idd-row{display:flex;align-items:center;gap:12px;padding:5px 8px;border-radius:var(--r-s);cursor:pointer}
 .idd-row:hover,.idd-row.on{background:rgba(255,255,255,.1)}

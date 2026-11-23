@@ -89,7 +89,7 @@ test("a master takes in the scenes made for any pages it names (page:<id>), and 
   assert.doesNotMatch(read("autoscenes.js"), /src_leave_out|sceneTagLeaveOut/, "no separate leave-out dropdown");
   assert.doesNotMatch(tab, /scene_source_page|scene_source_section_sub/, "the older choices are not offered");
   const model = read("model.js");
-  assert.match(model, /\^page:\[a-z0-9_-\]\{1,24\}\$/);
+  assert.match(model, /page:\[a-z0-9_-\]\{1,24\}/);
   assert.match(model, /if \(sp\.length\) c\.spage = sp;/);
   assert.match(read("autoscenes.js"), /function sceneCollectionSettings[\s\S]*sceneSourceTiles/);
 });

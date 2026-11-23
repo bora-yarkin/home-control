@@ -39,7 +39,7 @@ function openMenuWith(options) {
     cap: (s) => String(s).charAt(0).toUpperCase() + String(s).slice(1),
   });
   vm.runInContext(readFileSync(new URL("core.js", APP), "utf8").match(/function mk\(t, c, h\) \{[\s\S]*?\n\}\n/)[0], context);
-  vm.runInContext(readFileSync(new URL("widgets.js", APP), "utf8").match(/function openMenu\([\s\S]*?\n\}\n/)[0], context);
+  vm.runInContext(readFileSync(new URL("widgets.js", APP), "utf8").match(/function openMenu\([\s\S]*?\n\}\n\n\/\*[^\n]*\*\/\nfunction placeMenu\([\s\S]*?\n\}\n/)[0], context);
   const anchor = Object.assign(new Element(), { getBoundingClientRect: () => ({ left: 0, width: 100, bottom: 10, top: 0 }) });
   context.openMenu(anchor, options, options[0], () => {});
   return body.children[0].children;

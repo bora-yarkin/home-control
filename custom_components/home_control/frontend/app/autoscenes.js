@@ -206,9 +206,14 @@ function autoSceneSave() {
 function sceneSourceTiles(box, rooms, tags) {
   var pages = scenePages(),
     grid = mk("div", "ap-grid");
+  /* The rooms ticked, as tokens: "page:<id>" (a page) or "area:<id>" (an area of Home Assistant that no page has). */
+  function roomTokens() {
+    return rooms.get().filter(function (t) {
+      return t.indexOf("page:") === 0 || t.indexOf("area:") === 0;
+    });
+  }
   function pageIds() {
-    return rooms
-      .get()
+    return roomTokens()
       .filter(function (t) {
         return t.indexOf("page:") === 0;
       })
@@ -224,9 +229,9 @@ function sceneSourceTiles(box, rooms, tags) {
   /* Hue is offered when a room ticked (any room, when none is) has plugin scenes in its area, and while it is ticked. */
   function hueOffered() {
     if (hueTokens().length) return true;
-    var ids = pageIds();
+    var ticked = roomTokens();
     return pages.some(function (p) {
-      return (!ids.length || ids.indexOf(p.id) >= 0) && scenePageHueIds(p.id).length;
+      return (!ticked.length || ticked.indexOf(p.token) >= 0) && sceneRoomHueIds(p.token).length;
     });
   }
   /* The tags worth offering: those of the scenes of the rooms ticked; all of them when none is ticked; and the ones already chosen. */
@@ -251,33 +256,26 @@ function sceneSourceTiles(box, rooms, tags) {
       function () {
         return [["-", _T("none")]].concat(
           pages.map(function (p) {
-            return ["page:" + p.id, p.name + " · " + p.count];
+            return [p.token, p.name + " · " + p.count];
           })
         );
       },
       function (v) {
-        return v === "-" ? pageIds().length === 0 : pageIds().indexOf(v.slice(5)) >= 0;
+        return v === "-" ? roomTokens().length === 0 : roomTokens().indexOf(v) >= 0;
       },
       function (v) {
-        var cur = pageIds(),
-          id = v.slice(5),
-          at = cur.indexOf(id);
+        var cur = roomTokens(),
+          at = cur.indexOf(v);
         if (v === "-") cur = [];
         else if (at >= 0) cur.splice(at, 1);
-        else cur.push(id);
-        rooms.set(
-          hueTokens().concat(
-            cur.map(function (x) {
-              return "page:" + x;
-            })
-          )
-        );
+        else cur.push(v);
+        rooms.set(hueTokens().concat(cur));
       },
       "scene",
       function () {
         var n = pages
           .filter(function (p) {
-            return pageIds().indexOf(p.id) >= 0;
+            return roomTokens().indexOf(p.token) >= 0;
           })
           .map(function (p) {
             return p.name;
@@ -346,9 +344,9 @@ function sceneSourceTiles(box, rooms, tags) {
   box.appendChild(hintRow(_T("src_tags_hint")));
 }
 
-/* The scene entities a plugin owns (Hue) in the Home Assistant area of a page. */
-function scenePageHueIds(pageId) {
-  var area = (UIROOM[pageId] || {}).area;
+/* The scene entities a plugin owns (Hue) in the Home Assistant area of a room: a page ("page:<id>", the area it is set to) or an area of its own ("area:<id>"). */
+function sceneRoomHueIds(token) {
+  var area = token.indexOf("area:") === 0 ? token.slice(5) : (UIROOM[token.slice(5)] || {}).area;
   if (!area || !PLUGIN_SCENE_KINDS.length) return [];
   return sceneIds(area)
     .map(function (x) {
@@ -367,10 +365,25 @@ function scenePages() {
     })
   );
   pages.forEach(function (p) {
-    p.count = STORE.scenes.filter(function (sc) {
-      return sc.room === p.id;
-    }).length;
+    p.token = "page:" + p.id;
+    p.count =
+      STORE.scenes.filter(function (sc) {
+        return sc.room === p.id;
+      }).length + sceneRoomHueIds(p.token).length;
   });
+  /* An area of Home Assistant with plugin scenes that no page is set to is a room of its own. */
+  var used = {};
+  UI.rooms.forEach(function (r) {
+    used[r.area] = 1;
+  });
+  Object.keys(H().areas || {})
+    .sort(function (x, y) {
+      return String(H().areas[x].name).localeCompare(H().areas[y].name);
+    })
+    .forEach(function (a) {
+      var n = sceneRoomHueIds("area:" + a).length;
+      if (!used[a] && n) pages.push({ id: "", name: H().areas[a].name, token: "area:" + a, count: n });
+    });
   return pages;
 }
 

@@ -500,6 +500,11 @@ function openMenu(anchor, options, current, pick, fmt, multi) {
     });
     m.appendChild(it);
   });
+  placeMenu(m, anchor);
+}
+
+/* A floating layer over the page, opened from `anchor`: as wide as it, starting at its edge, below it or above when there is no room. A tap away closes it. */
+function placeMenu(m, anchor) {
   document.body.appendChild(m);
   /* The menu is as wide as the button it opens from and starts at its edge, measured at full size even when the button is shrunk by a press. */
   var r = anchor.getBoundingClientRect(),

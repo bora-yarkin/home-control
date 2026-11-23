@@ -536,6 +536,9 @@ function sceneMadeRow(d) {
 function sceneCollectionItems(d) {
   var room = UIROOM[pageKey()] || {},
     tokens = d.spage || [],
+    rooms = tokens.filter(function (x) {
+      return x.indexOf("page:") === 0 || x.indexOf("area:") === 0;
+    }),
     pages = tokens
       .filter(function (x) {
         return x.indexOf("page:") === 0;
@@ -552,8 +555,13 @@ function sceneCollectionItems(d) {
     if (x.indexOf("hue:") !== 0) return;
     var found =
       x === "hue:@rooms"
-        ? (pages.length ? pages : scenePages().map(function (p) { return p.id; })).reduce(function (acc, id) {
-            return acc.concat(scenePageHueIds(id));
+        ? (rooms.length
+            ? rooms
+            : scenePages().map(function (p) {
+                return p.token;
+              })
+          ).reduce(function (acc, t) {
+            return acc.concat(sceneRoomHueIds(t));
           }, [])
         : x === "hue:@lights"
           ? []
@@ -587,14 +595,17 @@ function sceneCollectionRow(d) {
       nm = d.keepname ? A(id).friendly_name || id : sceneShortName(A(id).friendly_name || id, ctx, {});
     box.appendChild(sceneEntRow(id, nm, kind ? kind.icon : "scene", null, ctx));
   });
-  if (ISADMIN && CURSEC)
+  /* Taken now: the page and Section being drawn are not known any more when the button is tapped. */
+  if (ISADMIN && CURSEC) {
+    var newKey = "scene-new:" + secKey() + ":" + CURSEC.id + ":s";
     box.appendChild(
       pill("plus", _T("new_scene"), {
         tap: function () {
-          showPopup("scene-new:" + secKey() + ":" + CURSEC.id + ":s", true);
+          showPopup(newKey, true);
         },
       })
     );
+  }
   if (!box.children.length) return null;
   box.style.gridColumn = "1 / -1";
   return box;

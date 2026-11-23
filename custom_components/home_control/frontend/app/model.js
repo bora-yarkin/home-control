@@ -366,7 +366,7 @@ function cleanDev(d) {
         return typeof x === "string" && re.test(x) && a.indexOf(x) === i;
       }).slice(0, 40);
     };
-    var sp = idsOf(d.spage, /^(page:[a-z0-9_-]{1,24}|hue:(@page|@lights|@rooms|[a-z0-9_-]{1,60}))$/),
+    var sp = idsOf(d.spage, /^(page:[a-z0-9_-]{1,24}|area:[a-z0-9_-]{1,60}|hue:(@page|@lights|@rooms|[a-z0-9_-]{1,60}))$/),
       xt = cleanTags(d.xtag),
       st = cleanTags(d.stag);
     if (sp.length) c.spage = sp;
@@ -753,7 +753,7 @@ function cleanLayout(a) {
             return x === "hue" || x === "plugin" ? "hue:@lights" : x === "page" ? "page" : x;
           })
           .filter(function (x, i, a) {
-            return (x === "page" || (typeof x === "string" && (/^page:[a-z0-9_-]{1,24}$/.test(x) || /^hue:(@lights|@page|@rooms|[a-z0-9_-]{1,60})$/.test(x) || (/^tag:/.test(x) && cleanTags([x.slice(4)]).length)))) && a.indexOf(x) === i;
+            return (x === "page" || (typeof x === "string" && (/^(page:[a-z0-9_-]{1,24}|area:[a-z0-9_-]{1,60})$/.test(x) || /^hue:(@lights|@page|@rooms|[a-z0-9_-]{1,60})$/.test(x) || (/^tag:/.test(x) && cleanTags([x.slice(4)]).length)))) && a.indexOf(x) === i;
           })
           .slice(0, 40);
       if (Array.isArray(s.mpa) && s.mpa.length) {

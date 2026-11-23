@@ -45,27 +45,23 @@ function mscItems(S) {
   (e.msrc || MSC_DEFAULT_SRC).forEach(function (src) {
     if (src.indexOf("hue:") === 0) {
       /* The scenes a plugin owns in a room (an area of Home Assistant): of the lights' areas, of the page's area, or of the area named. */
-      var picked = (e.msrc || MSC_DEFAULT_SRC)
-          .filter(function (x) {
-            return x.indexOf("page:") === 0;
-          })
-          .map(function (x) {
-            return x.slice(5);
-          }),
+      var picked = (e.msrc || MSC_DEFAULT_SRC).filter(function (x) {
+          return x.indexOf("page:") === 0 || x.indexOf("area:") === 0;
+        }),
         ids =
-        src === "hue:@lights" || (src === "hue:@rooms" && !picked.length)
-          ? lpFxOf(S.root).scenes
-          : src === "hue:@rooms"
-            ? picked.reduce(function (acc, id) {
-                return acc.concat(scenePageHueIds(id));
-              }, [])
-            : sceneIds(src === "hue:@page" ? page.area : src.slice(4))
-              .map(function (x) {
-                return x[0];
-              })
-              .filter(function (id) {
-                return !!pluginSceneKind(id);
-              });
+          src === "hue:@lights" || (src === "hue:@rooms" && !picked.length)
+            ? lpFxOf(S.root).scenes
+            : src === "hue:@rooms"
+              ? picked.reduce(function (acc, t) {
+                  return acc.concat(sceneRoomHueIds(t));
+                }, [])
+              : sceneIds(src === "hue:@page" ? page.area : src.slice(4))
+                  .map(function (x) {
+                    return x[0];
+                  })
+                  .filter(function (id) {
+                    return !!pluginSceneKind(id);
+                  });
       ids.forEach(function (id) {
         add(id, "plugin", A(id).friendly_name || A(id).name || id);
       });
@@ -814,12 +810,12 @@ function mscSourceRows(box, sec, scope, redraw) {
     {
       get: function () {
         return list().filter(function (x) {
-          return x.indexOf("page:") === 0 || x.indexOf("hue:") === 0;
+          return x.indexOf("page:") === 0 || x.indexOf("area:") === 0 || x.indexOf("hue:") === 0;
         });
       },
       set: function (tokens) {
         put(function (x) {
-          return x.indexOf("page:") !== 0 && x.indexOf("hue:") !== 0;
+          return x.indexOf("page:") !== 0 && x.indexOf("area:") !== 0 && x.indexOf("hue:") !== 0;
         }, tokens);
       },
     },

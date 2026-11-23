@@ -293,7 +293,6 @@ var ICONLIST = null,
 
 function iconPick(list, cur, fn, rec) {
   var wrap = mk("div", "idd"),
-    isOpen = false,
     items = [],
     view = [],
     shown = 0,
@@ -310,8 +309,7 @@ function iconPick(list, cur, fn, rec) {
     btn.querySelector(".sb").textContent = cur ? iconLabel(cur) : _T("choose_an_icon");
   }
   paintBtn();
-  var panel = mk("div", "idd-panel pane");
-  panel.style.display = "none";
+  var panel = mk("div", "menu pane idd-panel");
   var sw = mk("div", "sqw pane", svg("search")),
     inp = mk("input", "sq");
   inp.type = "text";
@@ -470,66 +468,33 @@ function iconPick(list, cur, fn, rec) {
     q = inp.value;
     filter();
   });
-  /* The panel opens and closes by sliding its height, so what is under it moves down and up instead of jumping. */
-  function slide(open, after) {
-    panel.style.overflow = "hidden";
-    if (open) {
-      panel.style.display = "";
-      var h = panel.scrollHeight;
-      panel.style.maxHeight = "0px";
-      panel.style.opacity = "0";
-      requestAnimationFrame(function () {
-        panel.style.transition = "max-height .3s cubic-bezier(.2,.9,.3,1),opacity .22s";
-        panel.style.maxHeight = h + "px";
-        panel.style.opacity = "1";
-      });
-    } else {
-      panel.style.maxHeight = panel.scrollHeight + "px";
-      requestAnimationFrame(function () {
-        panel.style.transition = "max-height .24s cubic-bezier(.4,0,.2,1),opacity .18s";
-        panel.style.maxHeight = "0px";
-        panel.style.opacity = "0";
-      });
-    }
-    setTimeout(function () {
-      panel.style.transition = "";
-      panel.style.overflow = "";
-      panel.style.maxHeight = "";
-      panel.style.opacity = "";
-      if (after) after();
-    }, open ? 340 : 280);
-  }
+  /* The panel floats over the page like the other dropdowns' menus; nothing under it moves. */
   function openIt() {
-    isOpen = true;
-    wrap.classList.add("open");
+    closeMenu(true);
+    panel.style.display = "";
+    placeMenu(panel, btn);
     build();
-    slide(true);
     iconListLoad(function () {
-      if (isOpen) {
-        build();
-      }
+      if (MENU === panel) build();
     });
     setTimeout(function () {
       try {
         inp.focus();
-        panel.scrollIntoView({ block: "nearest", behavior: "smooth" });
       } catch (e) {}
     }, 60);
   }
   function close() {
-    isOpen = false;
-    wrap.classList.remove("open");
     if (io) io.disconnect();
-    slide(false, function () {
-      if (!isOpen) panel.style.display = "none";
-    });
+    if (MENU === panel) closeMenu();
   }
   btn.addEventListener("click", function () {
-    if (isOpen) close();
-    else openIt();
+    if (btn._noopen) {
+      btn._noopen = false;
+      return;
+    }
+    openIt();
   });
   wrap.appendChild(btn);
-  wrap.appendChild(panel);
   return wrap;
 }
 
