@@ -118,12 +118,12 @@ test("a room with no area and no chosen scenes shows none, not the scenes that h
 
 test("the section's source, chosen scenes and hidden scenes are kept by the layout clean-up, and a bad value is dropped", () => {
   const model = read("model.js");
-  const at = model.indexOf('if (k === "scenes") {');
+  const at = model.indexOf('if (k === "devs") {\n      /* Where a Section gets its scenes');
   assert.ok(at > 0);
   const body = model.slice(at, model.indexOf("if (ty.own) {", at));
   const run = (s) => {
     const o = {};
-    vm.runInNewContext(`(function(s,o,k){${body}})(s,o,k)`, { s, o, k: "scenes", cleanTags: (l) => (Array.isArray(l) ? l.filter((x) => typeof x === "string" && x) : []) });
+    vm.runInNewContext(`(function(s,o,k){${body}})(s,o,k)`, { s, o, k: "devs", cleanTags: (l) => (Array.isArray(l) ? l.filter((x) => typeof x === "string" && x) : []) });
     return plain(o);
   };
   assert.deepEqual(run({ sarea: "bath", sents: ["scene.a", "scene.a", "light.x"], hscn: [] }), { sarea: "bath", sents: ["scene.a"], hscn: [] });
@@ -132,8 +132,8 @@ test("the section's source, chosen scenes and hidden scenes are kept by the layo
 
 test("a scene picked for a scenes section is one of its scenes, not a device in it", () => {
   const src = read("addpopup.js");
-  const sec = { id: "s1", k: "scenes" };
-  const sandbox = { sectionOfList: () => sec, dom: (id) => id.split(".")[0] };
+  const sec = { id: "s1", k: "devs" };
+  const sandbox = { sectionOfList: () => sec, dom: (id) => id.split(".")[0], DOMKIND: {}, defIcon: () => "x", placeDevice: () => ({}), devSetupKind: () => null, kAuto: () => 0, devSetupAlways: () => false };
   vm.createContext(sandbox);
   vm.runInContext(fn(src, "addCandidate"), sandbox);
   const out = sandbox.addCandidate("~bora~s1", { id: "scene.bath_dim", name: "Dim" });
@@ -150,7 +150,6 @@ test("the add popup has a Scenes type of its own, and Controls no longer holds t
   const controls = doms.slice(doms.indexOf("_T(\"controls\")"), doms.indexOf("_T(\"scenes\")"));
   assert.doesNotMatch(controls, /"scene"/);
   assert.match(read("editor.js"), /ADDPRE_IX = \{[^}]*scenes: 9/);
-  assert.match(read("sections.js"), /own: 1,\s*noun: _T\("device_2"\),\s*add: "scenes"/);
 });
 
 test("the area's name is left out of a scene's name: the page's, or the area the section takes its scenes from, unless the section keeps names whole", () => {

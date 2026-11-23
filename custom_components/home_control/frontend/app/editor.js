@@ -472,7 +472,7 @@ function secAdd(sc, k) {
 var SEC_GROUPS = [
   ["sec_group_section", "tune", ["devs"]],
   ["sec_group_overview", "home", ["glance", "rooms", "alerts", "chips", "status"]],
-  ["sec_group_scenes", "scene", ["scenes", "pinned"]],
+  ["sec_group_scenes", "scene", ["pinned"]],
   ["sec_group_information", "info", ["chart", "read", "note", "security", "energy"]],
   ["sec_group_cameras", "cam", ["camera", "cameras"]],
   ["sec_group_tools", "swap", ["link"]],
@@ -1001,7 +1001,7 @@ function secEditor(b, key) {
     }
     /* Sections that list items can show them in one, two or three columns. Pinned items and quick actions already had a default shape (2 columns, 4 tiles), which stays when nothing is chosen. */
     if (
-      ["devs", "scenes", "pinned"].indexOf(k) >= 0
+      ["devs", "pinned"].indexOf(k) >= 0
     ) {
       box.appendChild(sep(_T("layout"), "tune"));
       box.appendChild(
@@ -1068,7 +1068,7 @@ function secEditor(b, key) {
         })
       );
     /* Where a scenes section gets its scenes: the page's own area, or any other area (the bathroom's scenes in the bedroom's page). */
-    if (k === "scenes" && sk !== "home") {
+    if (k === "devs" && sk !== "home") {
       var from = selectTile(
         _T("scenes_from"),
         function () {
@@ -1095,7 +1095,7 @@ function secEditor(b, key) {
       from.refresh();
       box.appendChild(from);
     }
-    if (k === "scenes" && sk !== "home")
+    if (k === "devs" && sk !== "home")
       box.appendChild(
         flagPill(
           "edit",
@@ -1108,11 +1108,11 @@ function secEditor(b, key) {
           true
         )
       );
-    if (k === "scenes")
+    if (k === "devs")
       sceneTagSectionRows(box, e, function () {
         redrawBox(box, draw);
       });
-    if (k === "quick" || k === "scenes")
+    if (k === "devs")
       box.appendChild(
         pill("scene", _T("scenes_in_this_section"), {
           sub: function () {

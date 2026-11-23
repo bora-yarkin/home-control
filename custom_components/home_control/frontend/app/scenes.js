@@ -564,14 +564,17 @@ function sceneRow(sc) {
   );
 }
 
-function scenesSection(room, extra) {
+/* Whether a Section shows scenes: it was a scenes section, or scenes were added to it, or it takes in the scenes of pages or tags. */
+function sectionHasScenes(e) {
+  return !!(e.scs || (e.sents && e.sents.length) || e.spage || e.stag);
+}
+
+/* The scenes of a Section, drawn under its devices: the ones made for it, the scenes of the pages and tags it takes in, the scene entities added to it, and the scenes a plugin owns. */
+function scenesBlock(room, extra) {
   var e = CURSEC,
     scope = secKey(),
-    lk = "~" + scope + "~" + e.id,
-    s = section(secT("scenes", _T("scenes")), secI("scenes", "scene"), []),
     dyn = mk("div"),
     key = null;
-  s.appendChild(dyn);
   function build() {
     var k = STORE_VER + "|" + ISADMIN + "|" + editing() + "|" + (e.lay || "");
     if (k === key) return;
@@ -604,16 +607,6 @@ function scenesSection(room, extra) {
         return x.kind;
       })),
       first = classicRows.slice();
-    /* A scenes section can also hold devices, such as a switch that starts a lighting effect. */
-    (e.devs || []).forEach(function (d) {
-      if (!editing() && (d.hide || (d.id && modeOf(d.id).mode === "hide"))) return;
-      var r = devRow(d);
-      if (!r && editing()) r = pill(d.icon || "plug", d.name, {});
-      if (r)
-        first.push(
-          edMark(r, devEditor(lk, d), !!d.hide)
-        );
-    });
     ents.forEach(function (x) {
       if (!x.kind) first.push(x.row);
     });
@@ -664,12 +657,11 @@ function scenesSection(room, extra) {
           showPopup("pick-scene:" + scope + ":" + e.id, true);
         })
       );
-    s.style.display = dyn.children.length || ISADMIN ? "" : "none";
+    dyn.style.display = dyn.children.length ? "" : "none";
   }
-  if (ISADMIN && !editing()) s.firstChild.appendChild(sceneAddButton(scope, e));
   reg(build);
   build();
-  return s;
+  return dyn;
 }
 
 function seg(opts, val, fn) {

@@ -101,7 +101,7 @@ test("moving the automatic master of a section saves its lights as chosen ones, 
   const own = l.rooms.bora[0];
   Object.assign(own, { mn: "Bed", mall: 1, scn: ["sc1"], msrc: ["hue", "sec:other", "sec:gone"], mhl: 1, mtab: "color", mps: "scene.read", mpw: "scene" });
   l.rooms.bath[0].devs = [light("light.bath_1")];
-  l.rooms.bora.push({ id: "other", k: "scenes", devs: [] });
+  l.rooms.bora.push({ id: "other", k: "devs", scs: 1, devs: [] });
   const w = world(l);
   const target = { scope: "bath", sec: l.rooms.bath[0] };
   const moved = plain(w.masterTransfer("bora", "lights", target, false));

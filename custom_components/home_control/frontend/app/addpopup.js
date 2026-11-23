@@ -5,7 +5,8 @@
 function addCandidate(rid, c) {
   /* A scene chosen for a scenes section is one of that section's scenes (drawn as any scene is), not a device in it. */
   var sec = rid.charAt(0) === "~" ? sectionOfList(rid) : null;
-  if (sec && sec.k === "scenes" && dom(c.id) === "scene") {
+  if (sec && sec.k === "devs" && dom(c.id) === "scene") {
+    sec.scs = 1;
     sec.sents = (sec.sents || []).filter(function (x) {
       return x !== c.id;
     });
@@ -194,6 +195,23 @@ function addApplianceEntries(f) {
 function addEntities(f) {
   var items = candidates(ADDDOMS[f.st.dom][1], f.rid, f.st.q, f.st.area),
     shown = items.slice(0, 40);
+  /* Scenes: the checked scenes are scenes of the Section, not buttons, and the first entry makes a new scene (classic, live or auto) for it. */
+  if (ADDDOMS[f.st.dom][1][0] === "scene" && ISADMIN) {
+    var sh = f.rid.charAt(0) === "~" ? sectionOfList(f.rid) : null;
+    if (sh && sh.k === "devs")
+      f.box.appendChild(
+        pill("scene", _T("new_scene"), {
+          sub: function () {
+            return _T("add_new_scene_sub");
+          },
+          tap: function () {
+            sh.scs = 1;
+            uiChanged();
+            showPopup("scene-new:" + f.rid.split("~")[1] + ":" + sh.id, true);
+          },
+        })
+      );
+  }
   /* Lights only: the first entry makes a lights master (when it is a Lights section that is being added to), the next one makes the checked lights one group. */
   if (ADDDOMS[f.st.dom][1][0] === "light" && ISADMIN) {
     var host = f.rid.charAt(0) === "~" ? sectionOfList(f.rid) : null;

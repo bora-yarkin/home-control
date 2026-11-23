@@ -652,7 +652,7 @@ function classicImportFrom(src, sceneId, room, target) {
       var name = (r && r.name) || A(sceneId).name || "";
       if (!target) {
         var secs = secOrder(scopeKey(rm)).filter(function (s) {
-          return s.k === "scenes";
+          return s.k === "devs" && sectionHasScenes(s);
         });
         if (secs.length) target = { scope: rm, sid: secs[0].id };
       }
@@ -694,7 +694,7 @@ function liveImportFrom(sourceId, sceneId, room, target) {
       draft.live.bri = Math.max(1, Math.min(100, Math.round(r.brightness / 2.55)));
       if (!target) {
         var secs = secOrder(scopeKey(rm)).filter(function (s) {
-          return s.k === "scenes";
+          return s.k === "devs" && sectionHasScenes(s);
         });
         if (secs.length) target = { scope: rm, sid: secs[0].id };
       }

@@ -103,7 +103,7 @@ test("the section keeps its sources, folders and order through the layout clean-
   const model = read("model.js");
   const at = model.indexOf('if (k === "devs") {\n      /* The scenes page');
   assert.ok(at > 0);
-  const body = model.slice(at, model.indexOf('if (k === "scenes") {', at));
+  const body = model.slice(at, model.indexOf('if (k === "devs" && s.scs) o.scs = 1;', at));
   const run = (s) => {
     const o = {};
     vm.runInNewContext(`(function(s,o,k){${body}})(s,o,k)`, { s, o, k: "devs", cleanTags: (l) => (Array.isArray(l) ? l.filter((x) => typeof x === "string" && x) : []) });

@@ -514,7 +514,7 @@ function cleanUI(u) {
   });
   var lv = u.layout && u.layout.v,
     cur = lv >= 4 ? { home: u.layout.home, rooms: u.layout.rooms || {} } : { home: null, rooms: {} };
-  o.layout.v = 5;
+  o.layout.v = 6;
   o.layout.home = cleanLayout(cur.home || seedSections("home"));
   Object.keys(ids).forEach(function (rid) {
     o.layout.rooms[rid] = cleanLayout(cur.rooms[rid] || seedSections("room:" + rid));
@@ -546,6 +546,7 @@ function cleanLayout(a) {
       return;
     seen[s.id] = 1;
     /* Layout 5: the sections that held devices (Lights, Media, Climate, Controls, Sensors, Other devices, Devices) are one kind, Section; each keeps the name and icon its type gave it. Quick actions are Scenes. */
+    if (s.k === "scenes") s = Object.assign({}, s, { scs: 1 });
     var old = LEGACY_SECTYPES[s.k],
       k = old ? (old[2] || "devs") : typeof s.k === "string" && SECTYPES[s.k] ? s.k : "devs",
       ty = SECTYPES[k],
@@ -687,8 +688,8 @@ function cleanLayout(a) {
         })
         .slice(0, 40);
     /* The order of the scenes a plugin owns that a scenes section shows (`pord`; `hord` is what it was called). */
-    /* A scenes section can take in the scenes that have a tag (stag) and leave out the tagged ones it would otherwise have (xtag). */
-    if (k === "scenes") {
+    /* A Section can take in the scenes made for pages (spage) and the scenes that have a tag (stag), and leave out the tagged ones it would otherwise have (xtag). */
+    if (k === "devs") {
       var st = cleanTags(s.stag),
         xtg = cleanTags(s.xtag),
         sp = (Array.isArray(s.spage) ? s.spage : []).filter(function (x, i, a) {
@@ -698,7 +699,7 @@ function cleanLayout(a) {
       if (st.length) o.stag = st;
       if (xtg.length) o.xtag = xtg;
     }
-    if (k === "scenes" && (Array.isArray(s.pord) || Array.isArray(s.hord))) {
+    if (k === "devs" && (Array.isArray(s.pord) || Array.isArray(s.hord))) {
       var hord = (s.pord || s.hord)
         .filter(function (x, i, a) {
           return typeof x === "string" && /^scene\.[a-z0-9_]{1,80}$/.test(x) && a.indexOf(x) === i;
@@ -750,8 +751,9 @@ function cleanLayout(a) {
           })
           .slice(0, 240);
     }
-    if (k === "scenes") {
-      /* Where a scenes section gets its scenes: the area it names (the room's own when it names none), the scene entities chosen for it and the plugin scenes it hides (a list of its own, even an empty one). */
+    if (k === "devs" && s.scs) o.scs = 1;
+    if (k === "devs") {
+      /* Where a Section gets its scenes: the area it names (the room's own when it names none), the scene entities chosen for it and the plugin scenes it hides (a list of its own, even an empty one). */
       if (typeof s.sarea === "string" && /^[a-z0-9_]{1,64}$/.test(s.sarea)) o.sarea = s.sarea;
       var sceneList = function (v) {
         return v

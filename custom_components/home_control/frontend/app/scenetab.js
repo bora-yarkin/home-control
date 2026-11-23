@@ -799,18 +799,6 @@ function mscSourceRows(box, sec, scope, redraw) {
       return x.indexOf(prefix) === 0;
     });
   }
-  function setKey(key, on) {
-    var cur = list().map(function (x) {
-      return x === "page" ? "page:" + scope : x;
-    }).filter(function (x) {
-      return x.indexOf("sec:") !== 0;
-    });
-    var at = cur.indexOf(key);
-    if (on && at < 0) cur.push(key);
-    if (!on && at >= 0) cur.splice(at, 1);
-    sec.msrc = cur;
-    uiChanged();
-  }
   box.appendChild(sep(_T("scenes_in_the_light_popup"), "palette"));
   box.appendChild(hintRow(_T("scenes_in_the_light_popup_hint")));
   /* The scenes a plugin owns: the areas whose scenes are shown (none chosen: those of these lights' areas). */
@@ -862,56 +850,51 @@ function mscSourceRows(box, sec, scope, redraw) {
       )
     );
   }
-  var grid = mk("div", "ap-grid"),
-    pages = scenePages(),
-    tags = sceneTags();
-  grid.appendChild(
-    multiTile(
-      _T("src_pages"),
-      function () {
-        return pages.map(function (p) {
-          return ["page:" + p.id, p.name + " · " + p.count];
+  sceneSourceTiles(
+    box,
+    {
+      get: function () {
+        return mine("page:").map(function (k) {
+          return k.slice(5);
         });
       },
-      function (v) {
-        return mine("page:").indexOf(v) >= 0;
-      },
-      function (v) {
-        setKey(v, mine("page:").indexOf(v) < 0);
-      },
-      "scene",
-      function () {
-        var n = mine("page:").map(function (k) {
-          return (pages.filter(function (p) { return "page:" + p.id === k; })[0] || {}).name || k;
+      set: function (ids) {
+        var cur = list().map(function (x) {
+          return x === "page" ? "page:" + scope : x;
+        }).filter(function (x) {
+          return x.indexOf("page:") !== 0 && x.indexOf("sec:") !== 0;
         });
-        return n.length ? n.join(", ") : _T("none");
-      }
-    )
-  );
-  grid.appendChild(
-    multiTile(
-      _T("src_tags"),
-      function () {
-        return tags.map(function (t) {
-          return ["tag:" + t, t];
+        ids.forEach(function (id) {
+          cur.push("page:" + id);
         });
+        sec.msrc = cur;
+        uiChanged();
       },
-      function (v) {
-        return mine("tag:").indexOf(v) >= 0;
-      },
-      function (v) {
-        setKey(v, mine("tag:").indexOf(v) < 0);
-      },
-      "tune",
-      function () {
-        var n = mine("tag:").map(function (k) {
+    },
+    {
+      inc: function () {
+        return mine("tag:").map(function (k) {
           return k.slice(4);
         });
-        return n.length ? n.join(", ") : tags.length ? _T("none") : _T("src_no_tags");
-      }
-    )
+      },
+      exc: function () {
+        return (sec.mxt || []).slice();
+      },
+      set: function (inc, exc) {
+        var cur = list().map(function (x) {
+          return x === "page" ? "page:" + scope : x;
+        }).filter(function (x) {
+          return x.indexOf("tag:") !== 0 && x.indexOf("sec:") !== 0;
+        });
+        inc.forEach(function (t) {
+          cur.push("tag:" + t);
+        });
+        sec.msrc = cur;
+        if (exc.length) sec.mxt = exc;
+        else delete sec.mxt;
+        uiChanged();
+      },
+    }
   );
-  box.appendChild(grid);
-  box.appendChild(sceneTagLeaveOutTile(sec, "mxt"));
   return src;
 }

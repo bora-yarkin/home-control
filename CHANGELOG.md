@@ -5,6 +5,9 @@ Format: [Keep a Changelog](https://keepachangelog.com/). Versions follow [semant
 ## [Unreleased]
 
 ### Changed
+- **Scenes are part of a Section, not a kind of section** (layout 6): a Scenes section becomes a Section with its scenes (the ones made for it, the scenes of the *Rooms* and *Tags* it takes in, scene entities added to it, and a plugin's scenes). Adding scene entities from the + (type *Scenes*) adds scenes, not buttons, and *New scene* is the first entry there. Quick actions on Home are the Home page's scenes in a Section. A tag is *taken in* with one tap and *left out* with a second, in the same Tags dropdown; *None* clears a dropdown.
+
+### Changed
 - **Existing scenes are added to a lights master or a scenes section with dropdowns that take several ticks**: *Rooms* (the scenes made for each page, with how many it has) and *Tags* side by side, and *Leave out tags*. A master has a first dropdown for the areas of the scenes a plugin owns (Hue's): none chosen is the areas of its lights, *None* turns them off. "Every scene of this page" is now the page's own entry in *Rooms*; a scenes section as a source is gone (its scenes are those of its page).
 
 ## [0.19.0] - 2026-11-22

@@ -110,7 +110,7 @@ test("the section keeps its mode, chosen lights, power button and sync through t
 test("a section can leave out the master's lights or its sync, only in the section, and a light of a manual master is edited in the device popup", () => {
   const sections = read("sections.js");
   assert.match(sections, /!ed && k === "devs" && d\.id && masterLeavesOut\(s, d\)/, "everything is shown while the page is edited");
-  assert.match(sections, /if \(!rows\.length && !ed && !\(s\.master && mids\.length > 1\) && !extras\.length\) return null;/, "a master that has hidden every row of its section is still the section");
+  assert.match(sections, /if \(!rows\.length && !ed && !\(s\.master && mids\.length > 1\) && !extras\.length && !sceneBlock\) return null;/, "a master that has hidden every row of its section is still the section");
   assert.match(read("manage.js"), /rid\.split\("~"\)\[3\] === "ml"/);
   assert.match(src, /devEditor\(rid, d\)\(\)/);
   assert.doesNotMatch(src, /masterLightPage/);

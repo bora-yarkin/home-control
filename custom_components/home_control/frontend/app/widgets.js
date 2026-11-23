@@ -437,7 +437,7 @@ function selectTile(label, opts, cur, pick, icon, fmt) {
 }
 
 /* A dropdown that can have several choices ticked: it stays open while ticking. `opts()` gives [value, label] pairs, `isOn(value)` says whether one is ticked, `toggle(value)` flips it, and `summary()` is the line under its name. */
-function multiTile(label, opts, isOn, toggle, icon, summary) {
+function multiTile(label, opts, isOn, toggle, icon, summary, state) {
   var r = mk("div", "sel selrow pane");
   r.innerHTML =
     (icon ? ic(icon) : "") +
@@ -456,7 +456,7 @@ function multiTile(label, opts, isOn, toggle, icon, summary) {
     pop(r);
     openMenu(r, o.map(function (x) { return x[0]; }), null, function () {}, function (v) {
       return (o.filter(function (x) { return x[0] === v; })[0] || [v, v])[1];
-    }, { on: isOn, toggle: function (v) { toggle(v); r.refresh(); } });
+    }, { on: isOn, state: state, toggle: function (v) { toggle(v); r.refresh(); } });
   });
   r.refresh = function () {
     sb.textContent = summary();
@@ -468,22 +468,31 @@ function multiTile(label, opts, isOn, toggle, icon, summary) {
 
 var MENU_ANCHOR = null;
 
+/* The classes of a tick-several choice: " on" ticked, " ex" left out (when it has a third state). */
+function multiClass(multi, o) {
+  if (multi.state) return multi.state(o) === 1 ? " on" : multi.state(o) === 2 ? " ex" : "";
+  return multi.on(o) ? " on" : "";
+}
+
 function openMenu(anchor, options, current, pick, fmt, multi) {
   closeMenu(true);
   var m = mk("div", "menu pane" + (multi ? " multi" : ""));
   options.forEach(function (o) {
-    var it = mk("div", "mi" + (multi ? (multi.on(o) ? " on" : "") : String(o) === String(current) ? " on" : ""));
+    var it = mk("div", "mi" + (multi ? multiClass(multi, o) : String(o) === String(current) ? " on" : ""));
     if (multi) {
       var tx = mk("span", "mt");
       tx.textContent = fmt ? fmt(o) : cap(o);
       it.appendChild(tx);
       it.appendChild(mk("span", "ck", svg("check")));
+      it.appendChild(mk("span", "xk", svg("close")));
     } else it.textContent = fmt ? fmt(o) : cap(o); /* an option comes from a device and is text, never markup */
     it.addEventListener("click", function (e) {
       e.stopPropagation();
       if (multi) {
         multi.toggle(o);
-        it.classList.toggle("on", !!multi.on(o));
+        m.querySelectorAll(".mi").forEach(function (el, i) {
+          el.className = "mi" + multiClass(multi, options[i]);
+        });
         return;
       }
       closeMenu();

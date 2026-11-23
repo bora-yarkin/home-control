@@ -55,8 +55,9 @@ test("sections of layout 4 that held devices become one kind, Section, and keep 
 test("quick actions are scenes, and the kinds that are not devices stay as they are", () => {
   const w = world();
   const out = plain(w.cleanLayout([{ id: "quick", k: "quick", scn: ["a"] }, { id: "glance", k: "glance" }, { id: "rooms", k: "rooms" }, { id: "alerts", k: "alerts" }, { id: "nt", k: "note", txt: "hi" }]));
-  assert.deepEqual(out.map((s) => s.k), ["scenes", "glance", "rooms", "alerts", "note"]);
+  assert.deepEqual(out.map((s) => s.k), ["devs", "glance", "rooms", "alerts", "note"]);
   assert.deepEqual(out[0].scn, ["a"]);
+  assert.equal(out[0].scs, undefined, "quick actions were not a scenes section");
   assert.equal(out[4].txt, "hi");
 });
 
@@ -71,7 +72,10 @@ test("a master of the section (its own, or held) is kept by a Section whatever i
 
 test("a new Home page starts with Attention, At a glance, Rooms and Scenes; a new room with its status tiles and one empty Section", () => {
   const w = world();
-  assert.deepEqual(plain(w.seedSections("home")).map((s) => s.k), ["alerts", "glance", "rooms", "scenes"]);
+  const home = plain(w.seedSections("home"));
+  assert.deepEqual(home.map((s) => s.k), ["alerts", "glance", "rooms", "devs"]);
+  assert.equal(home[3].t, "scenes");
+  assert.deepEqual(home[3].spage, ["home"]);
   const room = plain(w.seedSections("room:r1"));
   assert.deepEqual(room.map((s) => s.k), ["status", "devs"]);
   assert.deepEqual(room[1].devs, []);
@@ -79,7 +83,7 @@ test("a new Home page starts with Attention, At a glance, Rooms and Scenes; a ne
 
 test("the Add section list has every kind, grouped, and a kind that exists once is listed too, as already on the page", () => {
   const editor = read("editor.js");
-  for (const k of ["devs", "glance", "rooms", "alerts", "chips", "status", "scenes", "pinned", "chart", "read", "note", "security", "energy", "camera", "cameras", "link"]) assert.match(editor, new RegExp('"' + k + '"'), k);
+  for (const k of ["devs", "glance", "rooms", "alerts", "chips", "status", "pinned", "chart", "read", "note", "security", "energy", "camera", "cameras", "link"]) assert.match(editor, new RegExp('"' + k + '"'), k);
   assert.match(editor, /already_on_this_page/);
   assert.doesNotMatch(editor, /secSetKind|secTypePage/, "a section does not change type");
 });
