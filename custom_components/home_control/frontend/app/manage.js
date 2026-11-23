@@ -340,6 +340,9 @@ var KINDLAB = {
   button: _T("button"),
   cover: _T("cover"),
   lock: _T("lock_2"),
+  scene: _T("scene_kind"),
+  cscene: _T("scene_kind"),
+  scenes: _T("scene_collection"),
 };
 
 var ROOMICONS = [
@@ -431,7 +434,7 @@ var DOMKIND = {
   button: "button",
   input_button: "button",
   script: "button",
-  scene: "button",
+  scene: "scene",
   cover: "cover",
   lock: "lock",
 };
@@ -628,7 +631,9 @@ function defIcon(kind, name, id) {
       : "info"
     : kind === "number" || kind === "select"
       ? "tune"
-      : kind === "button"
+      : kind === "scene"
+        ? "scene"
+        : kind === "button"
         ? "play"
         : kind === "cover"
           ? "swap"
@@ -656,7 +661,8 @@ function defIcon(kind, name, id) {
 function roomDetails(b, rid) {
   var r = roomById(rid);
   if (!r) return;
-  b.appendChild(
+  stgIdentity(
+    b,
     textRow(
       "home",
       _T("room_name"),
@@ -668,9 +674,11 @@ function roomDetails(b, rid) {
         }
       },
       40
-    )
-  );
-  b.appendChild(
+    ),
+    iconPick(ROOMICONS, r.icon, function (n) {
+      r.icon = n;
+      uiChanged();
+    }),
     textRow(
       "pin",
       _T("short_name_for_the_bottom_bar"),
@@ -682,12 +690,35 @@ function roomDetails(b, rid) {
       16
     )
   );
-  b.appendChild(
-    iconPick(ROOMICONS, r.icon, function (n) {
-      r.icon = n;
-      uiChanged();
-    })
+  b.appendChild(sep(_T("room_area_block"), "pin"));
+  var areas = H().areas || {},
+    names = [_T("none")].concat(
+      Object.keys(areas).map(function (k) {
+        return areas[k].name;
+      })
+    );
+  var g = mk("div", "ap-grid");
+  g.appendChild(
+    selectTile(
+      _T("home_assistant_area"),
+      function () {
+        return names;
+      },
+      function () {
+        return r.area && areas[r.area] ? areas[r.area].name : _T("none");
+      },
+      function (v) {
+        var id = "";
+        Object.keys(areas).forEach(function (k) {
+          if (areas[k].name === v) id = k;
+        });
+        r.area = id;
+        uiChanged();
+      },
+      "pin"
+    )
   );
+  b.appendChild(g);
   b.appendChild(sep(_T("room_picture"), "media"));
   {
     var fi = document.createElement("input");
@@ -710,7 +741,7 @@ function roomDetails(b, rid) {
         showPopup("manage-details:" + r.id, false);
       });
     });
-    b.appendChild(
+    var pics = [
       pill("media", r.img ? _T("change_picture") : _T("upload_a_picture"), {
         sub: function () {
           return r.img
@@ -720,19 +751,20 @@ function roomDetails(b, rid) {
         tap: function () {
           fi.click();
         },
-      })
-    );
-    if (r.img)
-      b.appendChild(
-        pill("trash", _T("remove_picture"), {
-          tap: function () {
-            r.img = "";
-            uiChanged();
-            render();
-            showPopup("manage-details:" + r.id, false);
-          },
-        })
-      );
+      }),
+    ];
+    if (r.img) {
+      var rmPic = pill("trash", _T("remove_picture"), {
+        tap: function () {
+          r.img = "";
+          uiChanged();
+          render();
+          showPopup("manage-details:" + r.id, false);
+        },
+      });
+      pics.push(rmPic);
+      stgActions(b, pics, [rmPic]);
+    } else stgActions(b, pics);
     if (!/^data:/.test(r.img || ""))
       b.appendChild(
         textRow(
@@ -756,37 +788,10 @@ function roomDetails(b, rid) {
         )
       );
   }
-  var areas = H().areas || {},
-    names = [_T("none")].concat(
-      Object.keys(areas).map(function (k) {
-        return areas[k].name;
-      })
-    );
-  var g = mk("div", "grid2");
-  g.appendChild(
-    selectTile(
-      _T("home_assistant_area"),
-      function () {
-        return names;
-      },
-      function () {
-        return r.area && areas[r.area] ? areas[r.area].name : _T("none");
-      },
-      function (v) {
-        var id = "";
-        Object.keys(areas).forEach(function (k) {
-          if (areas[k].name === v) id = k;
-        });
-        r.area = id;
-        uiChanged();
-      },
-      "pin"
-    )
-  );
-  b.appendChild(g);
   var box = mk("div");
   b.appendChild(box);
   function draw() {
+    box.appendChild(sep(_T("dp_in_the_app"), "home"));
     box.appendChild(
       visiblePill(
         function () {
@@ -798,8 +803,7 @@ function roomDetails(b, rid) {
         }
       )
     );
-    box.appendChild(
-      pill("trash", _T("delete_room"), {
+    var delRoom = pill("trash", _T("delete_room"), {
         tap: function () {
           confirmDlg(
             _T("delete") + r.name + _T("from_the_app_the_devices_stay_in_hom"),
@@ -823,14 +827,13 @@ function roomDetails(b, rid) {
             }
           );
         },
-      })
-    );
+      });
+    stgActions(box, [delRoom], [delRoom]);
   }
   redrawBox(box, draw);
 }
 
 /* The tab last used in a device popup, by kind of device, for as long as the page is open. */
-var DEVTAB = {};
 
 /* A few icons that fit the kind of device (and its name), shown before the whole list: a tap sets one. */
 var KINDICONS = {
@@ -873,18 +876,14 @@ function iconSuggestions(d) {
   }).slice(0, 8);
 }
 
-/* The settings popup of a device on a page: the device as it will look, tabs for what can be changed, and the tab's content. Every change is made at once (with Undo), in every tab.
-   The two tabs, Appearance and Behaviour, are built by devLookTab and devBehaviourTab; each is given a context `c`: { d: the device, key, list: the list it is in, i: its place, box: the tab's
-   content, redraw(): draws the tab again, preview(): draws the device on top again }. */
+/* The settings popup of a device on a page, one page in blocks: the device as it will look, who it is (devIdentity), how it is drawn (devLookOptions), what belongs to its kind (devBehaviourTab), where it sits (devPlaceRows). Every change is made at once (with Undo). Each builder is given a context `c`: { d: the device, key, list: the list it is in, i: its place, box: where it builds, redraw(): draws the page again, preview(): draws the device on top again }. */
 function devManage(b, key) {
   var p = key.split(":"),
     list = devList(p[0]),
     d = list[+p[1]];
   if (!d) return;
   var previewBox = mk("div"),
-    tabsBox = mk("div"),
     box = mk("div"),
-    cur = DEVTAB[d.kind] || "look",
     c = {
       d: d,
       key: key,
@@ -900,45 +899,29 @@ function devManage(b, key) {
       },
     };
   b.appendChild(previewBox);
-  b.appendChild(tabsBox);
   b.appendChild(box);
-  function drawTabs() {
-    var tabs = [["look", _T("dp_appearance")], ["behave", _T("dp_behaviour")]];
-    if (!tabs.some(function (t) { return t[0] === cur; })) cur = "look";
-    tabsBox.innerHTML = "";
-    tabsBox.appendChild(
-      seg(tabs, cur, function (v) {
-        cur = DEVTAB[d.kind] = v;
-        drawTabs();
-        swapContent(box, draw);
-      })
-    );
-  }
+  /* One page, in blocks that each say what they are for: who it is (name and icon, side by side), how it is drawn, what belongs to the kind of device, where it sits in the section, what it is. */
   function draw() {
-    if (cur === "look") devLookTab(c);
-    else devBehaviourTab(c);
+    devIdentity(c);
+    devLookOptions(c);
+    var own = mk("div"),
+      real = c.box;
+    c.box = own;
+    devBehaviourTab(c);
+    c.box = real;
+    /* A kind that opens with a heading of its own (Light features, Intercom, Where the scenes come from) needs no general one above it. */
+    if (own.children.length) {
+      if (own.firstChild.className !== "sep") real.appendChild(sep(_T("dp_settings"), "tune"));
+      while (own.firstChild) real.appendChild(own.firstChild);
+    }
+    devPlaceRows(c);
   }
   c.preview();
-  drawTabs();
   c.redraw();
 }
 
-/* A name is offered in shorter and plainer forms: the entity's name without the room in front of it. */
-function devNameChoices(d) {
-  var full = (d.id && A(d.id).friendly_name) || d.name,
-    area = d.id ? areaName(d.id) : "",
-    out = [];
-  function add(n) {
-    n = (n || "").trim();
-    if (n && n !== d.name && n.length <= 40 && out.indexOf(n) < 0) out.push(n);
-  }
-  add(full);
-  if (area && full.toLowerCase().indexOf(area.toLowerCase() + " ") === 0) add(full.slice(area.length + 1).replace(/^./, function (ch) { return ch.toUpperCase(); }));
-  return out.slice(0, 3);
-}
-
-/* Look: the name (with shorter names offered), the icons that fit the kind, then the whole icon list. */
-function devLookTab(c) {
+/* Who it is: the name and the icon, side by side like the other pairs of choices. */
+function devIdentity(c) {
   var d = c.d;
   function rename(v) {
     d.name = v;
@@ -946,48 +929,74 @@ function devLookTab(c) {
     c.preview();
     c.redraw();
   }
-  c.box.appendChild(textRow("edit", _T("device_name"), d.name, function (v) { if (v) rename(v); }, 40));
-  var names = devNameChoices(d);
-  if (names.length) {
-    var nrow = mk("div", "pre");
-    names.forEach(function (n) {
-      var t = mk("div", "rbtn pane keepc");
-      t.textContent = n;
-      t.addEventListener("click", function () {
-        rename(n);
-      });
-      nrow.appendChild(t);
-    });
-    c.box.appendChild(nrow);
-  }
-  var sug = iconSuggestions(d);
-  if (sug.length)
-    c.box.appendChild(
-      iconChoices(sug, d.icon, function (n) {
-        d.icon = n;
-        uiChanged();
-        c.preview();
-        c.redraw();
-      })
-    );
-  c.box.appendChild(
+  var grid = mk("div", "ap-grid");
+  grid.appendChild(textRow("edit", _T("device_name"), d.name, function (v) { if (v) rename(v); }, 40));
+  grid.appendChild(
     iconPick(DEVICONS, d.icon, function (n) {
       d.icon = n;
       uiChanged();
       c.preview();
-    })
+    }, iconSuggestions(d))
   );
-  /* How it is drawn, for the kinds that have a choice. */
+  c.box.appendChild(grid);
+}
+
+/* How it is drawn, for the kinds that have a choice; a block only when there is one. */
+function devLookOptions(c) {
+  var d = c.d,
+    real = c.box,
+    own = mk("div");
+  c.box = own;
   if (d.kind === "climate" && d.id)
-    c.box.appendChild(flagPill("thermo", _T("thermostat_dial"), d, "dial", function () { return _T("a_round_dial_instead_of_the_slider_i"); }));
+    own.appendChild(flagPill("thermo", _T("thermostat_dial"), d, "dial", function () { return _T("a_round_dial_instead_of_the_slider_i"); }));
   if (d.kind === "vacuum" && d.id && vacMapEnt(d.id)) devVacuumMapOptions(c);
   if (d.kind === "media" && d.id) devMediaOptions(c);
+  c.box = real;
+  if (!own.children.length) return;
+  real.appendChild(sep(_T("dp_how_it_looks"), "palette"));
+  while (own.firstChild) real.appendChild(own.firstChild);
 }
 
 /* Behaviour: what belongs to the kind of device (its own settings, its set-up), whether it is shown, where it is, and what it is. */
 function devBehaviourTab(c) {
   var d = c.d,
     box = c.box;
+  if (d.kind === "scenes") sceneCollectionSettings(box, d);
+  if (d.kind === "cscene") {
+    var made = sceneById(d.sid);
+    if (made)
+      box.appendChild(
+        pill("edit", _T("edit_scene"), {
+          sub: function () {
+            return made.name;
+          },
+          tap: function () {
+            if (made.auto) autoSceneEdit(made);
+            else if (made.live) liveMakerEdit(made);
+            else staticOpen(made.room, made);
+          },
+        })
+      );
+  }
+  if (DEVTYPES[d.kind] && d.id)
+    box.appendChild(
+      dropRow(
+        _T("dp_device_type"),
+        DEVTYPES[d.kind],
+        function () {
+          return d.dt || guessDevType(d);
+        },
+        function (v) {
+          d.dt = v;
+          uiChanged();
+          c.redraw();
+        },
+        "tune",
+        function (v) {
+          return _T("dt_" + v);
+        }
+      )
+    );
   profileSettings(box, d, c.key);
   if (d.kind === "appliance")
     box.appendChild(
@@ -1041,7 +1050,6 @@ function devBehaviourTab(c) {
         return on ? _T("asks_with_a_slider") : _T("asks_with_confirm");
       }, true)
     );
-  devPlaceRows(c);
 }
 
 /* How a vacuum's map is drawn. The choices are kept in d.map and the key is dropped when it is back to its default. */
@@ -1195,10 +1203,13 @@ function devLightOptions(c) {
 /* Whether it is shown, which section it is in, and taking it off the page; and what it is. A light a lights master keeps (not a device of a section) has none of the first three. */
 function devPlaceRows(c) {
   var d = c.d,
-    held = c.key.split(":")[0].split("~")[3] === "lx";
-  if (!held) {
-    c.box.appendChild(sep(_T("dp_in_the_section"), "home"));
-    c.box.appendChild(
+    held = c.key.split(":")[0].split("~")[3] === "lx",
+    adv = d.id && advList(d.id).length;
+  if (!held || adv) c.box.appendChild(sep(_T("dp_in_the_section"), "home"));
+  /* Showing and the Advanced button are two switches, side by side. */
+  var sw = mk("div", "ap-grid");
+  if (!held)
+    sw.appendChild(
       visiblePill(
         function () {
           return !d.hide;
@@ -1209,18 +1220,17 @@ function devPlaceRows(c) {
         }
       )
     );
-    c.box.appendChild(
-      pill("swap", _T("move_to_another_section"), {
-        sub: function () {
-          return _T("move_to_another_section_sub");
-        },
-        tap: function () {
-          showPopup("manage-move:" + c.key, true);
-        },
-      })
+  /* The device's popup ends with the Advanced settings button, unless it is switched off here. */
+  if (adv)
+    sw.appendChild(
+      flagPill("tune", _T("advanced_settings_button"), d, "noadv", function (on) {
+        return on ? _T("on_cap") : _T("off");
+      }, true)
     );
-    c.box.appendChild(
-      pill("trash", _T("remove_from_the_section"), {
+  if (sw.children.length) c.box.appendChild(sw);
+  if (!held) {
+    var act = mk("div", "ap-grid"),
+      rm = pill("trash", _T("remove_from_the_section"), {
         tap: function () {
           confirmDlg(_T("remove") + d.name + _T("from_this_section_it_stays_in_home_ass"), function () {
             c.list.splice(c.i, 1);
@@ -1228,8 +1238,17 @@ function devPlaceRows(c) {
             popBack();
           });
         },
+      });
+    rm.classList.add("danger");
+    act.appendChild(
+      pill("swap", _T("move_to_another_section"), {
+        tap: function () {
+          showPopup("manage-move:" + c.key, true);
+        },
       })
     );
+    act.appendChild(rm);
+    c.box.appendChild(act);
   }
   c.box.appendChild(sep(_T("dp_what_it_is"), "info"));
   c.box.appendChild(entRow(_T("type"), function () { return KINDLAB[d.kind]; }));

@@ -55,8 +55,8 @@ test("sections of layout 4 that held devices become one kind, Section, and keep 
 test("quick actions are scenes, and the kinds that are not devices stay as they are", () => {
   const w = world();
   const out = plain(w.cleanLayout([{ id: "quick", k: "quick", scn: ["a"] }, { id: "glance", k: "glance" }, { id: "rooms", k: "rooms" }, { id: "alerts", k: "alerts" }, { id: "nt", k: "note", txt: "hi" }]));
-  assert.deepEqual(out.map((s) => s.k), ["scenes", "glance", "rooms", "alerts", "note"]);
-  assert.deepEqual(out[0].scn, ["a"]);
+  assert.deepEqual(out.map((s) => s.k), ["devs", "glance", "rooms", "alerts", "note"]);
+  assert.deepEqual(out[0].devs.map((d) => d.kind + ":" + d.sid), ["cscene:a"], "its scenes are devices of the Section");
   assert.equal(out[4].txt, "hi");
 });
 
@@ -71,7 +71,10 @@ test("a master of the section (its own, or held) is kept by a Section whatever i
 
 test("a new Home page starts with Attention, At a glance, Rooms and Scenes; a new room with its status tiles and one empty Section", () => {
   const w = world();
-  assert.deepEqual(plain(w.seedSections("home")).map((s) => s.k), ["alerts", "glance", "rooms", "scenes"]);
+  const home = plain(w.seedSections("home"));
+  assert.deepEqual(home.map((s) => s.k), ["alerts", "glance", "rooms", "devs"]);
+  assert.equal(home[3].t, "scenes");
+  assert.deepEqual(home[3].devs.map((d) => [d.kind, d.spage]), [["scenes", ["page:home"]]]);
   const room = plain(w.seedSections("room:r1"));
   assert.deepEqual(room.map((s) => s.k), ["status", "devs"]);
   assert.deepEqual(room[1].devs, []);
@@ -79,7 +82,7 @@ test("a new Home page starts with Attention, At a glance, Rooms and Scenes; a ne
 
 test("the Add section list has every kind, grouped, and a kind that exists once is listed too, as already on the page", () => {
   const editor = read("editor.js");
-  for (const k of ["devs", "glance", "rooms", "alerts", "chips", "status", "scenes", "pinned", "chart", "read", "note", "security", "energy", "camera", "cameras", "link"]) assert.match(editor, new RegExp('"' + k + '"'), k);
+  for (const k of ["devs", "glance", "rooms", "alerts", "chips", "status", "pinned", "chart", "read", "note", "security", "energy", "camera", "cameras", "link"]) assert.match(editor, new RegExp('"' + k + '"'), k);
   assert.match(editor, /already_on_this_page/);
   assert.doesNotMatch(editor, /secSetKind|secTypePage/, "a section does not change type");
 });
@@ -90,12 +93,15 @@ test("lights a master shows that nothing else holds as a device are kept as devi
   assert.deepEqual(out[0].lx.map((d) => d.id), ["light.g1", "light.g2"]);
 });
 
-test("a device has two tabs, Appearance and Behaviour; visibility, moving and removing are in Behaviour; the per-device Advanced settings button and the setting that hid it are gone", () => {
+test("a device has one page; visibility, moving and removing are in Behaviour; the Advanced settings button of a device is in Behaviour", () => {
   const manage = read("manage.js");
-  assert.match(manage, /\["look", _T\("dp_appearance"\)\], \["behave", _T\("dp_behaviour"\)\]/);
+  assert.doesNotMatch(manage, /dp_appearance|DEVTAB|tabsBox/, "one page, no tabs");
+  assert.match(manage, /devIdentity\(c\);[\s\S]*devBehaviourTab\(c\);/);
+  assert.match(manage, /iconPick\(DEVICONS, d\.icon[\s\S]*iconSuggestions\(d\)/, "the icons that fit are at the top of the icon dropdown, not a row");
   assert.match(manage, /function devPlaceRows\(c\)/);
-  assert.doesNotMatch(manage, /noadv|devPlaceTab|devMoreTab|devOptionsTab/);
-  assert.doesNotMatch(read("popups.js") + read("camera.js") + read("appearance.js"), /PREFS\.adv|noadv/);
+  assert.doesNotMatch(manage, /devPlaceTab|devMoreTab|devOptionsTab/);
+  assert.match(manage, /"noadv"/, "the Advanced settings button can be switched off for a device");
+  assert.doesNotMatch(read("appearance.js"), /adv:/);
 });
 
 test("every object says whether it is shown with the same row, Visible, On or Off", () => {

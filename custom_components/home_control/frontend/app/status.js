@@ -267,7 +267,8 @@ function statTile(b, key) {
     l = UI.stat[rid] || [],
     s = l[i];
   if (!s) return;
-  b.appendChild(
+  stgIdentity(
+    b,
     textRow(
       "edit",
       _T("label"),
@@ -279,9 +280,7 @@ function statTile(b, key) {
         }
       },
       30
-    )
-  );
-  b.appendChild(
+    ),
     textRow(
       "tune",
       _T("unit_for_example_c_or"),
@@ -296,6 +295,7 @@ function statTile(b, key) {
   var box = mk("div");
   b.appendChild(box);
   function draw() {
+    box.appendChild(sep(_T("what_it_shows"), "info"));
     box.appendChild(
       entRow(_T("entity"), function () {
         return s.id;
@@ -342,15 +342,14 @@ function statTile(b, key) {
         },
       })
     );
-    box.appendChild(
-      pill("trash", _T("remove_tile"), {
-        tap: function () {
-          l.splice(i, 1);
-          uiChanged();
-          popBack();
-        },
-      })
-    );
+    var rmTile = pill("trash", _T("remove_tile"), {
+      tap: function () {
+        l.splice(i, 1);
+        uiChanged();
+        popBack();
+      },
+    });
+    stgActions(box, [rmTile], [rmTile]);
   }
   redrawBox(box, draw);
 }
@@ -359,7 +358,8 @@ function statTile(b, key) {
 function chipEdit(b, i) {
   var c = UI.chips[i];
   if (!c) return;
-  b.appendChild(
+  stgIdentity(
+    b,
     textRow(
       "edit",
       _T("label"),
@@ -371,9 +371,7 @@ function chipEdit(b, i) {
         }
       },
       40
-    )
-  );
-  b.appendChild(
+    ),
     textRow(
       "tune",
       _T("unit_when_it_is_not_a_temperature"),
@@ -389,6 +387,7 @@ function chipEdit(b, i) {
   var box = mk("div");
   b.appendChild(box);
   function draw() {
+    box.appendChild(sep(_T("what_it_shows"), "info"));
     box.appendChild(
       pill("thermo", _T("main_sensor"), {
         sub: function () {
@@ -421,8 +420,9 @@ function chipEdit(b, i) {
         },
       })
     );
+    var acts = [];
     if (c.h)
-      box.appendChild(
+      acts.push(
         pill("close", _T("remove_the_humidity_sensor"), {
           tap: function () {
             delete c.h;
@@ -431,15 +431,15 @@ function chipEdit(b, i) {
           },
         })
       );
-    box.appendChild(
-      pill("trash", _T("remove_tile"), {
-        tap: function () {
-          UI.chips.splice(i, 1);
-          uiChanged();
-          popBack();
-        },
-      })
-    );
+    var rmChip = pill("trash", _T("remove_tile"), {
+      tap: function () {
+        UI.chips.splice(i, 1);
+        uiChanged();
+        popBack();
+      },
+    });
+    acts.push(rmChip);
+    stgActions(box, acts, [rmChip]);
   }
   redrawBox(box, draw);
 }

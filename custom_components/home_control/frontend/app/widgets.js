@@ -436,21 +436,75 @@ function selectTile(label, opts, cur, pick, icon, fmt) {
   return r;
 }
 
+/* A dropdown that can have several choices ticked: it stays open while ticking. `opts()` gives [value, label] pairs, `isOn(value)` says whether one is ticked, `toggle(value)` flips it, and `summary()` is the line under its name. */
+function multiTile(label, opts, isOn, toggle, icon, summary, state) {
+  var r = mk("div", "sel selrow pane");
+  r.innerHTML =
+    (icon ? ic(icon) : "") +
+    "<span class='tx'><span class='nm'></span><span class='sb'></span></span><span class='chev'>" +
+    svg("chev") +
+    "</span>";
+  r.querySelector(".nm").textContent = label;
+  var sb = r.querySelector(".sb");
+  r.addEventListener("click", function () {
+    if (r._noopen) {
+      r._noopen = false;
+      return;
+    }
+    var o = opts();
+    if (!o || !o.length) return;
+    pop(r);
+    openMenu(r, o.map(function (x) { return x[0]; }), null, function () {}, function (v) {
+      return (o.filter(function (x) { return x[0] === v; })[0] || [v, v])[1];
+    }, { on: isOn, state: state, toggle: function (v) { toggle(v); r.refresh(); } });
+  });
+  r.refresh = function () {
+    sb.textContent = summary();
+  };
+  reg(r.refresh);
+  r.refresh();
+  return r;
+}
+
 var MENU_ANCHOR = null;
 
-function openMenu(anchor, options, current, pick, fmt) {
+/* The classes of a tick-several choice: " on" ticked, " ex" left out (when it has a third state). */
+function multiClass(multi, o) {
+  if (multi.state) return multi.state(o) === 1 ? " on" : multi.state(o) === 2 ? " ex" : "";
+  return multi.on(o) ? " on" : "";
+}
+
+function openMenu(anchor, options, current, pick, fmt, multi) {
   closeMenu(true);
-  var m = mk("div", "menu pane");
+  var m = mk("div", "menu pane" + (multi ? " multi" : ""));
   options.forEach(function (o) {
-    var it = mk("div", "mi" + (String(o) === String(current) ? " on" : ""));
-    it.textContent = fmt ? fmt(o) : cap(o); /* an option comes from a device and is text, never markup */
+    var it = mk("div", "mi" + (multi ? multiClass(multi, o) : String(o) === String(current) ? " on" : ""));
+    if (multi) {
+      var tx = mk("span", "mt");
+      tx.textContent = fmt ? fmt(o) : cap(o);
+      it.appendChild(tx);
+      it.appendChild(mk("span", "ck", svg("check")));
+      it.appendChild(mk("span", "xk", svg("close")));
+    } else it.textContent = fmt ? fmt(o) : cap(o); /* an option comes from a device and is text, never markup */
     it.addEventListener("click", function (e) {
       e.stopPropagation();
+      if (multi) {
+        multi.toggle(o);
+        m.querySelectorAll(".mi").forEach(function (el, i) {
+          el.className = "mi" + multiClass(multi, options[i]);
+        });
+        return;
+      }
       closeMenu();
       pick(o);
     });
     m.appendChild(it);
   });
+  placeMenu(m, anchor);
+}
+
+/* A floating layer over the page, opened from `anchor`: as wide as it, starting at its edge, below it or above when there is no room. A tap away closes it. */
+function placeMenu(m, anchor) {
   document.body.appendChild(m);
   /* The menu is as wide as the button it opens from and starts at its edge, measured at full size even when the button is shrunk by a press. */
   var r = anchor.getBoundingClientRect(),
@@ -507,7 +561,7 @@ function closeMenu(instant) {
     else {
       m.classList.add("out");
       setTimeout(function () {
-        m.remove();
+        if (m !== MENU) m.remove();
       }, 170);
     }
   }
@@ -556,26 +610,31 @@ function segField(parent, label, options, current, pick) {
   parent.appendChild(seg(options, current, pick));
 }
 
-/* A row of round icon buttons, the one in `current` marked: the icons that fit what is being edited, one tap from picking. */
-function iconChoices(names, current, pick) {
-  var row = mk("div", "pre ico");
-  names.forEach(function (n) {
-    var c = mk("div", "rnd pane" + (current === n ? " act" : ""), svg(n));
-    c.setAttribute("role", "button");
-    c.setAttribute("aria-label", iconLabel(n));
-    c.title = iconLabel(n);
-    c.addEventListener("click", function () {
-      pick(n);
-    });
-    row.appendChild(c);
-  });
-  return row;
-}
-
 function sep(name, icon) {
   return mk("div", "sep", svg(icon || "info") + "<span></span>").appendChild(
     document.createTextNode(name)
   ).parentNode;
+}
+
+/* The standard layout of a settings popup: who it is at the top (Name and Icon, side by side), then one block per topic under its own heading, then where it sits, then the actions at the bottom (a pair per row, dangerous ones in red), then what it is. stgIdentity and stgActions build the first and the last blocks. */
+function stgIdentity(parent, nameRow, iconRow, third) {
+  var grid = mk("div", "ap-grid");
+  grid.appendChild(nameRow);
+  grid.appendChild(iconRow);
+  if (third) grid.appendChild(third);
+  parent.appendChild(grid);
+  return grid;
+}
+
+/* `rows` are pills; the ones in `danger` are drawn in red. */
+function stgActions(parent, rows, danger) {
+  var grid = mk("div", "ap-grid");
+  rows.forEach(function (r) {
+    if (danger && danger.indexOf(r) >= 0) r.classList.add("danger");
+    grid.appendChild(r);
+  });
+  parent.appendChild(grid);
+  return grid;
 }
 
 function glance(items, cols) {

@@ -51,7 +51,6 @@ function lgForm(b, o) {
     entity = o.entity,
     dev = isNew ? null : lgDevices(entity)[0],
     preview = mk("div", "dprev"),
-    tabsBox = mk("div"),
     f = {
       isNew: isNew,
       entity: entity,
@@ -78,29 +77,23 @@ function lgForm(b, o) {
     });
     preview.appendChild(row);
     if (row.refresh) row.refresh();
-    tabsBox.innerHTML = "";
-    tabsBox.appendChild(
-      seg([["look", _T("dp_appearance")], ["lights", _T("lg_lights")], ["behaviour", _T("lg_behaviour")]], f.st.tab, function (v) {
-        f.st.tab = v;
-        f.drawShell();
-        swapContent(f.box, content);
-      })
-    );
   };
   f.redraw = function () {
     redrawBox(f.box, content);
   };
+  /* One page: the name and icon, the lights of the group, then how it behaves. */
   function content() {
-    if (f.st.tab === "look") return lgLookTab(f);
+    lgLookTab(f);
     if (f.st.entry === undefined) {
       f.box.appendChild(pill("info", _T("lg_reading"), {}));
       return;
     }
-    if (f.st.tab === "lights") lgLightsTab(f);
-    else lgBehaviourTab(f);
+    f.box.appendChild(sep(_T("lg_lights"), "lights"));
+    lgLightsTab(f);
+    f.box.appendChild(sep(_T("lg_behaviour"), "tune"));
+    lgBehaviourTab(f);
   }
   b.appendChild(preview);
-  b.appendChild(tabsBox);
   b.appendChild(f.box);
   guardUnsaved({
     dirty: function () {
@@ -125,29 +118,21 @@ function lgFailed(f, err) {
   toast((err && err.message) || _T("lg_could_not_change"));
 }
 
-/* Look: the name, the icons that fit a light, then the whole icon list. */
+/* Who it is: the name and the icon, side by side. */
 function lgLookTab(f) {
   var d = f.draft;
-  f.box.appendChild(
+  stgIdentity(
+    f.box,
     textRow("edit", f.isNew ? _T("lg_name_of_the_group") : _T("device_name"), d.name, function (v) {
       d.name = v.slice(0, 40);
       f.drawShell();
-    }, 40)
-  );
-  if (f.isNew) f.box.appendChild(hintRow(_T("lg_name_hint")));
-  f.box.appendChild(
-    iconChoices(["lights", "light", "lamp", "floor", "ceiling", "strip", "bed"].filter(iconOk), d.icon, function (n) {
-      d.icon = n;
-      f.drawShell();
-      f.redraw();
-    })
-  );
-  f.box.appendChild(
+    }, 40),
     iconPick(DEVICONS, d.icon, function (n) {
       d.icon = n;
       f.drawShell();
-    })
+    }, ["lights", "light", "lamp", "floor", "ceiling", "strip", "bed"].filter(iconOk))
   );
+  if (f.isNew) f.box.appendChild(hintRow(_T("lg_name_hint")));
 }
 
 /* Lights: the lights of the group (a tap takes one out, never the last), and one more can be added. */
@@ -228,9 +213,8 @@ function lgBehaviourTab(f) {
       })
     );
   }
-  if (!f.isNew && f.st.entry)
-    f.box.appendChild(
-      pill("trash", _T("lg_delete"), {
+  if (!f.isNew && f.st.entry) {
+    var del = pill("trash", _T("lg_delete"), {
         sub: function () {
           return _T("lg_delete_sub");
         },
@@ -253,8 +237,9 @@ function lgBehaviourTab(f) {
             _T("delete")
           );
         },
-      })
-    );
+      });
+    stgActions(f.box, [del], [del]);
+  }
 }
 
 /* Makes the changes. A new group: the helper is made now, with this name, and the group goes where the add popup was opened. An existing one: its helper is changed (name, lights,

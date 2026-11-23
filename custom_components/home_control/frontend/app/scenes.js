@@ -26,18 +26,6 @@ function sceneHasTag(sc, tags) {
   });
 }
 
-/* The scenes a scenes section shows: the ones chosen for it, then those with a tag it takes in (a scene of any page), less those it leaves out by tag. */
-function secScenes(e) {
-  var out = (e.scn || []).map(sceneById).filter(function (sc) {
-    return sc && sceneAllowed(sc);
-  });
-  if (e.stag)
-    STORE.scenes.forEach(function (sc) {
-      if (out.indexOf(sc) < 0 && sceneHasTag(sc, e.stag) && !sceneHasTag(sc, e.xtag) && sceneAllowed(sc)) out.push(sc);
-    });
-  return out;
-}
-
 function scnToggle(e, id) {
   var a = e.scn || (e.scn = []),
     i = a.indexOf(id);
@@ -97,64 +85,6 @@ function sceneDeleteEverywhere(sc) {
     /* The list of scenes the trash was pressed in is drawn again without it. */
     if (SHEET && /^pick-scene/.test(CURRENT || "")) showPopup(CURRENT, false);
     toast(_T("scene_deleted"));
-  });
-}
-
-function scnPick(b, key) {
-  var q = key.split(":"),
-    scope = q[0],
-    e = secById(scope, q[1]);
-  if (!e) return;
-  var box = mk("div");
-  b.appendChild(box);
-  box.appendChild(
-    pill("plus", _T("new_scene"), {
-      sub: function () {
-        return _T("create_a_scene_and_add_it_here");
-      },
-      tap: function () {
-        showPopup("scene-new:" + scope + ":" + e.id, true);
-      },
-    })
-  );
-  PLUGIN_SCENE_IMPORTS.forEach(function (src) {
-    if (!src.available() || !src.list().length) return;
-    box.appendChild(
-      pill("palette", _T(src.title), {
-        sub: function () {
-          return _T(src.sub);
-        },
-        tap: function () {
-          showPopup("live-import:" + src.id + ":" + scope + ":" + e.id, true);
-        },
-      })
-    );
-  });
-  var all = STORE.scenes.filter(sceneAllowed);
-  if (all.length) box.appendChild(sep(_T("existing_scenes"), "scene"));
-  all.forEach(function (sc) {
-    var row = pill(sc.icon || "scene", sc.name, {
-      on: function () {
-        return (e.scn || []).indexOf(sc.id) >= 0;
-      },
-      sub: function () {
-        return TITLES[sc.room] || "";
-      },
-      tap: function () {
-        if (scnToggle(e, sc.id)) {
-          uiChanged();
-          refresh();
-        }
-      },
-    });
-    /* A scene that is on no page can be deleted from here: nothing else shows it. */
-    box.appendChild(
-      sceneShown(sc.id)
-        ? row
-        : edDel(row, function () {
-            sceneDeleteEverywhere(sc);
-          }, _T("delete_scene"))
-    );
   });
 }
 
@@ -564,112 +494,121 @@ function sceneRow(sc) {
   );
 }
 
-function scenesSection(room, extra) {
-  var e = CURSEC,
-    scope = secKey(),
-    lk = "~" + scope + "~" + e.id,
-    s = section(secT("scenes", _T("scenes")), secI("scenes", "scene"), []),
-    dyn = mk("div"),
-    key = null;
-  s.appendChild(dyn);
-  function build() {
-    var k = STORE_VER + "|" + ISADMIN + "|" + editing() + "|" + (e.lay || "");
-    if (k === key) return;
-    key = k;
-    dyn.innerHTML = "";
-    dyn.className = layCols(e.lay) > 1 ? "gridl g" + layCols(e.lay) : "";
-    var mine = secScenes(e),
-      ents = extra ? extra(e) : [];
-    function sceneRows(list) {
-      return list.map(function (sc) {
-        return edDel(
-          sceneRow(sc),
-          function () {
-            sceneDeleteEverywhere(sc);
-          },
-          _T("delete_scene")
-        );
-      });
-    }
-    /* Scenes made here and devices come first, then live scenes, then the scenes a plugin owns (Hue's). They are drawn as one list; each kind is reordered among its own. */
-    var classic = mine.filter(function (sc) {
-        return !sc.live;
+/* A scene put in a Section from the + : from a Section's new scene (the scene becomes a device of the Section) or from a lights master's scenes (it is one of the master's). */
+function sceneTargetAdd(target, id) {
+  var e = secById(target.scope, target.sid);
+  if (!e) return;
+  if (target.into === "section") {
+    e.devs = e.devs || [];
+    if (
+      !e.devs.some(function (d) {
+        return d.kind === "cscene" && d.sid === id;
+      })
+    )
+      e.devs.push({ kind: "cscene", sid: id, id: "", name: "Scene", icon: "scene" });
+  } else scnToggle(e, id);
+}
+
+/* The page a Section is on, as the scene rows want it: its name and area, for taking the area's name out of a scene's name. */
+function sceneCtx() {
+  var room = UIROOM[pageKey()] || { id: pageKey(), name: "", area: "" };
+  return sceneSectionRoom(room, CURSEC || { id: "x" });
+}
+
+/* A scene entity put in a Section: a row that plays it (a plugin's scene opens its own popup). */
+function sceneDeviceRow(d) {
+  if (!H().states[d.id]) return null;
+  var kind = pluginSceneKind(d.id),
+    ctx = sceneCtx(),
+    name = sceneShortName(A(d.id).friendly_name || d.name, ctx, {});
+  return sceneEntRow(d.id, name, kind ? kind.icon : d.icon || "scene", null, ctx);
+}
+
+/* A scene made on the dashboard put in a Section: its row (while the page is edited, a plain one, so a tap opens the device's settings, where the scene can be edited). */
+function sceneMadeRow(d) {
+  var sc = sceneById(d.sid);
+  if (!sc || !sceneAllowed(sc)) return null;
+  if (editing()) return pill(sc.icon || "scene", sc.name, { sub: mscKindLabel({ kind: sc.auto ? "auto" : sc.live ? "live" : "classic" }) });
+  return sceneRow(sc);
+}
+
+/* The scenes a collection takes in: those made for the pages it names, those with the tags it takes in (less the ones tagged to leave out), and the scene entities of its areas (none named: the page's own area). */
+function sceneCollectionItems(d) {
+  var room = UIROOM[pageKey()] || {},
+    tokens = d.spage || [],
+    rooms = tokens.filter(function (x) {
+      return x.indexOf("page:") === 0 || x.indexOf("area:") === 0;
+    }),
+    pages = tokens
+      .filter(function (x) {
+        return x.indexOf("page:") === 0;
+      })
+      .map(function (x) {
+        return x.slice(5);
       }),
-      lives = mine.filter(function (sc) {
-        return sc.live;
-      }),
-      classicRows = sceneRows(classic),
-      liveRows = sceneRows(lives),
-      kindItems = sceneKindOrder(e, ents.filter(function (x) {
-        return x.kind;
-      })),
-      first = classicRows.slice();
-    /* A scenes section can also hold devices, such as a switch that starts a lighting effect. */
-    (e.devs || []).forEach(function (d) {
-      if (!editing() && (d.hide || (d.id && modeOf(d.id).mode === "hide"))) return;
-      var r = devRow(d);
-      if (!r && editing()) r = pill(d.icon || "plug", d.name, {});
-      if (r)
-        first.push(
-          edMark(r, devEditor(lk, d), !!d.hide)
-        );
+    stored = STORE.scenes.filter(function (sc) {
+      var wanted = pages.indexOf(sc.room) >= 0 || sceneHasTag(sc, d.stag);
+      return wanted && !sceneHasTag(sc, d.xtag) && sceneAllowed(sc);
+    }),
+    ents = [];
+  tokens.forEach(function (x) {
+    if (x.indexOf("hue:") !== 0) return;
+    var found =
+      x === "hue:@rooms"
+        ? (rooms.length
+            ? rooms
+            : scenePages().map(function (p) {
+                return p.token;
+              })
+          ).reduce(function (acc, t) {
+            return acc.concat(sceneRoomHueIds(t));
+          }, [])
+        : x === "hue:@lights"
+          ? []
+          : sceneIds(x === "hue:@page" ? room.area : x.slice(4)).map(function (s) {
+              return s[0];
+            });
+    found.forEach(function (id) {
+      if (ents.indexOf(id) < 0) ents.push(id);
     });
-    ents.forEach(function (x) {
-      if (!x.kind) first.push(x.row);
+  });
+  return { stored: stored, ents: ents };
+}
+
+/* A collection of scenes as a device: while the page is edited one row; otherwise the scenes it takes in, one under the other (or in the columns of the Section). */
+function sceneCollectionRow(d) {
+  var it = sceneCollectionItems(d);
+  if (editing())
+    return pill(d.icon || "scene", d.name, {
+      sub: function () {
+        return cntS(it.stored.length + it.ents.length, _T("scene_lc"), _T("scenes_lc"));
+      },
     });
-    var kindRows = kindItems.map(function (x) {
-      return x.row;
-    });
-    /* One list of scenes: the ones made here, the live ones, then those a plugin owns (Hue's). */
-    [first, liveRows, kindRows].forEach(function (g) {
-      g.forEach(function (r) {
-        dyn.appendChild(r);
-      });
-    });
-    if (editing()) {
-      edSort(classicRows, function (f, t) {
-        edReorder(
-          e.scn,
-          classic.map(function (x) {
-            return x.id;
-          }),
-          f,
-          t
-        );
-        uiChanged();
-      });
-      edSort(liveRows, function (f, t) {
-        edReorder(
-          e.scn,
-          lives.map(function (x) {
-            return x.id;
-          }),
-          f,
-          t
-        );
-        uiChanged();
-      });
-      edSort(kindRows, function (f, t) {
-        var ids = kindItems.map(function (x) {
-          return x.id;
-        });
-        ids.splice(t, 0, ids.splice(f, 1)[0]);
-        e.pord = ids;
-        uiChanged();
-      });
-    }
-    if (editing())
-      dyn.appendChild(
-        edAdd(_T("add_a_scene"), function () {
-          showPopup("pick-scene:" + scope + ":" + e.id, true);
-        })
-      );
-    s.style.display = dyn.children.length || ISADMIN ? "" : "none";
+  var ctx = sceneCtx(),
+    n = layCols(CURSEC && CURSEC.lay),
+    box = mk("div", n > 1 ? "gridl g" + n : "");
+  it.stored.forEach(function (sc) {
+    box.appendChild(sceneRow(sc));
+  });
+  it.ents.forEach(function (id) {
+    var kind = pluginSceneKind(id),
+      nm = d.keepname ? A(id).friendly_name || id : sceneShortName(A(id).friendly_name || id, ctx, {});
+    box.appendChild(sceneEntRow(id, nm, kind ? kind.icon : "scene", null, ctx));
+  });
+  /* Taken now: the page and Section being drawn are not known any more when the button is tapped. */
+  if (ISADMIN && CURSEC) {
+    var newKey = "scene-new:" + secKey() + ":" + CURSEC.id + ":s";
+    box.appendChild(
+      pill("plus", _T("new_scene"), {
+        tap: function () {
+          showPopup(newKey, true);
+        },
+      })
+    );
   }
-  if (ISADMIN && !editing()) s.firstChild.appendChild(sceneAddButton(scope, e));
-  reg(build);
-  build();
-  return s;
+  if (!box.children.length) return null;
+  box.style.gridColumn = "1 / -1";
+  return box;
 }
 
 function seg(opts, val, fn) {
@@ -694,6 +633,9 @@ function devRow(d) {
 
 function devRowRaw(d) {
   var pk;
+  if (d.kind === "scene") return sceneDeviceRow(d);
+  if (d.kind === "cscene") return sceneMadeRow(d);
+  if (d.kind === "scenes") return sceneCollectionRow(d);
   if (d.kind === "light") return LNAME[d.id] ? lightRow(d.id) : null;
   if (d.kind === "media") return mediaRow(d.icon || "media", d.name, d.id, devPop(d), !!d.sub);
   if (d.kind === "climate") return acRow(d.id, devPop(d), d.name, d.icon);
@@ -774,19 +716,6 @@ function devRowRaw(d) {
   return null;
 }
 
-/* The scenes a plugin owns, in the order the administrator gave them (the section's pord); the ones not in it follow. */
-function sceneKindOrder(e, items) {
-  var pos = {};
-  (e.pord || []).forEach(function (id, i) {
-    pos[id] = i;
-  });
-  return items.slice().sort(function (x, y) {
-    var px = x.id in pos ? pos[x.id] : 1e6,
-      py = y.id in pos ? pos[y.id] : 1e6;
-    return px - py;
-  });
-}
-
 /* A scene's name without the area's name in front of it ("Bathroom Dim" is "Dim"): the page's name, or the name of the area the section takes its scenes from. A section can keep the names whole. */
 function sceneShortName(name, ctx, sec) {
   if (sec.keepname) return name;
@@ -800,61 +729,5 @@ function sceneShortName(name, ctx, sec) {
     }
   }
   return name;
-}
-
-function lightingScenesExtra(key) {
-  var r = UIROOM[key];
-  if (!r) return null;
-  if (!ISADMIN && ["view", "hide"].indexOf(modeOf("", key).mode) >= 0) return null;
-  /* A section's scene entities, each with the kind a plugin owns it as (Hue's), if any: the scenes of its source area, then the ones chosen for it. */
-  return function (sec) {
-    var ctx = sceneSectionRoom(r, sec),
-      own = (ctx.area ? sceneIds(ctx.area) : []).map(function (s) {
-        return s[0];
-      }),
-      chosen = (sec.sents || []).filter(function (id) {
-        return own.indexOf(id) < 0 && H().states[id];
-      });
-    return own
-      .concat(chosen)
-      .filter(function (id) {
-        return editing() || !pluginSceneKind(id) || !sceneEntHidden(ctx, id);
-      })
-      .map(function (id) {
-        var nm = A(id).friendly_name || id,
-          kind = pluginSceneKind(id),
-          picked = chosen.indexOf(id) >= 0;
-        nm = sceneShortName(nm, ctx, sec);
-        var row = sceneEntRow(id, nm, kind ? kind.icon : "scene", null, ctx);
-        if (kind)
-          row = edMark(row, function () {
-            showPopup(sceneKindPopupKey(kind, id, ctx), true);
-          }, sceneEntHidden(ctx, id));
-        if (picked)
-          /* A scene chosen for this section is only taken out of it; it stays where it is. */
-          row = edDel(row, function () {
-            sec.sents = sec.sents.filter(function (x) {
-              return x !== id;
-            });
-            uiChanged();
-            rerender();
-          });
-        else if (kind && kind.remove)
-          /* A scene a plugin can delete (Hue's, from the bridge) has the same trash as the scenes made here, and the same question. */
-          row = edDel(
-            row,
-            function () {
-              confirmDlg(_T("delete_scene") + ": " + nm + "?", function () {
-                Promise.resolve(kind.remove(id)).then(function () {
-                  sceneEntSetHidden(ctx, id, false);
-                  rerender();
-                });
-              });
-            },
-            _T("delete_scene")
-          );
-        return { id: id, kind: kind, row: row };
-      });
-  };
 }
 

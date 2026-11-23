@@ -4,6 +4,22 @@ Format: [Keep a Changelog](https://keepachangelog.com/). Versions follow [semant
 
 ## [Unreleased]
 
+## [0.20.0] - 2026-11-23
+
+### Changed
+- **A device's settings are one page, not tabs**, and **every icon choice is the icon dropdown**: the icons that fit what it is are at the top of the dropdown under *Suggested*, then every icon (and your own SVGs); the separate row of icons is gone. The light group form is one page too.
+- **Every settings popup has one layout** (the dashboard's own Settings excepted): Name and Icon side by side at the top, one block per topic under its own heading, where it sits, then the actions at the bottom in pairs with the dangerous one in red. Devices, sections, rooms, light groups, lights masters, appliances, remote buttons and status and climate tiles all follow it. The icon dropdown floats over the page like the other dropdowns.
+- **A media player or a fan has a type you choose** (TV, Receiver or Speaker; Fan or Air purifier) in its settings, and the type decides its setup page. Before, the icon and the name decided; a device without a type gets one guessed once and keeps it.
+- **The setup of an air conditioner lists climate entities**, and *Find automatically* links the helpers (switches, selects, numbers, scripts) of its device and the other climate entities named after it.
+- **Hue scenes are tags of rooms**: *Rooms* lists only rooms (the pages of the dashboard, and areas of Home Assistant with Hue scenes that no page is set to), and *Tags* lists the tags of the scenes of the rooms ticked plus *Hue* when a ticked room has Hue scenes. Room counts include their Hue scenes. A scene list has a *New scene* button for admins.
+- **The Advanced settings button of a device can be switched off per device again** (Behaviour, *What it is*).
+
+### Changed
+- **Scenes are part of a Section, not a kind of section** (layout 6): a Scenes section becomes a Section with its scenes (the ones made for it, the scenes of the *Rooms* and *Tags* it takes in, scene entities added to it, and a plugin's scenes). Adding scene entities from the + (type *Scenes*) adds scenes, not buttons, and *New scene* is the first entry there. Quick actions on Home are the Home page's scenes in a Section. A tag is *taken in* with one tap and *left out* with a second, in the same Tags dropdown; *None* clears a dropdown.
+
+### Changed
+- **Existing scenes are added to a lights master or a scenes section with dropdowns that take several ticks**: *Rooms* (the scenes made for each page, with how many it has) and *Tags* side by side, and *Leave out tags*. A master has a first dropdown for the areas of the scenes a plugin owns (Hue's): none chosen is the areas of its lights, *None* turns them off. "Every scene of this page" is now the page's own entry in *Rooms*; a scenes section as a source is gone (its scenes are those of its page).
+
 ## [0.19.0] - 2026-11-22
 
 ### Changed

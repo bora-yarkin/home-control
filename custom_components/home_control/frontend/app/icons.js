@@ -291,27 +291,25 @@ function iconSvg(p) {
 var ICONLIST = null,
   ICONPATH = {};
 
-function iconPick(list, cur, fn) {
+function iconPick(list, cur, fn, rec) {
   var wrap = mk("div", "idd"),
-    isOpen = false,
     items = [],
     view = [],
     shown = 0,
     io = null,
     q = "";
-  var btn = mk("div", "pill pane");
+  var btn = mk("div", "sel selrow pane");
   function paintBtn() {
     btn.innerHTML =
       ic(cur && iconOk(cur) ? cur : "info") +
       "<span class='tx'><span class='nm'></span><span class='sb'></span></span><span class='chev'>" +
       svg("chev") +
       "</span>";
-    btn.querySelector(".nm").textContent = cur ? iconLabel(cur) : _T("choose_an_icon");
-    btn.querySelector(".sb").textContent = _T("tap_to_see_all_icons");
+    btn.querySelector(".nm").textContent = _T("icon");
+    btn.querySelector(".sb").textContent = cur ? iconLabel(cur) : _T("choose_an_icon");
   }
   paintBtn();
-  var panel = mk("div", "idd-panel pane");
-  panel.style.display = "none";
+  var panel = mk("div", "menu pane idd-panel");
   var sw = mk("div", "sqw pane", svg("search")),
     inp = mk("input", "sq");
   inp.type = "text";
@@ -380,6 +378,9 @@ function iconPick(list, cur, fn) {
       seen[n] = 1;
       items.push({ n: n, kw: kw || "" });
     }
+    (rec || []).forEach(function (n) {
+      add(n);
+    });
     list.forEach(function (n) {
       add(n);
     });
@@ -415,8 +416,14 @@ function iconPick(list, cur, fn) {
     more();
   }
   function more() {
-    var end = Math.min(view.length, shown + 60);
-    for (var i = shown; i < end; i++) listEl.appendChild(row(view[i].n));
+    var end = Math.min(view.length, shown + 60),
+      nrec = !q.trim() && rec ? rec.length : 0;
+    for (var i = shown; i < end; i++) {
+      /* The icons that fit what this is come first, under their own heading, then all of them. */
+      if (nrec && i === 0) listEl.appendChild(mk("div", "idd-h")).textContent = _T("icons_suggested");
+      if (nrec && i === nrec) listEl.appendChild(mk("div", "idd-h")).textContent = _T("icons_all");
+      listEl.appendChild(row(view[i].n));
+    }
     shown = end;
   }
   function row(n) {
@@ -461,66 +468,35 @@ function iconPick(list, cur, fn) {
     q = inp.value;
     filter();
   });
-  /* The panel opens and closes by sliding its height, so what is under it moves down and up instead of jumping. */
-  function slide(open, after) {
-    panel.style.overflow = "hidden";
-    if (open) {
-      panel.style.display = "";
-      var h = panel.scrollHeight;
-      panel.style.maxHeight = "0px";
-      panel.style.opacity = "0";
-      requestAnimationFrame(function () {
-        panel.style.transition = "max-height .3s cubic-bezier(.2,.9,.3,1),opacity .22s";
-        panel.style.maxHeight = h + "px";
-        panel.style.opacity = "1";
-      });
-    } else {
-      panel.style.maxHeight = panel.scrollHeight + "px";
-      requestAnimationFrame(function () {
-        panel.style.transition = "max-height .24s cubic-bezier(.4,0,.2,1),opacity .18s";
-        panel.style.maxHeight = "0px";
-        panel.style.opacity = "0";
-      });
-    }
-    setTimeout(function () {
-      panel.style.transition = "";
-      panel.style.overflow = "";
-      panel.style.maxHeight = "";
-      panel.style.opacity = "";
-      if (after) after();
-    }, open ? 340 : 280);
-  }
+  /* The panel floats over the page like the other dropdowns' menus; nothing under it moves. */
   function openIt() {
-    isOpen = true;
-    wrap.classList.add("open");
+    closeMenu(true);
+    /* The panel is reused: it comes back without the closing look it was given. */
+    panel.classList.remove("out", "up");
+    panel.style.display = "";
+    placeMenu(panel, btn);
     build();
-    slide(true);
     iconListLoad(function () {
-      if (isOpen) {
-        build();
-      }
+      if (MENU === panel) build();
     });
     setTimeout(function () {
       try {
         inp.focus();
-        panel.scrollIntoView({ block: "nearest", behavior: "smooth" });
       } catch (e) {}
     }, 60);
   }
   function close() {
-    isOpen = false;
-    wrap.classList.remove("open");
     if (io) io.disconnect();
-    slide(false, function () {
-      if (!isOpen) panel.style.display = "none";
-    });
+    if (MENU === panel) closeMenu();
   }
   btn.addEventListener("click", function () {
-    if (isOpen) close();
-    else openIt();
+    if (btn._noopen) {
+      btn._noopen = false;
+      return;
+    }
+    openIt();
   });
   wrap.appendChild(btn);
-  wrap.appendChild(panel);
   return wrap;
 }
 

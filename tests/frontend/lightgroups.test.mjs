@@ -155,7 +155,9 @@ function dashboard({ create, lights = ["Desk lamp", "Shelf strip", "Ceiling"], r
     _T: (k) => (k === "lg_light_group" ? "Light group" : k),
     mk: () => el(),
     hintRow: (text) => Object.assign(el(), { textContent: text }),
-    iconChoices: () => el(),
+    stgIdentity: (parent, ...rows) => rows.filter(Boolean).forEach((r) => parent.appendChild(r)),
+    stgActions: (parent, rows) => rows.forEach((r) => parent.appendChild(r)),
+    sep: () => el(),
     svg: () => "",
     selectTile: (label, opts, cur, pick, icon, fmt) => {
       const t = Object.assign(el(), { label, opts, cur, pick, fmt, refresh() {} });

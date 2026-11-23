@@ -264,15 +264,6 @@ test("the mode of the scene is saved, and brightness effects made elsewhere are 
   assert.deepEqual(sc.live.looks, { "light.a": { fx: [{ type: "pulse", speed: 3, strength: 40 }] } });
 });
 
-test("the scenes a plugin owns (Hue's) follow the order a section was given, and new ones come after", () => {
-  const p = page();
-  const items = ["a", "b", "c", "d"].map((id) => ({ id: "scene." + id }));
-  const order = (pord) => plain(p.sceneKindOrder({ pord }, items)).map((x) => x.id);
-  assert.deepEqual(order(undefined), ["scene.a", "scene.b", "scene.c", "scene.d"]);
-  assert.deepEqual(order(["scene.c", "scene.a"]), ["scene.c", "scene.a", "scene.b", "scene.d"]);
-  assert.deepEqual(order(["scene.gone", "scene.d"]), ["scene.d", "scene.a", "scene.b", "scene.c"]);
-});
-
 test("a light in a classic scene keeps a running effect, and the scene runs it", () => {
   const p = page();
   const sc = p.cleanScene({

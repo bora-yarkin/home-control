@@ -41,25 +41,14 @@ function guardUnsaved(o) {
   if (!o.inner) popupCheck(guard);
 }
 
-/* The + on a scenes section, for administrators: it makes a scene and puts it in this section. */
-function sceneAddButton(scope, e) {
-  var b = mk("div", "rnd pane sm secact", svg("plus"));
-  b.setAttribute("role", "button");
-  b.setAttribute("aria-label", _T("new_scene"));
-  b.title = _T("new_scene");
-  b.addEventListener("click", function () {
-    showPopup("scene-new:" + scope + ":" + e.id, true);
-  });
-  return b;
-}
-
 /* Step one: classic or live. */
 function sceneNewPage(b, key) {
   var q = key.split(":"),
     scope = q[0],
     e = secById(scope, q[1]);
   if (!e) return;
-  var target = { scope: scope, sid: e.id };
+  /* From a Section's + the new scene becomes a device of the Section; from a lights master's scenes it is one of the master's. */
+  var target = { scope: scope, sid: e.id, into: q[2] === "s" ? "section" : "master" };
   b.appendChild(
     pill("scene", _T("classic_scene"), {
       sub: function () {

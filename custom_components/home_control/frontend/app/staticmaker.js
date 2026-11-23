@@ -318,8 +318,7 @@ function staticSave(leave) {
   });
   STORE.scenes.push(sc);
   if (SCD.isNew && SCD.target) {
-    var te = secById(SCD.target.scope, SCD.target.sid);
-    if (te) scnToggle(te, sc.id);
+    sceneTargetAdd(SCD.target, sc.id);
   }
   SCD.saved = staticSnapshot(d);
   uiChanged();

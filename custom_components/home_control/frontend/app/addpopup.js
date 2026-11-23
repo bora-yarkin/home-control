@@ -3,14 +3,11 @@
 
 /* One chosen entity put on the page; a TV or a camera is linked to what belongs to it. Gives the device and whether its setup page is worth opening. */
 function addCandidate(rid, c) {
-  /* A scene chosen for a scenes section is one of that section's scenes (drawn as any scene is), not a device in it. */
-  var sec = rid.charAt(0) === "~" ? sectionOfList(rid) : null;
-  if (sec && sec.k === "scenes" && dom(c.id) === "scene") {
-    sec.sents = (sec.sents || []).filter(function (x) {
-      return x !== c.id;
-    });
-    sec.sents.push(c.id);
-    return { d: null, at: { rid: rid, i: -1 }, wizard: false };
+  /* A scene made on the dashboard is a device that points to it. */
+  if (c.id.indexOf("dscene:") === 0) {
+    var sc = sceneById(c.id.slice(7)),
+      sd = { id: "", sid: c.id.slice(7), name: "Scene", icon: (sc && sc.icon) || "scene", kind: "cscene" };
+    return { d: sd, at: placeDevice(rid, sd), wizard: false };
   }
   var kind = DOMKIND[dom(c.id)] || "sensor",
     d = { id: c.id, name: c.name, icon: defIcon(kind, c.name, c.id), kind: kind };
@@ -193,7 +190,47 @@ function addApplianceEntries(f) {
 
 function addEntities(f) {
   var items = candidates(ADDDOMS[f.st.dom][1], f.rid, f.st.q, f.st.area),
-    shown = items.slice(0, 40);
+    isScenes = ADDDOMS[f.st.dom][1][0] === "scene";
+  /* Scenes: the scenes made on the dashboard are in the list with the scene entities (a checked one is a scene of the Section), the first entry is a collection of scenes that fills itself in, and the next makes a new scene. */
+  if (isScenes) {
+    var have = devList(f.rid),
+      q = String(f.st.q || "").toLowerCase();
+    STORE.scenes.forEach(function (sc) {
+      if (!sceneAllowed(sc) || (q && sc.name.toLowerCase().indexOf(q) < 0)) return;
+      if (have.some(function (d) { return d.kind === "cscene" && d.sid === sc.id; })) return;
+      items.unshift({ id: "dscene:" + sc.id, name: sc.name, area: TITLES[sc.room] || "", dashboard: true });
+    });
+  }
+  var shown = items.slice(0, 40);
+  if (isScenes && ISADMIN) {
+    var sh = f.rid.charAt(0) === "~" ? sectionOfList(f.rid) : null;
+    if (sh && sh.k === "devs") {
+      f.box.appendChild(
+        pill("scene", _T("scene_collection"), {
+          sub: function () {
+            return _T("scene_collection_sub");
+          },
+          tap: function () {
+            var d = { id: "", name: _T("scene_collection"), icon: "scene", kind: "scenes" },
+              at = placeDevice(f.rid, d);
+            uiChanged();
+            POPGUARD = null;
+            showPopup("manage-dev:" + at.rid + ":" + at.i, false);
+          },
+        })
+      );
+      f.box.appendChild(
+        pill("plus", _T("new_scene"), {
+          sub: function () {
+            return _T("add_new_scene_sub");
+          },
+          tap: function () {
+            showPopup("scene-new:" + f.rid.split("~")[1] + ":" + sh.id + ":s", true);
+          },
+        })
+      );
+    }
+  }
   /* Lights only: the first entry makes a lights master (when it is a Lights section that is being added to), the next one makes the checked lights one group. */
   if (ADDDOMS[f.st.dom][1][0] === "light" && ISADMIN) {
     var host = f.rid.charAt(0) === "~" ? sectionOfList(f.rid) : null;
@@ -233,13 +270,13 @@ function addEntities(f) {
       })
     );
   shown.forEach(function (c) {
-    var kind = DOMKIND[dom(c.id)] || "sensor",
+    var kind = c.dashboard ? "scene" : DOMKIND[dom(c.id)] || "sensor",
       row = pill(defIcon(kind, c.name, c.id), c.group ? c.name + " · " + _T("lg_group") : c.name, {
         check: function () {
           return !!f.picked[c.id];
         },
         sub: function () {
-          return (c.area ? c.area + " · " : "") + c.id;
+          return c.dashboard ? (c.area ? c.area + " · " : "") + _T("add_dashboard_scene") : (c.area ? c.area + " · " : "") + c.id;
         },
         tap: function () {
           addToggle(f, c);

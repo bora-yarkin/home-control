@@ -17,7 +17,7 @@ function popupDef(key) {
     var inner = d.build;
     d.build = function (b) {
       inner(b);
-      if (ISADMIN && advList(ent).length) {
+      if (ISADMIN && !(UIDEV[ent] && UIDEV[ent].noadv) && advList(ent).length) {
         var n = advList(ent).length;
         b.appendChild(
           pill("tune", _T("advanced_settings"), {
@@ -80,15 +80,6 @@ var POPUP_DEFS = {
       icon: "pin",
       build: function (b) {
         pinPick(b, id);
-      },
-    };
-  },
-  "pick-scene": function (id) {
-    return {
-      title: _T("scenes_in_this_section"),
-      icon: "scene",
-      build: function (b) {
-        scnPick(b, id);
       },
     };
   },

@@ -12,7 +12,7 @@ function mscSection(root) {
 }
 
 /* Where the scenes of a section come from when it has not chosen: the Hue scenes of its lights' areas, as the Effects page used to list them. */
-var MSC_DEFAULT_SRC = ["plugin"];
+var MSC_DEFAULT_SRC = ["hue:@lights"];
 
 /* The scenes of the section, each as { key, kind: "plugin" | "live" | "classic", id, name, sc }: the ones made from its + first, then the sources it has chosen. */
 function mscItems(S) {
@@ -43,30 +43,40 @@ function mscItems(S) {
     })
     .forEach(stored);
   (e.msrc || MSC_DEFAULT_SRC).forEach(function (src) {
-    if (src === "plugin")
-      lpFxOf(S.root).scenes.forEach(function (id) {
+    if (src.indexOf("hue:") === 0) {
+      /* The scenes a plugin owns in a room (an area of Home Assistant): of the lights' areas, of the page's area, or of the area named. */
+      var picked = (e.msrc || MSC_DEFAULT_SRC).filter(function (x) {
+          return x.indexOf("page:") === 0 || x.indexOf("area:") === 0;
+        }),
+        ids =
+          src === "hue:@lights" || (src === "hue:@rooms" && !picked.length)
+            ? lpFxOf(S.root).scenes
+            : src === "hue:@rooms"
+              ? picked.reduce(function (acc, t) {
+                  return acc.concat(sceneRoomHueIds(t));
+                }, [])
+              : sceneIds(src === "hue:@page" ? page.area : src.slice(4))
+                  .map(function (x) {
+                    return x[0];
+                  })
+                  .filter(function (id) {
+                    return !!pluginSceneKind(id);
+                  });
+      ids.forEach(function (id) {
         add(id, "plugin", A(id).friendly_name || A(id).name || id);
       });
-    else if (src === "page")
+    } else if (src === "page" || src.indexOf("page:") === 0) {
+      /* The scenes made for a page: "page" is this page, as it was called before pages could be chosen. */
+      var room = src === "page" ? ref.scope : src.slice(5);
       STORE.scenes
         .filter(function (sc) {
-          return (ref.scope === "home" || sc.room === ref.scope) && sceneAllowed(sc);
+          return sc.room === room && sceneAllowed(sc);
         })
         .forEach(sourced);
-    else if (src.indexOf("tag:") === 0) {
+    } else if (src.indexOf("tag:") === 0) {
       STORE.scenes.forEach(function (sc) {
         if (sceneHasTag(sc, [src.slice(4)]) && sceneAllowed(sc)) sourced(sc);
       });
-    } else if (src.indexOf("sec:") === 0) {
-      /* The scenes of a scenes section of the page, as it shows them now. */
-      var other = secById(ref.scope, src.slice(4)),
-        more = other && other.k === "scenes" && ref.scope !== "home" ? lightingScenesExtra(ref.scope) : null;
-      if (!other || other.k !== "scenes") return;
-      secScenes(other).forEach(sourced);
-      if (more)
-        (more(other) || []).forEach(function (x) {
-          if (x.kind) add(x.id, "plugin", A(x.id).friendly_name || A(x.id).name || x.id);
-        });
     }
   });
   return out;
@@ -777,47 +787,59 @@ function sceneSortable(box, opts) {
   });
 }
 
-/* In the settings of the lights master: where its scenes come from. The scenes made from its + are always in it; the Hue scenes of its lights' areas, every classic and live scene of the page and the scenes of each scenes section of the page can be added. */
+/* In the settings of the lights master: where its scenes come from. The scenes made from its + are always in it. Three dropdowns add the rest: which areas of the scenes a plugin owns (Hue's), which pages' scenes, which tags; a fourth leaves out the tagged ones. Each takes several ticks. */
 function mscSourceRows(box, sec, scope, redraw) {
   var src = sec.msrc || MSC_DEFAULT_SRC;
-  function row(key, title, sub) {
-    return pill("scene", title, {
-      sub: function () {
-        return sub;
-      },
-      check: function () {
-        return (sec.msrc || MSC_DEFAULT_SRC).indexOf(key) >= 0;
-      },
-      tap: function () {
-        var cur = (sec.msrc || MSC_DEFAULT_SRC).slice(),
-          at = cur.indexOf(key);
-        if (at >= 0) cur.splice(at, 1);
-        else cur.push(key);
-        sec.msrc = cur;
-        uiChanged();
-        redraw();
-      },
+  function list() {
+    return (sec.msrc || MSC_DEFAULT_SRC).map(function (x) {
+      return x === "page" ? "page:" + scope : x;
     });
+  }
+  function put(keep, add) {
+    sec.msrc = list()
+      .filter(function (x) {
+        return keep(x);
+      })
+      .concat(add);
+    uiChanged();
   }
   box.appendChild(sep(_T("scenes_in_the_light_popup"), "palette"));
   box.appendChild(hintRow(_T("scenes_in_the_light_popup_hint")));
-  /* The scenes a plugin owns (Hue Plus brings the words for them, and the scenes). */
-  if (PLUGIN_SCENE_KINDS.length) box.appendChild(row("plugin", _T("scene_source_plugin") || _T("scene_source_fallback"), _T("scene_source_plugin_sub") || _T("scene_source_fallback_sub")));
-  box.appendChild(row("page", _T("scene_source_page"), _T("scene_source_page_sub")));
-  var n = 0;
-  secOrder(scopeKey(scope)).forEach(function (s) {
-    if (s.k !== "scenes" || scope === "home") return;
-    n++;
-    box.appendChild(row("sec:" + s.id, s.t || _T("scenes") + (n > 1 ? " " + n : ""), _T("scene_source_section_sub")));
-  });
-  /* Scenes by tag: take in the scenes that have a tag, whatever page they are on, and leave out the tagged ones the sources would bring. */
-  var tags = sceneTags();
-  if (tags.length) {
-    box.appendChild(sep(_T("tags_take_in"), "tune"));
-    tags.forEach(function (t) {
-      box.appendChild(row("tag:" + t, t, _T("tags_take_in_sub")));
-    });
-    sceneTagLeaveOutRows(box, sec, "mxt", redraw);
-  }
+  sceneSourceTiles(
+    box,
+    {
+      get: function () {
+        return list().filter(function (x) {
+          return x.indexOf("page:") === 0 || x.indexOf("area:") === 0 || x.indexOf("hue:") === 0;
+        });
+      },
+      set: function (tokens) {
+        put(function (x) {
+          return x.indexOf("page:") !== 0 && x.indexOf("area:") !== 0 && x.indexOf("hue:") !== 0;
+        }, tokens);
+      },
+    },
+    {
+      inc: function () {
+        return list()
+          .filter(function (x) {
+            return x.indexOf("tag:") === 0;
+          })
+          .map(function (k) {
+            return k.slice(4);
+          });
+      },
+      exc: function () {
+        return (sec.mxt || []).slice();
+      },
+      set: function (inc, exc) {
+        put(function (x) {
+          return x.indexOf("tag:") !== 0;
+        }, inc.map(function (t) { return "tag:" + t; }));
+        if (exc.length) sec.mxt = exc;
+        else delete sec.mxt;
+      },
+    }
+  );
   return src;
 }

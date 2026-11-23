@@ -472,7 +472,7 @@ function secAdd(sc, k) {
 var SEC_GROUPS = [
   ["sec_group_section", "tune", ["devs"]],
   ["sec_group_overview", "home", ["glance", "rooms", "alerts", "chips", "status"]],
-  ["sec_group_scenes", "scene", ["scenes", "pinned"]],
+  ["sec_group_scenes", "scene", ["pinned"]],
   ["sec_group_information", "info", ["chart", "read", "note", "security", "energy"]],
   ["sec_group_cameras", "cam", ["camera", "cameras"]],
   ["sec_group_tools", "swap", ["link"]],
@@ -644,20 +644,18 @@ function editPageSettings(b, key) {
       )
     );
     box.appendChild(hintRow(_T("on_wide_screens_phones_always_use_on")));
-    box.appendChild(sep(_T("start_over"), "restart"));
-    box.appendChild(
-      pill("restart", _T("reset_sections"), {
-        sub: function () {
-          return _T("default_names_order_and_widths");
-        },
-        tap: function () {
-          confirmDlg(_T("reset_this_page_to_the_default_secti"), function () {
-            resetPage(sc);
-            redrawBox(box, draw);
-          });
-        },
-      })
-    );
+    var reset = pill("restart", _T("reset_sections"), {
+      sub: function () {
+        return _T("default_names_order_and_widths");
+      },
+      tap: function () {
+        confirmDlg(_T("reset_this_page_to_the_default_secti"), function () {
+          resetPage(sc);
+          redrawBox(box, draw);
+        });
+      },
+    });
+    stgActions(box, [reset], [reset]);
   }
   redrawBox(box, draw);
 }
@@ -865,7 +863,8 @@ function secEditor(b, key) {
     setSecOrder(sk, order);
     uiChanged();
   }
-  b.appendChild(
+  stgIdentity(
+    b,
     textRow(
       "edit",
       (SECTYPES[e.k] || SECTYPES.devs).t,
@@ -876,9 +875,7 @@ function secEditor(b, key) {
         save();
       },
       40
-    )
-  );
-  b.appendChild(
+    ),
     iconPick(SECICONS, secIcon(e), function (n) {
       e.i = n;
       save();
@@ -889,26 +886,6 @@ function secEditor(b, key) {
   function draw() {
     var k = e.k || "devs",
       ty = SECTYPES[k] || SECTYPES.devs;
-    box.appendChild(
-      visiblePill(
-        function () {
-          return !e.hide;
-        },
-        function () {
-          e.hide = !e.hide;
-          save();
-        }
-      )
-    );
-    ruleControls(
-      box,
-      e,
-      save,
-      function () {
-        redrawBox(box, draw);
-      },
-      key
-    );
     if (k === "link") {
       var lq = (e.ref || "").split(":"),
         ls = e.ref ? secById(lq[0], lq[1]) : null;
@@ -1001,7 +978,7 @@ function secEditor(b, key) {
     }
     /* Sections that list items can show them in one, two or three columns. Pinned items and quick actions already had a default shape (2 columns, 4 tiles), which stays when nothing is chosen. */
     if (
-      ["devs", "scenes", "pinned"].indexOf(k) >= 0
+      ["devs", "pinned"].indexOf(k) >= 0
     ) {
       box.appendChild(sep(_T("layout"), "tune"));
       box.appendChild(
@@ -1067,65 +1044,45 @@ function secEditor(b, key) {
           },
         })
       );
-    /* Where a scenes section gets its scenes: the page's own area, or any other area (the bathroom's scenes in the bedroom's page). */
-    if (k === "scenes" && sk !== "home") {
-      var from = selectTile(
-        _T("scenes_from"),
+    /* Whether it is shown and when, then the actions. */
+    box.appendChild(sep(_T("dp_in_the_section"), "home"));
+    box.appendChild(
+      visiblePill(
         function () {
-          var ids = Object.keys(H().areas || {}).sort(function (x, y) {
-            return String(H().areas[x].name).localeCompare(H().areas[y].name);
-          });
-          return ["room"].concat(ids);
+          return !e.hide;
         },
         function () {
-          return e.sarea || "room";
-        },
-        function (v) {
-          if (v === "room") delete e.sarea;
-          else e.sarea = v;
+          e.hide = !e.hide;
           save();
-          from.refresh();
-        },
-        "home",
-        function (v) {
-          return v === "room" ? _T("scenes_from_this_page") : (H().areas[v] || {}).name || v;
         }
-      );
-      from.classList.add("selrow");
-      from.refresh();
-      box.appendChild(from);
-    }
-    if (k === "scenes" && sk !== "home")
-      box.appendChild(
-        flagPill(
-          "edit",
-          _T("scene_names_without_area"),
-          e,
-          "keepname",
-          function (on) {
-            return on ? _T("scene_names_without_area_on") : _T("scene_names_without_area_off");
-          },
-          true
-        )
-      );
-    if (k === "scenes")
-      sceneTagSectionRows(box, e, function () {
+      )
+    );
+    ruleControls(
+      box,
+      e,
+      save,
+      function () {
         redrawBox(box, draw);
+      },
+      key
+    );
+    var acts = [],
+      del = pill("trash", _T("delete_this_section"), {
+        tap: function () {
+          confirmDlg(_T("delete_this_section_the_devices_stay"), function () {
+            setSecOrder(
+              sk,
+              order.filter(function (x) {
+                return x.id !== sid;
+              })
+            );
+            uiChanged();
+            popBack();
+          });
+        },
       });
-    if (k === "quick" || k === "scenes")
-      box.appendChild(
-        pill("scene", _T("scenes_in_this_section"), {
-          sub: function () {
-            return String(secScenes(e).length);
-          },
-          tap: function () {
-            showPopup("pick-scene:" + key, true);
-          },
-        })
-      );
-    box.appendChild(sep(_T("this_section"), "home"));
     if (!ty.one)
-      box.appendChild(
+      acts.push(
         pill("plus", _T("duplicate_this_section"), {
           tap: function () {
             var c = JSON.parse(JSON.stringify(e));
@@ -1142,22 +1099,8 @@ function secEditor(b, key) {
           },
         })
       );
-    box.appendChild(
-      pill("trash", _T("delete_this_section"), {
-        tap: function () {
-          confirmDlg(_T("delete_this_section_the_devices_stay"), function () {
-            setSecOrder(
-              sk,
-              order.filter(function (x) {
-                return x.id !== sid;
-              })
-            );
-            uiChanged();
-            popBack();
-          });
-        },
-      })
-    );
+    acts.push(del);
+    stgActions(box, acts, [del]);
   }
   redrawBox(box, draw);
 }

@@ -24,6 +24,8 @@ function load(entities, areas = {}) {
     norm: (s) => String(s).toLowerCase(),
   };
   vm.createContext(sandbox);
+  const model = readFileSync(new URL("../../custom_components/home_control/frontend/app/model.js", import.meta.url), "utf8");
+  vm.runInContext(model.slice(model.indexOf("var DEVTYPES"), model.indexOf("function cleanDev(d)")), sandbox);
   vm.runInContext(SOURCE, sandbox);
   return sandbox;
 }
@@ -124,4 +126,29 @@ test("finding automatically does not overwrite what is already chosen", () => {
   d.links = ["remote.mine"];
   w.kAuto(d);
   assert.deepEqual([...d.links], ["remote.mine"]);
+});
+
+test("an air conditioner links the helpers of its device and the other climate entities named after it, and no other air conditioner", () => {
+  const w = load([
+    ["climate.bed_ac", "d1"],
+    ["climate.bed_ac_integration", "d2"],
+    ["climate.hall_ac", "d3"],
+    ["input_select.bed_ac_fan_mode", "d1"],
+    ["input_boolean.bed_ac_power", "d1"],
+  ]);
+  const d = device("climate.bed_ac", "climate", "ac");
+  w.kAuto(d);
+  assert.deepEqual([...d.links].sort(), ["climate.bed_ac_integration", "input_boolean.bed_ac_power", "input_select.bed_ac_fan_mode"]);
+});
+
+test("the type chosen for a media player or a fan decides its setup, whatever its icon or name says; without one it is guessed once", () => {
+  const w = load([]);
+  const tvIcon = { ...device("media_player.x", "media", "tv"), dt: "speaker" };
+  assert.equal(w.devSetupKind(tvIcon), null, "a TV icon on a speaker: no setup");
+  const bulb = { ...device("media_player.y", "media", "light"), dt: "tv" };
+  assert.equal(w.devSetupKind(bulb), "tv", "a bulb icon on a TV: a TV");
+  const fan = { ...device("fan.z", "fan", "fan", "Air purifier"), dt: "fan" };
+  assert.equal(w.devSetupKind(fan), null, "named like a purifier but chosen as a fan");
+  assert.equal(w.devSetupKind({ ...fan, dt: "purifier" }), "purifier");
+  assert.equal(w.guessDevType(device("fan.q", "fan", "purifier")), "purifier");
 });

@@ -23,6 +23,9 @@ var KINDS = [
   "button",
   "cover",
   "lock",
+  "scene",
+  "cscene",
+  "scenes",
 ];
 
 /* The starting layout when nothing is saved yet: one room per Home Assistant area with its controllable devices,
@@ -271,6 +274,15 @@ function isVacuumMap(id) {
   });
 }
 
+/* The type of a media player (a TV, a receiver or a speaker) and of a fan (a fan or an air purifier) decides what its setup page offers. It is chosen in the device's settings; a device that has none yet gets one guessed once from its icon, name and id, and keeps it from then on. */
+var DEVTYPES = { media: ["tv", "receiver", "speaker"], fan: ["fan", "purifier"] };
+
+function guessDevType(d) {
+  if (d.kind === "media") return d.icon === "tv" ? "tv" : /speaker|homepod|sonos|cast|echo/i.test(d.icon + " " + d.id) ? "speaker" : "receiver";
+  if (d.kind === "fan") return /purif|air/i.test(d.icon + " " + d.name + " " + d.id) ? "purifier" : "fan";
+  return "";
+}
+
 function cleanDev(d) {
   if (
     !d ||
@@ -283,13 +295,16 @@ function cleanDev(d) {
     return null;
   var id = typeof d.id === "string" ? d.id : "";
   if (id && !ENTRE.test(id)) return null;
-  if (!id && d.kind !== "special" && d.kind !== "remote" && d.kind !== "appliance") return null;
+  if (!id && ["special", "remote", "appliance", "cscene", "scenes"].indexOf(d.kind) < 0) return null;
+  if (d.kind === "cscene" && !(typeof d.sid === "string" && /^[a-z0-9_-]{1,24}$/.test(d.sid))) return null;
+  if (d.kind === "scene" && id.split(".")[0] !== "scene") return null;
   if (d.kind === "appliance" && !(typeof d.aid === "string" && /^[a-z0-9_-]{1,24}$/.test(d.aid))) return null;
   if (d.kind === "remote" && !(typeof d.rid === "string" && /^[a-z0-9_-]{1,24}$/.test(d.rid))) return null;
   var c = { id: id, name: d.name, icon: iconOk(d.icon) ? d.icon : "plug", kind: d.kind };
   if (typeof d.pop === "string" && POPRE.test(d.pop) && d.pop) c.pop = d.pop;
   if (d.sub) c.sub = 1;
   if (d.setup) c.setup = 1;
+  if (DEVTYPES[d.kind]) c.dt = DEVTYPES[d.kind].indexOf(d.dt) >= 0 ? d.dt : guessDevType(d);
   if (Array.isArray(d.links)) {
     var ls = d.links.filter(function (x, i) {
       return typeof x === "string" && ENTRE.test(x) && x !== id && d.links.indexOf(x) === i;
@@ -352,6 +367,23 @@ function cleanDev(d) {
   if (d.art && d.kind === "media") c.art = 1;
   if (d.nonp && d.kind === "media" && !c.art) c.nonp = 1;
   if (d.noslide && d.kind === "lock") c.noslide = 1;
+  if (d.noadv) c.noadv = 1;
+  /* A scene made on the dashboard is a device that points to it (its name and icon are the scene's); a collection of scenes takes in the scenes of pages and tags and of the areas it names (none: the page's own area). */
+  if (d.kind === "cscene") c.sid = d.sid;
+  if (d.kind === "scenes") {
+    var idsOf = function (v, re) {
+      return (Array.isArray(v) ? v : []).filter(function (x, i, a) {
+        return typeof x === "string" && re.test(x) && a.indexOf(x) === i;
+      }).slice(0, 40);
+    };
+    var sp = idsOf(d.spage, /^(page:[a-z0-9_-]{1,24}|area:[a-z0-9_-]{1,60}|hue:(@page|@lights|@rooms|[a-z0-9_-]{1,60}))$/),
+      xt = cleanTags(d.xtag),
+      st = cleanTags(d.stag);
+    if (sp.length) c.spage = sp;
+    if (st.length) c.stag = st;
+    if (xt.length) c.xtag = xt;
+    if (d.keepname) c.keepname = 1;
+  }
   if (d.kind === "vacuum" && d.map && typeof d.map === "object") {
     var m = {};
     if (d.map.m === 1) m.m = 1;
@@ -514,7 +546,7 @@ function cleanUI(u) {
   });
   var lv = u.layout && u.layout.v,
     cur = lv >= 4 ? { home: u.layout.home, rooms: u.layout.rooms || {} } : { home: null, rooms: {} };
-  o.layout.v = 5;
+  o.layout.v = 6;
   o.layout.home = cleanLayout(cur.home || seedSections("home"));
   Object.keys(ids).forEach(function (rid) {
     o.layout.rooms[rid] = cleanLayout(cur.rooms[rid] || seedSections("room:" + rid));
@@ -538,6 +570,37 @@ function cleanTags(list) {
   return out;
 }
 
+function scenesToDevices(s) {
+  var c = Object.assign({}, s),
+    devs = Array.isArray(s.devs) ? s.devs.slice() : [];
+  (Array.isArray(s.scn) ? s.scn : []).forEach(function (id) {
+    devs.push({ kind: "cscene", sid: id, id: "", name: "Scene", icon: "scene" });
+  });
+  (Array.isArray(s.sents) ? s.sents : []).forEach(function (e) {
+    if (typeof e === "string" && /^scene\.[a-z0-9_]+$/.test(e))
+      devs.push({ kind: "scene", id: e, name: e.split(".")[1].replace(/_/g, " ").slice(0, 40) || "Scene", icon: "scene" });
+  });
+  if (s.k === "scenes" || (s.scs && !(s.scn || []).length && !(s.sents || []).length) || s.spage || s.stag || s.sarea)
+    devs.push({
+      kind: "scenes",
+      id: "",
+      name: _T("scenes").slice(0, 40),
+      icon: "scene",
+      spage: (Array.isArray(s.spage) ? s.spage.map(function (x) { return "page:" + x; }) : []).concat(["hue:" + (s.sarea || "@page")]),
+      stag: s.stag,
+      xtag: s.xtag,
+      keepname: s.keepname,
+    });
+  ["scn", "sents", "sarea", "hscn", "pord", "hord", "spage", "stag", "xtag", "keepname", "scs"].forEach(function (k) {
+    delete c[k];
+  });
+  c.k = "devs";
+  c.devs = devs;
+  if (!c.t) c.t = _T("scenes").slice(0, 40);
+  if (!c.i) c.i = "scene";
+  return c;
+}
+
 function cleanLayout(a) {
   var out = [],
     seen = {};
@@ -546,6 +609,8 @@ function cleanLayout(a) {
       return;
     seen[s.id] = 1;
     /* Layout 5: the sections that held devices (Lights, Media, Climate, Controls, Sensors, Other devices, Devices) are one kind, Section; each keeps the name and icon its type gave it. Quick actions are Scenes. */
+    /* Layout 6: the scenes a Section showed (a scenes section's, or the ones kept on a Section) are devices of it now: each chosen scene, and one collection of scenes for the pages, tags and area it took in. */
+    if (s.k === "scenes" || s.k === "quick" || s.scs) s = scenesToDevices(s);
     var old = LEGACY_SECTYPES[s.k],
       k = old ? (old[2] || "devs") : typeof s.k === "string" && SECTYPES[s.k] ? s.k : "devs",
       ty = SECTYPES[k],
@@ -686,39 +751,33 @@ function cleanLayout(a) {
           return typeof x === "string" && /^[a-z0-9_-]{1,24}$/.test(x) && a.indexOf(x) === i;
         })
         .slice(0, 40);
-    /* The order of the scenes a plugin owns that a scenes section shows (`pord`; `hord` is what it was called). */
-    /* A scenes section can take in the scenes that have a tag (stag) and leave out the tagged ones it would otherwise have (xtag). */
-    if (k === "scenes") {
-      var st = cleanTags(s.stag),
-        xtg = cleanTags(s.xtag);
-      if (st.length) o.stag = st;
-      if (xtg.length) o.xtag = xtg;
-    }
-    if (k === "scenes" && (Array.isArray(s.pord) || Array.isArray(s.hord))) {
-      var hord = (s.pord || s.hord)
-        .filter(function (x, i, a) {
-          return typeof x === "string" && /^scene\.[a-z0-9_]{1,80}$/.test(x) && a.indexOf(x) === i;
-        })
-        .slice(0, 80);
-      if (hord.length) o.pord = hord;
-    }
     if (k === "devs") {
       /* The scenes page of the lights master: where its scenes come from, the folders the owner made and the order of the tiles outside them. */
       var key = function (x) {
         return typeof x === "string" && /^[a-z0-9_.-]{1,80}$/.test(x);
       };
-      if (Array.isArray(s.msrc))
-        o.msrc = s.msrc
+      if (Array.isArray(s.msrc) || (Array.isArray(s.mpa) && s.mpa.length))
+        o.msrc = (Array.isArray(s.msrc) ? s.msrc : ["hue"])
           .map(function (x) {
-            return x === "hue" ? "plugin" : x;
+            /* the scenes of a plugin were one source (and areas for it, mpa); they are Hue rooms among the rooms now */
+            return x === "hue" || x === "plugin" ? "hue:@lights" : x === "page" ? "page" : x;
           })
           .filter(function (x, i, a) {
-            return (x === "plugin" || x === "page" || (typeof x === "string" && (/^sec:[a-z0-9_-]{1,24}$/.test(x) || (/^tag:/.test(x) && cleanTags([x.slice(4)]).length)))) && a.indexOf(x) === i;
+            return (x === "page" || (typeof x === "string" && (/^(page:[a-z0-9_-]{1,24}|area:[a-z0-9_-]{1,60})$/.test(x) || /^hue:(@lights|@page|@rooms|[a-z0-9_-]{1,60})$/.test(x) || (/^tag:/.test(x) && cleanTags([x.slice(4)]).length)))) && a.indexOf(x) === i;
           })
-          .slice(0, 24);
+          .slice(0, 40);
+      if (Array.isArray(s.mpa) && s.mpa.length) {
+        o.msrc = o.msrc.filter(function (x) {
+          return x !== "hue:@lights";
+        });
+        s.mpa.forEach(function (a) {
+          if (typeof a === "string" && /^[a-z0-9_-]{1,60}$/.test(a) && a !== "-" && o.msrc.indexOf("hue:" + a) < 0) o.msrc.push("hue:" + a);
+        });
+      }
       /* Scenes tagged with any of these are left out of what the sources bring in (not of the scenes made from its own +). */
       var xt = cleanTags(s.mxt);
       if (xt.length) o.mxt = xt;
+
       if (Array.isArray(s.mf)) {
         var folders = s.mf
           .filter(function (f) {
@@ -740,20 +799,6 @@ function cleanLayout(a) {
             return key(x) || (typeof x === "string" && /^f:[a-z0-9]{1,12}$/.test(x));
           })
           .slice(0, 240);
-    }
-    if (k === "scenes") {
-      /* Where a scenes section gets its scenes: the area it names (the room's own when it names none), the scene entities chosen for it and the plugin scenes it hides (a list of its own, even an empty one). */
-      if (typeof s.sarea === "string" && /^[a-z0-9_]{1,64}$/.test(s.sarea)) o.sarea = s.sarea;
-      var sceneList = function (v) {
-        return v
-          .filter(function (x, i, a) {
-            return typeof x === "string" && /^scene\.[a-z0-9_]{1,80}$/.test(x) && a.indexOf(x) === i;
-          })
-          .slice(0, 80);
-      };
-      if (Array.isArray(s.sents) && sceneList(s.sents).length) o.sents = sceneList(s.sents);
-      if (Array.isArray(s.hscn)) o.hscn = sceneList(s.hscn);
-      if (s.keepname) o.keepname = 1;
     }
     if (ty.own) {
       o.devs = [];

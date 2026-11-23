@@ -62,14 +62,6 @@ var SECTYPES = {
       one: 1,
       wide: 1,
     },
-    scenes: {
-      t: _T("scenes"),
-      i: "scene",
-      d: _T("scenes_for_this_page"),
-      own: 1,
-      noun: _T("device_2"),
-      add: "scenes",
-    },
     alerts: {
       t: _T("attention"),
       i: "alert",
@@ -102,7 +94,8 @@ var SECTYPES = {
     controls: [_T("controls"), "tune"],
     sensors: [_T("sensors"), "thermo"],
     other: [_T("other_devices"), "plug"],
-    quick: [_T("quick_actions_2"), "scene", "scenes"],
+    quick: [_T("quick_actions_2"), "scene"],
+    scenes: [_T("scenes"), "scene"],
   },
   /* The order the Add section list shows them in, by what they are for. */
   SEC_PICK = [
@@ -112,7 +105,6 @@ var SECTYPES = {
     "alerts",
     "chips",
     "status",
-    "scenes",
     "pinned",
     "chart",
     "read",
@@ -128,7 +120,6 @@ var SECTYPES = {
     ["alerts", "alerts"],
     ["glance", "glance"],
     ["rooms", "rooms"],
-    ["scenes", "scenes"],
   ],
   /* A new room page starts with its status tiles and one empty Section (suggested sections are offered when a room is made, see suggestSections). */
   ROOM_TPL = ["status"];
@@ -145,7 +136,7 @@ function seedSections(scope) {
   return scope === "home"
     ? HOME_TPL.map(function (x) {
         return { id: x[0], k: x[1], hide: false };
-      })
+      }).concat([{ id: "scenes", k: "devs", t: _T("scenes"), i: "scene", hide: false, devs: [{ id: "scenes-home", kind: "scenes", name: _T("scenes"), icon: "scene", spage: ["page:home"] }] }])
     : ROOM_TPL.map(function (id) {
         return { id: id, k: id, hide: false };
       }).concat([{ id: "main", k: "devs", hide: false, devs: [] }]);
@@ -263,12 +254,10 @@ function secBuildEl(s) {
   if (k === "link") return linkSection(s);
   if (k === "alerts") return alertsBox();
   if (k === "chips") return homeStatus();
-  if (k === "quick" || (k === "scenes" && pk === "home")) return quickActions();
   if (k === "rooms") return secRooms();
   if (k === "glance") return secGlance();
   if (k === "pinned") return pinsSection();
   if (k === "status") return roomStatus(pk);
-  if (k === "scenes") return scenesSection(pk, lightingScenesExtra(pk));
   return customSection(s);
 }
 

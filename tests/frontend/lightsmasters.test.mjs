@@ -101,7 +101,7 @@ test("moving the automatic master of a section saves its lights as chosen ones, 
   const own = l.rooms.bora[0];
   Object.assign(own, { mn: "Bed", mall: 1, scn: ["sc1"], msrc: ["hue", "sec:other", "sec:gone"], mhl: 1, mtab: "color", mps: "scene.read", mpw: "scene" });
   l.rooms.bath[0].devs = [light("light.bath_1")];
-  l.rooms.bora.push({ id: "other", k: "scenes", devs: [] });
+  l.rooms.bora.push({ id: "other", k: "devs", scs: 1, devs: [] });
   const w = world(l);
   const target = { scope: "bath", sec: l.rooms.bath[0] };
   const moved = plain(w.masterTransfer("bora", "lights", target, false));
@@ -263,6 +263,7 @@ test("the own master of a section can be deleted: its settings go, the section's
   const w = world(l);
   let tap;
   w.pill = (icon, title, o) => ({ title, o });
+  w.stgActions = (box, rows) => rows.forEach((r) => box.appendChild(r));
   w.confirmDlg = (q, go) => go();
   w.closeSheet = () => {};
   const box = { rows: [], appendChild(r) { this.rows.push(r); } };
