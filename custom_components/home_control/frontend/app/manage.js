@@ -978,6 +978,25 @@ function devBehaviourTab(c) {
         })
       );
   }
+  if (DEVTYPES[d.kind] && d.id)
+    box.appendChild(
+      dropRow(
+        _T("dp_device_type"),
+        DEVTYPES[d.kind],
+        function () {
+          return d.dt || guessDevType(d);
+        },
+        function (v) {
+          d.dt = v;
+          uiChanged();
+          c.redraw();
+        },
+        "tune",
+        function (v) {
+          return _T("dt_" + v);
+        }
+      )
+    );
   profileSettings(box, d, c.key);
   if (d.kind === "appliance")
     box.appendChild(

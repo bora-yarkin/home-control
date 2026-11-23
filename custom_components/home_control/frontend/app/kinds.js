@@ -56,8 +56,9 @@ function devSetupKind(d) {
   if (d.kind === "camera") return "camera";
   if (d.kind === "climate") return "ac";
   if (d.kind === "vacuum") return "vacuum";
-  if (d.kind === "fan" && /purif|air/i.test(d.icon + " " + d.name + " " + d.id)) return "purifier";
-  if (d.kind === "media") return d.icon === "tv" ? "tv" : /speaker|homepod|sonos|cast|echo/i.test(d.icon + " " + d.id) ? null : "receiver";
+  var t = d.dt || guessDevType(d);
+  if (d.kind === "fan") return t === "purifier" ? "purifier" : null;
+  if (d.kind === "media") return t === "tv" ? "tv" : t === "receiver" ? "receiver" : null;
   return null;
 }
 

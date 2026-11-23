@@ -274,6 +274,15 @@ function isVacuumMap(id) {
   });
 }
 
+/* The type of a media player (a TV, a receiver or a speaker) and of a fan (a fan or an air purifier) decides what its setup page offers. It is chosen in the device's settings; a device that has none yet gets one guessed once from its icon, name and id, and keeps it from then on. */
+var DEVTYPES = { media: ["tv", "receiver", "speaker"], fan: ["fan", "purifier"] };
+
+function guessDevType(d) {
+  if (d.kind === "media") return d.icon === "tv" ? "tv" : /speaker|homepod|sonos|cast|echo/i.test(d.icon + " " + d.id) ? "speaker" : "receiver";
+  if (d.kind === "fan") return /purif|air/i.test(d.icon + " " + d.name + " " + d.id) ? "purifier" : "fan";
+  return "";
+}
+
 function cleanDev(d) {
   if (
     !d ||
@@ -295,6 +304,7 @@ function cleanDev(d) {
   if (typeof d.pop === "string" && POPRE.test(d.pop) && d.pop) c.pop = d.pop;
   if (d.sub) c.sub = 1;
   if (d.setup) c.setup = 1;
+  if (DEVTYPES[d.kind]) c.dt = DEVTYPES[d.kind].indexOf(d.dt) >= 0 ? d.dt : guessDevType(d);
   if (Array.isArray(d.links)) {
     var ls = d.links.filter(function (x, i) {
       return typeof x === "string" && ENTRE.test(x) && x !== id && d.links.indexOf(x) === i;
