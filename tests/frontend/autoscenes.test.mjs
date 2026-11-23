@@ -91,3 +91,25 @@ test("auto scenes and tags are wired: the new scene page offers Auto scene, the 
   assert.match(read("scenes.js"), /if \(sc\.auto\) return autoScenePlay/);
   assert.ok(JSON.parse(readFileSync(new URL("../../custom_components/home_control/frontend/version.json", import.meta.url), "utf8")).files.includes("app/autoscenes.js"));
 });
+
+test("a scenes section takes in the scenes made for the pages it names, together with the tags, less what it leaves out by tag", () => {
+  const c = sandbox({ sceneAllowed: () => true });
+  const sc = [{ id: "a", room: "bora" }, { id: "b", room: "bath", tags: ["bath"] }, { id: "c", room: "home" }, { id: "d", room: "bora", tags: ["bath"] }];
+  c.STORE.scenes = sc;
+  c.sceneById = (id) => sc.find((x) => x.id === id) || null;
+  const ids = (e) => plain(c.secScenes(e)).map((x) => x.id);
+  assert.deepEqual(ids({ spage: ["bora"] }), ["a", "d"]);
+  assert.deepEqual(ids({ spage: ["bora", "home"], xtag: ["bath"] }), ["a", "c"], "the bathroom-tagged scene of the bedroom is left out");
+  assert.deepEqual(ids({ spage: ["bora"], stag: ["bath"] }), ["a", "b", "d"]);
+});
+
+test("a master takes in the scenes made for any pages it names (page:<id>), and the pages and tags are always on its Scenes settings", () => {
+  const tab = read("scenetab.js");
+  assert.match(tab, /src\.indexOf\("page:"\) === 0/);
+  assert.match(tab, /row\("page:" \+ p\.id/);
+  assert.match(tab, /tags_none_used/);
+  const model = read("model.js");
+  assert.match(model, /\^page:\[a-z0-9_-\]\{1,24\}\$/);
+  assert.match(model, /o\.spage = sp/);
+  assert.match(read("autoscenes.js"), /function scenePageSectionRows/);
+});

@@ -4,6 +4,9 @@ Format: [Keep a Changelog](https://keepachangelog.com/). Versions follow [semant
 
 ## [Unreleased]
 
+### Changed
+- **Existing scenes are added to a lights master or a scenes section by page and by tag**: *Scenes of a page* lists every page of the dashboard (Home and the rooms, with how many scenes each has) and takes in the scenes made for the ones ticked; *Scenes with a tag* takes in tagged scenes and *Leave out scenes with a tag* skips tagged ones the sources would bring. The older choices (every scene of this page, a scenes section of this page) stay only while chosen, so they can be taken off.
+
 ## [0.19.0] - 2026-11-22
 
 ### Changed

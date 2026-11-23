@@ -53,6 +53,12 @@ function mscItems(S) {
           return (ref.scope === "home" || sc.room === ref.scope) && sceneAllowed(sc);
         })
         .forEach(sourced);
+    else if (src.indexOf("page:") === 0)
+      STORE.scenes
+        .filter(function (sc) {
+          return sc.room === src.slice(5) && sceneAllowed(sc);
+        })
+        .forEach(sourced);
     else if (src.indexOf("tag:") === 0) {
       STORE.scenes.forEach(function (sc) {
         if (sceneHasTag(sc, [src.slice(4)]) && sceneAllowed(sc)) sourced(sc);
@@ -803,21 +809,24 @@ function mscSourceRows(box, sec, scope, redraw) {
   box.appendChild(hintRow(_T("scenes_in_the_light_popup_hint")));
   /* The scenes a plugin owns (Hue Plus brings the words for them, and the scenes). */
   if (PLUGIN_SCENE_KINDS.length) box.appendChild(row("plugin", _T("scene_source_plugin") || _T("scene_source_fallback"), _T("scene_source_plugin_sub") || _T("scene_source_fallback_sub")));
-  box.appendChild(row("page", _T("scene_source_page"), _T("scene_source_page_sub")));
-  var n = 0;
+  /* The scenes made for any page of the dashboard (the scenes of that tab), as many pages as wanted. */
+  box.appendChild(sep(_T("src_pages"), "home"));
+  scenePages().forEach(function (p) {
+    box.appendChild(row("page:" + p.id, p.name, cntS(p.count, _T("scene_lc"), _T("scenes_lc"))));
+  });
+  /* What older settings chose, shown only while chosen, so it can be taken off: every scene of this page, and the scenes of a scenes section of this page. */
+  if ((sec.msrc || MSC_DEFAULT_SRC).indexOf("page") >= 0) box.appendChild(row("page", _T("scene_source_page"), _T("scene_source_page_sub")));
   secOrder(scopeKey(scope)).forEach(function (s) {
-    if (s.k !== "scenes" || scope === "home") return;
-    n++;
-    box.appendChild(row("sec:" + s.id, s.t || _T("scenes") + (n > 1 ? " " + n : ""), _T("scene_source_section_sub")));
+    if (s.k !== "scenes" || scope === "home" || (sec.msrc || MSC_DEFAULT_SRC).indexOf("sec:" + s.id) < 0) return;
+    box.appendChild(row("sec:" + s.id, s.t || _T("scenes"), _T("scene_source_section_sub")));
   });
   /* Scenes by tag: take in the scenes that have a tag, whatever page they are on, and leave out the tagged ones the sources would bring. */
   var tags = sceneTags();
-  if (tags.length) {
-    box.appendChild(sep(_T("tags_take_in"), "tune"));
-    tags.forEach(function (t) {
-      box.appendChild(row("tag:" + t, t, _T("tags_take_in_sub")));
-    });
-    sceneTagLeaveOutRows(box, sec, "mxt", redraw);
-  }
+  box.appendChild(sep(_T("tags_take_in"), "tune"));
+  if (!tags.length) box.appendChild(hintRow(_T("tags_none_used")));
+  tags.forEach(function (t) {
+    box.appendChild(row("tag:" + t, t, _T("tags_take_in_sub")));
+  });
+  if (tags.length) sceneTagLeaveOutRows(box, sec, "mxt", redraw);
   return src;
 }

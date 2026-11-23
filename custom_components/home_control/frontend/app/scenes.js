@@ -26,15 +26,15 @@ function sceneHasTag(sc, tags) {
   });
 }
 
-/* The scenes a scenes section shows: the ones chosen for it, then those with a tag it takes in (a scene of any page), less those it leaves out by tag. */
+/* The scenes a scenes section shows: the ones chosen for it, then the scenes of the pages it takes in and those with a tag it takes in, less those it leaves out by tag. */
 function secScenes(e) {
   var out = (e.scn || []).map(sceneById).filter(function (sc) {
     return sc && sceneAllowed(sc);
   });
-  if (e.stag)
-    STORE.scenes.forEach(function (sc) {
-      if (out.indexOf(sc) < 0 && sceneHasTag(sc, e.stag) && !sceneHasTag(sc, e.xtag) && sceneAllowed(sc)) out.push(sc);
-    });
+  STORE.scenes.forEach(function (sc) {
+    var wanted = (e.stag && sceneHasTag(sc, e.stag)) || (e.spage && e.spage.indexOf(sc.room) >= 0);
+    if (wanted && out.indexOf(sc) < 0 && !sceneHasTag(sc, e.xtag) && sceneAllowed(sc)) out.push(sc);
+  });
   return out;
 }
 

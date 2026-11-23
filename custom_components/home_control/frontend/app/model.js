@@ -690,7 +690,11 @@ function cleanLayout(a) {
     /* A scenes section can take in the scenes that have a tag (stag) and leave out the tagged ones it would otherwise have (xtag). */
     if (k === "scenes") {
       var st = cleanTags(s.stag),
-        xtg = cleanTags(s.xtag);
+        xtg = cleanTags(s.xtag),
+        sp = (Array.isArray(s.spage) ? s.spage : []).filter(function (x, i, a) {
+          return typeof x === "string" && /^[a-z0-9_-]{1,24}$/.test(x) && a.indexOf(x) === i;
+        }).slice(0, 30);
+      if (sp.length) o.spage = sp;
       if (st.length) o.stag = st;
       if (xtg.length) o.xtag = xtg;
     }
@@ -713,7 +717,7 @@ function cleanLayout(a) {
             return x === "hue" ? "plugin" : x;
           })
           .filter(function (x, i, a) {
-            return (x === "plugin" || x === "page" || (typeof x === "string" && (/^sec:[a-z0-9_-]{1,24}$/.test(x) || (/^tag:/.test(x) && cleanTags([x.slice(4)]).length)))) && a.indexOf(x) === i;
+            return (x === "plugin" || x === "page" || (typeof x === "string" && (/^sec:[a-z0-9_-]{1,24}$/.test(x) || /^page:[a-z0-9_-]{1,24}$/.test(x) || (/^tag:/.test(x) && cleanTags([x.slice(4)]).length)))) && a.indexOf(x) === i;
           })
           .slice(0, 24);
       /* Scenes tagged with any of these are left out of what the sources bring in (not of the scenes made from its own +). */

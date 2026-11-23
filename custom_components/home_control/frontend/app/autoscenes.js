@@ -205,6 +205,7 @@ function autoSceneSave() {
 
 /* Rows that leave out the scenes with a tag: `key` names the list on `obj` (mxt on a master, xtag on a scenes section). */
 function sceneTagLeaveOutRows(box, obj, key, redraw) {
+  if (!sceneTags().length) return;
   box.appendChild(sep(_T("tags_leave_out"), "tune"));
   box.appendChild(hintRow(_T("tags_leave_out_hint")));
   sceneTags().forEach(function (t) {
@@ -228,11 +229,54 @@ function sceneTagLeaveOutRows(box, obj, key, redraw) {
   });
 }
 
+/* The pages of the dashboard that have scenes made for them, with how many: Home first, then the rooms. */
+function scenePages() {
+  var pages = [{ id: "home", name: TITLES.home || _T("home") }].concat(
+    UI.rooms.map(function (r) {
+      return { id: r.id, name: r.name };
+    })
+  );
+  pages.forEach(function (p) {
+    p.count = STORE.scenes.filter(function (sc) {
+      return sc.room === p.id;
+    }).length;
+  });
+  return pages;
+}
+
+/* A scenes section's pages: the scenes made for these pages are in the section. */
+function scenePageSectionRows(box, e, redraw) {
+  box.appendChild(sep(_T("src_pages"), "home"));
+  scenePages().forEach(function (p) {
+    box.appendChild(
+      pill("scene", p.name, {
+        sub: function () {
+          return cntS(p.count, _T("scene_lc"), _T("scenes_lc"));
+        },
+        check: function () {
+          return (e.spage || []).indexOf(p.id) >= 0;
+        },
+        tap: function () {
+          var cur = (e.spage || []).slice(),
+            at = cur.indexOf(p.id);
+          if (at >= 0) cur.splice(at, 1);
+          else cur.push(p.id);
+          if (cur.length) e.spage = cur;
+          else delete e.spage;
+          uiChanged();
+          redraw();
+        },
+      })
+    );
+  });
+}
+
 /* A scenes section's tags: the tags it takes in, and the ones it leaves out. */
 function sceneTagSectionRows(box, e, redraw) {
   var tags = sceneTags();
-  if (!tags.length) return;
+  scenePageSectionRows(box, e, redraw);
   box.appendChild(sep(_T("tags_take_in"), "tune"));
+  if (!tags.length) box.appendChild(hintRow(_T("tags_none_used")));
   tags.forEach(function (t) {
     box.appendChild(
       pill("tune", t, {
