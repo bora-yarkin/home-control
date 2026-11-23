@@ -438,7 +438,7 @@ function selectTile(label, opts, cur, pick, icon, fmt) {
 
 /* A dropdown that can have several choices ticked: it stays open while ticking. `opts()` gives [value, label] pairs, `isOn(value)` says whether one is ticked, `toggle(value)` flips it, and `summary()` is the line under its name. */
 function multiTile(label, opts, isOn, toggle, icon, summary) {
-  var r = mk("div", "sel pane");
+  var r = mk("div", "sel selrow pane");
   r.innerHTML =
     (icon ? ic(icon) : "") +
     "<span class='tx'><span class='nm'></span><span class='sb'></span></span><span class='chev'>" +
