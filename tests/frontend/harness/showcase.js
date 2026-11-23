@@ -230,24 +230,24 @@ async function buildRemotes(w, kit) {
   const gap = (s = 1, h = 1) => ({ a: { t: "gap" }, i: "info", l: "", s, h });
   const R = (id) => w.remoteNew && Object.assign(w.remoteNew(), { rid: id });
 
-  /* Samsung TV, as a grid of six columns. */
-  const tv = "remote.living_tv";
+  /* Samsung TV, as the remote the dashboard has for it (a now playing card, power and sources, settings, mute and keyboard, a touchpad, back, home and play/pause, volume, the screen's backlight and channels), made with the builder's parts in a grid of six columns. */
+  const tv = "remote.living_tv",
+    media = "media_player.living_tv";
   const sk = (c, extra) => key(tv, c, extra);
   const samsung = R("scsamsung");
   samsung.name = "Samsung remote (grid)";
   samsung.rm.cols = 6;
   samsung.rm.btns = [
-    btn(sk("KEY_POWER"), "power", ""), btn(sk("KEY_SOURCE"), "swap", ""), gap(2), btn(sk("KEY_MENU"), "cog", "", {}), btn(sk("KEY_MUTE"), "mute", ""),
-    btn(sk("KEY_VOLUP", { r: 1 }), "volup", "", { h: 2 }),
-    { a: { t: "dpad", u: sk("KEY_UP", { r: 1 }), d: sk("KEY_DOWN", { r: 1 }), l: sk("KEY_LEFT", { r: 1 }), r: sk("KEY_RIGHT", { r: 1 }), o: sk("KEY_ENTER") }, i: "info", l: "", s: 4, h: 4 },
-    btn(sk("KEY_CHUP", { r: 1 }), "chup", "", { h: 2 }),
-    btn(sk("KEY_VOLDOWN", { r: 1 }), "voldown", "", { h: 2 }),
-    btn(sk("KEY_CHDOWN", { r: 1 }), "chdown", "", { h: 2 }),
-    btn(sk("KEY_RETURN"), "back", "", { s: 2 }), btn(sk("KEY_HOME"), "home", "", { s: 2 }), btn(sk("KEY_INFO"), "info", "", { s: 2 }),
-    ...[1, 2, 3, 4, 5, 6, 7, 8, 9].map((n) => btn(sk("KEY_" + n), "", String(n), { s: 2 })),
-    gap(2), btn(sk("KEY_0"), "", "0", { s: 2 }), btn(sk("KEY_GUIDE"), "", "Guide", { s: 2 }),
-    btn(sk("KEY_RED"), "", "", { k: "red", s: 1 }), btn(sk("KEY_GREEN"), "", "", { k: "green", s: 1 }), btn(sk("KEY_YELLOW"), "", "", { k: "yellow", s: 1 }), btn(sk("KEY_CYAN"), "", "", { k: "blue", s: 1 }), gap(2),
-    btn(sk("KEY_REWIND"), "prev", ""), btn(sk("KEY_PLAY"), "play", ""), btn(sk("KEY_PAUSE"), "pause", ""), btn(sk("KEY_STOP"), "stop", ""), btn(sk("KEY_FF"), "next", ""), btn(sk("KEY_REC"), "rec", ""),
+    { a: { t: "now", e: media }, i: "media", l: "", s: 6, h: 1 },
+    btn(sk("KEY_POWER", { w: media }), "power", "", { s: 2 }), { a: { t: "source", e: media }, i: "apps", l: "", s: 4, h: 1 },
+    btn(sk("KEY_MENU"), "cog", "", { s: 2 }), btn(sk("KEY_MUTE"), "mute", "", { s: 2 }), { a: { t: "text", e: media }, i: "keyboard", l: "", s: 2, h: 1 },
+    { a: { t: "touch", u: sk("KEY_UP", { r: 1 }), d: sk("KEY_DOWN", { r: 1 }), l: sk("KEY_LEFT", { r: 1 }), r: sk("KEY_RIGHT", { r: 1 }), o: sk("KEY_ENTER"), h: sk("KEY_ENTER", { hs: 1 }) }, i: "info", l: "", s: 6, h: 5 },
+    btn(sk("KEY_RETURN"), "back", "", { s: 2 }), btn(sk("KEY_HOME"), "home", "", { s: 2 }), btn({ t: "media", e: media, m: "play_pause" }, "playpause", "", { s: 2 }),
+    btn(sk("KEY_VOLUP", { r: 1 }), "volup", "", { s: 2 }),
+    { a: { t: "slider", e: "number.living_tv_backlight" }, i: "bright", l: "Backlight", s: 2, h: 2 },
+    btn(sk("KEY_CHUP", { r: 1 }), "chup", "CH", { s: 2 }),
+    btn(sk("KEY_VOLDOWN", { r: 1 }), "voldown", "", { s: 2 }),
+    btn(sk("KEY_CHDOWN", { r: 1 }), "chdown", "CH", { s: 2 }),
   ];
   kit.devs.push(samsung);
 

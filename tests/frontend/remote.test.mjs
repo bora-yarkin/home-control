@@ -248,3 +248,33 @@ test("the keys of an integration are its documented ones: Samsung, Apple TV and 
   assert.equal(R.text("bravia", "hi"), null);
   for (const f of R.families()) for (const g of R.groups(f)) for (const k of g[1]) assert.ok(/^[A-Za-z0-9_ .,:+-]{1,40}$/.test(k[0]), f + ":" + k[0] + " is a key the model accepts");
 });
+
+test("a remote can have a touchpad, a now-playing card, a source menu, a keyboard button and a slider, each on the right kind of entity, and a key can be held or turn a player on instead", () => {
+  const m = model();
+  const k = (c, extra = {}) => ({ t: "key", e: "remote.tv", c, ...extra });
+  const r = plain(
+    m.cleanRemote({
+      cols: 6,
+      btns: [
+        { a: { t: "touch", u: k("KEY_UP"), o: k("KEY_ENTER"), h: k("KEY_ENTER", { hs: 1 }), x: k("nope") }, s: 99, h: 1 },
+        { a: { t: "touch" } },
+        { a: { t: "now", e: "media_player.tv" }, s: 6 },
+        { a: { t: "now", e: "light.tv" } },
+        { a: { t: "source", e: "media_player.tv" } },
+        { a: { t: "text", e: "media_player.tv" }, i: "BAD ICON" },
+        { a: { t: "slider", e: "number.backlight" }, l: "Backlight" },
+        { a: { t: "slider", e: "media_player.tv" } },
+        { a: k("KEY_POWER", { w: "media_player.tv", hs: 9 }) },
+        { a: k("KEY_OK", { w: "light.tv", hs: 1.3 }) },
+      ],
+    }),
+  );
+  assert.deepEqual(r.btns.map((b) => b.a.t), ["touch", "now", "source", "text", "slider", "key", "key"]);
+  assert.deepEqual(Object.keys(r.btns[0].a).sort(), ["h", "o", "t", "u"], "only known parts with valid actions stay");
+  assert.deepEqual([r.btns[0].s, r.btns[0].h], [6, 2], "a touchpad is at least two cells each way");
+  assert.equal(r.btns[0].a.h.hs, 1);
+  assert.equal(r.btns[3].i, "keyboard");
+  assert.equal(r.btns[4].l, "Backlight");
+  assert.deepEqual(r.btns[5].a, { t: "key", e: "remote.tv", c: "KEY_POWER", w: "media_player.tv" }, "a hold over five seconds is dropped, a player to wake is kept");
+  assert.deepEqual(r.btns[6].a, { t: "key", e: "remote.tv", c: "KEY_OK", hs: 1.5 }, "a hold is in half seconds, and only a media player can be woken");
+});

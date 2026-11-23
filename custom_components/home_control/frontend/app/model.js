@@ -198,6 +198,9 @@ function cleanRmAct(a) {
     if (d !== "remote" || typeof a.c !== "string" || !/^[A-Za-z0-9_ .,:+\-]{1,40}$/.test(a.c)) return null;
     var k = { t: "key", e: a.e, c: a.c };
     if (a.r) k.r = 1;
+    /* How long the key is held (seconds), and a media player that is turned on instead while it is off (a TV's power key needs the TV to listen). */
+    if (typeof a.hs === "number" && a.hs >= 0.5 && a.hs <= 5) k.hs = Math.round(a.hs * 2) / 2;
+    if (typeof a.w === "string" && ENTRE.test(a.w) && a.w.split(".")[0] === "media_player") k.w = a.w;
     return k;
   }
   if (a.t === "media") {
@@ -246,17 +249,26 @@ function cleanRemote(r) {
       out.btns.push({ a: { t: "gap" }, i: "info", l: "", s: s, h: h });
       return;
     }
-    if (x.a && x.a.t === "dpad") {
-      var pad = { t: "dpad" },
+    /* A five-way pad (arrows and OK) or a touchpad (swipes, a tap and a hold): the action of each part. */
+    if (x.a && (x.a.t === "dpad" || x.a.t === "touch")) {
+      var pad = { t: x.a.t },
         any = false;
-      ["u", "d", "l", "r", "o"].forEach(function (k) {
+      ["u", "d", "l", "r", "o"].concat(x.a.t === "touch" ? ["h"] : []).forEach(function (k) {
         var a = act(x.a[k] ? { a: x.a[k] } : null);
         if (a) {
           pad[k] = a;
           any = true;
         }
       });
-      if (any) out.btns.push({ a: pad, i: "info", l: "", s: num(x.s, 2, cols, Math.min(3, cols)), h: num(x.h, 2, 8, 3) });
+      if (any) out.btns.push({ a: pad, i: "info", l: "", s: num(x.s, 2, cols, Math.min(x.a.t === "touch" ? cols : 3, cols)), h: num(x.h, 2, 8, x.a.t === "touch" ? 4 : 3) });
+      return;
+    }
+    /* Parts that show a media player's state or a number: the now-playing card, the source menu, a keyboard button and a slider. */
+    if (x.a && ["now", "source", "text", "slider"].indexOf(x.a.t) >= 0) {
+      var ce = typeof x.a.e === "string" && ENTRE.test(x.a.e) ? x.a.e.split(".")[0] : "";
+      if (x.a.t === "slider" ? ["number", "input_number"].indexOf(ce) < 0 : ce !== "media_player") return;
+      var comp = { a: { t: x.a.t, e: x.a.e }, i: iconOk(x.i) ? x.i : x.a.t === "text" ? "keyboard" : x.a.t === "slider" ? "bright" : "info", l: typeof x.l === "string" ? x.l.slice(0, 24) : "", s: s, h: h };
+      out.btns.push(comp);
       return;
     }
     var a = act(x);

@@ -879,6 +879,10 @@ body.pinhdr:not(.editing) .wrap::before{content:"";position:fixed;top:0;left:0;r
 .rm-dp-o{background:color-mix(in srgb,var(--ink) 10%,transparent);font-size:var(--fs-m);font-weight:600}
 .rm-dp.none{opacity:.25;pointer-events:none}
 .rm-dp.na{opacity:.4}
+.rm-grid>.touch,.rm-grid>.pill,.rm-grid>.sel,.rm-grid>.art,.rm-grid>.rm-comp{margin:0;min-width:0}
+.rm-grid>.touch{height:auto;min-height:0;align-items:center;padding-bottom:0}
+.rm-grid>.touch.ed{color:var(--ink2)}
+.rm-grid>.touch svg{width:28px;height:28px;fill:none;stroke:currentColor;stroke-width:1.6}
 .rm-dpad:focus-visible,.rm-dp:focus-visible{outline:2px solid var(--acc);outline-offset:2px}
 
 /* The camera's intercom controls and push to talk (app/profiles.js). */

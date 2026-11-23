@@ -1,5 +1,5 @@
 {
-  "version": 401,
+  "version": 402,
   "files": [
     "integrations.js",
     "app/strings.js",

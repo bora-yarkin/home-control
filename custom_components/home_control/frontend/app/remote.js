@@ -87,12 +87,21 @@ function rmUsable(a) {
   if (!a) return false;
   if (a.t === "ent" || !a.t) return remoteUsable(a.e);
   var s = H().states[a.e];
-  return !!s && s.state !== "unavailable";
+  if (s && s.state !== "unavailable") return true;
+  /* A key that wakes a media player can run while its remote entity cannot. */
+  var w = a.w && H().states[a.w];
+  return !!(w && w.state !== "unavailable");
 }
 
 /* The service call of an action, as [domain, service, data]. */
 function rmCall(a) {
-  if (a.t === "key") return ["remote", "send_command", { entity_id: a.e, command: a.c }];
+  if (a.t === "key") {
+    /* A power key goes over the TV's network socket, which is closed while the TV is off: the media player is turned on instead. */
+    if (a.w && V_(a.w) === "off") return ["media_player", "turn_on", { entity_id: a.w }];
+    var kd = { entity_id: a.e, command: a.c };
+    if (a.hs) kd.hold_secs = a.hs;
+    return ["remote", "send_command", kd];
+  }
   if (a.t === "media") {
     var data = { entity_id: a.e };
     if (a.m === "volume_mute") data.is_volume_muted = !A(a.e).is_volume_muted;
@@ -176,6 +185,30 @@ function remoteRow(d) {
   });
 }
 
+/* Text typed for a TV: how it is sent depends on the integration (Samsung Smart, Apple TV, Android TV Remote, Roku); one that cannot say so. */
+function rmSendText(media, text) {
+  var e = (H().entities || {})[media] || {},
+    p = e.platform;
+  function remoteOf() {
+    return sibBy(media, function (x) {
+      return dom(x.entity_id) === "remote";
+    });
+  }
+  if (p === "samsungtv_smart") {
+    var t = Integrations.media.samsungText(media, text);
+    return call(t[0], t[1], t[2]);
+  }
+  if (p === "apple_tv") {
+    var dv = e.device_id && H().devices[e.device_id],
+      a = Integrations.media.appleText(dv && dv.config_entries && dv.config_entries[0], text);
+    return call(a[0], a[1], a[2]);
+  }
+  if (p === "androidtv_remote" && remoteOf()) return send(remoteOf(), "text:" + text);
+  var fam = Integrations.remote.family(p);
+  if (remoteOf() && Integrations.remote.text(fam, text) !== null) return send(remoteOf(), Integrations.remote.text(fam, text));
+  toast(_T("rm_text_unsupported"));
+}
+
 /* ---- the buttons ---- */
 
 function rmSpan(el, x) {
@@ -223,9 +256,90 @@ function rmDpad(x, edit, onTap) {
   return pad;
 }
 
+/* A touchpad: swipe for the arrows (repeating while the finger stays out), tap for OK, hold for the hold action. */
+function rmTouch(x, edit, onTap) {
+  var t = mk("div", "touch pane rm-touch" + (edit ? " ed" : ""));
+  if (edit) {
+    t.innerHTML = svg("target");
+    t.addEventListener("click", onTap);
+  } else
+    swipePad(
+      t,
+      function (d) {
+        var a = x.a[{ up: "u", down: "d", left: "l", right: "r" }[d]];
+        if (a) remotePress({ a: a });
+      },
+      function () {
+        if (x.a.o) remotePress({ a: x.a.o });
+      },
+      null,
+      x.a.h
+        ? function () {
+            remotePress({ a: x.a.h });
+          }
+        : null
+    );
+  rmSpan(t, x);
+  return t;
+}
+
+/* A part that shows a media player or a number (now playing, source menu, keyboard, slider). In the builder it is a placeholder that opens its editor. */
+function rmComponent(x, edit, onTap) {
+  var a = x.a,
+    nm = A(a.e).friendly_name || a.e;
+  if (edit) {
+    var ph = mk("div", "rm-t pane ed", svg(x.i || "info"));
+    var l = mk("span", "rm-l");
+    l.textContent = _T("rm_c_" + a.t) + " · " + (x.l || nm);
+    ph.appendChild(l);
+    ph.addEventListener("click", onTap);
+    rmSpan(ph, x);
+    return ph;
+  }
+  var el;
+  if (a.t === "now") el = nowPlaying(a.e, "tv", null) || mk("div");
+  else if (a.t === "source") el = tvSources(a.e);
+  else if (a.t === "text") {
+    el = mk("div", "rm-t pane", svg(x.i || "keyboard"));
+    el.setAttribute("role", "button");
+    el.tabIndex = 0;
+    el.setAttribute("aria-label", x.l || _T("rm_c_text"));
+    if (x.l) el.appendChild(mk("span", "rm-l")).textContent = x.l;
+    el.addEventListener("click", function () {
+      kbDlg(function (v) {
+        rmSendText(a.e, v);
+      });
+    });
+  } else {
+    var at = A(a.e),
+      lo = typeof at.min === "number" ? at.min : 0,
+      hi = typeof at.max === "number" && at.max > lo ? at.max : lo + 100;
+    el = sliderRow({
+      icon: x.i || "bright",
+      name: x.l || nm,
+      min: lo,
+      max: hi,
+      step: Number(at.step) || 1,
+      get: function () {
+        var v = Number(V_(a.e));
+        return isNaN(v) ? null : v;
+      },
+      commit: function (v) {
+        call(dom(a.e), "set_value", { entity_id: a.e, value: v });
+      },
+      readonly: V_(a.e) === "unavailable",
+    });
+  }
+  el.classList.add("rm-comp");
+  rmSpan(el, x);
+  return el;
+}
+
 /* One button of the grid. In use it presses; in the builder (edit) a tap calls onTap. */
 function rmTile(x, edit, onTap) {
   if (x.a.t === "dpad") return rmDpad(x, edit, onTap);
+  if (x.a.t === "touch") return rmTouch(x, edit, onTap);
+  if (["now", "source", "text", "slider"].indexOf(x.a.t) >= 0) return rmComponent(x, edit, onTap);
   if (x.a.t === "gap") {
     var gap = mk("div", "rm-gap" + (edit ? " ed" : ""));
     if (edit) {
@@ -412,9 +526,9 @@ function remotePage(b, rid) {
     var cur = remoteFind(rid);
     if (!cur) return;
     var plain = cur.rm.btns.filter(function (y) {
-      return y.a.t !== "gap" && y.a.t !== "dpad";
+      return ["gap", "dpad", "touch", "now", "source", "text", "slider"].indexOf(y.a.t) < 0;
     });
-    box.querySelectorAll(".rm-t").forEach(function (t, i) {
+    box.querySelectorAll(".rm-t:not(.rm-comp)").forEach(function (t, i) {
       if (plain[i]) t.classList.toggle("na", !rmUsable(plain[i].a));
     });
     box.querySelectorAll(".rm-hs").forEach(function (t, i) {
@@ -499,38 +613,56 @@ function remoteBuild(b, rid) {
         toast(_T("rm_too_many"));
         return true;
       };
-      stgActions(box, [
-        pill("plus", _T("rm_add_a_button"), {
+      function addAction(icon, label, make) {
+        return pill(icon, label, {
           tap: function () {
             if (full()) return;
-            rmChooseAction(function (a) {
-              rm.btns.push({ a: a, i: rmDefaultIcon(a), l: "", s: 1, h: 1 });
+            make();
+          },
+        });
+      }
+      /* A part that shows a media player or a number: ask for the entity, then add it. */
+      function addPart(icon, label, type, doms, base) {
+        return addAction(icon, label, function () {
+          pickEntity(label, doms, null, function (id) {
+            setTimeout(function () {
+              rm.btns.push(Object.assign({ a: { t: type, e: id }, i: type === "text" ? "keyboard" : type === "slider" ? "bright" : "info", l: "", s: 1, h: 1 }, base));
               uiChanged();
-              return "remote-btn:" + rid + ":" + (rm.btns.length - 1);
-            });
-          },
-        }),
-        pill("tune", _T("rm_add_keys"), {
-          tap: function () {
-            if (!full()) showPopup("remote-keys:" + rid, true);
-          },
-        }),
-        pill("plus", _T("rm_add_a_gap"), {
-          tap: function () {
-            if (full()) return;
-            rm.btns.push({ a: { t: "gap" }, i: "info", l: "", s: 1, h: 1 });
+              showPopup(CURRENT, false);
+            }, 0);
+          });
+        });
+      }
+      stgActions(box, [
+        addAction("plus", _T("rm_add_a_button"), function () {
+          rmChooseAction(function (a) {
+            rm.btns.push({ a: a, i: rmDefaultIcon(a), l: "", s: 1, h: 1 });
             uiChanged();
-            draw();
-          },
+            return "remote-btn:" + rid + ":" + (rm.btns.length - 1);
+          });
         }),
-        pill("target", _T("rm_add_a_pad"), {
-          tap: function () {
-            if (full()) return;
-            rm.btns.push({ a: { t: "dpad" }, i: "info", l: "", s: Math.min(3, rm.cols), h: 3 });
-            uiChanged();
-            showPopup("remote-btn:" + rid + ":" + (rm.btns.length - 1), true);
-          },
+        addAction("tune", _T("rm_add_keys"), function () {
+          showPopup("remote-keys:" + rid, true);
         }),
+        addAction("plus", _T("rm_add_a_gap"), function () {
+          rm.btns.push({ a: { t: "gap" }, i: "info", l: "", s: 1, h: 1 });
+          uiChanged();
+          draw();
+        }),
+        addAction("target", _T("rm_add_a_pad"), function () {
+          rm.btns.push({ a: { t: "dpad" }, i: "info", l: "", s: Math.min(3, rm.cols), h: 3 });
+          uiChanged();
+          showPopup("remote-btn:" + rid + ":" + (rm.btns.length - 1), true);
+        }),
+        addAction("target", _T("rm_add_a_touchpad"), function () {
+          rm.btns.push({ a: { t: "touch" }, i: "info", l: "", s: rm.cols, h: 4 });
+          uiChanged();
+          showPopup("remote-btn:" + rid + ":" + (rm.btns.length - 1), true);
+        }),
+        addPart("media", _T("rm_add_now_playing"), "now", ["media_player"], { s: rm.cols }),
+        addPart("apps", _T("rm_add_a_source_menu"), "source", ["media_player"], { s: Math.min(2, rm.cols) }),
+        addPart("keyboard", _T("rm_add_a_keyboard"), "text", ["media_player"], {}),
+        addPart("bright", _T("rm_add_a_slider"), "slider", ["number", "input_number"], { s: Math.min(2, rm.cols) }),
       ]);
     });
   }
@@ -812,6 +944,9 @@ function remoteKeysPage(b, rid) {
                   if (!st.picked[k[0]] || rm.btns.length >= 150) return;
                   var a = mkAct(k);
                   if (g[0] === "volume" && /UP|DOWN|up|down/.test(k[0])) a.r = 1;
+                  /* A TV's power key needs the TV to listen: its media player is turned on instead while it is off. */
+                  var mp = !webos && fam === "samsung" && /POWER$/.test(k[0]) ? sibBy(st.e, function (x) { return dom(x.entity_id) === "media_player"; }) : "";
+                  if (mp) a.w = mp;
                   var btn = { a: a, i: k[2], l: k[3] ? "" : k[1], s: 1, h: 1 };
                   if (k[3]) btn.k = k[3];
                   rm.btns.push(btn);
@@ -834,6 +969,23 @@ function remoteKeysPage(b, rid) {
                 if (i < 4 && !webos) pad["udlro"[i]].r = 1;
               });
               rm.btns.push({ a: pad, i: "info", l: "", s: Math.min(3, rm.cols), h: 3 });
+              uiChanged();
+              popBack();
+            },
+          })
+        );
+      if (nav && nav[1].length >= 5)
+        acts.push(
+          pill("target", _T("rm_add_a_touchpad_of_these"), {
+            tap: function () {
+              if (rm.btns.length >= 150) return toast(_T("rm_too_many"));
+              var tp = { t: "touch" };
+              nav[1].slice(0, 5).forEach(function (k, i) {
+                tp["udlro"[i]] = mkAct(k);
+              });
+              /* A hold on the touchpad holds OK. */
+              tp.h = Object.assign({}, tp.o, webos ? {} : { hs: 1 });
+              rm.btns.push({ a: tp, i: "info", l: "", s: rm.cols, h: 4 });
               uiChanged();
               popBack();
             },
@@ -981,8 +1133,79 @@ function remoteBtnPage(b, key) {
       })
     );
     stgActions(box, sw);
+    if (a.t === "key") {
+      var kx = [
+        pill("clock", _T("rm_hold_the_key"), {
+          on: function () {
+            return !!a.hs;
+          },
+          sub: function () {
+            return a.hs ? a.hs + " s" : _T("off");
+          },
+          tap: function () {
+            if (a.hs) delete a.hs;
+            else a.hs = 1;
+            save();
+            draw();
+          },
+        }),
+        pill("power", _T("rm_wake_a_player"), {
+          on: function () {
+            return !!a.w;
+          },
+          sub: function () {
+            return a.w ? A(a.w).friendly_name || a.w : _T("rm_wake_a_player_sub");
+          },
+          tap: function () {
+            if (a.w) {
+              delete a.w;
+              save();
+              draw();
+              return;
+            }
+            pickEntity(_T("rm_wake_a_player"), ["media_player"], null, function (id) {
+              a.w = id;
+              save();
+            });
+          },
+        }),
+      ];
+      stgActions(box, kx);
+    }
   }
-  /* A five-way pad: the action of each of its five parts. */
+  /* A part that shows a media player or a number: which one, how it is called, and its size. */
+  function compEditor(a) {
+    box.appendChild(sep(_T("rm_what_it_does"), "play"));
+    box.appendChild(
+      pill("plug", A(a.e).friendly_name || a.e, {
+        sub: function () {
+          return _T("rm_c_" + a.t) + " · " + _T("rm_change_what_it_does");
+        },
+        tap: function () {
+          pickEntity(_T("rm_choose_the_entity"), a.t === "slider" ? ["number", "input_number"] : ["media_player"], null, function (id) {
+            a.e = id;
+            save();
+          });
+        },
+      })
+    );
+    if (a.t === "slider" || a.t === "text")
+      box.appendChild(
+        textRow(
+          "edit",
+          _T("rm_label"),
+          x.l,
+          function (v) {
+            x.l = v ? v.slice(0, 24) : "";
+            save();
+          },
+          24
+        )
+      );
+    sizeRows();
+    ending();
+  }
+  /* A five-way pad or a touchpad: the action of each of its parts. */
   function padEditor() {
     var pad = x.a;
     box.appendChild(sep(_T("rm_pad_parts"), "target"));
@@ -992,7 +1215,9 @@ function remoteBtnPage(b, key) {
       ["l", "left", "rm_pad_left"],
       ["r", "right", "rm_pad_right"],
       ["o", "info", "rm_pad_ok"],
-    ].forEach(function (pt) {
+    ]
+      .concat(pad.t === "touch" ? [["h", "target", "rm_pad_hold"]] : [])
+      .forEach(function (pt) {
       box.appendChild(
         pill(pt[1], _T(pt[2]), {
           sub: function () {
@@ -1007,6 +1232,23 @@ function remoteBtnPage(b, key) {
         })
       );
     });
+    if (pad.t === "touch" && pad.h && pad.h.t === "key")
+      box.appendChild(
+        pill("clock", _T("rm_hold_the_key"), {
+          on: function () {
+            return !!pad.h.hs;
+          },
+          sub: function () {
+            return pad.h.hs ? pad.h.hs + " s" : _T("off");
+          },
+          tap: function () {
+            if (pad.h.hs) delete pad.h.hs;
+            else pad.h.hs = 1;
+            save();
+            draw();
+          },
+        })
+      );
     var arrows = ["u", "d", "l", "r"].filter(function (k) {
         return pad[k] && pad[k].t !== "ent" && pad[k].t !== "src";
       }),
@@ -1044,7 +1286,8 @@ function remoteBtnPage(b, key) {
         ending();
         return;
       }
-      if (!hot && a.t === "dpad") return padEditor();
+      if (!hot && (a.t === "dpad" || a.t === "touch")) return padEditor();
+      if (!hot && ["now", "source", "text", "slider"].indexOf(a.t) >= 0) return compEditor(a);
       if (!hot) {
         stgIdentity(
           box,
