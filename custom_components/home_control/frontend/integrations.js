@@ -109,5 +109,95 @@ var vacuum={
  positionSensor:function(mapImage){return mapImage.replace(/^image\./,"sensor.").replace(/_live_map$/,"_vacuum_position")}
 };
 
-window.Integrations={media:media,vacuum:vacuum};
+
+/* ---- the keys of a remote entity, for the remote builder ---- */
+
+/* Which keys a remote entity understands depends on the integration behind it. Each family lists its keys by group as [command, label, icon, colour]; the commands are the ones the integration documents
+   (Home Assistant's pages for each), and a family the dashboard does not know takes any command typed in. Only Samsung (samsungtv_smart), Apple TV and Android TV Remote are used with the real device by the author; the
+   others follow their documentation and are untested. `how` says how a key is sent: "key" is remote.send_command on the remote entity, "webos" is webostv.button on the media player. */
+function K(c,l,i,k){return[c,l,i||"",k||""]}
+function digits(prefix,suffix){var a=[];for(var n=0;n<10;n++)a.push(K(prefix+n+(suffix||""),String(n)));return a}
+var KEYS={
+ samsung:{label:"Samsung TV",how:"key",groups:[
+  ["nav",[K("KEY_UP","Up","up"),K("KEY_DOWN","Down","down"),K("KEY_LEFT","Left","left"),K("KEY_RIGHT","Right","right"),K("KEY_ENTER","OK"),K("KEY_RETURN","Back","back"),K("KEY_HOME","Home","home"),K("KEY_MENU","Menu","cog"),K("KEY_EXIT","Exit","close"),K("KEY_INFO","Info","info"),K("KEY_GUIDE","Guide"),K("KEY_TOOLS","Tools","tune")]],
+  ["power",[K("KEY_POWER","Power","power"),K("KEY_SOURCE","Source","swap"),K("KEY_HDMI","HDMI")]],
+  ["volume",[K("KEY_VOLUP","Volume up","volup"),K("KEY_VOLDOWN","Volume down","voldown"),K("KEY_MUTE","Mute","mute"),K("KEY_CHUP","Channel up","chup"),K("KEY_CHDOWN","Channel down","chdown"),K("KEY_CH_LIST","Channels"),K("KEY_PRECH","Previous")]],
+  ["numbers",digits("KEY_")],
+  ["media",[K("KEY_PLAY","Play","play"),K("KEY_PAUSE","Pause","pause"),K("KEY_STOP","Stop","stop"),K("KEY_REWIND","Rewind","prev"),K("KEY_FF","Forward","next"),K("KEY_REC","Record","rec")]],
+  ["colours",[K("KEY_RED","","","red"),K("KEY_GREEN","","","green"),K("KEY_YELLOW","","","yellow"),K("KEY_CYAN","","","blue")]],
+  ["other",[K("KEY_CAPTION","Subtitles"),K("KEY_PICTURE_SIZE","Picture size"),K("KEY_SLEEP","Sleep"),K("KEY_FAVCH","Favourites")]]]},
+ apple:{label:"Apple TV",how:"key",groups:[
+  ["nav",[K("up","Up","up"),K("down","Down","down"),K("left","Left","left"),K("right","Right","right"),K("select","OK"),K("menu","Back","back"),K("home","Home","home"),K("top_menu","TV app","tv"),K("control_center","Control centre","cog")]],
+  ["power",[K("wakeup","Wake","power"),K("suspend","Sleep","moon"),K("turn_on","Turn on"),K("turn_off","Turn off")]],
+  ["volume",[K("volume_up","Volume up","volup"),K("volume_down","Volume down","voldown")]],
+  ["media",[K("play","Play","play"),K("pause","Pause","pause"),K("previous","Previous","prev"),K("next","Next","next"),K("skip_backward","Back 10 s","prev"),K("skip_forward","Forward 10 s","next")]]]},
+ android:{label:"Android TV",how:"key",groups:[
+  ["nav",[K("DPAD_UP","Up","up"),K("DPAD_DOWN","Down","down"),K("DPAD_LEFT","Left","left"),K("DPAD_RIGHT","Right","right"),K("DPAD_CENTER","OK"),K("BACK","Back","back"),K("HOME","Home","home"),K("MENU","Menu","cog"),K("SETTINGS","Settings","tune"),K("SEARCH","Search","search"),K("INFO","Info","info"),K("GUIDE","Guide")]],
+  ["power",[K("POWER","Power","power"),K("TV","TV","tv")]],
+  ["volume",[K("VOLUME_UP","Volume up","volup"),K("VOLUME_DOWN","Volume down","voldown"),K("VOLUME_MUTE","Mute","mute"),K("CHANNEL_UP","Channel up","chup"),K("CHANNEL_DOWN","Channel down","chdown")]],
+  ["numbers",digits("")],
+  ["media",[K("MEDIA_PLAY_PAUSE","Play/pause","playpause"),K("MEDIA_PLAY","Play","play"),K("MEDIA_PAUSE","Pause","pause"),K("MEDIA_STOP","Stop","stop"),K("MEDIA_PREVIOUS","Previous","prev"),K("MEDIA_NEXT","Next","next"),K("MEDIA_REWIND","Rewind","prev"),K("MEDIA_FAST_FORWARD","Forward","next"),K("MEDIA_RECORD","Record","rec")]],
+  ["colours",[K("PROG_RED","","","red"),K("PROG_GREEN","","","green"),K("PROG_YELLOW","","","yellow"),K("PROG_BLUE","","","blue")]]]},
+ roku:{label:"Roku",how:"key",groups:[
+  ["nav",[K("up","Up","up"),K("down","Down","down"),K("left","Left","left"),K("right","Right","right"),K("select","OK"),K("back","Back","back"),K("home","Home","home"),K("info","Info","info"),K("search","Search","search"),K("replay","Replay","restart")]],
+  ["power",[K("power","Power","power"),K("input_hdmi1","HDMI 1"),K("input_hdmi2","HDMI 2"),K("input_hdmi3","HDMI 3"),K("input_hdmi4","HDMI 4"),K("input_av1","AV"),K("input_tuner","Tuner")]],
+  ["volume",[K("volume_up","Volume up","volup"),K("volume_down","Volume down","voldown"),K("volume_mute","Mute","mute"),K("channel_up","Channel up","chup"),K("channel_down","Channel down","chdown")]],
+  ["media",[K("play","Play/pause","playpause"),K("reverse","Rewind","prev"),K("forward","Forward","next")]]]},
+ bravia:{label:"Sony Bravia",how:"key",groups:[
+  ["nav",[K("Up","Up","up"),K("Down","Down","down"),K("Left","Left","left"),K("Right","Right","right"),K("Confirm","OK"),K("Return","Back","back"),K("Home","Home","home"),K("Exit","Exit","close"),K("ActionMenu","Menu","cog"),K("SyncMenu","Sync menu")]],
+  ["numbers",digits("Num")],
+  ["media",[K("Rewind","Rewind","prev"),K("Forward","Forward","next")]]]},
+ philips:{label:"Philips TV",how:"key",groups:[
+  ["nav",[K("CursorUp","Up","up"),K("CursorDown","Down","down"),K("CursorLeft","Left","left"),K("CursorRight","Right","right"),K("Confirm","OK"),K("Back","Back","back"),K("Home","Home","home"),K("Exit","Exit","close"),K("Options","Options","cog"),K("Info","Info","info"),K("TvGuide","Guide"),K("Source","Source","swap"),K("Find","Search","search")]],
+  ["power",[K("Standby","Standby","power"),K("PowerOn","On"),K("PowerOff","Off"),K("AmbilightOnOff","Ambilight","lights")]],
+  ["volume",[K("VolumeUp","Volume up","volup"),K("VolumeDown","Volume down","voldown"),K("Mute","Mute","mute"),K("ChannelStepUp","Channel up","chup"),K("ChannelStepDown","Channel down","chdown")]],
+  ["numbers",digits("Digit")],
+  ["media",[K("Play","Play","play"),K("Pause","Pause","pause"),K("PlayPause","Play/pause","playpause"),K("Stop","Stop","stop"),K("Rewind","Rewind","prev"),K("FastForward","Forward","next"),K("Record","Record","rec")]],
+  ["colours",[K("RedColour","","","red"),K("GreenColour","","","green"),K("YellowColour","","","yellow"),K("BlueColour","","","blue")]]]},
+ vizio:{label:"Vizio",how:"key",groups:[
+  ["nav",[K("up","Up","up"),K("down","Down","down"),K("left","Left","left"),K("right","Right","right"),K("ok","OK"),K("back","Back","back"),K("exit","Exit","close"),K("menu","Menu","cog"),K("info","Info","info"),K("guide","Guide"),K("smartcast","SmartCast","apps"),K("input_next","Input","swap")]],
+  ["power",[K("pow_toggle","Power","power"),K("pow_on","On"),K("pow_off","Off")]],
+  ["volume",[K("vol_up","Volume up","volup"),K("vol_down","Volume down","voldown"),K("mute_toggle","Mute","mute"),K("ch_up","Channel up","chup"),K("ch_down","Channel down","chdown"),K("ch_prev","Previous channel")]],
+  ["numbers",digits("num_")],
+  ["media",[K("play","Play","play"),K("pause","Pause","pause"),K("seek_back","Rewind","prev"),K("seek_fwd","Forward","next")]]]},
+ adb:{label:"Fire TV and Android (adb)",how:"key",groups:[
+  ["nav",[K("UP","Up","up"),K("DOWN","Down","down"),K("LEFT","Left","left"),K("RIGHT","Right","right"),K("CENTER","OK"),K("BACK","Back","back"),K("HOME","Home","home"),K("MENU","Menu","cog"),K("SETTINGS","Settings","tune"),K("SEARCH","Search","search")]],
+  ["power",[K("POWER","Power","power"),K("SLEEP","Sleep","moon"),K("WAKEUP","Wake"),K("INPUT","Input","swap"),K("HDMI1","HDMI 1"),K("HDMI2","HDMI 2"),K("HDMI3","HDMI 3"),K("HDMI4","HDMI 4")]],
+  ["volume",[K("VOLUME_UP","Volume up","volup"),K("VOLUME_DOWN","Volume down","voldown"),K("MUTE","Mute","mute")]],
+  ["media",[K("REWIND","Rewind","prev"),K("FAST_FORWARD","Forward","next")]],
+  ["colours",[K("RED","","","red"),K("GREEN","","","green"),K("YELLOW","","","yellow"),K("BLUE","","","blue")]]]},
+ webos:{label:"LG webOS",how:"webos",groups:[
+  ["nav",[K("UP","Up","up"),K("DOWN","Down","down"),K("LEFT","Left","left"),K("RIGHT","Right","right"),K("ENTER","OK"),K("BACK","Back","back"),K("HOME","Home","home"),K("EXIT","Exit","close"),K("MENU","Menu","cog"),K("INFO","Info","info")]],
+  ["volume",[K("VOLUMEUP","Volume up","volup"),K("VOLUMEDOWN","Volume down","voldown"),K("MUTE","Mute","mute"),K("CHANNELUP","Channel up","chup"),K("CHANNELDOWN","Channel down","chdown")]],
+  ["numbers",digits("")],
+  ["media",[K("PLAY","Play","play"),K("PAUSE","Pause","pause")]],
+  ["colours",[K("RED","","","red"),K("GREEN","","","green"),K("YELLOW","","","yellow"),K("BLUE","","","blue")]]]}
+};
+var PLATFORM_FAMILY={samsungtv:"samsung",samsungtv_smart:"samsung",apple_tv:"apple",androidtv_remote:"android",roku:"roku",braviatv:"bravia",philips_js:"philips",vizio:"vizio",androidtv:"adb",webostv:"webos"};
+
+/* The keys a native-style remote needs, per family: power, mute, the four arrows, OK, back, home, menu, volume, channels and play/pause. A role a family has no key for is left to the media player's own services (volume, power,
+   play and pause). These come from the integrations' documentation and are not tested on a real device; the remote says so. */
+var ROLES={
+ roku:{power:"power",mute:"volume_mute",up:"up",down:"down",left:"left",right:"right",ok:"select",back:"back",home:"home",menu:"info",volup:"volume_up",voldown:"volume_down",chup:"channel_up",chdown:"channel_down",playpause:"play",text:function(t){return"Lit_"+t}},
+ bravia:{up:"Up",down:"Down",left:"Left",right:"Right",ok:"Confirm",back:"Return",home:"Home",menu:"ActionMenu"},
+ philips:{power:"Standby",mute:"Mute",up:"CursorUp",down:"CursorDown",left:"CursorLeft",right:"CursorRight",ok:"Confirm",back:"Back",home:"Home",menu:"Options",volup:"VolumeUp",voldown:"VolumeDown",chup:"ChannelStepUp",chdown:"ChannelStepDown",playpause:"PlayPause"},
+ vizio:{power:"pow_toggle",mute:"mute_toggle",up:"up",down:"down",left:"left",right:"right",ok:"ok",back:"back",home:"smartcast",menu:"menu",volup:"vol_up",voldown:"vol_down",chup:"ch_up",chdown:"ch_down",playpause:"play"},
+ adb:{power:"POWER",mute:"MUTE",up:"UP",down:"DOWN",left:"LEFT",right:"RIGHT",ok:"CENTER",back:"BACK",home:"HOME",menu:"MENU",volup:"VOLUME_UP",voldown:"VOLUME_DOWN"},
+ webos:{up:"UP",down:"DOWN",left:"LEFT",right:"RIGHT",ok:"ENTER",back:"BACK",home:"HOME",menu:"MENU",volup:"VOLUMEUP",voldown:"VOLUMEDOWN",mute:"MUTE",chup:"CHANNELUP",chdown:"CHANNELDOWN",playpause:"PLAY"}
+};
+var remote={
+ /* The family of an integration's platform (see KEYS), or "" when the dashboard has no list for it. */
+ family:function(platform){return PLATFORM_FAMILY[platform]||""},
+ label:function(family){return KEYS[family]?KEYS[family].label:""},
+ how:function(family){return KEYS[family]?KEYS[family].how:"key"},
+ /* [group, [[command, label, icon, colour], ...]] for a family. */
+ groups:function(family){return KEYS[family]?KEYS[family].groups:[]},
+ families:function(){return Object.keys(KEYS)},
+ /* The key of a role for a family ("" when the family has none), and whether the family is one with a native-style remote that is only built from documentation. */
+ role:function(family,role){var r=ROLES[family];return r&&typeof r[role]==="string"?r[role]:""},
+ text:function(family,t){var r=ROLES[family];return r&&r.text?r.text(t):null},
+ experimental:function(family){return !!ROLES[family]}
+};
+
+window.Integrations={media:media,vacuum:vacuum,remote:remote};
 })();

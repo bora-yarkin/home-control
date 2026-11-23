@@ -4,6 +4,11 @@ Format: [Keep a Changelog](https://keepachangelog.com/). Versions follow [semant
 
 ## [Unreleased]
 
+### Changed
+- **A remote is used in its popup and built in the device's settings** (*Buttons*): the Use and Edit buttons tab is gone. The builder has a grid of up to 12 columns where each button has its own width and height, gaps, five-way pads, drag to reorder, and ready-made sets of keys for the integration behind a remote entity (Samsung TV, Apple TV, Android TV Remote, Roku, Sony Bravia, Philips, Vizio, Fire TV and LG webOS; the last six are built from their documentation and untested). A button presses an entity, sends a key to a remote entity, controls a media player, selects a source or presses an LG button; keys can repeat while held and have a colour. A picture remote has touch areas with the same actions.
+- **TVs without a native remote get one built from their integration's keys** (Roku, Sony Bravia, Philips, Vizio, Fire TV, LG webOS), marked experimental. Samsung, Apple TV and Android TV keep their own.
+- **A blind has its own popup**: the position slider when it can be set, open, stop and close, and the slats' slider or buttons; the row shows the position.
+
 ## [0.20.0] - 2026-11-23
 
 ### Changed

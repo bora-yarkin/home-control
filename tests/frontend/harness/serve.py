@@ -10,7 +10,11 @@ ROOT = pathlib.Path(__file__).resolve().parents[3]
 
 
 # Where a plus integration's script is served from on a real box: /<domain>_static/. Here a sibling checkout of Hue Plus stands in for it, when there is one.
-PLUGINS = {"/hue_plus_static/": ROOT.parent / "hue-plus" / "custom_components" / "hue_plus" / "frontend"}
+PLUGINS = {
+    "/hue_plus_static/": ROOT.parent / "hue-plus" / "custom_components" / "hue_plus" / "frontend",
+    # A remote's picture kept out of the repository, for trying the picture layout: tests/frontend/harness/local/ is not tracked.
+    "/local/": ROOT / "tests" / "frontend" / "harness" / "local",
+}
 
 
 class Handler(http.server.SimpleHTTPRequestHandler):

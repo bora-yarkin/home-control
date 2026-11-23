@@ -186,36 +186,85 @@ function cleanHdr(a) {
 }
 
 /* A custom remote's grid (app/remote.js): the number of columns and up to 60 buttons, each an entity of a kind that can be pressed, an icon, a short label and how many columns it takes. */
+/* What a button of a remote does (app/remote.js): press an entity (a script, a button, a scene, a switch), send a key to a remote entity (`remote.send_command`), control a media player (volume, play, power) or select one of its sources. Anything else is dropped. A key may repeat while it is held (volume, channels). */
+var RM_ENT_DOMS = ["script", "button", "input_button", "scene", "switch"];
+var RM_MEDIA = ["volume_up", "volume_down", "volume_mute", "play_pause", "play", "pause", "stop", "next", "previous", "turn_on", "turn_off", "toggle"];
+
+function cleanRmAct(a) {
+  if (!a || typeof a !== "object" || typeof a.e !== "string" || !ENTRE.test(a.e)) return null;
+  var d = a.e.split(".")[0];
+  if (!a.t || a.t === "ent") return RM_ENT_DOMS.indexOf(d) >= 0 ? { t: "ent", e: a.e } : null;
+  if (a.t === "key") {
+    if (d !== "remote" || typeof a.c !== "string" || !/^[A-Za-z0-9_ .,:+\-]{1,40}$/.test(a.c)) return null;
+    var k = { t: "key", e: a.e, c: a.c };
+    if (a.r) k.r = 1;
+    return k;
+  }
+  if (a.t === "media") {
+    if (d !== "media_player" || RM_MEDIA.indexOf(a.m) < 0) return null;
+    var m = { t: "media", e: a.e, m: a.m };
+    if (a.r) m.r = 1;
+    return m;
+  }
+  if (a.t === "webos") return d === "media_player" && typeof a.b === "string" && /^[A-Z0-9_]{1,20}$/.test(a.b) ? (a.r ? { t: "webos", e: a.e, b: a.b, r: 1 } : { t: "webos", e: a.e, b: a.b }) : null;
+  if (a.t === "src") return d === "media_player" && typeof a.v === "string" && a.v && a.v.length <= 60 ? { t: "src", e: a.e, v: a.v } : null;
+  return null;
+}
+
+/* The remote of a device: a grid of buttons (width and height in cells, gaps, five-way pads) or a picture with touch areas over it. */
 function cleanRemote(r) {
-  var cols = r && typeof r.cols === "number" ? Math.max(2, Math.min(6, Math.round(r.cols))) : 3,
+  var cols = r && typeof r.cols === "number" ? Math.max(2, Math.min(12, Math.round(r.cols))) : 3,
     out = { cols: cols, btns: [] },
-    img = r && r.img;
+    img = r && r.img,
+    num = function (v, lo, hi, def) {
+      return typeof v === "number" && isFinite(v) ? Math.max(lo, Math.min(hi, Math.round(v))) : def;
+    },
+    act = function (x) {
+      /* A button made before actions had a kind has the entity on the button itself. */
+      return cleanRmAct(x && x.a ? x.a : x && x.e ? { t: "ent", e: x.e } : null);
+    };
   /* A picture of the remote: one of the integration's uploads or a file under /local/, with touch areas in percent of the picture. */
   if (img && typeof img.u === "string" && /^(\/home_control_remotes\/[a-f0-9]{12}\.(png|jpg|webp)|\/local\/[A-Za-z0-9_\-./]{1,150})(\?[A-Za-z0-9=_\-]{1,20})?$/.test(img.u) && img.u.indexOf("..") < 0) {
     var pct = function (v, lo, hi) {
       return typeof v === "number" && isFinite(v) ? Math.max(lo, Math.min(hi, Math.round(v * 100) / 100)) : lo;
     };
     out.img = { u: img.u, hs: [] };
-    (Array.isArray(img.hs) ? img.hs : []).slice(0, 60).forEach(function (h) {
-      if (!h || typeof h.e !== "string" || !ENTRE.test(h.e)) return;
-      if (["script", "button", "input_button", "scene", "switch"].indexOf(h.e.split(".")[0]) < 0) return;
-      var w = pct(h.w, 3, 100),
-        hh = pct(h.h, 3, 100);
-      out.img.hs.push({ x: pct(h.x, 0, 100 - w), y: pct(h.y, 0, 100 - hh), w: w, h: hh, r: h.r === "ellipse" ? "ellipse" : "rect", e: h.e });
+    (Array.isArray(img.hs) ? img.hs : []).slice(0, 120).forEach(function (h) {
+      var a = h && act(h);
+      if (!a) return;
+      var w = pct(h.w, 1, 100),
+        hh = pct(h.h, 1, 100);
+      out.img.hs.push({ x: pct(h.x, 0, 100 - w), y: pct(h.y, 0, 100 - hh), w: w, h: hh, r: h.r === "ellipse" ? "ellipse" : "rect", a: a });
     });
     if (r.v === "i") out.v = "i";
   }
-  (r && Array.isArray(r.btns) ? r.btns : []).slice(0, 60).forEach(function (x) {
-    if (!x || typeof x.e !== "string" || !ENTRE.test(x.e)) return;
-    if (["script", "button", "input_button", "scene", "switch"].indexOf(x.e.split(".")[0]) < 0) return;
-    var s = typeof x.s === "number" ? Math.round(x.s) : 1;
-    var btn = {
-      e: x.e,
-      i: iconOk(x.i) ? x.i : "info",
-      l: typeof x.l === "string" ? x.l.slice(0, 24) : "",
-      s: Math.max(1, Math.min(cols, 2, s)),
-    };
+  (r && Array.isArray(r.btns) ? r.btns : []).slice(0, 150).forEach(function (x) {
+    if (!x || typeof x !== "object") return;
+    var s = num(x.s, 1, cols, 1),
+      h = num(x.h, 1, 8, 1);
+    if (x.a && x.a.t === "gap") {
+      out.btns.push({ a: { t: "gap" }, i: "info", l: "", s: s, h: h });
+      return;
+    }
+    if (x.a && x.a.t === "dpad") {
+      var pad = { t: "dpad" },
+        any = false;
+      ["u", "d", "l", "r", "o"].forEach(function (k) {
+        var a = act(x.a[k] ? { a: x.a[k] } : null);
+        if (a) {
+          pad[k] = a;
+          any = true;
+        }
+      });
+      if (any) out.btns.push({ a: pad, i: "info", l: "", s: num(x.s, 2, cols, Math.min(3, cols)), h: num(x.h, 2, 8, 3) });
+      return;
+    }
+    var a = act(x);
+    if (!a) return;
+    var label = typeof x.l === "string" ? x.l.slice(0, 24) : "",
+      btn = { a: a, i: iconOk(x.i) ? x.i : x.i === "" && label ? "" : "info", l: label, s: s, h: h };
     if (x.q) btn.q = 1;
+    if (["red", "green", "yellow", "blue"].indexOf(x.k) >= 0) btn.k = x.k;
     out.btns.push(btn);
   });
   return out;

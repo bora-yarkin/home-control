@@ -814,7 +814,95 @@ function mediaPopup(b, id) {
   else if (k === "apple" && rem)
     appleRemote(b, rem, id, roomTvRemote(id), dv && dv.config_entries && dv.config_entries[0]);
   else if (k === "android" && rem) androidRemote(b, rem, id);
+  else if (Integrations.remote.experimental(tvFamily(id)) && (rem || tvFamily(id) === "webos")) familyRemote(b, id, rem, tvFamily(id));
   else mediaGeneric(b, id, (UIDEV[id] || {}).icon);
+}
+
+/* The key family of a media player's integration (app/integrations.js): Roku, Sony Bravia, Philips, Vizio, Fire TV and LG webOS have a remote built from what their integrations document. */
+function tvFamily(id) {
+  return Integrations.remote.family(((H().entities || {})[id] || {}).platform);
+}
+
+/* A remote for a TV the dashboard has no native remote for: the same layout as the others, with the keys its integration documents, and the media player's own services where it lists none. It says it is experimental. */
+function familyRemote(b, media, remote, fam) {
+  var how = Integrations.remote.how(fam);
+  function key(role) {
+    return Integrations.remote.role(fam, role);
+  }
+  function press(role, hold) {
+    var k = key(role);
+    if (!k) return false;
+    if (how === "webos") call("webostv", "button", { entity_id: media, button: k });
+    else send(remote, k, hold);
+    return true;
+  }
+  /* A role with no key goes to the media player's own service. */
+  function act(role, svc, data) {
+    return function () {
+      if (!press(role) && svc) call("media_player", svc, Object.assign({ entity_id: media }, data || {}));
+    };
+  }
+  b.appendChild(hintRow(_T("tv_remote_experimental")));
+  addNowPlaying(b, media, "tv");
+  var r1 = mk("div", "rrow");
+  r1.appendChild(
+    rbtn("power", function () {
+      if (V_(media) === "off") call("media_player", "turn_on", { entity_id: media });
+      else if (!press("power")) call("media_player", "turn_off", { entity_id: media });
+    })
+  );
+  r1.appendChild(tvSources(media));
+  b.appendChild(r1);
+  var r2 = mk("div", "rrow");
+  if (key("menu"))
+    r2.appendChild(
+      rbtn("cog", function () {
+        press("menu");
+      })
+    );
+  r2.appendChild(rbtn("mute", act("mute", "volume_mute", { is_volume_muted: !A(media).is_volume_muted })));
+  if (remote && Integrations.remote.text(fam, "x") !== null)
+    r2.appendChild(
+      rbtn("keyboard", function () {
+        kbDlg(function (v) {
+          send(remote, Integrations.remote.text(fam, v));
+        });
+      })
+    );
+  b.appendChild(r2);
+  var t = mk("div", "touch pane");
+  swipePad(
+    t,
+    function (d) {
+      press(d);
+    },
+    function () {
+      press("ok");
+    },
+    null,
+    function () {
+      press("ok", 1);
+    }
+  );
+  b.appendChild(t);
+  var r3 = mk("div", "rrow");
+  r3.appendChild(rbtn("back", act("back", "")));
+  r3.appendChild(rbtn("home", act("home", "")));
+  r3.appendChild(rbtn("playpause", act("playpause", "media_play_pause")));
+  b.appendChild(r3);
+  var r4 = mk("div", "rrow"),
+    l = mk("div", "rstack"),
+    rr = mk("div", "rstack");
+  l.appendChild(rbtn("volup", act("volup", "volume_up"), "", true));
+  l.appendChild(rbtn("voldown", act("voldown", "volume_down"), "", true));
+  r4.appendChild(l);
+  r4.appendChild(mk("div"));
+  if (key("chup")) {
+    rr.appendChild(rbtn("chup", act("chup", ""), "CH", true));
+    rr.appendChild(rbtn("chdown", act("chdown", ""), "CH", true));
+    r4.appendChild(rr);
+  }
+  b.appendChild(r4);
 }
 
 function androidRemote(b, remote, media) {

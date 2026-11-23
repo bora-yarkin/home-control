@@ -13,6 +13,8 @@ const D = {
   apple: ["4a".repeat(16), "Showcase Apple TV"],
   speaker: ["5a".repeat(16), "Showcase speaker"],
   cam: ["6a".repeat(16), "Showcase garden camera"],
+  roku: ["8a".repeat(16), "Showcase Roku TV"],
+  lg: ["ba".repeat(16), "Showcase LG TV"],
   avr: ["7a".repeat(16), "Showcase receiver"],
 };
 
@@ -30,6 +32,7 @@ export function showcaseStates() {
     s("remote.showcase_apple_tv", "on", { friendly_name: "Showcase Apple TV remote" }),
     s("media_player.showcase_speaker", "playing", { friendly_name: "Showcase speaker", media_title: "A song", media_artist: "An artist", media_album_name: "An album", volume_level: 0.4, is_volume_muted: false, media_duration: 210, media_position: 70, media_position_updated_at: new Date().toISOString(), supported_features: 152461 }),
     s("media_player.showcase_receiver", "on", { friendly_name: "Showcase receiver", source: "HDMI 1", source_list: ["HDMI 1", "HDMI 2", "Radio"], volume_level: 0.25, supported_features: 152461 }),
+    s("remote.showcase_receiver_ir", "on", { friendly_name: "Showcase receiver infrared" }),
     s("select.showcase_receiver_sound_mode", "Movie", { friendly_name: "Showcase receiver Sound mode", options: ["Movie", "Music", "Pure"] }),
     s("camera.showcase_garden", "idle", { friendly_name: "Showcase garden camera", entity_picture: "/tests/frontend/harness/door-cam.svg" }),
     s("button.showcase_garden_move_left", "unknown", { friendly_name: "Showcase garden camera Move left" }),
@@ -38,6 +41,11 @@ export function showcaseStates() {
     s("binary_sensor.showcase_garden_motion", "off", { friendly_name: "Showcase garden camera Motion", device_class: "motion" }),
     s("switch.showcase_plug", "on", { friendly_name: "Showcase plug" }),
     s("cover.showcase_blind", "open", { friendly_name: "Showcase blind", current_position: 70, supported_features: 15 }),
+    s("cover.showcase_venetian", "open", { friendly_name: "Showcase venetian blind", current_position: 100, current_tilt_position: 40, supported_features: 255 }),
+    s("cover.showcase_garage", "closed", { friendly_name: "Showcase garage door", device_class: "garage", supported_features: 3 }),
+    s("media_player.showcase_roku", "on", { friendly_name: "Showcase Roku TV", source: "HDMI 1", source_list: ["HDMI 1", "HDMI 2", "Netflix"], volume_level: 0.3, supported_features: 152461 }),
+    s("remote.showcase_roku", "on", { friendly_name: "Showcase Roku TV remote" }),
+    s("media_player.showcase_lg", "on", { friendly_name: "Showcase LG TV", source: "HDMI 2", source_list: ["HDMI 1", "HDMI 2", "Live TV"], volume_level: 0.2, supported_features: 152461 }),
     s("lock.showcase_front", "locked", { friendly_name: "Showcase front door lock" }),
     s("sensor.showcase_temperature", "21.4", { friendly_name: "Showcase temperature", unit_of_measurement: "°C", device_class: "temperature" }),
     s("sensor.showcase_humidity", "48", { friendly_name: "Showcase humidity", unit_of_measurement: "%", device_class: "humidity" }),
@@ -55,21 +63,23 @@ export function showcaseStates() {
 
 export function showcaseEntities(reg) {
   const rows = [];
-  const add = (device, ids) => ids.forEach((id) => rows.push(reg(id, "showcase", "sc-" + id, D[device][0], { area_id: null })));
+  const add = (device, ids, platform = "showcase") => ids.forEach((id) => rows.push(reg(id, platform, "sc-" + id, D[device][0], { area_id: null })));
   add("ac", ["climate.showcase_ac", "input_boolean.showcase_ac_eco", "sensor.showcase_ac_power"]);
   add("fan", ["fan.showcase_ceiling"]);
   add("purifier", ["fan.showcase_purifier", "sensor.showcase_purifier_pm25", "sensor.showcase_purifier_filter", "switch.showcase_purifier_alarm"]);
-  add("apple", ["media_player.showcase_apple_tv", "remote.showcase_apple_tv"]);
+  add("apple", ["media_player.showcase_apple_tv", "remote.showcase_apple_tv"], "apple_tv");
   add("speaker", ["media_player.showcase_speaker"]);
-  add("avr", ["media_player.showcase_receiver", "select.showcase_receiver_sound_mode"]);
+  add("avr", ["media_player.showcase_receiver", "select.showcase_receiver_sound_mode", "remote.showcase_receiver_ir"]);
+  add("roku", ["media_player.showcase_roku", "remote.showcase_roku"], "roku");
+  add("lg", ["media_player.showcase_lg"], "webostv");
   add("cam", ["camera.showcase_garden", "button.showcase_garden_move_left", "button.showcase_garden_move_right", "switch.showcase_garden_privacy", "binary_sensor.showcase_garden_motion"]);
-  ["switch.showcase_plug", "cover.showcase_blind", "lock.showcase_front", "sensor.showcase_temperature", "sensor.showcase_humidity", "binary_sensor.showcase_window", "number.showcase_volume", "select.showcase_mode", "button.showcase_reboot", "script.showcase_goodnight", "scene.showcase_relax", "scene.showcase_focus", "light.showcase_lamp", "light.showcase_plain"].forEach((id) =>
+  ["switch.showcase_plug", "cover.showcase_venetian", "cover.showcase_garage", "cover.showcase_blind", "lock.showcase_front", "sensor.showcase_temperature", "sensor.showcase_humidity", "binary_sensor.showcase_window", "number.showcase_volume", "select.showcase_mode", "button.showcase_reboot", "script.showcase_goodnight", "scene.showcase_relax", "scene.showcase_focus", "light.showcase_lamp", "light.showcase_plain"].forEach((id) =>
     rows.push(reg(id, "showcase", "sc-" + id, "9a".repeat(16), { area_id: null })),
   );
   return rows;
 }
 
-export const showcaseDevices = [...Object.values(D), ["9a".repeat(16), "Showcase misc"]].map(([id, name]) => ({ id, name, area_id: null, manufacturer: "Invented", model: "Test" }));
+export const showcaseDevices = [...Object.values(D), ["9a".repeat(16), "Showcase misc"]].map(([id, name]) => ({ id, name, area_id: null, manufacturer: "Invented", model: id === D.apple[0] ? "Apple TV 4K" : id === D.speaker[0] ? "HomePod mini" : "Test" }));
 
 
 const sleep = (ms) => new Promise((resolve) => setTimeout(resolve, ms));
@@ -102,10 +112,10 @@ export async function buildShowcase() {
     });
   put("lights", ["light.showcase_lamp", "light.showcase_plain"]);
   put("climate", ["climate.showcase_ac", "fan.showcase_ceiling", "fan.showcase_purifier"]);
-  put("media", ["media_player.living_tv", "media_player.showcase_apple_tv", "media_player.showcase_receiver", "media_player.showcase_speaker"]);
+  put("media", ["media_player.living_tv", "media_player.showcase_roku", "media_player.showcase_lg", "media_player.showcase_apple_tv", "media_player.showcase_receiver", "media_player.showcase_speaker"]);
   put("camera", ["camera.showcase_garden"]);
   put("cams", ["lock.showcase_front", "vacuum.hallway"]);
-  put("controls", ["switch.showcase_plug", "cover.showcase_blind", "sensor.showcase_temperature", "sensor.showcase_humidity", "binary_sensor.showcase_window", "number.showcase_volume", "select.showcase_mode", "button.showcase_reboot", "script.showcase_goodnight"]);
+  put("controls", ["switch.showcase_plug", "cover.showcase_venetian", "cover.showcase_garage", "cover.showcase_blind", "sensor.showcase_temperature", "sensor.showcase_humidity", "binary_sensor.showcase_window", "number.showcase_volume", "select.showcase_mode", "button.showcase_reboot", "script.showcase_goodnight"]);
   const kit = w.secById("showcase", "kit");
   const ap = (type, name, aid, slots) => {
     const d = w.apNew(type);
@@ -130,6 +140,7 @@ export async function buildShowcase() {
   kit.devs.push(rem);
   const v = w.secById("showcase", "cams").devs.filter((d) => d.kind === "vacuum")[0];
   if (v) v.vx = { map: "camera.hallway_map", rooms: [{ e: "button.hallway_clean_kitchen", l: "Kitchen" }, { e: "button.hallway_clean_bedroom", l: "Bedroom" }], modes: ["select.hallway_mop_mode", "number.hallway_suction"], care: ["sensor.hallway_filter_left", "sensor.hallway_main_brush_left"] };
+  await buildRemotes(w, kit);
   w.STORE.scenes.push({ id: "scshow1", name: "Showcase evening", room: "showcase", icon: "scene", acts: [{ id: "light.showcase_lamp", on: true, bri: 60 }, { id: "climate.showcase_ac", mode: "cool", temp: 23 }] });
   const sc = w.secById("showcase", "scenes");
   sc.devs.push({ id: "", sid: "scshow1", name: "Scene", icon: "scene", kind: "cscene" });
@@ -139,4 +150,93 @@ export async function buildShowcase() {
   w.refresh();
   await sleep(300);
   w.go("showcase");
+}
+
+/* Remotes made the way a person would with the builder, as a test of what it can build: a Samsung TV remote as a grid, and a common AV receiver remote as a grid and as a picture (the picture is kept out of the
+   repository: put it at tests/frontend/harness/local/avr-remote.png). Every button is an action the builder offers; the grids use gaps, widths, heights and five-way pads. */
+async function buildRemotes(w, kit) {
+  const key = (e, c, extra = {}) => ({ t: "key", e, c, ...extra });
+  const btn = (a, i, l, o = {}) => ({ a, i, l: l || "", s: 1, h: 1, ...o });
+  const gap = (s = 1, h = 1) => ({ a: { t: "gap" }, i: "info", l: "", s, h });
+  const R = (id) => w.remoteNew && Object.assign(w.remoteNew(), { rid: id });
+
+  /* Samsung TV, as a grid of six columns. */
+  const tv = "remote.living_tv";
+  const sk = (c, extra) => key(tv, c, extra);
+  const samsung = R("scsamsung");
+  samsung.name = "Samsung remote (grid)";
+  samsung.rm.cols = 6;
+  samsung.rm.btns = [
+    btn(sk("KEY_POWER"), "power", ""), btn(sk("KEY_SOURCE"), "swap", ""), gap(2), btn(sk("KEY_MENU"), "cog", "", {}), btn(sk("KEY_MUTE"), "mute", ""),
+    btn(sk("KEY_VOLUP", { r: 1 }), "volup", "", { h: 2 }),
+    { a: { t: "dpad", u: sk("KEY_UP", { r: 1 }), d: sk("KEY_DOWN", { r: 1 }), l: sk("KEY_LEFT", { r: 1 }), r: sk("KEY_RIGHT", { r: 1 }), o: sk("KEY_ENTER") }, i: "info", l: "", s: 4, h: 4 },
+    btn(sk("KEY_CHUP", { r: 1 }), "chup", "", { h: 2 }),
+    btn(sk("KEY_VOLDOWN", { r: 1 }), "voldown", "", { h: 2 }),
+    btn(sk("KEY_CHDOWN", { r: 1 }), "chdown", "", { h: 2 }),
+    btn(sk("KEY_RETURN"), "back", "", { s: 2 }), btn(sk("KEY_HOME"), "home", "", { s: 2 }), btn(sk("KEY_INFO"), "info", "", { s: 2 }),
+    ...[1, 2, 3, 4, 5, 6, 7, 8, 9].map((n) => btn(sk("KEY_" + n), "", String(n), { s: 2 })),
+    gap(2), btn(sk("KEY_0"), "", "0", { s: 2 }), btn(sk("KEY_GUIDE"), "", "Guide", { s: 2 }),
+    btn(sk("KEY_RED"), "", "", { k: "red", s: 1 }), btn(sk("KEY_GREEN"), "", "", { k: "green", s: 1 }), btn(sk("KEY_YELLOW"), "", "", { k: "yellow", s: 1 }), btn(sk("KEY_CYAN"), "", "", { k: "blue", s: 1 }), gap(2),
+    btn(sk("KEY_REWIND"), "prev", ""), btn(sk("KEY_PLAY"), "play", ""), btn(sk("KEY_PAUSE"), "pause", ""), btn(sk("KEY_STOP"), "stop", ""), btn(sk("KEY_FF"), "next", ""), btn(sk("KEY_REC"), "rec", ""),
+  ];
+  kit.devs.push(samsung);
+
+  /* A common AV receiver remote (infrared, sent through a remote entity): the same buttons in a grid of four columns and as touch areas over its picture. */
+  const ir = "remote.showcase_receiver_ir";
+  const k = (c, extra) => key(ir, c, extra);
+  const avrGrid = R("scavrgrid");
+  avrGrid.name = "Receiver remote (grid)";
+  avrGrid.rm.cols = 4;
+  const lbl = (c, l, o) => btn(k(c), "", l, o);
+  avrGrid.rm.btns = [
+    btn(k("RECEIVER_POWER"), "power", "Receiver"), btn(k("INPUT_PREV"), "prev", "Input"), btn(k("INPUT_NEXT"), "next", "Select"), btn(k("SOURCE_POWER"), "power", "Source"),
+    lbl("RECEIVER", "Receiver"), lbl("ZONE2", "Zone 2"), lbl("TV_INPUT", "TV input"), btn(k("TV_POWER"), "power", "TV"),
+    lbl("BD", "BD"), lbl("TV", "TV"), lbl("DVR", "DVR"), btn(k("TV_CH_UP", { r: 1 }), "chup", "CH"),
+    lbl("CD", "CD"), lbl("CD_R", "CD-R"), lbl("TUNER", "Tuner"), btn(k("TV_CH_DOWN", { r: 1 }), "chdown", "CH"),
+    lbl("PORTABLE", "Portable"), lbl("MULTI_IN", "Multi in"), lbl("SIGNAL_SEL", "Signal sel"), btn(k("TV_VOL_UP", { r: 1 }), "volup", "Vol"),
+    lbl("MIDNIGHT", "Midnight"), lbl("PHASE", "Phase"), lbl("S_RETRIEVER", "S.Retriever"), btn(k("TV_VOL_DOWN", { r: 1 }), "voldown", "Vol"),
+    lbl("AUTO_DIRECT", "Auto/ direct"), lbl("STEREO_ALC", "Stereo/ A.L.C."), lbl("STANDARD", "Standard"), lbl("ADV_SURR", "Adv surr"),
+    lbl("AUDIO_PARAMETER", "Audio param."), { a: { t: "dpad", u: k("TUNE_UP", { r: 1 }), d: k("TUNE_DOWN", { r: 1 }), l: k("PRESET_PREV"), r: k("PRESET_NEXT"), o: k("ENTER") }, i: "info", l: "", s: 2, h: 3 }, btn(k("TOOLS_MENU"), "cog", "Tools"),
+    btn(k("MASTER_VOLUME_UP", { r: 1 }), "volup", "Master", { h: 1 }), btn(k("SETUP"), "home", "Setup"), btn(k("MASTER_VOLUME_DOWN", { r: 1 }), "voldown", "Master"),
+    btn(k("RETURN"), "back", "Return"),
+    btn(k("PAUSE"), "pause", ""), btn(k("STOP"), "stop", ""), btn(k("PLAY"), "play", ""), btn(k("MUTE"), "mute", "Mute"),
+    btn(k("SKIP_PREV"), "prev", ""), btn(k("SKIP_NEXT"), "next", ""), btn(k("REWIND"), "prev", ""), btn(k("FORWARD"), "next", ""),
+    btn(k("1"), "", "1"), btn(k("2"), "", "2"), btn(k("3"), "", "3"), lbl("DISPLAY", "Display"),
+    btn(k("4"), "", "4"), btn(k("5"), "", "5"), btn(k("6"), "", "6"), btn(k("CH_UP", { r: 1 }), "chup", "CH"),
+    btn(k("7"), "", "7"), btn(k("8"), "", "8"), btn(k("9"), "", "9"), btn(k("CH_DOWN", { r: 1 }), "chdown", "CH"),
+    lbl("CLR", "Clear"), btn(k("0"), "", "0"), lbl("ENTER_KEY", "Enter"), lbl("SHIFT", "Shift"),
+  ];
+  kit.devs.push(avrGrid);
+
+  const have = await fetch("/local/avr-remote.png", { method: "HEAD" }).then((r) => r.ok, () => false);
+  if (!have) return;
+  const avrPic = R("scavrpic");
+  avrPic.name = "Receiver remote (picture)";
+  avrPic.rm.v = "i";
+  const W = 207,
+    H = 832;
+  /* [command, centre x, centre y, width, height, shape] in pixels of the 207 by 832 picture. */
+  const spots = [
+    ["RECEIVER_POWER", 40, 51, 30, 14], ["INPUT_PREV", 82, 51, 30, 14], ["INPUT_NEXT", 123, 51, 30, 14], ["SOURCE_POWER", 165, 51, 30, 14],
+    ["RECEIVER", 40, 89, 30, 14], ["ZONE2", 82, 89, 30, 14], ["TV_INPUT", 123, 89, 30, 14], ["TV_POWER", 165, 89, 30, 14],
+    ["BD", 40, 130, 25, 25, "e"], ["TV", 82, 130, 25, 25, "e"], ["DVR", 123, 130, 25, 25, "e"], ["TV_CH_UP", 166, 130, 22, 22, "e"],
+    ["CD", 40, 170, 25, 25, "e"], ["CD_R", 82, 170, 25, 25, "e"], ["TUNER", 123, 170, 25, 25, "e"], ["TV_CH_DOWN", 166, 170, 22, 22, "e"],
+    ["PORTABLE", 40, 211, 25, 25, "e"], ["MULTI_IN", 82, 211, 25, 25, "e"], ["SIGNAL_SEL", 123, 211, 25, 25, "e"], ["TV_VOL_UP", 166, 211, 22, 22, "e"],
+    ["MIDNIGHT", 40, 252, 25, 25, "e"], ["PHASE", 82, 252, 25, 25, "e"], ["S_RETRIEVER", 123, 252, 25, 25, "e"], ["TV_VOL_DOWN", 166, 253, 22, 22, "e"],
+    ["AUTO_DIRECT", 40, 312, 31, 14], ["STEREO_ALC", 82, 312, 31, 14], ["STANDARD", 124, 312, 31, 14], ["ADV_SURR", 167, 312, 31, 14],
+    ["AUDIO_PARAMETER", 35, 361, 18, 18, "e"], ["TOOLS_MENU", 130, 364, 18, 18, "e"], ["MASTER_VOLUME_UP", 170, 377, 21, 40], ["MASTER_VOLUME_DOWN", 170, 443, 21, 46],
+    ["TUNE_UP", 82, 379, 40, 16], ["PRESET_PREV", 48, 414, 20, 36], ["ENTER", 82, 413, 24, 24, "e"], ["PRESET_NEXT", 118, 414, 20, 36], ["TUNE_DOWN", 82, 447, 40, 16],
+    ["SETUP", 35, 462, 18, 18, "e"], ["RETURN", 131, 462, 18, 18, "e"],
+    ["PAUSE", 41, 511, 28, 22], ["STOP", 83, 511, 28, 22], ["PLAY", 125, 511, 28, 22], ["MUTE", 167, 511, 28, 22],
+    ["SKIP_PREV", 45, 560, 34, 25], ["SKIP_NEXT", 80, 560, 34, 25], ["REWIND", 128, 560, 34, 25], ["FORWARD", 165, 560, 34, 25],
+    ["DISPLAY", 168, 614, 30, 12], ["1", 41, 617, 28, 18], ["2", 82, 617, 28, 18], ["3", 124, 617, 28, 18],
+    ["4", 41, 646, 28, 18], ["5", 83, 646, 28, 18], ["6", 125, 646, 28, 18], ["CH_UP", 168, 645, 30, 16],
+    ["7", 41, 677, 28, 18], ["8", 83, 677, 28, 18], ["9", 125, 677, 28, 18], ["CH_DOWN", 168, 676, 30, 16],
+    ["CLR", 42, 702, 28, 16], ["0", 83, 707, 28, 16], ["ENTER_KEY", 125, 707, 28, 16], ["SHIFT", 168, 706, 30, 14],
+  ];
+  avrPic.rm.img = {
+    u: "/local/avr-remote.png",
+    hs: spots.map(([c, cx, cy, ww, hh, sh]) => ({ x: ((cx - ww / 2) / W) * 100, y: ((cy - hh / 2) / H) * 100, w: (ww / W) * 100, h: (hh / H) * 100, r: sh === "e" ? "ellipse" : "rect", a: k(c, /^(TV_CH|TV_VOL|TUNE_|MASTER|CH_)/.test(c) ? { r: 1 } : {}) })),
+  };
+  kit.devs.push(avrPic);
 }
