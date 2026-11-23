@@ -717,12 +717,17 @@ function cleanLayout(a) {
             return x === "hue" ? "plugin" : x;
           })
           .filter(function (x, i, a) {
-            return (x === "plugin" || x === "page" || (typeof x === "string" && (/^sec:[a-z0-9_-]{1,24}$/.test(x) || /^page:[a-z0-9_-]{1,24}$/.test(x) || (/^tag:/.test(x) && cleanTags([x.slice(4)]).length)))) && a.indexOf(x) === i;
+            return (x === "plugin" || x === "page" || (typeof x === "string" && (/^page:[a-z0-9_-]{1,24}$/.test(x) || (/^tag:/.test(x) && cleanTags([x.slice(4)]).length)))) && a.indexOf(x) === i;
           })
           .slice(0, 24);
       /* Scenes tagged with any of these are left out of what the sources bring in (not of the scenes made from its own +). */
       var xt = cleanTags(s.mxt);
       if (xt.length) o.mxt = xt;
+      /* The areas whose scenes of a plugin are shown ("-": none); none chosen is the areas of the lights. */
+      var pa = (Array.isArray(s.mpa) ? s.mpa : []).filter(function (x, i, a) {
+        return typeof x === "string" && /^[a-z0-9_-]{1,60}$/.test(x) && a.indexOf(x) === i;
+      }).slice(0, 30);
+      if (pa.length) o.mpa = pa;
       if (Array.isArray(s.mf)) {
         var folders = s.mf
           .filter(function (f) {

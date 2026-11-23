@@ -86,7 +86,7 @@ test("auto scenes and tags are wired: the new scene page offers Auto scene, the 
   assert.match(read("scenenew.js"), /autoSceneNew\(scope, target\)/);
   assert.match(read("staticmaker.js"), /sceneTagsRow\(d\)/);
   assert.match(read("livemaker.js"), /sceneTagsRow\(LMK\)/);
-  assert.match(read("scenetab.js"), /sceneTagLeaveOutRows\(box, sec, "mxt", redraw\)/);
+  assert.match(read("scenetab.js"), /sceneTagLeaveOutTile\(sec, "mxt"\)/);
   assert.match(read("editor.js"), /sceneTagSectionRows\(box, e,/);
   assert.match(read("scenes.js"), /if \(sc\.auto\) return autoScenePlay/);
   assert.ok(JSON.parse(readFileSync(new URL("../../custom_components/home_control/frontend/version.json", import.meta.url), "utf8")).files.includes("app/autoscenes.js"));
@@ -106,10 +106,11 @@ test("a scenes section takes in the scenes made for the pages it names, together
 test("a master takes in the scenes made for any pages it names (page:<id>), and the pages and tags are always on its Scenes settings", () => {
   const tab = read("scenetab.js");
   assert.match(tab, /src\.indexOf\("page:"\) === 0/);
-  assert.match(tab, /row\("page:" \+ p\.id/);
-  assert.match(tab, /tags_none_used/);
+  assert.match(tab, /multiTile\(\s*_T\("src_pages"\)/);
+  assert.match(tab, /multiTile\(\s*_T\("src_tags"\)/);
+  assert.doesNotMatch(tab, /scene_source_page|scene_source_section_sub/, "the older choices are not offered");
   const model = read("model.js");
   assert.match(model, /\^page:\[a-z0-9_-\]\{1,24\}\$/);
   assert.match(model, /o\.spage = sp/);
-  assert.match(read("autoscenes.js"), /function scenePageSectionRows/);
+  assert.match(read("autoscenes.js"), /function sceneTagSectionRows[\s\S]*multiTile\(\s*_T\("src_pages"\)/);
 });

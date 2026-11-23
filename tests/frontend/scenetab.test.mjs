@@ -64,13 +64,13 @@ test("with nothing chosen the scenes are the Hue scenes of the lights' areas, an
   assert.equal(items[2].name, "Dim", "the area's name is left out of a Hue scene's name");
 });
 
-test("the sources the section chose add their scenes: the page's classic and live scenes, a scenes section's", () => {
+test("the sources the section chose add their scenes: the scenes made for the pages it names (\"page\" is its own page, as it was called before), by tag, and a scenes section's source is gone", () => {
   const { w } = world({ msrc: ["page"] });
   assert.deepEqual(keys(w.mscItems({ root: { key: "m:r1~lights" } })), ["c1", "l1"], "only the page's own scenes, no Hue scenes");
-  const both = world({ msrc: ["sec:sc"] });
-  assert.deepEqual(keys(both.w.mscItems({ root: { key: "m:r1~lights" } })), ["c2", "scene.bath_dim"], "what that scenes section shows");
-  const none = world({ msrc: ["sec:gone"] });
-  assert.deepEqual(keys(none.w.mscItems({ root: { key: "m:r1~lights" } })), [], "a scenes section that was deleted adds nothing, and the master keeps working");
+  const other = world({ msrc: ["page:r2"] });
+  assert.deepEqual(keys(other.w.mscItems({ root: { key: "m:r1~lights" } })), ["c2"], "the scenes made for another page");
+  const old = world({ msrc: ["sec:sc"] });
+  assert.deepEqual(keys(old.w.mscItems({ root: { key: "m:r1~lights" } })), [], "a scenes section is not a source any more");
 });
 
 test("removing a scenes section does not remove a scene from the master that was made from its own +", () => {
@@ -109,8 +109,8 @@ test("the section keeps its sources, folders and order through the layout clean-
     vm.runInNewContext(`(function(s,o,k){${body}})(s,o,k)`, { s, o, k: "devs", cleanTags: (l) => (Array.isArray(l) ? l.filter((x) => typeof x === "string" && x) : []) });
     return plain(o);
   };
-  assert.deepEqual(run({ msrc: ["hue", "page", "sec:a1", "sec:Bad Id", "hue"], mf: [{ id: "f1", n: "X", s: ["c1", "scene.a", "bad key!"] }, { id: "no id!", n: "Y", s: ["c1"] }, { id: "f2", n: "Z", s: [] }], mtop: ["c1", "f:f1", "x y"] }), {
-    msrc: ["plugin", "page", "sec:a1"],
+  assert.deepEqual(run({ msrc: ["hue", "page", "page:r2", "page:Bad Id", "sec:a1", "tag:bath", "hue"], mf: [{ id: "f1", n: "X", s: ["c1", "scene.a", "bad key!"] }, { id: "no id!", n: "Y", s: ["c1"] }, { id: "f2", n: "Z", s: [] }], mtop: ["c1", "f:f1", "x y"] }), {
+    msrc: ["plugin", "page", "page:r2", "tag:bath"],
     mf: [{ id: "f1", n: "X", s: ["c1", "scene.a"] }],
     mtop: ["c1", "f:f1"],
   });

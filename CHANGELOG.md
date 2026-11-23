@@ -5,7 +5,7 @@ Format: [Keep a Changelog](https://keepachangelog.com/). Versions follow [semant
 ## [Unreleased]
 
 ### Changed
-- **Existing scenes are added to a lights master or a scenes section by page and by tag**: *Scenes of a page* lists every page of the dashboard (Home and the rooms, with how many scenes each has) and takes in the scenes made for the ones ticked; *Scenes with a tag* takes in tagged scenes and *Leave out scenes with a tag* skips tagged ones the sources would bring. The older choices (every scene of this page, a scenes section of this page) stay only while chosen, so they can be taken off.
+- **Existing scenes are added to a lights master or a scenes section with dropdowns that take several ticks**: *Rooms* (the scenes made for each page, with how many it has) and *Tags* side by side, and *Leave out tags*. A master has a first dropdown for the areas of the scenes a plugin owns (Hue's): none chosen is the areas of its lights, *None* turns them off. "Every scene of this page" is now the page's own entry in *Rooms*; a scenes section as a source is gone (its scenes are those of its page).
 
 ## [0.19.0] - 2026-11-22
 

@@ -77,6 +77,12 @@ to{opacity:0;clip-path:inset(100% 0 0 0 round var(--r-row));transform:translateY
 .menu .mi{padding:11px 16px;border-radius:calc(var(--r-row) - 6px);font-size:var(--fs-m);cursor:pointer}
 .menu .mi:hover{background:rgba(255,255,255,.14)}
 .menu .mi.on{background:linear-gradient(135deg,var(--a1),var(--a2))}
+.menu.multi{max-height:min(60vh,380px);overflow-y:auto}
+.menu.multi .mi{display:flex;align-items:center;justify-content:space-between;gap:12px}
+.menu.multi .mi.on{background:rgba(255,255,255,.08)}
+.menu.multi .mi .ck{width:20px;height:20px;flex:none;opacity:0}
+.menu.multi .mi .ck svg{width:20px;height:20px;fill:none;stroke:currentColor;stroke-width:2.2;stroke-linecap:round;stroke-linejoin:round}
+.menu.multi .mi.on .ck{opacity:1}
 .sep{display:flex;align-items:center;gap:10px;font-size:var(--fs-m);font-weight:600;color:var(--ink2);margin:var(--sp-head)}
 .sep svg{width:17px;height:17px;fill:none;stroke:currentColor;stroke-width:1.6;stroke-linecap:round;stroke-linejoin:round}
 .sep:after{content:"";flex:1;height:1px;background:linear-gradient(90deg,rgba(255,255,255,.28),transparent)}

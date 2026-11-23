@@ -203,30 +203,33 @@ function autoSceneSave() {
 
 /* ---- tags ---- */
 
-/* Rows that leave out the scenes with a tag: `key` names the list on `obj` (mxt on a master, xtag on a scenes section). */
-function sceneTagLeaveOutRows(box, obj, key, redraw) {
-  if (!sceneTags().length) return;
-  box.appendChild(sep(_T("tags_leave_out"), "tune"));
-  box.appendChild(hintRow(_T("tags_leave_out_hint")));
-  sceneTags().forEach(function (t) {
-    box.appendChild(
-      pill("tune", t, {
-        check: function () {
-          return (obj[key] || []).indexOf(t) >= 0;
-        },
-        tap: function () {
-          var cur = (obj[key] || []).slice(),
-            at = cur.indexOf(t);
-          if (at >= 0) cur.splice(at, 1);
-          else cur.push(t);
-          if (cur.length) obj[key] = cur;
-          else delete obj[key];
-          uiChanged();
-          redraw();
-        },
-      })
-    );
-  });
+/* A dropdown that leaves out the scenes with a tag: `key` names the list on `obj` (mxt on a master, xtag on a scenes section). */
+function sceneTagLeaveOutTile(obj, key) {
+  var tags = sceneTags();
+  return multiTile(
+    _T("src_leave_out"),
+    function () {
+      return tags.map(function (t) {
+        return [t, t];
+      });
+    },
+    function (v) {
+      return (obj[key] || []).indexOf(v) >= 0;
+    },
+    function (v) {
+      var cur = (obj[key] || []).slice(),
+        at = cur.indexOf(v);
+      if (at >= 0) cur.splice(at, 1);
+      else cur.push(v);
+      if (cur.length) obj[key] = cur;
+      else delete obj[key];
+      uiChanged();
+    },
+    "close",
+    function () {
+      return (obj[key] || []).length ? obj[key].join(", ") : tags.length ? _T("none") : _T("src_no_tags");
+    }
+  );
 }
 
 /* The pages of the dashboard that have scenes made for them, with how many: Home first, then the rooms. */
@@ -244,63 +247,69 @@ function scenePages() {
   return pages;
 }
 
-/* A scenes section's pages: the scenes made for these pages are in the section. */
-function scenePageSectionRows(box, e, redraw) {
-  box.appendChild(sep(_T("src_pages"), "home"));
-  scenePages().forEach(function (p) {
-    box.appendChild(
-      pill("scene", p.name, {
-        sub: function () {
-          return cntS(p.count, _T("scene_lc"), _T("scenes_lc"));
-        },
-        check: function () {
-          return (e.spage || []).indexOf(p.id) >= 0;
-        },
-        tap: function () {
-          var cur = (e.spage || []).slice(),
-            at = cur.indexOf(p.id);
-          if (at >= 0) cur.splice(at, 1);
-          else cur.push(p.id);
-          if (cur.length) e.spage = cur;
-          else delete e.spage;
-          uiChanged();
-          redraw();
-        },
-      })
-    );
-  });
+/* A scenes section's sources, as a master's: two dropdowns side by side (pages, tags) and one that leaves out tags. */
+function sceneTagSectionRows(box, e, redraw) {
+  var pages = scenePages(),
+    tags = sceneTags(),
+    grid = mk("div", "ap-grid");
+  function flip(key, v) {
+    var cur = (e[key] || []).slice(),
+      at = cur.indexOf(v);
+    if (at >= 0) cur.splice(at, 1);
+    else cur.push(v);
+    if (cur.length) e[key] = cur;
+    else delete e[key];
+    uiChanged();
+  }
+  box.appendChild(sep(_T("scenes_in_this_section"), "scene"));
+  grid.appendChild(
+    multiTile(
+      _T("src_pages"),
+      function () {
+        return pages.map(function (p) {
+          return [p.id, p.name + " · " + p.count];
+        });
+      },
+      function (v) {
+        return (e.spage || []).indexOf(v) >= 0;
+      },
+      function (v) {
+        flip("spage", v);
+      },
+      "scene",
+      function () {
+        var n = (e.spage || []).map(function (id) {
+          return (pages.filter(function (p) { return p.id === id; })[0] || {}).name || id;
+        });
+        return n.length ? n.join(", ") : _T("none");
+      }
+    )
+  );
+  grid.appendChild(
+    multiTile(
+      _T("src_tags"),
+      function () {
+        return tags.map(function (t) {
+          return [t, t];
+        });
+      },
+      function (v) {
+        return (e.stag || []).indexOf(v) >= 0;
+      },
+      function (v) {
+        flip("stag", v);
+      },
+      "tune",
+      function () {
+        return (e.stag || []).length ? e.stag.join(", ") : tags.length ? _T("none") : _T("src_no_tags");
+      }
+    )
+  );
+  box.appendChild(grid);
+  box.appendChild(sceneTagLeaveOutTile(e, "xtag"));
 }
 
-/* A scenes section's tags: the tags it takes in, and the ones it leaves out. */
-function sceneTagSectionRows(box, e, redraw) {
-  var tags = sceneTags();
-  scenePageSectionRows(box, e, redraw);
-  box.appendChild(sep(_T("tags_take_in"), "tune"));
-  if (!tags.length) box.appendChild(hintRow(_T("tags_none_used")));
-  tags.forEach(function (t) {
-    box.appendChild(
-      pill("tune", t, {
-        sub: function () {
-          return _T("tags_take_in_sub");
-        },
-        check: function () {
-          return (e.stag || []).indexOf(t) >= 0;
-        },
-        tap: function () {
-          var cur = (e.stag || []).slice(),
-            at = cur.indexOf(t);
-          if (at >= 0) cur.splice(at, 1);
-          else cur.push(t);
-          if (cur.length) e.stag = cur;
-          else delete e.stag;
-          uiChanged();
-          redraw();
-        },
-      })
-    );
-  });
-  sceneTagLeaveOutRows(box, e, "xtag", redraw);
-}
+/* ---- tags ---- */
 
 var TAGOBJ = null;
 
