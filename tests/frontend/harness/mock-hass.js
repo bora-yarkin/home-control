@@ -2,6 +2,7 @@
    All names and ids are invented. Nothing leaves the page; saved settings live in memory. */
 
 import { kitStates, kitEntities, kitDevices, kitReact } from "./kit.js";
+import { showcaseStates, showcaseEntities, showcaseDevices } from "./showcase.js";
 
 const BRIDGE = "bridgeuid00000000000000000000000000";
 const BOX = "boxuid0000000000000000000000000000";
@@ -45,7 +46,8 @@ function importEffects(content) {
 export function makeHass(query) {
   const withSync = query.get("sync") !== "0";
   const withBox = query.get("box") !== "0";
-  const withKit = query.get("kit") === "1";
+  const withShowcase = query.get("showcase") === "1";
+  const withKit = query.get("kit") === "1" || withShowcase;
   // ?many=1: nine white lights of one room at different temperatures, for the wheel that opens a group as a circle of its lights.
   const manyKelvin = query.get("many") === "1" ? [2403, 2702, 3558, 2403, 2702, 3558, 2403, 2702, 3558] : [];
   const states = Object.fromEntries([
@@ -103,6 +105,7 @@ export function makeHass(query) {
         ]
       : []),
     ...(withKit ? kitStates() : []),
+    ...(withShowcase ? showcaseStates() : []),
     ...(withBox
       ? [
           state("switch.living_room_box_sync", "on", { friendly_name: "Living room box" }),
@@ -161,6 +164,7 @@ export function makeHass(query) {
         ]
       : []),
     ...(withKit ? kitEntities(reg) : []),
+    ...(withShowcase ? showcaseEntities(reg) : []),
     ...(withBox
       ? [
           reg("switch.living_room_box_sync", "hue_plus", `${BOX}_syncbox_sync`, "dev-box"),
@@ -177,6 +181,7 @@ export function makeHass(query) {
     ["dev-bridge", "Hue Bridge"], ["dev-living-group", "Living room"], ["dev-tube", "Gradient tube"], ["dev-spotify", "Hue Spotify sync"], ["dev-box", "Living room box"], ["dev-tv", "Living TV"], ["dev-door", "Door station"],
   ].map(([id, name]) => ({ id, name, area_id: null, manufacturer: "Invented", model: "Test" }));
   if (withKit) devices.push(...kitDevices);
+  if (withShowcase) devices.push(...showcaseDevices);
   devices.push(...BATTERY_DEVICES.map(([id, name, byUser, area]) => ({ id, name, name_by_user: byUser, area_id: area, manufacturer: "Invented", model: "Test" })));
 
   const groups = {};
