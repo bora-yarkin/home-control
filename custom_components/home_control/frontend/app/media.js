@@ -277,6 +277,23 @@ function tvAppsInNowPlaying(id) {
   return !u.nonp && !u.art;
 }
 
+/* Tapping the now-playing card opens the TV's apps and inputs, when they are in the card instead of a row of their own. */
+function tvSourceMenu(media) {
+  return function (row) {
+    var o = tvSourceList(media);
+    if (o.length)
+      openMenu(
+        row,
+        o,
+        A(media).source,
+        function (v) {
+          tvPickSource(media, v);
+        },
+        String
+      );
+  };
+}
+
 function tvSources(id) {
   var r = selectTile(
     _T("apps"),
@@ -296,13 +313,9 @@ function tvSources(id) {
   return r;
 }
 
-/* The TV's own screen brightness: on a Samsung that is its Backlight number (its Brightness number is the black level), shown on the TV's own scale, with the brightness button of the light popup (its slider rises from the button), in the cell under Home. Left empty when the TV has no Backlight number; it does nothing while the TV is off and the number is unavailable. */
-function tvBrightness(media) {
-  var cell = mk("div", "tvbri"),
-    num = sibBy(media, function (e) {
-      return dom(e.entity_id) === "number" && (e.name === "Backlight" || /_backlight$/.test(e.entity_id));
-    });
-  if (!num) return cell;
+/* The round brightness button of the light popup (its slider rises from the button) for any number entity, on the number's own scale: a TV's backlight, a projector's lamp. It does nothing while the number is unavailable. `key` names its live updates. */
+function numberButton(num, key) {
+  var cell = mk("div", "tvbri");
   function range() {
     var a = A(num),
       lo = typeof a.min === "number" ? a.min : 0,
@@ -326,10 +339,10 @@ function tvBrightness(media) {
       lit: usable,
       fmt: toValue,
       live: function (v) {
-        if (usable()) callLive("tv:" + media, "number", "set_value", { entity_id: num, value: toValue(v) });
+        if (usable()) callLive(key, dom(num), "set_value", { entity_id: num, value: toValue(v) });
       },
       commit: function (v) {
-        if (usable()) call("number", "set_value", { entity_id: num, value: toValue(v) });
+        if (usable()) call(dom(num), "set_value", { entity_id: num, value: toValue(v) });
       },
       stage: function () {
         return null;
@@ -339,19 +352,17 @@ function tvBrightness(media) {
   return cell;
 }
 
+/* The TV's own screen brightness: on a Samsung that is its Backlight number (its Brightness number is the black level), in the cell under Home. Left empty when the TV has no Backlight number. */
+function tvBrightness(media) {
+  var num = sibBy(media, function (e) {
+    return dom(e.entity_id) === "number" && (e.name === "Backlight" || /_backlight$/.test(e.entity_id));
+  });
+  return num ? numberButton(num, "tv:" + media) : mk("div", "tvbri");
+}
+
 function samsungRemote(b, remote, media) {
   var inRow = tvAppsInNowPlaying(media);
-  addNowPlaying(
-    b,
-    media,
-    "tv",
-    inRow
-      ? function (row) {
-          var o = tvSourceList(media);
-          if (o.length) openMenu(row, o, A(media).source, function (v) { tvPickSource(media, v); }, String);
-        }
-      : undefined
-  );
+  addNowPlaying(b, media, "tv", inRow ? tvSourceMenu(media) : undefined);
   var r1 = mk(
     "div",
     "rrow"
@@ -843,7 +854,8 @@ function familyRemote(b, media, remote, fam) {
     };
   }
   b.appendChild(hintRow(_T("tv_remote_experimental")));
-  addNowPlaying(b, media, "tv");
+  var inRow = tvAppsInNowPlaying(media);
+  addNowPlaying(b, media, "tv", inRow ? tvSourceMenu(media) : undefined);
   var r1 = mk("div", "rrow");
   r1.appendChild(
     rbtn("power", function () {
@@ -851,7 +863,7 @@ function familyRemote(b, media, remote, fam) {
       else if (!press("power")) call("media_player", "turn_off", { entity_id: media });
     })
   );
-  r1.appendChild(tvSources(media));
+  if (!inRow) r1.appendChild(tvSources(media));
   b.appendChild(r1);
   var r2 = mk("div", "rrow");
   if (key("menu"))

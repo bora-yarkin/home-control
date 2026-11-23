@@ -6,7 +6,7 @@ import test from "node:test";
 import vm from "node:vm";
 
 const source = readFileSync(new URL("../../custom_components/home_control/frontend/app/media.js", import.meta.url), "utf8");
-const code = source.slice(source.indexOf("function tvBrightness("), source.indexOf("function samsungRemote("));
+const code = source.slice(source.indexOf("function numberButton("), source.indexOf("function samsungRemote("));
 
 function remote(numbers, states) {
   const calls = [];

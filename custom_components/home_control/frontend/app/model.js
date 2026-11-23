@@ -268,6 +268,8 @@ function cleanRemote(r) {
       var ce = typeof x.a.e === "string" && ENTRE.test(x.a.e) ? x.a.e.split(".")[0] : "";
       if (x.a.t === "slider" ? ["number", "input_number"].indexOf(ce) < 0 : ce !== "media_player") return;
       var comp = { a: { t: x.a.t, e: x.a.e }, i: iconOk(x.i) ? x.i : x.a.t === "text" ? "keyboard" : x.a.t === "slider" ? "bright" : "info", l: typeof x.l === "string" ? x.l.slice(0, 24) : "", s: s, h: h };
+      /* The now-playing card can hold the apps menu (a tap opens it); a slider can be a round button that opens its slider. */
+      if ((x.a.t === "now" && x.a.m === "apps") || (x.a.t === "slider" && x.a.m === "pop")) comp.a.m = x.a.m;
       out.btns.push(comp);
       return;
     }

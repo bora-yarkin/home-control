@@ -297,7 +297,7 @@ function rmComponent(x, edit, onTap) {
     return ph;
   }
   var el;
-  if (a.t === "now") el = nowPlaying(a.e, "tv", null) || mk("div");
+  if (a.t === "now") el = nowPlaying(a.e, "tv", a.m === "apps" ? tvSourceMenu(a.e) : null) || mk("div");
   else if (a.t === "source") el = tvSources(a.e);
   else if (a.t === "text") {
     el = mk("div", "rm-t pane", svg(x.i || "keyboard"));
@@ -310,6 +310,9 @@ function rmComponent(x, edit, onTap) {
         rmSendText(a.e, v);
       });
     });
+  } else if (a.t === "slider" && a.m === "pop") {
+    el = numberButton(a.e, "rm:" + a.e);
+    el.setAttribute("aria-label", x.l || nm);
   } else {
     var at = A(a.e),
       lo = typeof at.min === "number" ? at.min : 0,
@@ -626,7 +629,10 @@ function remoteBuild(b, rid) {
         return addAction(icon, label, function () {
           pickEntity(label, doms, null, function (id) {
             setTimeout(function () {
-              rm.btns.push(Object.assign({ a: { t: type, e: id }, i: type === "text" ? "keyboard" : type === "slider" ? "bright" : "info", l: "", s: 1, h: 1 }, base));
+              /* The apps menu goes in the now-playing card, as on the dashboard's own TV remotes. */
+              var part = { t: type, e: id };
+              if (type === "now") part.m = "apps";
+              rm.btns.push(Object.assign({ a: part, i: type === "text" ? "keyboard" : type === "slider" ? "bright" : "info", l: "", s: 1, h: 1 }, base));
               uiChanged();
               showPopup(CURRENT, false);
             }, 0);
@@ -1189,6 +1195,40 @@ function remoteBtnPage(b, key) {
         },
       })
     );
+    if (a.t === "now")
+      box.appendChild(
+        pill("apps", _T("rm_apps_in_the_card"), {
+          on: function () {
+            return a.m === "apps";
+          },
+          sub: function () {
+            return a.m === "apps" ? _T("rm_apps_in_the_card_on") : _T("rm_apps_in_the_card_off");
+          },
+          tap: function () {
+            if (a.m === "apps") delete a.m;
+            else a.m = "apps";
+            save();
+            draw();
+          },
+        })
+      );
+    if (a.t === "slider")
+      box.appendChild(
+        pill("bright", _T("rm_slider_as_button"), {
+          on: function () {
+            return a.m === "pop";
+          },
+          sub: function () {
+            return a.m === "pop" ? _T("rm_slider_as_button_on") : _T("rm_slider_as_button_off");
+          },
+          tap: function () {
+            if (a.m === "pop") delete a.m;
+            else a.m = "pop";
+            save();
+            draw();
+          },
+        })
+      );
     if (a.t === "slider" || a.t === "text")
       box.appendChild(
         textRow(

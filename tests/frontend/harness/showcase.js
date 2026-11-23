@@ -238,13 +238,13 @@ async function buildRemotes(w, kit) {
   samsung.name = "Samsung remote (grid)";
   samsung.rm.cols = 6;
   samsung.rm.btns = [
-    { a: { t: "now", e: media }, i: "media", l: "", s: 6, h: 1 },
-    btn(sk("KEY_POWER", { w: media }), "power", "", { s: 2 }), { a: { t: "source", e: media }, i: "apps", l: "", s: 4, h: 1 },
+    { a: { t: "now", e: media, m: "apps" }, i: "media", l: "", s: 6, h: 1 },
+    btn(sk("KEY_POWER", { w: media }), "power", "", { s: 2 }), gap(4),
     btn(sk("KEY_MENU"), "cog", "", { s: 2 }), btn(sk("KEY_MUTE"), "mute", "", { s: 2 }), { a: { t: "text", e: media }, i: "keyboard", l: "", s: 2, h: 1 },
     { a: { t: "touch", u: sk("KEY_UP", { r: 1 }), d: sk("KEY_DOWN", { r: 1 }), l: sk("KEY_LEFT", { r: 1 }), r: sk("KEY_RIGHT", { r: 1 }), o: sk("KEY_ENTER"), h: sk("KEY_ENTER", { hs: 1 }) }, i: "info", l: "", s: 6, h: 5 },
     btn(sk("KEY_RETURN"), "back", "", { s: 2 }), btn(sk("KEY_HOME"), "home", "", { s: 2 }), btn({ t: "media", e: media, m: "play_pause" }, "playpause", "", { s: 2 }),
     btn(sk("KEY_VOLUP", { r: 1 }), "volup", "", { s: 2 }),
-    { a: { t: "slider", e: "number.living_tv_backlight" }, i: "bright", l: "Backlight", s: 2, h: 2 },
+    { a: { t: "slider", e: "number.living_tv_backlight", m: "pop" }, i: "bright", l: "Backlight", s: 2, h: 2 },
     btn(sk("KEY_CHUP", { r: 1 }), "chup", "CH", { s: 2 }),
     btn(sk("KEY_VOLDOWN", { r: 1 }), "voldown", "", { s: 2 }),
     btn(sk("KEY_CHDOWN", { r: 1 }), "chdown", "CH", { s: 2 }),
