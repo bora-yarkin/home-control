@@ -136,7 +136,7 @@ function seedSections(scope) {
   return scope === "home"
     ? HOME_TPL.map(function (x) {
         return { id: x[0], k: x[1], hide: false };
-      }).concat([{ id: "scenes", k: "devs", t: _T("scenes"), i: "scene", hide: false, devs: [], scs: 1, spage: ["home"] }])
+      }).concat([{ id: "scenes", k: "devs", t: _T("scenes"), i: "scene", hide: false, devs: [{ id: "scenes-home", kind: "scenes", name: _T("scenes"), icon: "scene", spage: ["page:home"] }] }])
     : ROOM_TPL.map(function (id) {
         return { id: id, k: id, hide: false };
       }).concat([{ id: "main", k: "devs", hide: false, devs: [] }]);

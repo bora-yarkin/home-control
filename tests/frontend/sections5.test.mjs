@@ -74,7 +74,7 @@ test("a new Home page starts with Attention, At a glance, Rooms and Scenes; a ne
   const home = plain(w.seedSections("home"));
   assert.deepEqual(home.map((s) => s.k), ["alerts", "glance", "rooms", "devs"]);
   assert.equal(home[3].t, "scenes");
-  assert.deepEqual(home[3].spage, ["home"]);
+  assert.deepEqual(home[3].devs.map((d) => [d.kind, d.spage]), [["scenes", ["page:home"]]]);
   const room = plain(w.seedSections("room:r1"));
   assert.deepEqual(room.map((s) => s.k), ["status", "devs"]);
   assert.deepEqual(room[1].devs, []);
