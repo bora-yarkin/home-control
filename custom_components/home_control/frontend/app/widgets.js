@@ -616,6 +616,27 @@ function sep(name, icon) {
   ).parentNode;
 }
 
+/* The standard layout of a settings popup: who it is at the top (Name and Icon, side by side), then one block per topic under its own heading, then where it sits, then the actions at the bottom (a pair per row, dangerous ones in red), then what it is. stgIdentity and stgActions build the first and the last blocks. */
+function stgIdentity(parent, nameRow, iconRow, third) {
+  var grid = mk("div", "ap-grid");
+  grid.appendChild(nameRow);
+  grid.appendChild(iconRow);
+  if (third) grid.appendChild(third);
+  parent.appendChild(grid);
+  return grid;
+}
+
+/* `rows` are pills; the ones in `danger` are drawn in red. */
+function stgActions(parent, rows, danger) {
+  var grid = mk("div", "ap-grid");
+  rows.forEach(function (r) {
+    if (danger && danger.indexOf(r) >= 0) r.classList.add("danger");
+    grid.appendChild(r);
+  });
+  parent.appendChild(grid);
+  return grid;
+}
+
 function glance(items, cols) {
   var g = mk("div", "glance");
   g.style.gridTemplateColumns = "repeat(" + cols + ",1fr)";

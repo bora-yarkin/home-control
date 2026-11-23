@@ -478,6 +478,7 @@ function apEditPage(b, aid) {
     var d = apFind(aid);
     if (!d) return;
     var ap = d.ap;
+    box.appendChild(sep(_T("ap_type"), "plug"));
     box.appendChild(
       seg(
         Object.keys(AP_TYPES).map(function (k) {
@@ -491,6 +492,7 @@ function apEditPage(b, aid) {
         }
       )
     );
+    box.appendChild(sep(_T("ap_what_it_reads"), "tune"));
     AP_TYPES[ap.type].slots
       .filter(function (k) {
         return k in AP_SLOTS;
@@ -581,16 +583,16 @@ function apSlotPage(b, key) {
       },
     })
   );
-  if (s[k])
-    b.appendChild(
-      pill("trash", _T("ap_clear"), {
-        tap: function () {
-          delete s[k];
-          uiChanged();
-          popBack();
-        },
-      })
-    );
+  if (s[k]) {
+    var clr = pill("trash", _T("ap_clear"), {
+      tap: function () {
+        delete s[k];
+        uiChanged();
+        popBack();
+      },
+    });
+    stgActions(b, [clr], [clr]);
+  }
 }
 
 function apExtraPage(b, key) {
@@ -610,13 +612,12 @@ function apExtraPage(b, key) {
       30
     )
   );
-  b.appendChild(
-    pill("trash", _T("ap_clear"), {
-      tap: function () {
-        d.ap.extra.splice(+p[1], 1);
-        uiChanged();
-        popBack();
-      },
-    })
-  );
+  var clr = pill("trash", _T("ap_clear"), {
+    tap: function () {
+      d.ap.extra.splice(+p[1], 1);
+      uiChanged();
+      popBack();
+    },
+  });
+  stgActions(b, [clr], [clr]);
 }

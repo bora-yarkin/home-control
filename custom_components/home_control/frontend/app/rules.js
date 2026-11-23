@@ -168,7 +168,6 @@ function ruleMark(el) {
 }
 
 function ruleControls(box, e, save, redraw, key) {
-  box.appendChild(sep(_T("when_to_show"), "info"));
   function choose(then) {
     pickEntity(_T("choose_what_decides"), RULEDOMS, null, function (id) {
       var o = STATEOPT[dom(id)];

@@ -263,6 +263,7 @@ test("the own master of a section can be deleted: its settings go, the section's
   const w = world(l);
   let tap;
   w.pill = (icon, title, o) => ({ title, o });
+  w.stgActions = (box, rows) => rows.forEach((r) => box.appendChild(r));
   w.confirmDlg = (q, go) => go();
   w.closeSheet = () => {};
   const box = { rows: [], appendChild(r) { this.rows.push(r); } };

@@ -297,8 +297,14 @@ function masterGlanceRows(box, sec, redraw) {
 
 /* Moving, copying and (for one a section holds) making it the section's own master or deleting it. */
 function masterActionRows(box, sec, scope) {
-  var host = masterHost(scope, sec.id);
-  box.appendChild(
+  var host = masterHost(scope, sec.id),
+    acts = [],
+    bad = [];
+  function add(row, danger) {
+    acts.push(row);
+    if (danger) bad.push(row);
+  }
+  add(
     pill("swap", _T("lm_move_or_copy"), {
       sub: function () {
         return _T("lm_move_or_copy_sub");
@@ -309,7 +315,7 @@ function masterActionRows(box, sec, scope) {
     })
   );
   if (host)
-    box.appendChild(
+    add(
       pill("restart", _T("lm_make_own"), {
         sub: function () {
           return _T("lm_make_own_sub");
@@ -327,7 +333,7 @@ function masterActionRows(box, sec, scope) {
       })
     );
   if (host)
-    box.appendChild(
+    add(
       pill("trash", _T("lm_delete"), {
         tap: function () {
           confirmDlg(
@@ -343,10 +349,11 @@ function masterActionRows(box, sec, scope) {
             _T("delete")
           );
         },
-      })
+      }),
+      true
     );
   if (!host)
-    box.appendChild(
+    add(
       pill("trash", _T("lm_delete"), {
         sub: function () {
           return _T("lm_delete_own_sub");
@@ -364,8 +371,10 @@ function masterActionRows(box, sec, scope) {
             _T("delete")
           );
         },
-      })
+      }),
+      true
     );
+  stgActions(box, acts, bad);
 }
 
 /* ---- At a glance ---- */

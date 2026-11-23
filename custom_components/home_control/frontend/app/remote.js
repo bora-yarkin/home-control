@@ -309,6 +309,7 @@ function remotePage(b, rid) {
         )
       );
     var picture = edit ? (RM.pic[rid] === undefined ? rm.v === "i" : RM.pic[rid]) : rm.v === "i" && !!rm.img;
+    if (edit) box.appendChild(sep(_T("rm_layout"), "tune"));
     if (edit)
       box.appendChild(
         seg(
@@ -420,90 +421,87 @@ function remoteBtnPage(b, key) {
     uiChanged();
   }
   function draw() {
-  box.appendChild(
-    pill("plug", A(x.e).friendly_name || x.e, {
-      sub: function () {
-        return x.e;
-      },
-      tap: function () {
-        pickEntity(_T("rm_choose_what_the_button_runs"), REMOTE_DOMS, null, function (id) {
-          x.e = id;
+    stgIdentity(
+      box,
+      textRow(
+        "edit",
+        _T("rm_label"),
+        x.l,
+        function (v) {
+          x.l = v ? v.slice(0, 24) : "";
           save();
-          popBack();
-        });
-      },
-    })
-  );
-  box.appendChild(
-    iconPick(DEVICONS, x.i, function (n) {
-      x.i = n;
-      save();
-    })
-  );
-  box.appendChild(
-    textRow(
-      "edit",
-      _T("rm_label"),
-      x.l,
-      function (v) {
-        if (v) x.l = v.slice(0, 24);
-        else x.l = "";
+        },
+        24
+      ),
+      iconPick(DEVICONS, x.i, function (n) {
+        x.i = n;
         save();
-      },
-      24
-    )
-  );
-  box.appendChild(
-    pill("alert", _T("rm_ask_first"), {
-      on: function () {
-        return !!x.q;
-      },
-      sub: function () {
-        return _T("rm_ask_first_sub");
-      },
-      tap: function () {
-        if (x.q) delete x.q;
-        else x.q = 1;
+      })
+    );
+    box.appendChild(sep(_T("rm_what_it_runs"), "play"));
+    box.appendChild(
+      pill("plug", A(x.e).friendly_name || x.e, {
+        sub: function () {
+          return x.e;
+        },
+        tap: function () {
+          pickEntity(_T("rm_choose_what_the_button_runs"), REMOTE_DOMS, null, function (id) {
+            x.e = id;
+            save();
+            popBack();
+          });
+        },
+      })
+    );
+    box.appendChild(
+      pill("alert", _T("rm_ask_first"), {
+        on: function () {
+          return !!x.q;
+        },
+        sub: function () {
+          return _T("rm_ask_first_sub");
+        },
+        tap: function () {
+          if (x.q) delete x.q;
+          else x.q = 1;
+          save();
+          redrawBox(box, draw);
+        },
+      })
+    );
+    box.appendChild(sep(_T("rm_size_and_place"), "tune"));
+    var widths = [[1, _T("rm_one_column")]];
+    if (d.rm.cols >= 2) widths.push([2, _T("rm_two_columns")]);
+    box.appendChild(
+      seg(widths, Math.min(x.s, d.rm.cols), function (n) {
+        x.s = n;
         save();
         redrawBox(box, draw);
-      },
-    })
-  );
-  var widths = [[1, _T("rm_one_column")]];
-  if (d.rm.cols >= 2) widths.push([2, _T("rm_two_columns")]);
-  box.appendChild(
-    seg(widths, Math.min(x.s, d.rm.cols), function (n) {
-      x.s = n;
-      save();
-      redrawBox(box, draw);
-    })
-  );
-  var row = mk("div", "pre");
-  [
-    [_T("rm_move_earlier"), -1],
-    [_T("rm_move_later"), 1],
-  ].forEach(function (m) {
-    var c = mk("div", "rbtn pane keepc");
-    c.textContent = m[0];
-    c.addEventListener("click", function () {
-      var j = i + m[1];
-      if (j < 0 || j >= d.rm.btns.length) return;
-      d.rm.btns.splice(j, 0, d.rm.btns.splice(i, 1)[0]);
-      save();
-      popBack();
+      })
+    );
+    var move = [
+      [_T("rm_move_earlier"), -1, "up"],
+      [_T("rm_move_later"), 1, "down"],
+    ].map(function (m) {
+      return pill(m[2], m[0], {
+        tap: function () {
+          var j = i + m[1];
+          if (j < 0 || j >= d.rm.btns.length) return;
+          d.rm.btns.splice(j, 0, d.rm.btns.splice(i, 1)[0]);
+          save();
+          popBack();
+        },
+      });
     });
-    row.appendChild(c);
-  });
-  box.appendChild(row);
-  box.appendChild(
-    pill("trash", _T("rm_remove_button"), {
+    stgActions(box, move);
+    var rm = pill("trash", _T("rm_remove_button"), {
       tap: function () {
         d.rm.btns.splice(i, 1);
         save();
         popBack();
       },
-    })
-  );
+    });
+    stgActions(box, [rm], [rm]);
   }
   draw();
 }

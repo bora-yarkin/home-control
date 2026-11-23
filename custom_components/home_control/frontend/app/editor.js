@@ -644,20 +644,18 @@ function editPageSettings(b, key) {
       )
     );
     box.appendChild(hintRow(_T("on_wide_screens_phones_always_use_on")));
-    box.appendChild(sep(_T("start_over"), "restart"));
-    box.appendChild(
-      pill("restart", _T("reset_sections"), {
-        sub: function () {
-          return _T("default_names_order_and_widths");
-        },
-        tap: function () {
-          confirmDlg(_T("reset_this_page_to_the_default_secti"), function () {
-            resetPage(sc);
-            redrawBox(box, draw);
-          });
-        },
-      })
-    );
+    var reset = pill("restart", _T("reset_sections"), {
+      sub: function () {
+        return _T("default_names_order_and_widths");
+      },
+      tap: function () {
+        confirmDlg(_T("reset_this_page_to_the_default_secti"), function () {
+          resetPage(sc);
+          redrawBox(box, draw);
+        });
+      },
+    });
+    stgActions(box, [reset], [reset]);
   }
   redrawBox(box, draw);
 }
@@ -865,7 +863,8 @@ function secEditor(b, key) {
     setSecOrder(sk, order);
     uiChanged();
   }
-  b.appendChild(
+  stgIdentity(
+    b,
     textRow(
       "edit",
       (SECTYPES[e.k] || SECTYPES.devs).t,
@@ -876,9 +875,7 @@ function secEditor(b, key) {
         save();
       },
       40
-    )
-  );
-  b.appendChild(
+    ),
     iconPick(SECICONS, secIcon(e), function (n) {
       e.i = n;
       save();
@@ -889,26 +886,6 @@ function secEditor(b, key) {
   function draw() {
     var k = e.k || "devs",
       ty = SECTYPES[k] || SECTYPES.devs;
-    box.appendChild(
-      visiblePill(
-        function () {
-          return !e.hide;
-        },
-        function () {
-          e.hide = !e.hide;
-          save();
-        }
-      )
-    );
-    ruleControls(
-      box,
-      e,
-      save,
-      function () {
-        redrawBox(box, draw);
-      },
-      key
-    );
     if (k === "link") {
       var lq = (e.ref || "").split(":"),
         ls = e.ref ? secById(lq[0], lq[1]) : null;
@@ -1067,9 +1044,45 @@ function secEditor(b, key) {
           },
         })
       );
-    box.appendChild(sep(_T("this_section"), "home"));
+    /* Whether it is shown and when, then the actions. */
+    box.appendChild(sep(_T("dp_in_the_section"), "home"));
+    box.appendChild(
+      visiblePill(
+        function () {
+          return !e.hide;
+        },
+        function () {
+          e.hide = !e.hide;
+          save();
+        }
+      )
+    );
+    ruleControls(
+      box,
+      e,
+      save,
+      function () {
+        redrawBox(box, draw);
+      },
+      key
+    );
+    var acts = [],
+      del = pill("trash", _T("delete_this_section"), {
+        tap: function () {
+          confirmDlg(_T("delete_this_section_the_devices_stay"), function () {
+            setSecOrder(
+              sk,
+              order.filter(function (x) {
+                return x.id !== sid;
+              })
+            );
+            uiChanged();
+            popBack();
+          });
+        },
+      });
     if (!ty.one)
-      box.appendChild(
+      acts.push(
         pill("plus", _T("duplicate_this_section"), {
           tap: function () {
             var c = JSON.parse(JSON.stringify(e));
@@ -1086,22 +1099,8 @@ function secEditor(b, key) {
           },
         })
       );
-    box.appendChild(
-      pill("trash", _T("delete_this_section"), {
-        tap: function () {
-          confirmDlg(_T("delete_this_section_the_devices_stay"), function () {
-            setSecOrder(
-              sk,
-              order.filter(function (x) {
-                return x.id !== sid;
-              })
-            );
-            uiChanged();
-            popBack();
-          });
-        },
-      })
-    );
+    acts.push(del);
+    stgActions(box, acts, [del]);
   }
   redrawBox(box, draw);
 }

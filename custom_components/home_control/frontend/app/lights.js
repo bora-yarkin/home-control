@@ -578,11 +578,26 @@ function lightsMasterSettings(b, key, part) {
           uiChanged();
         }, 40)
       );
+      box.appendChild(sep(_T("dp_settings"), "tune"));
       box.appendChild(
         part_("lights", "lights", function () {
           return lightIds().length + " " + _T("lights").toLowerCase() + " · " + (sec.mm ? _T("master_manual") : _T("master_auto"));
         })
       );
+      box.appendChild(part_("popup", "tune"));
+      box.appendChild(part_("scenes", "scene"));
+      box.appendChild(part_("where", "home"));
+      box.appendChild(
+        pill("lights", _T("lgs_title"), {
+          sub: function () {
+            return _T("lgs_sub");
+          },
+          tap: function () {
+            showPopup("lgroups", true);
+          },
+        })
+      );
+      box.appendChild(sep(_T("dp_in_the_section"), "home"));
       box.appendChild(
         visiblePill(
           function () {
@@ -595,19 +610,6 @@ function lightsMasterSettings(b, key, part) {
           }
         )
       );
-      box.appendChild(part_("popup", "tune"));
-      box.appendChild(
-        pill("lights", _T("lgs_title"), {
-          sub: function () {
-            return _T("lgs_sub");
-          },
-          tap: function () {
-            showPopup("lgroups", true);
-          },
-        })
-      );
-      box.appendChild(part_("scenes", "scene"));
-      box.appendChild(part_("where", "home"));
       masterActionRows(box, sec, p[0]);
       return;
     }

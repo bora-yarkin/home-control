@@ -661,7 +661,8 @@ function defIcon(kind, name, id) {
 function roomDetails(b, rid) {
   var r = roomById(rid);
   if (!r) return;
-  b.appendChild(
+  stgIdentity(
+    b,
     textRow(
       "home",
       _T("room_name"),
@@ -673,9 +674,11 @@ function roomDetails(b, rid) {
         }
       },
       40
-    )
-  );
-  b.appendChild(
+    ),
+    iconPick(ROOMICONS, r.icon, function (n) {
+      r.icon = n;
+      uiChanged();
+    }),
     textRow(
       "pin",
       _T("short_name_for_the_bottom_bar"),
@@ -687,12 +690,35 @@ function roomDetails(b, rid) {
       16
     )
   );
-  b.appendChild(
-    iconPick(ROOMICONS, r.icon, function (n) {
-      r.icon = n;
-      uiChanged();
-    })
+  b.appendChild(sep(_T("room_area_block"), "pin"));
+  var areas = H().areas || {},
+    names = [_T("none")].concat(
+      Object.keys(areas).map(function (k) {
+        return areas[k].name;
+      })
+    );
+  var g = mk("div", "ap-grid");
+  g.appendChild(
+    selectTile(
+      _T("home_assistant_area"),
+      function () {
+        return names;
+      },
+      function () {
+        return r.area && areas[r.area] ? areas[r.area].name : _T("none");
+      },
+      function (v) {
+        var id = "";
+        Object.keys(areas).forEach(function (k) {
+          if (areas[k].name === v) id = k;
+        });
+        r.area = id;
+        uiChanged();
+      },
+      "pin"
+    )
   );
+  b.appendChild(g);
   b.appendChild(sep(_T("room_picture"), "media"));
   {
     var fi = document.createElement("input");
@@ -715,7 +741,7 @@ function roomDetails(b, rid) {
         showPopup("manage-details:" + r.id, false);
       });
     });
-    b.appendChild(
+    var pics = [
       pill("media", r.img ? _T("change_picture") : _T("upload_a_picture"), {
         sub: function () {
           return r.img
@@ -725,19 +751,20 @@ function roomDetails(b, rid) {
         tap: function () {
           fi.click();
         },
-      })
-    );
-    if (r.img)
-      b.appendChild(
-        pill("trash", _T("remove_picture"), {
-          tap: function () {
-            r.img = "";
-            uiChanged();
-            render();
-            showPopup("manage-details:" + r.id, false);
-          },
-        })
-      );
+      }),
+    ];
+    if (r.img) {
+      var rmPic = pill("trash", _T("remove_picture"), {
+        tap: function () {
+          r.img = "";
+          uiChanged();
+          render();
+          showPopup("manage-details:" + r.id, false);
+        },
+      });
+      pics.push(rmPic);
+      stgActions(b, pics, [rmPic]);
+    } else stgActions(b, pics);
     if (!/^data:/.test(r.img || ""))
       b.appendChild(
         textRow(
@@ -761,37 +788,10 @@ function roomDetails(b, rid) {
         )
       );
   }
-  var areas = H().areas || {},
-    names = [_T("none")].concat(
-      Object.keys(areas).map(function (k) {
-        return areas[k].name;
-      })
-    );
-  var g = mk("div", "grid2");
-  g.appendChild(
-    selectTile(
-      _T("home_assistant_area"),
-      function () {
-        return names;
-      },
-      function () {
-        return r.area && areas[r.area] ? areas[r.area].name : _T("none");
-      },
-      function (v) {
-        var id = "";
-        Object.keys(areas).forEach(function (k) {
-          if (areas[k].name === v) id = k;
-        });
-        r.area = id;
-        uiChanged();
-      },
-      "pin"
-    )
-  );
-  b.appendChild(g);
   var box = mk("div");
   b.appendChild(box);
   function draw() {
+    box.appendChild(sep(_T("dp_in_the_app"), "home"));
     box.appendChild(
       visiblePill(
         function () {
@@ -803,8 +803,7 @@ function roomDetails(b, rid) {
         }
       )
     );
-    box.appendChild(
-      pill("trash", _T("delete_room"), {
+    var delRoom = pill("trash", _T("delete_room"), {
         tap: function () {
           confirmDlg(
             _T("delete") + r.name + _T("from_the_app_the_devices_stay_in_hom"),
@@ -828,8 +827,8 @@ function roomDetails(b, rid) {
             }
           );
         },
-      })
-    );
+      });
+    stgActions(box, [delRoom], [delRoom]);
   }
   redrawBox(box, draw);
 }
