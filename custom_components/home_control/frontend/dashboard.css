@@ -933,3 +933,5 @@ body.pinhdr:not(.editing) .wrap::before{content:"";position:fixed;top:0;left:0;r
 .ml-list,.ml-kids{display:flex;flex-direction:column;gap:8px}
 .ml-more{overflow:hidden;transition:height .24s cubic-bezier(.2,.9,.3,1)}
 .ml-kids{padding:8px 0 0 22px}
+
+.pill.danger,.pill.danger .nm{color:#ff6b62}
