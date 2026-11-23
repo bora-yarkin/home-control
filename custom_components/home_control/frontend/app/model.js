@@ -570,7 +570,7 @@ function scenesToDevices(s) {
     if (typeof e === "string" && /^scene\.[a-z0-9_]+$/.test(e))
       devs.push({ kind: "scene", id: e, name: e.split(".")[1].replace(/_/g, " ").slice(0, 40) || "Scene", icon: "scene" });
   });
-  if (s.k === "scenes" || s.spage || s.stag || s.sarea)
+  if (s.k === "scenes" || (s.scs && !(s.scn || []).length && !(s.sents || []).length) || s.spage || s.stag || s.sarea)
     devs.push({
       kind: "scenes",
       id: "",

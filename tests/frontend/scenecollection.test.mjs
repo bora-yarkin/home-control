@@ -124,3 +124,11 @@ test("a Section has no scene settings of its own: the Scenes settings are the co
   assert.match(read("scenes.js"), /if \(d\.kind === "scenes"\) return sceneCollectionRow\(d\)/);
   assert.doesNotMatch(read("scenes.js"), /sectionHasScenes|scenesBlock/);
 });
+
+test("a Section that was marked as showing scenes (layout 5) and chose nothing keeps showing the page's area scenes", () => {
+  const w = modelWorld();
+  const out = plain(w.cleanLayout([{ id: "sc1", k: "devs", scs: 1, t: "Scenes", devs: [] }]))[0];
+  assert.deepEqual(out.devs.map((d) => d.kind), ["scenes"]);
+  assert.deepEqual(out.devs[0].spage, ["hue:@page"]);
+  assert.equal("scs" in out, false);
+});
