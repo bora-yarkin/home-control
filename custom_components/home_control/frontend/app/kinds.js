@@ -1,11 +1,11 @@
 /* Guided setup of a device: the other entities that belong to it (a TV's remote, a camera's second stream and its pan/tilt controls), found by themselves where Home Assistant says they belong together and chosen with a searchable list where it does not. What is linked is kept with the device (`links`) and is what the Advanced settings of that device list. */
 
-/* A kind of device that has other entities, and what each of them is for. `domains` are the entity types that fit, `re` narrows them by name, `many` allows more than one. */
+/* A kind of device that has other entities, and what each of them is for. `domains` are the entity types that fit, `re` narrows them by name, `many` allows more than one, `auto` lets "find automatically" link every one that is near. */
 var DEVSETUP = {
   ac: {
     label: "ac",
     slots: [
-      { key: "climate", domains: ["climate"], many: 1, hint: "ac_climate_hint" },
+      { key: "climate", domains: ["climate"], many: 1, auto: 1, hint: "ac_climate_hint" },
       { key: "controls", domains: ["switch", "select", "number", "button", "input_boolean", "input_select", "input_number", "script"], re: /swing|fan|display|light|sleep|quiet|eco|turbo|clean|beep|health|ion|purif|self|timer|mode|power|temperature|apply/i, many: 1, hint: "ac_controls_hint" },
       { key: "readings", domains: ["sensor", "binary_sensor"], re: /temperature|humidity|power|energy|filter|outdoor|indoor|error|defrost/i, many: 1, hint: "ac_readings_hint" },
     ],
@@ -122,11 +122,16 @@ function kAuto(d) {
   if (!kind) return 0;
   var near = kNear(d.id),
     n = 0;
+  /* An air conditioner can come as more than one climate entity (an integration's and a helper's): those named after it belong with it. */
+  if (kind === "ac")
+    Object.keys(H().states).forEach(function (k) {
+      if (dom(k) === "climate" && k !== d.id && k.indexOf(d.id) === 0 && near.indexOf(k) < 0) near.push(k);
+    });
   DEVSETUP[kind].slots.forEach(function (slot) {
     if (kLinked(d, slot).length) return;
     near
       .filter(function (eid) {
-        return kFits(slot, eid) && (slot.re || !slot.many);
+        return kFits(slot, eid) && (slot.re || slot.auto || !slot.many);
       })
       .slice(0, slot.many ? 8 : 1)
       .forEach(function (eid) {

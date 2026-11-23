@@ -125,3 +125,16 @@ test("finding automatically does not overwrite what is already chosen", () => {
   w.kAuto(d);
   assert.deepEqual([...d.links], ["remote.mine"]);
 });
+
+test("an air conditioner links the helpers of its device and the other climate entities named after it, and no other air conditioner", () => {
+  const w = load([
+    ["climate.bed_ac", "d1"],
+    ["climate.bed_ac_integration", "d2"],
+    ["climate.hall_ac", "d3"],
+    ["input_select.bed_ac_fan_mode", "d1"],
+    ["input_boolean.bed_ac_power", "d1"],
+  ]);
+  const d = device("climate.bed_ac", "climate", "ac");
+  w.kAuto(d);
+  assert.deepEqual([...d.links].sort(), ["climate.bed_ac_integration", "input_boolean.bed_ac_power", "input_select.bed_ac_fan_mode"]);
+});
