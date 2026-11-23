@@ -605,22 +605,6 @@ function segField(parent, label, options, current, pick) {
   parent.appendChild(seg(options, current, pick));
 }
 
-/* A row of round icon buttons, the one in `current` marked: the icons that fit what is being edited, one tap from picking. */
-function iconChoices(names, current, pick) {
-  var row = mk("div", "pre ico");
-  names.forEach(function (n) {
-    var c = mk("div", "rnd pane" + (current === n ? " act" : ""), svg(n));
-    c.setAttribute("role", "button");
-    c.setAttribute("aria-label", iconLabel(n));
-    c.title = iconLabel(n);
-    c.addEventListener("click", function () {
-      pick(n);
-    });
-    row.appendChild(c);
-  });
-  return row;
-}
-
 function sep(name, icon) {
   return mk("div", "sep", svg(icon || "info") + "<span></span>").appendChild(
     document.createTextNode(name)

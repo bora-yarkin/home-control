@@ -535,18 +535,27 @@ function sceneMadeRow(d) {
 /* The scenes a collection takes in: those made for the pages it names, those with the tags it takes in (less the ones tagged to leave out), and the scene entities of its areas (none named: the page's own area). */
 function sceneCollectionItems(d) {
   var room = UIROOM[pageKey()] || {},
+    tokens = d.spage || [],
+    pages = tokens
+      .filter(function (x) {
+        return x.indexOf("page:") === 0;
+      })
+      .map(function (x) {
+        return x.slice(5);
+      }),
     stored = STORE.scenes.filter(function (sc) {
-      var wanted = ((d.spage || []).indexOf(sc.room) >= 0) || sceneHasTag(sc, d.stag);
+      var wanted = pages.indexOf(sc.room) >= 0 || sceneHasTag(sc, d.stag);
       return wanted && !sceneHasTag(sc, d.xtag) && sceneAllowed(sc);
     }),
-    areas = d.areas && d.areas.length ? d.areas : room.area ? [room.area] : [],
     ents = [];
-  if (areas.indexOf("-") < 0)
-    areas.forEach(function (a) {
-      sceneIds(a).forEach(function (x) {
-        if (ents.indexOf(x[0]) < 0) ents.push(x[0]);
-      });
+  tokens.forEach(function (x) {
+    if (x.indexOf("hue:") !== 0) return;
+    var area = x === "hue:@page" ? room.area : x === "hue:@lights" ? "" : x.slice(4);
+    if (!area) return;
+    sceneIds(area).forEach(function (s) {
+      if (ents.indexOf(s[0]) < 0) ents.push(s[0]);
     });
+  });
   return { stored: stored, ents: ents };
 }
 

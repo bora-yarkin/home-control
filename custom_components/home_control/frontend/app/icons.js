@@ -291,7 +291,7 @@ function iconSvg(p) {
 var ICONLIST = null,
   ICONPATH = {};
 
-function iconPick(list, cur, fn) {
+function iconPick(list, cur, fn, rec) {
   var wrap = mk("div", "idd"),
     isOpen = false,
     items = [],
@@ -380,6 +380,9 @@ function iconPick(list, cur, fn) {
       seen[n] = 1;
       items.push({ n: n, kw: kw || "" });
     }
+    (rec || []).forEach(function (n) {
+      add(n);
+    });
     list.forEach(function (n) {
       add(n);
     });
@@ -415,8 +418,14 @@ function iconPick(list, cur, fn) {
     more();
   }
   function more() {
-    var end = Math.min(view.length, shown + 60);
-    for (var i = shown; i < end; i++) listEl.appendChild(row(view[i].n));
+    var end = Math.min(view.length, shown + 60),
+      nrec = !q.trim() && rec ? rec.length : 0;
+    for (var i = shown; i < end; i++) {
+      /* The icons that fit what this is come first, under their own heading, then all of them. */
+      if (nrec && i === 0) listEl.appendChild(mk("div", "idd-h")).textContent = _T("icons_suggested");
+      if (nrec && i === nrec) listEl.appendChild(mk("div", "idd-h")).textContent = _T("icons_all");
+      listEl.appendChild(row(view[i].n));
+    }
     shown = end;
   }
   function row(n) {

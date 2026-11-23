@@ -2,7 +2,7 @@
    A Lights section has one master of its own (its settings are on the section, see app/mastersettings.js). It can also hold more, in `masters`: each is a holder of the same settings (name `mn`, lights `ml`, power button `mpw`, scenes `scn`, `msrc`, `mf`, `mtop`, and so on) under an id of its own, so everything that works on a master by "page~id" (the popup, its settings, its scenes) works on one that is held. A held master is always manual: the lights are chosen for it, and it never touches the lights of the section that holds it. */
 
 /* The settings a master has, which go with it when it is moved or copied to another section. The two that hide the section's own lights and sync (mhl, mhs) are about the section it was in, so they do not. */
-var LM_KEYS = ["mn", "mall", "mo", "mm", "ml", "mgl", "mtab", "lx", "mhide", "mpa", "mxt", "mpw", "mps", "msync", "msyncid", "scn", "msrc", "mf", "mtop", "mgr"];
+var LM_KEYS = ["mn", "mall", "mo", "mm", "ml", "mgl", "mtab", "lx", "mhide", "mxt", "mpw", "mps", "msync", "msyncid", "scn", "msrc", "mf", "mtop", "mgr"];
 var LM_OWN = LM_KEYS.concat(["mhl", "mhs", "master"]);
 
 /* The sections of a list with the lights masters they hold, for what is kept on both the same way (the scenes a master lists). */

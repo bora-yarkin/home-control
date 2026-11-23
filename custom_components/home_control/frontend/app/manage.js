@@ -835,7 +835,6 @@ function roomDetails(b, rid) {
 }
 
 /* The tab last used in a device popup, by kind of device, for as long as the page is open. */
-var DEVTAB = {};
 
 /* A few icons that fit the kind of device (and its name), shown before the whole list: a tap sets one. */
 var KINDICONS = {
@@ -887,9 +886,7 @@ function devManage(b, key) {
     d = list[+p[1]];
   if (!d) return;
   var previewBox = mk("div"),
-    tabsBox = mk("div"),
     box = mk("div"),
-    cur = DEVTAB[d.kind] || "look",
     c = {
       d: d,
       key: key,
@@ -905,26 +902,14 @@ function devManage(b, key) {
       },
     };
   b.appendChild(previewBox);
-  b.appendChild(tabsBox);
   b.appendChild(box);
-  function drawTabs() {
-    var tabs = [["look", _T("dp_appearance")], ["behave", _T("dp_behaviour")]];
-    if (!tabs.some(function (t) { return t[0] === cur; })) cur = "look";
-    tabsBox.innerHTML = "";
-    tabsBox.appendChild(
-      seg(tabs, cur, function (v) {
-        cur = DEVTAB[d.kind] = v;
-        drawTabs();
-        swapContent(box, draw);
-      })
-    );
-  }
+  /* One page, no tabs: the name and icon and how it looks, then what belongs to the kind of device, where it is and what it is. */
   function draw() {
-    if (cur === "look") devLookTab(c);
-    else devBehaviourTab(c);
+    devLookTab(c);
+    box.appendChild(sep(_T("dp_behaviour"), "tune"));
+    devBehaviourTab(c);
   }
   c.preview();
-  drawTabs();
   c.redraw();
 }
 
@@ -965,22 +950,12 @@ function devLookTab(c) {
     });
     c.box.appendChild(nrow);
   }
-  var sug = iconSuggestions(d);
-  if (sug.length)
-    c.box.appendChild(
-      iconChoices(sug, d.icon, function (n) {
-        d.icon = n;
-        uiChanged();
-        c.preview();
-        c.redraw();
-      })
-    );
   c.box.appendChild(
     iconPick(DEVICONS, d.icon, function (n) {
       d.icon = n;
       uiChanged();
       c.preview();
-    })
+    }, iconSuggestions(d))
   );
   /* How it is drawn, for the kinds that have a choice. */
   if (d.kind === "climate" && d.id)

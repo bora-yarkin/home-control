@@ -364,14 +364,12 @@ function cleanDev(d) {
     var idsOf = function (v, re) {
       return (Array.isArray(v) ? v : []).filter(function (x, i, a) {
         return typeof x === "string" && re.test(x) && a.indexOf(x) === i;
-      }).slice(0, 30);
+      }).slice(0, 40);
     };
-    var sp = idsOf(d.spage, /^[a-z0-9_-]{1,24}$/),
-      ar = idsOf(d.areas, /^[a-z0-9_-]{1,60}$/),
+    var sp = idsOf(d.spage, /^(page:[a-z0-9_-]{1,24}|hue:(@page|@lights|[a-z0-9_-]{1,60}))$/),
       xt = cleanTags(d.xtag),
       st = cleanTags(d.stag);
     if (sp.length) c.spage = sp;
-    if (ar.length) c.areas = ar;
     if (st.length) c.stag = st;
     if (xt.length) c.xtag = xt;
     if (d.keepname) c.keepname = 1;
@@ -578,10 +576,9 @@ function scenesToDevices(s) {
       id: "",
       name: _T("scenes").slice(0, 40),
       icon: "scene",
-      spage: s.spage,
+      spage: (Array.isArray(s.spage) ? s.spage.map(function (x) { return "page:" + x; }) : []).concat(["hue:" + (s.sarea || "@page")]),
       stag: s.stag,
       xtag: s.xtag,
-      areas: s.sarea ? [s.sarea] : [],
       keepname: s.keepname,
     });
   ["scn", "sents", "sarea", "hscn", "pord", "hord", "spage", "stag", "xtag", "keepname", "scs"].forEach(function (k) {
@@ -749,23 +746,28 @@ function cleanLayout(a) {
       var key = function (x) {
         return typeof x === "string" && /^[a-z0-9_.-]{1,80}$/.test(x);
       };
-      if (Array.isArray(s.msrc))
-        o.msrc = s.msrc
+      if (Array.isArray(s.msrc) || (Array.isArray(s.mpa) && s.mpa.length))
+        o.msrc = (Array.isArray(s.msrc) ? s.msrc : ["hue"])
           .map(function (x) {
-            return x === "hue" ? "plugin" : x;
+            /* the scenes of a plugin were one source (and areas for it, mpa); they are Hue rooms among the rooms now */
+            return x === "hue" || x === "plugin" ? "hue:@lights" : x === "page" ? "page" : x;
           })
           .filter(function (x, i, a) {
-            return (x === "plugin" || x === "page" || (typeof x === "string" && (/^page:[a-z0-9_-]{1,24}$/.test(x) || (/^tag:/.test(x) && cleanTags([x.slice(4)]).length)))) && a.indexOf(x) === i;
+            return (x === "page" || (typeof x === "string" && (/^page:[a-z0-9_-]{1,24}$/.test(x) || /^hue:(@lights|@page|[a-z0-9_-]{1,60})$/.test(x) || (/^tag:/.test(x) && cleanTags([x.slice(4)]).length)))) && a.indexOf(x) === i;
           })
-          .slice(0, 24);
+          .slice(0, 40);
+      if (Array.isArray(s.mpa) && s.mpa.length) {
+        o.msrc = o.msrc.filter(function (x) {
+          return x !== "hue:@lights";
+        });
+        s.mpa.forEach(function (a) {
+          if (typeof a === "string" && /^[a-z0-9_-]{1,60}$/.test(a) && a !== "-" && o.msrc.indexOf("hue:" + a) < 0) o.msrc.push("hue:" + a);
+        });
+      }
       /* Scenes tagged with any of these are left out of what the sources bring in (not of the scenes made from its own +). */
       var xt = cleanTags(s.mxt);
       if (xt.length) o.mxt = xt;
-      /* The areas whose scenes of a plugin are shown ("-": none); none chosen is the areas of the lights. */
-      var pa = (Array.isArray(s.mpa) ? s.mpa : []).filter(function (x, i, a) {
-        return typeof x === "string" && /^[a-z0-9_-]{1,60}$/.test(x) && a.indexOf(x) === i;
-      }).slice(0, 30);
-      if (pa.length) o.mpa = pa;
+
       if (Array.isArray(s.mf)) {
         var folders = s.mf
           .filter(function (f) {

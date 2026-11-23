@@ -5,6 +5,11 @@ Format: [Keep a Changelog](https://keepachangelog.com/). Versions follow [semant
 ## [Unreleased]
 
 ### Changed
+- **A device's settings are one page, not tabs**, and **every icon choice is the icon dropdown**: the icons that fit what it is are at the top of the dropdown under *Suggested*, then every icon (and your own SVGs); the separate row of icons is gone. The light group form is one page too.
+- **Hue scenes are rooms and tags like the others**: the separate Hue dropdown is gone. *Rooms* lists the pages of the dashboard and the rooms of Hue (the areas with scenes a plugin owns, with the areas of the master's lights and the page's own area), and *Tags* lists the tags of the scenes of the rooms ticked.
+- **The Advanced settings button of a device can be switched off per device again** (Behaviour, *What it is*).
+
+### Changed
 - **Scenes are part of a Section, not a kind of section** (layout 6): a Scenes section becomes a Section with its scenes (the ones made for it, the scenes of the *Rooms* and *Tags* it takes in, scene entities added to it, and a plugin's scenes). Adding scene entities from the + (type *Scenes*) adds scenes, not buttons, and *New scene* is the first entry there. Quick actions on Home are the Home page's scenes in a Section. A tag is *taken in* with one tap and *left out* with a second, in the same Tags dropdown; *None* clears a dropdown.
 
 ### Changed

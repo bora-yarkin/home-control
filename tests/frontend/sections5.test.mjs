@@ -93,9 +93,11 @@ test("lights a master shows that nothing else holds as a device are kept as devi
   assert.deepEqual(out[0].lx.map((d) => d.id), ["light.g1", "light.g2"]);
 });
 
-test("a device has two tabs, Appearance and Behaviour; visibility, moving and removing are in Behaviour; the Advanced settings button of a device is in Behaviour", () => {
+test("a device has one page; visibility, moving and removing are in Behaviour; the Advanced settings button of a device is in Behaviour", () => {
   const manage = read("manage.js");
-  assert.match(manage, /\["look", _T\("dp_appearance"\)\], \["behave", _T\("dp_behaviour"\)\]/);
+  assert.doesNotMatch(manage, /dp_appearance|DEVTAB|tabsBox/, "one page, no tabs");
+  assert.match(manage, /devLookTab\(c\);[\s\S]*devBehaviourTab\(c\);/);
+  assert.match(manage, /iconPick\(DEVICONS, d\.icon[\s\S]*iconSuggestions\(d\)/, "the icons that fit are at the top of the icon dropdown, not a row");
   assert.match(manage, /function devPlaceRows\(c\)/);
   assert.doesNotMatch(manage, /devPlaceTab|devMoreTab|devOptionsTab/);
   assert.match(manage, /"noadv"/, "the Advanced settings button can be switched off for a device");

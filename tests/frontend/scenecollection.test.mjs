@@ -43,14 +43,14 @@ test("a scenes section becomes a Section: its scenes are devices of it, and what
   for (const k of ["scn", "sents", "sarea", "stag", "xtag", "spage", "hscn", "keepname", "scs", "pord"]) assert.equal(k in out, false, k + " is not on the Section");
   assert.deepEqual(out.devs.map((d) => d.kind + ":" + (d.sid || d.id)).slice(0, 3), ["cscene:a1", "cscene:a2", "scene:scene.bath_dim"]);
   const collection = out.devs.find((d) => d.kind === "scenes");
-  assert.deepEqual([collection.areas, collection.spage, collection.stag, collection.xtag, collection.keepname], [["bath"], ["home"], ["warm"], ["kids"], 1]);
+  assert.deepEqual([collection.spage, collection.stag, collection.xtag, collection.keepname], [["page:home", "hue:bath"], ["warm"], ["kids"], 1], "pages and Hue rooms are rooms of one list");
 });
 
 test("a scenes section that chose nothing is a collection of the page's area scenes, as it was; quick actions are the scenes made for Home", () => {
   const w = modelWorld();
   const out = plain(w.cleanLayout([{ id: "sc1", k: "scenes" }, { id: "quick", k: "quick", scn: ["q1"] }]));
   assert.deepEqual(out[0].devs.map((d) => d.kind), ["scenes"]);
-  assert.deepEqual(out[0].devs[0].areas, undefined, "no area named: the page's own");
+  assert.deepEqual(out[0].devs[0].spage, ["hue:@page"], "no area named: the page's own Hue room");
   assert.deepEqual(out[1].devs.map((d) => d.kind + ":" + d.sid), ["cscene:q1"]);
 });
 
@@ -73,16 +73,16 @@ test("a scene entity and a scene made on the dashboard are devices; a collection
           { id: "light.a", name: "L", icon: "scene", kind: "scene" },
           { id: "", sid: "mine1", name: "Scene", icon: "scene", kind: "cscene" },
           { id: "", sid: "Bad Id", name: "Scene", icon: "scene", kind: "cscene" },
-          { id: "", name: "Many", icon: "scene", kind: "scenes", spage: ["home", "Bad"], areas: ["bath"], stag: ["Warm", "warm"], xtag: ["kids"] },
+          { id: "", name: "Many", icon: "scene", kind: "scenes", spage: ["page:home", "page:Bad Id", "hue:bath", "hue:@page", "x"], stag: ["Warm", "warm"], xtag: ["kids"] },
         ],
       },
     ]),
   )[0];
   assert.deepEqual(out.devs.map((d) => d.kind), ["scene", "cscene", "scenes"], "a scene device must be a scene entity, and a made scene needs a valid id");
-  assert.deepEqual([out.devs[2].spage, out.devs[2].areas, out.devs[2].stag, out.devs[2].xtag], [["home"], ["bath"], ["warm"], ["kids"]]);
+  assert.deepEqual([out.devs[2].spage, out.devs[2].stag, out.devs[2].xtag], [["page:home", "hue:bath", "hue:@page"], ["warm"], ["kids"]]);
 });
 
-test("a collection takes in the scenes of the pages and tags it names (less the tagged ones left out) and the scene entities of its areas, and none when it says none", () => {
+test("a collection takes in the scenes of the pages and tags it names (less the tagged ones left out) and the scene entities of its Hue rooms", () => {
   const sc = [{ id: "a", room: "bora" }, { id: "b", room: "bath", tags: ["bath"] }, { id: "c", room: "home" }, { id: "d", room: "bora", tags: ["kids"] }];
   const ctx = vm.createContext({
     STORE: { scenes: sc },
@@ -98,10 +98,11 @@ test("a collection takes in the scenes of the pages and tags it names (less the 
     const r = ctx.sceneCollectionItems(d);
     return plain([r.stored.map((x) => x.id), r.ents]);
   };
-  assert.deepEqual(run({}), [[], ["scene.one", "scene.two"]], "nothing named: the page's own area");
-  assert.deepEqual(run({ spage: ["bora"], xtag: ["kids"] }), [["a"], ["scene.one", "scene.two"]]);
-  assert.deepEqual(run({ stag: ["bath"], areas: ["bath"] }), [["b"], ["scene.bath"]]);
-  assert.deepEqual(run({ areas: ["-"] , spage: ["home"] }), [["c"], []], "none: no scene entities");
+  assert.deepEqual(run({ spage: ["hue:@page"] }), [[], ["scene.one", "scene.two"]], "the page's own Hue room");
+  assert.deepEqual(run({ spage: ["page:bora"], xtag: ["kids"] }), [["a"], []]);
+  assert.deepEqual(run({ stag: ["bath"], spage: ["hue:bath"] }), [["b"], ["scene.bath"]]);
+  assert.deepEqual(run({ spage: ["page:home"] }), [["c"], []], "a page brings no scene entities");
+  assert.deepEqual(run({}), [[], []], "nothing named: nothing");
 });
 
 test("the add popup adds a checked scene entity as a scene device, a checked dashboard scene as a made-scene device, and a collection as one device that opens its settings", () => {

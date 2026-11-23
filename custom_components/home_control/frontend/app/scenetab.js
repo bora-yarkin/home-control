@@ -12,7 +12,7 @@ function mscSection(root) {
 }
 
 /* Where the scenes of a section come from when it has not chosen: the Hue scenes of its lights' areas, as the Effects page used to list them. */
-var MSC_DEFAULT_SRC = ["plugin"];
+var MSC_DEFAULT_SRC = ["hue:@lights"];
 
 /* The scenes of the section, each as { key, kind: "plugin" | "live" | "classic", id, name, sc }: the ones made from its + first, then the sources it has chosen. */
 function mscItems(S) {
@@ -43,23 +43,18 @@ function mscItems(S) {
     })
     .forEach(stored);
   (e.msrc || MSC_DEFAULT_SRC).forEach(function (src) {
-    if (src === "plugin") {
-      /* The scenes a plugin owns: those of the areas chosen for it, else of the areas of the lights ("-" says none). */
-      var areas = e.mpa || [];
-      if (areas.indexOf("-") >= 0) return;
-      var ids = areas.length
-        ? areas.reduce(function (a, ar) {
-            return a.concat(
-              sceneIds(ar)
-                .map(function (x) {
-                  return x[0];
-                })
-                .filter(function (id) {
-                  return !!pluginSceneKind(id);
-                })
-            );
-          }, [])
-        : lpFxOf(S.root).scenes;
+    if (src.indexOf("hue:") === 0) {
+      /* The scenes a plugin owns in a room (an area of Home Assistant): of the lights' areas, of the page's area, or of the area named. */
+      var ids =
+        src === "hue:@lights"
+          ? lpFxOf(S.root).scenes
+          : sceneIds(src === "hue:@page" ? page.area : src.slice(4))
+              .map(function (x) {
+                return x[0];
+              })
+              .filter(function (id) {
+                return !!pluginSceneKind(id);
+              });
       ids.forEach(function (id) {
         add(id, "plugin", A(id).friendly_name || A(id).name || id);
       });
@@ -789,63 +784,54 @@ function sceneSortable(box, opts) {
 function mscSourceRows(box, sec, scope, redraw) {
   var src = sec.msrc || MSC_DEFAULT_SRC;
   function list() {
-    return (sec.msrc || MSC_DEFAULT_SRC).slice();
-  }
-  /* what older settings chose: every scene of this page is that page, a scenes section of the page is gone (its scenes are those of the page) */
-  function mine(prefix) {
-    return list().map(function (x) {
+    return (sec.msrc || MSC_DEFAULT_SRC).map(function (x) {
       return x === "page" ? "page:" + scope : x;
-    }).filter(function (x) {
-      return x.indexOf(prefix) === 0;
     });
+  }
+  function put(keep, add) {
+    sec.msrc = list()
+      .filter(function (x) {
+        return keep(x);
+      })
+      .concat(add);
+    uiChanged();
   }
   box.appendChild(sep(_T("scenes_in_the_light_popup"), "palette"));
   box.appendChild(hintRow(_T("scenes_in_the_light_popup_hint")));
-  /* The scenes a plugin owns: the areas whose scenes are shown (none chosen: those of these lights' areas). */
-  if (PLUGIN_SCENE_KINDS.length) box.appendChild(sceneAreasTile(sec, "mpa", _T("src_areas_of_lights")));
   sceneSourceTiles(
     box,
     {
       get: function () {
-        return mine("page:").map(function (k) {
-          return k.slice(5);
+        return list().filter(function (x) {
+          return x.indexOf("page:") === 0 || x.indexOf("hue:") === 0;
         });
       },
-      set: function (ids) {
-        var cur = list().map(function (x) {
-          return x === "page" ? "page:" + scope : x;
-        }).filter(function (x) {
-          return x.indexOf("page:") !== 0 && x.indexOf("sec:") !== 0;
-        });
-        ids.forEach(function (id) {
-          cur.push("page:" + id);
-        });
-        sec.msrc = cur;
-        uiChanged();
+      set: function (tokens) {
+        put(function (x) {
+          return x.indexOf("page:") !== 0 && x.indexOf("hue:") !== 0;
+        }, tokens);
       },
+      lights: true,
     },
     {
       inc: function () {
-        return mine("tag:").map(function (k) {
-          return k.slice(4);
-        });
+        return list()
+          .filter(function (x) {
+            return x.indexOf("tag:") === 0;
+          })
+          .map(function (k) {
+            return k.slice(4);
+          });
       },
       exc: function () {
         return (sec.mxt || []).slice();
       },
       set: function (inc, exc) {
-        var cur = list().map(function (x) {
-          return x === "page" ? "page:" + scope : x;
-        }).filter(function (x) {
-          return x.indexOf("tag:") !== 0 && x.indexOf("sec:") !== 0;
-        });
-        inc.forEach(function (t) {
-          cur.push("tag:" + t);
-        });
-        sec.msrc = cur;
+        put(function (x) {
+          return x.indexOf("tag:") !== 0;
+        }, inc.map(function (t) { return "tag:" + t; }));
         if (exc.length) sec.mxt = exc;
         else delete sec.mxt;
-        uiChanged();
       },
     }
   );
