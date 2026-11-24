@@ -300,6 +300,7 @@ function accessUser(b, uid) {
       var rr = u.rooms[r.id];
       box.appendChild(
         pill(r.icon || "home", r.name, {
+          kind: "other",
           sub: function () {
             var n = u.devs
               ? Object.keys(u.devs).filter(function (id) {

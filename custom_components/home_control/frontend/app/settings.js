@@ -295,6 +295,7 @@ function stgAreas(b) {
     }).length;
     b.appendChild(
       pill(r.icon || "home", r.name, {
+        kind: "other",
         sub: function () {
           return n ? cntS(n, _T("area"), _T("areas")) : _T("no_areas_yet");
         },

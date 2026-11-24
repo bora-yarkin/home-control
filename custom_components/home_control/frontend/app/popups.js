@@ -359,6 +359,7 @@ var POPUP_DEFS = {
     return {
       title: cv.name || A(id).friendly_name || _T("cover"),
       icon: cv.icon || "swap",
+      kind: "cover",
       build: function (b) {
         coverPopup(b, id);
       },
@@ -424,6 +425,7 @@ var POPUP_DEFS = {
     return {
       title: gv.name || _T("vacuum"),
       icon: gv.icon || "vac",
+      kind: "clean",
       build: function (b) {
         vacPopup(b, id);
       },
@@ -509,6 +511,7 @@ var POPUP_DEFS = {
     return {
       title: md2 ? md2.name : _T("room"),
       icon: md2 ? md2.icon : "home",
+      kind: "other",
       build: function (b) {
         roomDetails(b, id);
       },
@@ -630,6 +633,7 @@ var POPUP_DEFS = {
     return {
       title: hr ? hr.name : _T("room"),
       icon: hr ? hr.icon || "home" : "home",
+      kind: "other",
       build: function (b) {
         roomHeaderPage(b, id);
       },
@@ -1075,6 +1079,7 @@ function showPopup(key, push, layer) {
     h.appendChild(back);
   }
   var t = mk("div", "sh-t pane", ic(def.power ? "power" : def.icon) + "<span></span>");
+  if (def.kind) t.querySelector(".ic").dataset.k = def.kind;
   t.querySelector("span:last-child").textContent = def.title;
   h.appendChild(t);
   /* A popup with a power button has it in the place of the icon at the left of its title: every light of the master on or off. */

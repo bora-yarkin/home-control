@@ -158,3 +158,10 @@ test("the power, search and settings buttons of the header are one size at every
   assert.equal(sized.length, 3, "the three width rules name all three buttons");
   assert.doesNotMatch(css, /(^|\n)#sbtn,#gbtn\{/, "no size rule leaves the power button out");
 });
+
+test("a room's own icon is not a kind of device: the lists of rooms, the Home page's room tiles and the room popups are all the accent", () => {
+  const frontend = (file) => readFileSync(new URL("app/" + file, FRONTEND), "utf8");
+  for (const file of ["access.js", "camera.js", "manage.js", "settings.js"]) assert.match(frontend(file), /pill\(r\.icon \|\| "home", r\.name, \{\s+kind: "other"/, file);
+  assert.match(frontend("sections.js"), /rt\.dataset\.k = "other"/);
+  assert.match(frontend("popups.js"), /if \(def\.kind\) t\.querySelector\("\.ic"\)\.dataset\.k = def\.kind/);
+});

@@ -963,6 +963,7 @@ function secRooms() {
               : ds.length + (ds.length === 1 ? " device" : " devices")) + temp()
           );
         };
+    /* A room's own icon is not a kind of device: every room is the accent. */
     var rt = tile(
       r.icon || "home",
       r.name,
@@ -988,6 +989,7 @@ function secRooms() {
       },
       !UIROOM[k]
     );
+    rt.dataset.k = "other";
     if (r.img) {
       rt.classList.add("hasimg");
       rt.insertBefore(rimgEl(r.img), rt.firstChild);

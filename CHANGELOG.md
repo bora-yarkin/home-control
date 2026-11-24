@@ -5,6 +5,7 @@ Format: [Keep a Changelog](https://keepachangelog.com/). Versions follow [semant
 ## [Unreleased]
 
 ### Changed
+- **A room's icon is always the accent**: the lists of rooms, the room tiles of Home and the room popups no longer take a colour from the icon picked for the room (a door was green, a bed purple).
 - **The header's power button is the size of search and settings** (it was 46 pixels while they were 38 to 42).
 - **Every icon has a colour**: besides lights, climate, media and security, power and batteries are lime, cleaning teal, scenes and actions pink, appliances warm sand, blinds and garage doors sage, warnings orange and linked sections slate. Any other icon takes the dashboard accent. A blind, an appliance or a vacuum is coloured by what it is, whatever icon was picked for it, and the dropdown rows are coloured like the others. The icon circle itself knows its kind, so the settings popups, lists and pickers are coloured too (a Material Design icon is read word by word: *desk-lamp* is a lamp), and a delete row stays red.
 

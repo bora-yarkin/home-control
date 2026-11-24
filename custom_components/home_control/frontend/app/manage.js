@@ -291,6 +291,7 @@ function newDevOne(b) {
   ).forEach(function (r) {
     b.appendChild(
       pill(r.icon || "home", r.name, {
+        kind: "other",
         sub: function () {
           return r === sg ? _T("same_area_in_home_assistant") : "";
         },
