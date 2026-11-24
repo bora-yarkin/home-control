@@ -151,3 +151,10 @@ test("rows of blinds, appliances and vacuums take their kind from what the devic
   assert.match(readFileSync(new URL("app/mastersettings.js", FRONTEND), "utf8"), /kind: "light"/, "a light in the order list is a light whatever icon it has");
   assert.match(widgets, /var kind = o\.kind \|\| iconKind\(icon\)/);
 });
+
+test("the power, search and settings buttons of the header are one size at every width", () => {
+  const css = readFileSync(new URL("dashboard.css", FRONTEND), "utf8");
+  const sized = css.match(/#obtn,#sbtn,#gbtn\{width:\d+px;height:\d+px\}/g) || [];
+  assert.equal(sized.length, 3, "the three width rules name all three buttons");
+  assert.doesNotMatch(css, /(^|\n)#sbtn,#gbtn\{/, "no size rule leaves the power button out");
+});
