@@ -510,21 +510,38 @@ function skyLand(o, x, y, rain) {
   }
 }
 
-function skyBead(g, x, y, rad, stretch, a) {
+/* A drop of water on glass: no outline. Its body is nearly clear, darker along the upper edge where it bends the dark, with a bright crescent of light gathered at its lower edge and a small sharp highlight; a drop that runs is a teardrop, round below and drawn out to a point above (taper is how long the point is). */
+function skyBead(g, x, y, rad, stretch, taper, a) {
   g.save();
   g.translate(x, y);
   g.scale(1, stretch);
-  var bead = g.createRadialGradient(-rad * 0.3, -rad * 0.4, 0, 0, 0, rad);
-  bead.addColorStop(0, "rgba(255,255,255," + 0.95 * a + ")");
-  bead.addColorStop(0.45, "rgba(214,230,255," + 0.45 * a + ")");
-  bead.addColorStop(1, "rgba(170,195,235," + 0.3 * a + ")");
-  g.fillStyle = bead;
   g.beginPath();
-  g.arc(0, 0, rad, 0, 6.2832);
+  if (taper > 0.05) {
+    g.moveTo(0, -rad * (1 + taper));
+    g.quadraticCurveTo(rad * 0.95, -rad * 0.55, rad, 0);
+    g.arc(0, 0, rad, 0, Math.PI, false);
+    g.quadraticCurveTo(-rad * 0.95, -rad * 0.55, 0, -rad * (1 + taper));
+  } else g.arc(0, 0, rad, 0, 6.2832);
+  g.clip();
+  g.fillStyle = "rgba(235,244,255," + 0.1 * a + ")";
+  g.fillRect(-rad * 2, -rad * (2 + taper), rad * 4, rad * (4 + taper));
+  var rim = g.createRadialGradient(rad * 0.15, rad * 0.25, rad * 0.45, 0, 0, rad * 1.05);
+  rim.addColorStop(0, "rgba(0,0,0,0)");
+  rim.addColorStop(1, "rgba(5,10,25," + 0.42 * a + ")");
+  g.fillStyle = rim;
+  g.fillRect(-rad * 2, -rad * (2 + taper), rad * 4, rad * (4 + taper));
+  var light = g.createRadialGradient(rad * 0.2, rad * 0.55, 0, rad * 0.2, rad * 0.55, rad * 0.95);
+  light.addColorStop(0, "rgba(255,255,255," + 0.6 * a + ")");
+  light.addColorStop(1, "rgba(255,255,255,0)");
+  g.fillStyle = light;
+  g.fillRect(-rad * 2, -rad * (2 + taper), rad * 4, rad * (4 + taper));
+  g.restore();
+  g.save();
+  g.translate(x, y);
+  g.fillStyle = "rgba(255,255,255," + 0.9 * a + ")";
+  g.beginPath();
+  g.ellipse(-rad * 0.32, -rad * 0.38 * stretch, Math.max(0.5, rad * 0.22), Math.max(0.6, rad * 0.3), -0.5, 0, 6.2832);
   g.fill();
-  g.strokeStyle = "rgba(255,255,255," + 0.55 * a + ")";
-  g.lineWidth = 0.6;
-  g.stroke();
   g.restore();
 }
 
@@ -560,10 +577,7 @@ function skyDrawTop(ds) {
   SKYS.specks = SKYS.specks.filter(function (k) {
     var a = 1 - (now - k.born) / 2.2;
     if (a <= 0) return false;
-    g.fillStyle = "rgba(225,238,255," + a * 0.5 + ")";
-    g.beginPath();
-    g.arc(k.x, k.y, k.r, 0, 6.2832);
-    g.fill();
+    skyBead(g, k.x, k.y, k.r + 0.5, 1, 0, Math.min(1, a * 1.4));
     return true;
   });
   /* two beads that meet become one */
@@ -621,17 +635,26 @@ function skyDrawTop(ds) {
     if (!r.free && (!last || Math.abs(r.y - last[1]) > 1.2 || Math.abs(r.x - last[0]) > 1.2)) r.trail.push([r.x, r.y, now]);
     while (r.trail.length && now - r.trail[0][2] > 1.1) r.trail.shift();
     if (r.y > h + 10) return false;
-    g.lineCap = "round";
-    for (var t = 1; t < r.trail.length; t++) {
-      var a = 1 - (now - r.trail[t][2]) / 1.1;
-      g.strokeStyle = "rgba(235,244,255," + a * 0.26 + ")";
-      g.lineWidth = Math.max(0.6, rad * 0.55) * (0.5 + 0.5 * a);
+    /* the track it leaves is a wet band that is widest just behind the bead and narrows and dries toward its start */
+    g.lineCap = "butt";
+    var n = r.trail.length;
+    for (var t = 1; t < n; t++) {
+      var age = 1 - (now - r.trail[t][2]) / 1.1,
+        wide = Math.max(0.5, rad * 0.8 * (t / n));
+      g.strokeStyle = "rgba(225,238,255," + age * 0.11 + ")";
+      g.lineWidth = wide * 1.6;
       g.beginPath();
       g.moveTo(r.trail[t - 1][0], r.trail[t - 1][1]);
       g.lineTo(r.trail[t][0], r.trail[t][1]);
       g.stroke();
+      g.strokeStyle = "rgba(255,255,255," + age * 0.16 + ")";
+      g.lineWidth = Math.max(0.4, wide * 0.45);
+      g.beginPath();
+      g.moveTo(r.trail[t - 1][0] - wide * 0.25, r.trail[t - 1][1]);
+      g.lineTo(r.trail[t][0] - wide * 0.25, r.trail[t][1]);
+      g.stroke();
     }
-    skyBead(g, r.x, r.y, rad, stretch, 1);
+    skyBead(g, r.x, r.y, rad, stretch, r.free ? Math.min(0.6, stretch - 1) : skyClamp(r.v / 60, 0, 0.7), 1);
     return true;
   });
 }
@@ -786,7 +809,7 @@ function skyDraw() {
     }
     if (hit) skyLand(hit[0], hit[1], hit[2], p.rain);
     if (hit || d.y > h + 4 || d.x < -20) {
-      if (!hit && d.z > 0.45 && SKYS.splashes.length < 60 && d.x > 0 && d.x < w) SKYS.splashes.push({ x: d.x, y: h - 1 - Math.random() * 3, age: 0 });
+      if (!hit && d.z > 0.45 && SKYS.splashes.length < 60 && d.x > 0 && d.x < w) SKYS.splashes.push({ age: 0, parts: [0, 1, 2].map(function () { return { x: d.x, y: h - 1, vx: (Math.random() - 0.5) * 50, vy: -(40 + Math.random() * 70) }; }) });
       SKYS.parts[i] = d = skyDrop(w, h, false);
       d.k = 0;
     }
@@ -806,13 +829,16 @@ function skyDraw() {
   }
   SKYS.splashes = SKYS.splashes.filter(function (sp) {
     sp.age += ds;
-    if (sp.age > 0.4) return false;
-    var k = sp.age / 0.4;
-    g.strokeStyle = "rgba(208,222,246," + (1 - k) * 0.4 * bright + ")";
-    g.lineWidth = 0.8;
-    g.beginPath();
-    g.ellipse(sp.x, sp.y, 1 + k * 6, 0.5 + k * 1.6, 0, 0, 6.2832);
-    g.stroke();
+    if (sp.age > 0.35) return false;
+    g.fillStyle = "rgba(208,222,246," + (1 - sp.age / 0.35) * 0.55 * bright + ")";
+    sp.parts.forEach(function (q) {
+      q.vy += 520 * ds;
+      q.x += q.vx * ds;
+      q.y += q.vy * ds;
+      g.beginPath();
+      g.arc(q.x, q.y, 0.7, 0, 6.2832);
+      g.fill();
+    });
     return true;
   });
   skyStrikes(g, w, h, ds, p);
