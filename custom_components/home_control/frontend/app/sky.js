@@ -45,6 +45,9 @@ var SKYS = {
   obstacleAt: 0,
   runners: [],
   bursts: [],
+  specks: [],
+  tt: 0,
+  lastTop: 0,
 };
 
 /* The two layers of cloud: the far one is smaller, slower and fainter, the near one larger and faster, so the clouds have depth. The fog is two low, stretched wisps. */
@@ -477,17 +480,55 @@ function skyHalfWidth(o, y) {
   return o.w / 2 - o.r + Math.sqrt(Math.max(0, o.r * o.r - dy * dy));
 }
 
-/* A drop that has landed on a control: a small burst of spray, and often a bead that runs down the surface (slowly, in fits, bending round the curve of a button) and falls from its lowest point. */
+/* A drop that lands on a control sprays a little, and either joins a bead already running close by (which grows and speeds up) or starts one. */
 function skyLand(o, x, y, rain) {
   var spray = [];
-  for (var i = 0; i < 5; i++) spray.push({ x: x, y: y, vx: (Math.random() - 0.5) * 70, vy: -(30 + Math.random() * 60) });
+  for (var i = 0; i < 4; i++) spray.push({ x: x, y: y, vx: (Math.random() - 0.5) * 60, vy: -(25 + Math.random() * 50) });
   SKYS.bursts.push({ parts: spray, age: 0 });
-  if (SKYS.runners.length < 36 && Math.random() < 0.3 + 0.35 * rain) {
+  for (var j = 0; j < SKYS.runners.length; j++) {
+    var r = SKYS.runners[j];
+    if (r.o === o && !r.free && Math.abs(r.x - x) < 9 && Math.abs(r.y - y) < 14) {
+      r.m = Math.min(r.m + 0.35, 4);
+      return;
+    }
+  }
+  if (SKYS.runners.length < 40 && Math.random() < 0.28 + 0.3 * rain) {
     var hw = skyHalfWidth(o, y) || 1;
-    SKYS.runners.push({ o: o, f: skyClamp((x - o.cx) / hw, -0.92, 0.92), x: x, y: y, v: 6, hang: 0, free: false, trail: [], ph: Math.random() * 6.28, size: 1.5 + Math.random() * 1.4 });
+    SKYS.runners.push({
+      o: o,
+      f: skyClamp((x - o.cx) / hw, -0.92, 0.92),
+      x: x,
+      y: y,
+      m: 0.5 + Math.random() * 0.6,
+      v: 4,
+      drip: 0,
+      free: false,
+      trail: [],
+      ph: Math.random() * 6.28,
+      last: y,
+    });
   }
 }
 
+function skyBead(g, x, y, rad, stretch, a) {
+  g.save();
+  g.translate(x, y);
+  g.scale(1, stretch);
+  var bead = g.createRadialGradient(-rad * 0.3, -rad * 0.4, 0, 0, 0, rad);
+  bead.addColorStop(0, "rgba(255,255,255," + 0.95 * a + ")");
+  bead.addColorStop(0.45, "rgba(214,230,255," + 0.45 * a + ")");
+  bead.addColorStop(1, "rgba(170,195,235," + 0.3 * a + ")");
+  g.fillStyle = bead;
+  g.beginPath();
+  g.arc(0, 0, rad, 0, 6.2832);
+  g.fill();
+  g.strokeStyle = "rgba(255,255,255," + 0.55 * a + ")";
+  g.lineWidth = 0.6;
+  g.stroke();
+  g.restore();
+}
+
+/* The drops on the controls, drawn on their own canvas above them at the full rate of the screen. A bead runs down at a speed set by its size, bending round the curve of a button; it leaves a wet track that dries, and now and then a tiny drop that stays behind; two beads that meet become one; at the lowest point it swells, stretches and lets go. */
 function skyDrawTop(ds) {
   var cv = SKYS.top;
   if (!cv) return;
@@ -498,7 +539,8 @@ function skyDrawTop(ds) {
     cv.width = Math.round(w * dpr);
     cv.height = Math.round(h * dpr);
   }
-  var g = cv.getContext("2d");
+  var g = cv.getContext("2d"),
+    now = SKYS.tt;
   g.setTransform(dpr, 0, 0, dpr, 0, 0);
   g.clearRect(0, 0, w, h);
   SKYS.bursts = SKYS.bursts.filter(function (b) {
@@ -515,57 +557,81 @@ function skyDrawTop(ds) {
     });
     return true;
   });
+  SKYS.specks = SKYS.specks.filter(function (k) {
+    var a = 1 - (now - k.born) / 2.2;
+    if (a <= 0) return false;
+    g.fillStyle = "rgba(225,238,255," + a * 0.5 + ")";
+    g.beginPath();
+    g.arc(k.x, k.y, k.r, 0, 6.2832);
+    g.fill();
+    return true;
+  });
+  /* two beads that meet become one */
+  for (var i = 0; i < SKYS.runners.length; i++)
+    for (var j = i + 1; j < SKYS.runners.length; j++) {
+      var p = SKYS.runners[i],
+        q = SKYS.runners[j];
+      if (!p.dead && !q.dead && !p.free && !q.free && p.o === q.o && Math.abs(p.x - q.x) < 4 && Math.abs(p.y - q.y) < 5) {
+        var big = p.m >= q.m ? p : q,
+          small = big === p ? q : p;
+        big.m = Math.min(big.m + small.m * 0.8, 4);
+        big.v += 8;
+        small.dead = true;
+      }
+    }
   SKYS.runners = SKYS.runners.filter(function (r) {
-    var o = r.o;
+    if (r.dead) return false;
+    var o = r.o,
+      rad = 1.2 + r.m * 0.75,
+      stretch = 1;
     if (!r.free) {
-      if (r.hang > 0) {
-        r.hang -= ds;
-        if (r.hang <= 0) r.free = true;
-      } else {
-        r.v += (40 + 30 * Math.random()) * ds;
-        var sticky = Math.sin(SKYS.t * 6 + r.ph) > 0.55 ? 0.12 : 1;
-        r.y += r.v * sticky * ds;
-        if (r.y >= o.cy + o.r - 1) {
-          r.y = o.cy + o.r - 1;
-          r.hang = 0.2 + Math.random() * 0.2;
-          r.v = 0;
-        }
+      var vt = 12 + r.m * 34 + 10 * Math.sin(now * 2.3 + r.ph);
+      r.v += (vt - r.v) * Math.min(1, ds * 3);
+      if (!r.drip) {
+        r.y += r.v * ds;
         r.x = o.cx + r.f * skyHalfWidth(o, r.y);
+        if (r.y >= o.cy + o.r - rad) {
+          r.y = o.cy + o.r - rad;
+          r.drip = 0.001;
+        }
+        if (r.y - r.last > 7 && r.v > 28 && Math.random() < 0.12) {
+          SKYS.specks.push({ x: r.x + (Math.random() - 0.5) * 2, y: r.y - rad, r: 0.5 + Math.random() * 0.6, born: now });
+          r.last = r.y;
+          r.m = Math.max(0.35, r.m - 0.05);
+        }
+      } else {
+        r.drip += ds;
+        var k = skyClamp(r.drip / (0.5 / (0.6 + r.m * 0.4)), 0, 1);
+        rad *= 1 + 0.35 * k;
+        stretch = 1 + 0.9 * k * k;
+        r.x = o.cx + r.f * skyHalfWidth(o, r.y);
+        r.y += 6 * ds * (1 + k * 6);
+        if (k >= 1) {
+          r.free = true;
+          r.v = 30;
+        }
       }
     } else {
-      r.v += 760 * ds;
+      r.v += 900 * ds;
       r.y += r.v * ds;
+      stretch = 1 + Math.min(r.v / 450, 1.5);
+      rad *= 0.85;
     }
-    r.trail.push([r.x, r.y]);
-    if (r.trail.length > (r.free ? 4 : 16)) r.trail.shift();
-    if (r.y > h + 8) return false;
-    var n = r.trail.length;
+    var last = r.trail[r.trail.length - 1];
+    if (!r.free && (!last || Math.abs(r.y - last[1]) > 1.2 || Math.abs(r.x - last[0]) > 1.2)) r.trail.push([r.x, r.y, now]);
+    while (r.trail.length && now - r.trail[0][2] > 1.1) r.trail.shift();
+    if (r.y > h + 10) return false;
     g.lineCap = "round";
-    for (var i = 1; i < n; i++) {
-      g.strokeStyle = "rgba(235,244,255," + (i / n) * (r.free ? 0.15 : 0.3) + ")";
-      g.lineWidth = 1.1;
+    for (var t = 1; t < r.trail.length; t++) {
+      var a = 1 - (now - r.trail[t][2]) / 1.1;
+      g.strokeStyle = "rgba(235,244,255," + a * 0.26 + ")";
+      g.lineWidth = Math.max(0.6, rad * 0.55) * (0.5 + 0.5 * a);
       g.beginPath();
-      g.moveTo(r.trail[i - 1][0], r.trail[i - 1][1]);
-      g.lineTo(r.trail[i][0], r.trail[i][1]);
+      g.moveTo(r.trail[t - 1][0], r.trail[t - 1][1]);
+      g.lineTo(r.trail[t][0], r.trail[t][1]);
       g.stroke();
     }
-    var rad = r.size * (r.free ? 0.8 : 1) * (r.hang > 0 ? 1.25 : 1),
-      stretch = r.free ? 1 + Math.min(r.v / 500, 1.4) : 1;
-    g.save();
-    g.translate(r.x, r.y);
-    g.scale(1, stretch);
-    var bead = g.createRadialGradient(-rad * 0.3, -rad * 0.4, 0, 0, 0, rad);
-    bead.addColorStop(0, "rgba(255,255,255,.95)");
-    bead.addColorStop(0.45, "rgba(214,230,255,.45)");
-    bead.addColorStop(1, "rgba(170,195,235,.28)");
-    g.fillStyle = bead;
-    g.beginPath();
-    g.arc(0, 0, rad, 0, 6.2832);
-    g.fill();
-    g.strokeStyle = "rgba(255,255,255,.55)";
-    g.lineWidth = 0.6;
-    g.stroke();
-    g.restore();
+    skyBead(g, r.x, r.y, rad, stretch, 1);
     return true;
   });
 }
@@ -750,7 +816,6 @@ function skyDraw() {
     return true;
   });
   skyStrikes(g, w, h, ds, p);
-  skyDrawTop(ds);
 }
 
 function skyFrame(now) {
@@ -759,12 +824,17 @@ function skyFrame(now) {
     SKYS.raf = 0;
     return;
   }
+  /* The sky is redrawn about 30 times a second; the drops on the controls move at every frame. */
   if (now - SKYS.last >= 32) {
     SKYS.dt = SKYS.last ? Math.min((now - SKYS.last) / 1000, 0.1) : 0;
     SKYS.last = now;
     SKYS.t += SKYS.dt;
     skyDraw();
   }
+  var dt = SKYS.lastTop ? Math.min((now - SKYS.lastTop) / 1000, 0.05) : 0;
+  SKYS.lastTop = now;
+  SKYS.tt += dt;
+  skyDrawTop(dt);
   SKYS.raf = requestAnimationFrame(skyFrame);
 }
 
@@ -774,6 +844,7 @@ function skyStop() {
   SKYS.cv = null;
   SKYS.runners = [];
   SKYS.bursts = [];
+  SKYS.specks = [];
   if (SKYS.top) SKYS.top.remove();
   SKYS.top = null;
 }
@@ -806,6 +877,7 @@ function skyShow(layer, scene) {
     skyDraw();
   } else if (!SKYS.raf) {
     SKYS.last = 0;
+    SKYS.lastTop = 0;
     SKYS.raf = requestAnimationFrame(skyFrame);
   }
 }
