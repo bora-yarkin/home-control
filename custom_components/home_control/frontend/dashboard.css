@@ -278,10 +278,10 @@ body.editing .dock .di{touch-action:none}
 #clk{font-size:32px}
 .hdr .rt{gap:4px;flex-direction:column;align-items:flex-end}
 .hb{gap:8px}
-#sbtn,#gbtn{width:38px;height:38px}
+#obtn,#sbtn,#gbtn{width:38px;height:38px}
 .eyebrow{white-space:nowrap}
 }
-#sbtn,#gbtn{width:42px;height:42px}
+#obtn,#sbtn,#gbtn{width:42px;height:42px}
 .qagrid{display:grid;grid-template-columns:repeat(4,1fr);gap:10px;margin:0 0 10px}
 .qa{display:flex;flex-direction:column;align-items:center;gap:5px;padding:12px 6px 9px;cursor:pointer;text-align:center;user-select:none;touch-action:manipulation}
 .qa .ic{width:40px;height:40px}
@@ -405,7 +405,7 @@ to{background-position:-200% 0}
 #clk{font-size:36px}
 #dt{font-size:var(--fs-s)}
 .hb{gap:8px}
-#sbtn,#gbtn{width:40px;height:40px}
+#obtn,#sbtn,#gbtn{width:40px;height:40px}
 }
 .edtb{display:none;gap:6px;margin-left:auto}
 body.editing .edtb{display:flex}
@@ -953,12 +953,28 @@ body.pinhdr:not(.editing) .wrap::before{content:"";position:fixed;top:0;left:0;r
 [data-k=heat]{--kc:#ee8442}
 [data-k=media]{--kc:#a487f2}
 [data-k=security]{--kc:#45bd84}
+[data-k=power]{--kc:#bcd04a}
+[data-k=clean]{--kc:#3fc2b4}
+[data-k=scene]{--kc:#e774a8}
+[data-k=appliance]{--kc:#e0a060}
+[data-k=cover]{--kc:#8fb3a0}
+[data-k=alert]{--kc:#f0a24a}
+[data-k=link]{--kc:#8d9fe0}
+[data-k=other]{--kc:var(--acc)}
 body.light [data-k=light]{--kc:#c98a0a}
 body.light [data-k=climate]{--kc:#1f86c8}
 body.light [data-k=heat]{--kc:#d4631a}
 body.light [data-k=media]{--kc:#7b5bdc}
 body.light [data-k=security]{--kc:#1f9a63}
-.pill[data-k] .ic,.tile[data-k] .ic{color:color-mix(in srgb,var(--kc) 78%,var(--ink2))}
+body.light [data-k=power]{--kc:#7f9a10}
+body.light [data-k=clean]{--kc:#14968a}
+body.light [data-k=scene]{--kc:#c93f80}
+body.light [data-k=appliance]{--kc:#b9772a}
+body.light [data-k=cover]{--kc:#4f8570}
+body.light [data-k=alert]{--kc:#c97a10}
+body.light [data-k=link]{--kc:#5a6fc4}
+.ic[data-k],.pill[data-k] .ic,.tile[data-k] .ic,.sel[data-k] .ic{color:color-mix(in srgb,var(--kc) 78%,var(--ink2))}
+.pill[data-k] .ic[data-k],.tile[data-k] .ic[data-k],.sel[data-k] .ic[data-k]{--kc:inherit}
 .pill.on[data-k]:not(.lc):not(.lci),.tile.on[data-k]:not(.lc):not(.lci){background:color-mix(in srgb,var(--kc) 13%,var(--f-card))!important;border-color:color-mix(in srgb,var(--kc) 48%,var(--f-line))!important}
 .pill.on[data-k]:not(.lc):not(.lci) .ic,.tile.on[data-k]:not(.lc):not(.lci) .ic{background:color-mix(in srgb,var(--kc) 34%,var(--f-raise));border-color:color-mix(in srgb,var(--kc) 58%,var(--f-line2));color:var(--ink)}
 /* A row that is playing shows its artwork in the icon circle and a play and pause button at its end. */
@@ -1008,3 +1024,4 @@ body.rwall .hsky{display:none}
 .hdr .hstat .gb span{font-size:var(--fs-s);letter-spacing:0;color:var(--ink2)}
 .hdr .hstat .gb.off b::before{margin-right:5px}
 .hdr:has(.hsky.on) .hstat .gb{background:rgba(255,255,255,.09)!important;border-color:rgba(255,255,255,.3)!important;text-shadow:0 1px 2px rgba(0,0,0,.35),0 1px 10px rgba(0,0,0,.35)}
+.pill.danger .ic,.pill.danger .ic[data-k],.pill.danger[data-k] .ic{color:#ff6b62}

@@ -17,7 +17,7 @@ function iconKinds() {
   return sandbox.iconKind;
 }
 
-test("an icon stands for a kind of device: lights, climate, media or security, built-in or Material Design; anything else has none", () => {
+test("an icon stands for a kind of device (lights, climate, media, security, power, cleaning, scenes, appliances, blinds, warnings, links), built-in or Material Design, and any other icon is of kind other, so no icon is left without a colour", () => {
   const kind = iconKinds();
   for (const [icon, want] of [
     ["light", "light"],
@@ -32,9 +32,26 @@ test("an icon stands for a kind of device: lights, climate, media or security, b
     ["lock", "security"],
     ["cctv", "security"],
     ["mdi:door-open", "security"],
-    ["plug", ""],
-    ["vac", ""],
-    ["mdi:printer", ""],
+    ["plug", "power"],
+    ["mdi:battery-60", "power"],
+    ["vac", "clean"],
+    ["mdi:robot-vacuum", "clean"],
+    ["scene", "scene"],
+    ["play", "scene"],
+    ["printer", "appliance"],
+    ["mdi:printer", "appliance"],
+    ["mdi:blinds", "cover"],
+    ["alert", "alert"],
+    ["swap", "link"],
+    ["mdi:phone-ring", "security"],
+    ["cog", "other"],
+    ["plus", "other"],
+    ["mdi:something-odd", "other"],
+    ["mdi:desk-lamp", "light"],
+    ["mdi:lightning-bolt", "power"],
+    ["mdi:air-conditioner", "climate"],
+    ["mdi:washing-machine", "appliance"],
+    ["mdi:lightbulb-group", "light"],
     ["", ""],
     [undefined, ""],
   ])
@@ -124,4 +141,27 @@ test("On now is a kind of section that exists once, is offered in the Add sectio
   assert.match(sections, /"glance",\s*"now",\s*"rooms"/);
   assert.match(sections, /if \(k === "now"\) return secNow\(\);/);
   assert.match(readFileSync(new URL("app/editor.js", FRONTEND), "utf8"), /\["glance", "now", "rooms"/);
+});
+
+test("rows of blinds, appliances and vacuums take their kind from what the device is, not from the icon the owner picked", () => {
+  const frontend = (file) => readFileSync(new URL("app/" + file, FRONTEND), "utf8");
+  assert.match(frontend("devices.js"), /kind: "cover"/);
+  assert.match(frontend("appliance.js"), /kind: "appliance"/);
+  assert.match(frontend("scenes.js"), /kind: "clean"/);
+  assert.match(readFileSync(new URL("app/mastersettings.js", FRONTEND), "utf8"), /kind: "light"/, "a light in the order list is a light whatever icon it has");
+  assert.match(widgets, /var kind = o\.kind \|\| iconKind\(icon\)/);
+});
+
+test("the power, search and settings buttons of the header are one size at every width", () => {
+  const css = readFileSync(new URL("dashboard.css", FRONTEND), "utf8");
+  const sized = css.match(/#obtn,#sbtn,#gbtn\{width:\d+px;height:\d+px\}/g) || [];
+  assert.equal(sized.length, 3, "the three width rules name all three buttons");
+  assert.doesNotMatch(css, /(^|\n)#sbtn,#gbtn\{/, "no size rule leaves the power button out");
+});
+
+test("a room's own icon is not a kind of device: the lists of rooms, the Home page's room tiles and the room popups are all the accent", () => {
+  const frontend = (file) => readFileSync(new URL("app/" + file, FRONTEND), "utf8");
+  for (const file of ["access.js", "camera.js", "manage.js", "settings.js"]) assert.match(frontend(file), /pill\(r\.icon \|\| "home", r\.name, \{\s+kind: "other"/, file);
+  assert.match(frontend("sections.js"), /rt\.dataset\.k = "other"/);
+  assert.match(frontend("popups.js"), /if \(def\.kind\) t\.querySelector\("\.ic"\)\.dataset\.k = def\.kind/);
 });

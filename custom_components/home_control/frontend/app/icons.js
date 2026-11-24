@@ -164,8 +164,10 @@ function svg(n) {
   return "<svg viewBox='0 0 24 24'>" + IC.info + "</svg>";
 }
 
+/* An icon circle knows the kind of device its icon stands for (widgets.js, iconKind), so its glyph is coloured wherever it is drawn; a row that has a kind of its own (a blind with a link icon) hands it down instead. */
 function ic(n) {
-  return "<span class='ic'>" + svg(n) + "</span>";
+  var k = typeof iconKind === "function" ? iconKind(n) : "";
+  return "<span class='ic'" + (k ? " data-k='" + k + "'" : "") + ">" + svg(n) + "</span>";
 }
 
 var ICONSHARD = {};

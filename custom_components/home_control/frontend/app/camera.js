@@ -316,6 +316,7 @@ function camAddPage(b) {
   UI.rooms.forEach(function (r) {
     b.appendChild(
       pill(r.icon || "home", r.name, {
+        kind: "other",
         tap: function () {
           pickEntity(_T("choose_a_camera"), ["camera"], null, function (id) {
             if (

@@ -242,18 +242,38 @@ function slideIcon(r, o, refresh) {
   );
 }
 
-/* The kind of device an icon stands for. A row's colour comes from its kind: lights amber, climate and air blue, media violet, security green; anything else keeps the dashboard accent. */
+/* The kind of device an icon stands for. A row's colour comes from its kind: lights amber, climate and air blue, media violet, security green, power and batteries lime, cleaning teal, scenes and actions pink, appliances and blinds their own warm and sage tones, warnings orange, links slate. Any other icon is "other", which takes the dashboard accent, so no icon is left without a colour. */
 var KINDWORDS = [
-  ["light", /^(light|lamp|floor|ceiling|strip|bright|flood|lights|mdi:(lightbulb|lamp|ceiling|floor-lamp|led|string-lights|wall-sconce))/],
-  ["climate", /^(ac|fan|purifier|thermo|drop|mdi:(air-|fan|snowflake|thermo|radiator|heat|water|humid))/],
-  ["media", /^(tv|apple|speaker|media|movie|mdi:(television|speaker|music|cast|projector|youtube|netflix|radio|disc))/],
-  ["security", /^(lock|padlock|cam|cctv|camoff|walk|motion|bell|mdi:(lock|door|shield|cctv|camera|doorbell|garage|alarm|smoke))/],
+  ["power", /^(plug|powerset|power|battery)/, ["power", "battery", "flash", "lightning", "bolt", "solar", "meter", "current", "ev", "outlet", "socket", "transmission", "gauge"]],
+  ["light", /^(light|lamp|floor|ceiling|strip|bright|flood|lights)/, ["lamp", "light", "lightbulb", "bulb", "led", "sconce", "chandelier", "ceiling", "spotlight", "candle", "lantern", "torch"]],
+  ["climate", /^(ac|fan|purifier|thermo|drop)/, ["air", "fan", "snowflake", "thermometer", "thermostat", "radiator", "heat", "water", "humidity", "weather", "wind", "temperature", "fire", "fireplace"]],
+  ["media", /^(tv|apple|speaker|media|movie|playc)/, ["television", "speaker", "music", "cast", "projector", "youtube", "netflix", "radio", "disc", "amplifier", "surround", "apple", "android", "monitor", "remote", "headphones", "audio", "soundbar"]],
+  ["security", /^(lock|padlock|cam|cctv|camoff|walk|motion|bell|phone)/, ["lock", "door", "shield", "cctv", "camera", "doorbell", "garage", "alarm", "smoke", "phone", "bell", "gate", "key", "window", "intercom", "motion", "walk", "run"]],
+  ["clean", /^(vac|broom|rug)/, ["robot", "vacuum", "broom", "mop", "spray", "roomba", "sweep"]],
+  ["scene", /^(scene|sparkle|palette|play|rec)/, ["palette", "party", "creation", "auto", "star", "heart", "play", "script", "movie", "theater", "sunset", "sunrise", "weather-night"]],
+  ["appliance", /^(printer)/, ["printer", "stove", "fridge", "refrigerator", "coffee", "kettle", "microwave", "dishwasher", "oven", "toaster", "blender", "iron", "hair", "washing", "dryer", "cooker", "boiler", "washer"]],
+  ["cover", /^(blind|shutter)/, ["blinds", "shutter", "roller", "curtains", "curtain"]],
+  ["alert", /^(alert|warn)/, ["alert", "warning"]],
+  ["link", /^(swap|link)/, ["link", "share", "swap"]],
 ];
 
+/* A Material Design name is read word by word (mdi:desk-lamp is a lamp), the built-in names by how they begin. */
 function iconKind(icon) {
   var n = String(icon || "");
-  for (var i = 0; i < KINDWORDS.length; i++) if (KINDWORDS[i][1].test(n)) return KINDWORDS[i][0];
-  return "";
+  if (!n) return "";
+  var words = n.indexOf("mdi:") === 0 ? n.slice(4).split("-") : null;
+  for (var i = 0; i < KINDWORDS.length; i++) {
+    var k = KINDWORDS[i];
+    if (!words && k[1].test(n)) return k[0];
+    if (
+      words &&
+      words.some(function (w) {
+        return k[2].indexOf(w) >= 0;
+      })
+    )
+      return k[0];
+  }
+  return "other";
 }
 
 /* A small round button at the end of a row (play and pause on a media row): its own tap, never the row's. */
@@ -289,7 +309,7 @@ function rowArt(icn, url, icon) {
 function pill(icon, name, o) {
   var r = mk("div", "pill pane" + (o.tap ? "" : " static") + (o.on ? " tg" : ""));
   r.dataset.i = icon;
-  var kind = iconKind(icon);
+  var kind = o.kind || iconKind(icon);
   if (kind) r.dataset.k = kind;
   r.innerHTML =
     ic(icon) +
@@ -472,6 +492,7 @@ function sliderRow(o) {
 
 function selectTile(label, opts, cur, pick, icon, fmt) {
   var r = mk("div", "sel pane");
+  if (iconKind(icon)) r.dataset.k = iconKind(icon);
   r.innerHTML =
     (icon ? ic(icon) : "") +
     "<span class='tx'><span class='nm'></span><span class='sb'></span></span><span class='chev'>" +

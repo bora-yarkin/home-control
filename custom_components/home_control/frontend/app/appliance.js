@@ -169,6 +169,7 @@ function apAct(e, role) {
 function apRow(d) {
   var ap = d.ap;
   return pill(d.icon || "plug", d.name, {
+    kind: "appliance",
     val: function () {
       var s = ap.slots;
       if (apActive(ap) && s.remaining) return apLeft(s.remaining);
