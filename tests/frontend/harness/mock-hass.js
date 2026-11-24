@@ -263,7 +263,7 @@ export function makeHass(query, home = null) {
   };
 
   // What the Siri and HomeKit page changes: the entities on the pretend HomeKit Bridge's list, and the entities of published live scenes.
-  const sharing = { published: {}, exposed: new Set(Object.keys(states).filter((id) => id.startsWith("scene.")).slice(0, 2)) };
+  const sharing = { made: query.get("bridge") !== "none", published: {}, types: {}, tv: {}, exposed: new Set(Object.keys(states).filter((id) => id.startsWith("scene.")).slice(0, 2)) };
 
   const connection = {
     addEventListener(name, fn) { (listeners[name] ||= []).push(fn); },
@@ -311,10 +311,31 @@ export function makeHass(query, home = null) {
           hass.states = { ...states };
           return Promise.resolve({ entity_id: id });
         }
-        case "home_control/homekit": return Promise.resolve({ bridges: [{ entry_id: "hk1", title: "HASS Bridge", editable: true, exposed: Object.fromEntries(msg.entity_ids.map((id) => [id, sharing.exposed.has(id)])) }] });
+        case "home_control/homekit":
+          return Promise.resolve({
+            bridges: sharing.made
+              ? [
+                  {
+                    entry_id: "hk1",
+                    title: "HASS Bridge",
+                    editable: true,
+                    exposed: Object.fromEntries(msg.entity_ids.map((id) => [id, sharing.exposed.has(id)])),
+                    types: { ...sharing.types },
+                    listed: [...sharing.exposed],
+                    carries_own_accessories: true,
+                    // ?bridge=new shows a bridge that is not paired yet, with a code and no picture (the real one gives a picture of Home Assistant's own).
+                    pairing: query.get("bridge") === "new" ? { running: true, paired: false, pin: "031-45-154", qr: null } : { running: true, paired: true, pin: null, qr: null },
+                  },
+                ]
+              : [],
+          });
+        case "home_control/homekit_create": sharing.made = true; sharing.exposed.clear(); return Promise.resolve({ entry_id: "hk1" });
+        case "home_control/tv_home": return Promise.resolve({ calls: { ...sharing.tv } });
+        case "home_control/tv_home_set": if (msg.call) sharing.tv[msg.entity_id] = msg.call; else delete sharing.tv[msg.entity_id]; return Promise.resolve({ calls: { ...sharing.tv } });
         case "home_control/homekit_expose": {
-          if (!/^(scene|script|switch)\./.test(msg.entity_id)) return Promise.reject({ code: "not_supported", message: msg.entity_id + " cannot be shared with HomeKit from here" });
+          if (!/^(alarm_control_panel|binary_sensor|climate|cover|fan|humidifier|input_boolean|light|lock|media_player|scene|script|sensor|switch|vacuum|valve|water_heater)\./.test(msg.entity_id)) return Promise.reject({ code: "not_supported", message: msg.entity_id + " cannot be shared with HomeKit from here" });
           if (msg.expose) sharing.exposed.add(msg.entity_id); else sharing.exposed.delete(msg.entity_id);
+          if (msg.expose && msg.accessory_type) sharing.types[msg.entity_id] = msg.accessory_type; else delete sharing.types[msg.entity_id];
           return Promise.resolve({ changed: true });
         }
         case "home_control/effects_delete": imported = null; return Promise.resolve({ ok: true });

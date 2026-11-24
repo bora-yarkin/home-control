@@ -4,7 +4,7 @@
    Home Assistant entity (classic, Hue, any other) always is, and the switch only shows how to find it; a live scene is kept by Home Control and has no entity until it is published, which that switch does.
    Which scenes there are: the dashboard's live scenes, the `scene.*` entities (a plus integration's own kind, Hue's, apart from the others) and the switches a plus integration calls a sync. */
 
-var SHARE = { bridge: null, bridges: 0, published: {}, ready: false, failed: false };
+var SHARE = { bridge: null, bridges: 0, published: {}, tv: {}, ready: false, failed: false };
 
 /* A live scene's entity is the one Home Control made for it; every other scene is its own entity. */
 function shareEntity(it) {
@@ -47,6 +47,11 @@ function shareLoad(done) {
       });
       var ids = shareItems()
         .map(shareEntity)
+        .concat(
+          hkDevices().map(function (it) {
+            return it.entity;
+          })
+        )
         .filter(function (x) {
           return x;
         });
@@ -59,6 +64,16 @@ function shareLoad(done) {
         })[0];
       SHARE.bridges = all.length;
       SHARE.bridge = mine || null;
+      return HA.sharing.tvHome().then(
+        function (t) {
+          SHARE.tv = (t && t.calls) || {};
+        },
+        function () {
+          SHARE.tv = {};
+        }
+      );
+    })
+    .then(function () {
       SHARE.ready = true;
       done();
     })
@@ -220,18 +235,8 @@ function sharePage(b) {
       return;
     }
     var items = shareItems();
-    box.appendChild(
-      pill("home", SHARE.bridge ? SHARE.bridge.title : _T("share_no_bridge_title"), {
-        kind: "other",
-        sub: function () {
-          return SHARE.bridge
-            ? _T("share_bridge_sub")
-            : SHARE.bridges
-              ? _T("share_bridge_yaml")
-              : _T("share_no_bridge");
-        },
-      })
-    );
+    hkBridgeBlock(box, again);
+    hkDeviceGroups(box, again);
     SHARE_GROUPS.forEach(function (g) {
       var list = items.filter(function (it) {
         return it.group === g[0];

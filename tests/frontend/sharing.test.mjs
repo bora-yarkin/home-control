@@ -22,6 +22,7 @@ function world({ states = {}, scenes = [], bridge = { entry_id: "hk", title: "Br
     A: (id) => (states[id] || {}).attributes || {},
     pluginSceneKind: (id) => (id.startsWith("scene.hue_") ? { icon: "palette" } : null),
     pluginDeviceKind: (id) => (id === "switch.sync" ? { sync: true, icon: "sparkle" } : id === "switch.other" ? { icon: "plug" } : null),
+    hkDevices: () => [],
     liveIcon: () => "sparkle",
     liveId: (id) => String(id),
     liveSceneArea: () => area,
@@ -37,6 +38,7 @@ function world({ states = {}, scenes = [], bridge = { entry_id: "hk", title: "Br
     HA: {
       sharing: {
         published: () => Promise.resolve({ scenes: published }),
+        tvHome: () => Promise.resolve({ calls: {} }),
         publish: (id, on) => {
           log.push(["publish", id, on]);
           return Promise.resolve({ entity_id: on ? "scene." + id : null });
@@ -84,7 +86,7 @@ test("a scene that is its own entity is shared as it is; a live scene has an ent
 test("loading takes the first HomeKit Bridge that can be changed, and notes the exposure of every shared entity", async () => {
   const states = Object.fromEntries([state("scene.evening"), state("scene.night")]);
   const { w } = world({ states, published: { glow: "scene.glow" }, bridge: { entry_id: "hk", title: "Bridge", editable: true, exposed: { "scene.night": true, "scene.glow": true } } });
-  vm.runInContext("SHARE = { bridge: null, bridges: 0, published: {}, ready: false, failed: false }", w);
+  vm.runInContext("SHARE = { bridge: null, bridges: 0, published: {}, tv: {}, ready: false, failed: false }", w);
   await new Promise((done) => vm.runInContext("shareLoad", w)(done));
   const share = vm.runInContext("SHARE", w);
   assert.equal(share.ready, true);
@@ -97,7 +99,7 @@ test("loading takes the first HomeKit Bridge that can be changed, and notes the 
 test("a bridge set up in configuration.yaml, or no bridge, leaves HomeKit with nothing to change", async () => {
   for (const bridge of [null, { entry_id: "y", title: "Yaml", editable: false, exposed: {} }]) {
     const { w } = world({ bridge });
-    vm.runInContext("SHARE = { bridge: null, bridges: 0, published: {}, ready: false, failed: false }", w);
+    vm.runInContext("SHARE = { bridge: null, bridges: 0, published: {}, tv: {}, ready: false, failed: false }", w);
     await new Promise((done) => vm.runInContext("shareLoad", w)(done));
     assert.equal(vm.runInContext("SHARE.bridge", w), null);
     assert.equal(vm.runInContext("SHARE.bridges", w), bridge ? 1 : 0);

@@ -517,7 +517,14 @@ window.HA={
   published:function(){return ws({type:"home_control/published"})},
   publish:function(sceneId,on){return ws({type:"home_control/publish",scene_id:sceneId,publish:on})},
   homekit:function(entityIds){return ws({type:"home_control/homekit",entity_ids:entityIds})},
-  expose:function(entryId,entityId,on){return ws({type:"home_control/homekit_expose",entry_id:entryId,entity_id:entityId,expose:on})}
+  expose:function(entryId,entityId,on,accessoryType){
+   var msg={type:"home_control/homekit_expose",entry_id:entryId,entity_id:entityId,expose:on};
+   if(accessoryType)msg.accessory_type=accessoryType;
+   return ws(msg);
+  },
+  createBridge:function(){return ws({type:"home_control/homekit_create"})},
+  tvHome:function(){return ws({type:"home_control/tv_home"})},
+  setTvHome:function(entityId,call){return ws({type:"home_control/tv_home_set",entity_id:entityId,call:call})}
  },
  /* The plus integrations that bring a script of their own: [{ id, name, menu, version }]. */
  plugins:function(){return ws({type:"home_control/plugins"}).then(function(r){return r&&r.plugins})},
