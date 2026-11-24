@@ -10,11 +10,14 @@ const code = source.slice(source.indexOf("/* The weather entity's condition as t
 
 function header({ weather, sun, prefs = {}, picture = false, hour = 12 }) {
   const classes = new Set();
-  const sky = { className: "", classList: { remove: (c) => classes.delete(c) } };
+  const sky = { className: "", classList: { remove: (c) => classes.delete(c) }, querySelector: () => ({ getContext: () => ({ clearRect() {} }) }) };
   const hd = { querySelector: () => (sky.made ? sky : null), insertBefore: (el) => (el.made = true), firstChild: null };
   const states = { "weather.home": weather && { state: weather }, "sun.sun": sun && { state: sun.state, attributes: { elevation: sun.elevation } } };
   const sandbox = {
     PREFS: prefs,
+    window: {},
+    requestAnimationFrame: () => 1,
+    cancelAnimationFrame: () => {},
     Date: class extends Date {
       getHours() {
         return hour;
