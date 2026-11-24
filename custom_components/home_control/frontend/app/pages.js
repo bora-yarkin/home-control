@@ -605,11 +605,9 @@ function roomWall(key) {
   if (!(r && r.img)) return null;
   var rw = mk("div");
   rw.className = "rwall-x";
-  rw.style.cssText = "position:fixed;inset:0;z-index:0;pointer-events:none";
   var im = new Image();
   im.alt = "";
   im.src = r.img;
-  im.style.cssText = "width:100%;height:100%;object-fit:cover";
   rw.appendChild(im);
   return rw;
 }

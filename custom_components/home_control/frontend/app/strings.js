@@ -575,7 +575,7 @@ var EN = {
   "that_picture_couldn_t_be_used": "That picture couldn’t be used",
   "change_picture": "Change picture",
   "upload_a_picture": "Upload a picture",
-  "shown_behind_this_room_and_on_its_ho": "Shown behind this room and on its Home tile",
+  "shown_behind_this_room_and_on_its_ho": "Shown behind this room’s header and on its Home tile",
   "choose_an_image_from_this_device": "Choose an image from this device",
   "remove_picture": "Remove picture",
   "or_paste_an_https_or_local_address": "Or paste an https:// or /local/ address",
@@ -1375,6 +1375,11 @@ var EN = {
   "a_round_dial_instead_of_the_slider_i":
     "A round dial instead of the slider in this air conditioner’s popup",
   "artwork_card": "Artwork card",
+  "play_pause": "Play or pause",
+  "on_now": "On now",
+  "what_is_running_right_now_and_where": "Players, air conditioners, fans and lights that are on, and the room each is in",
+  "nothing_is_on": "Nothing is on",
+  "lights_players_air_conditioners_and": "Lights, players, air conditioners and fans that are on show up here",
   "no_alerts_right_now": "No alerts right now",
   "lights_fans_and_media_left_on_and_pr":
     "Lights, fans and media left on, and problems, show up here",

@@ -4,6 +4,16 @@ Format: [Keep a Changelog](https://keepachangelog.com/). Versions follow [semant
 
 ## [Unreleased]
 
+### Added
+- **On now**, a section for the Home page (*Add section*, Overview): the players, air conditioners and fans that are on, each with the room it is in, and one row for the lights that names the rooms they are on in. Each row opens its device's popup. The section is hidden while nothing is on.
+- **A media row that plays shows what plays**: the artwork in place of its icon, the title and artist under its name, and a play and pause button. A device whose *Now playing* is off shows none of it.
+
+### Changed
+- **Rows have a colour by kind and state**: lights amber, climate and air blue (an air conditioner that heats, orange), media violet, security green. The icon always carries its kind's colour; a row that is on takes it as its tint instead of the one accent.
+- **A section of four or more plain rows lays them out in as many columns as fit**, so a long list of switches does not run down the page.
+- **The picture of a room is the backdrop of its header** (it filled the whole page before), fading into the page.
+- **Type**: section names are small capitals above rows with firmer names, values and numbers, and a lighter clock.
+
 ## [0.21.0] - 2026-11-23
 
 ### Changed

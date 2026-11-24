@@ -195,6 +195,7 @@ function lightRow(id, showRoom, inPopup) {
   /* inPopup: true (the Lights section of the light decides) or a function that says whether to fill with the light's colour. */
   var nm = LNAME[id],
     r = mk("div", "pill pane slide");
+  r.dataset.k = "light";
   r.innerHTML =
     "<div class='fill'></div>" +
     ic(nm[1]) +

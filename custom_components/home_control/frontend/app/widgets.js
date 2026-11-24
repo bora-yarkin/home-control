@@ -242,15 +242,62 @@ function slideIcon(r, o, refresh) {
   );
 }
 
+/* The kind of device an icon stands for. A row's colour comes from its kind: lights amber, climate and air blue, media violet, security green; anything else keeps the dashboard accent. */
+var KINDWORDS = [
+  ["light", /^(light|lamp|floor|ceiling|strip|bright|flood|lights|mdi:(lightbulb|lamp|ceiling|floor-lamp|led|string-lights|wall-sconce))/],
+  ["climate", /^(ac|fan|purifier|thermo|drop|mdi:(air-|fan|snowflake|thermo|radiator|heat|water|humid))/],
+  ["media", /^(tv|apple|speaker|media|movie|mdi:(television|speaker|music|cast|projector|youtube|netflix|radio|disc))/],
+  ["security", /^(lock|padlock|cam|cctv|camoff|walk|motion|bell|mdi:(lock|door|shield|cctv|camera|doorbell|garage|alarm|smoke))/],
+];
+
+function iconKind(icon) {
+  var n = String(icon || "");
+  for (var i = 0; i < KINDWORDS.length; i++) if (KINDWORDS[i][1].test(n)) return KINDWORDS[i][0];
+  return "";
+}
+
+/* A small round button at the end of a row (play and pause on a media row): its own tap, never the row's. */
+function rowAction(r, o) {
+  var b = mk("button", "pact", svg(o.icon()));
+  b.setAttribute("aria-label", o.label);
+  b.type = "button";
+  b.addEventListener("click", function (e) {
+    e.stopPropagation();
+    o.fn();
+  });
+  r.appendChild(b);
+  return b;
+}
+
+/* The picture of a row, when it has one (the artwork of what is playing), in place of the icon. */
+function rowArt(icn, url, icon) {
+  var ok = typeof url === "string" && /^(\/(?!\/)|https:\/\/)/.test(url);
+  if (icn._art === (ok ? url : "")) return;
+  icn._art = ok ? url : "";
+  icn.classList.toggle("art", ok);
+  icn.innerHTML = svg(icon);
+  if (!ok) return;
+  var im = new Image();
+  im.alt = "";
+  im.onload = function () {
+    if (icn._art === url) icn.innerHTML = "";
+    if (icn._art === url) icn.appendChild(im);
+  };
+  im.src = url;
+}
+
 function pill(icon, name, o) {
   var r = mk("div", "pill pane" + (o.tap ? "" : " static") + (o.on ? " tg" : ""));
   r.dataset.i = icon;
+  var kind = iconKind(icon);
+  if (kind) r.dataset.k = kind;
   r.innerHTML =
     ic(icon) +
     "<span class='tx'><span class='nm'></span><span class='sb'></span></span><span class='vl'></span>";
   r.querySelector(".nm").textContent = name;
   var sb = r.querySelector(".sb"),
-    vl = r.querySelector(".vl");
+    vl = r.querySelector(".vl"),
+    act = o.action ? rowAction(r, o.action) : null;
   if (o.pin) r.dataset.pin = JSON.stringify(o.pin);
   if (o.check) {
     r.classList.add("chk");
@@ -285,6 +332,19 @@ function pill(icon, name, o) {
     r.classList.toggle("on", n);
     if (was !== null && n !== was) pop(r);
     was = n;
+    var tone = o.tone ? o.tone() : kind;
+    if (tone) r.dataset.k = tone;
+    else delete r.dataset.k;
+    if (o.art) rowArt(r.querySelector(".ic"), o.art(), icon);
+    if (act) {
+      var show = !!o.action.show();
+      act.style.display = show ? "" : "none";
+      var ai = show ? o.action.icon() : "";
+      if (show && ai !== act._i) {
+        act._i = ai;
+        act.innerHTML = svg(ai);
+      }
+    }
     if (o.sub) {
       var t = o.sub();
       sb.textContent = t || "";
@@ -309,6 +369,7 @@ function cssToRgb(s) {
 
 function sliderRow(o) {
   var r = mk("div", "pill pane slide");
+  if (iconKind(o.icon)) r.dataset.k = iconKind(o.icon);
   r.innerHTML =
     "<div class='fill'></div>" +
     ic(o.icon) +
@@ -836,26 +897,54 @@ function section(name, icon, items) {
   items.forEach(function (i) {
     s.appendChild(i);
   });
+  /* Four or more plain rows form a grid that takes as many columns as the section is wide, so a long list of switches does not run down the page. */
+  if (
+    items.length >= 4 &&
+    items.every(function (i) {
+      return i.classList.contains("pill") && !i.classList.contains("slide");
+    })
+  )
+    s.classList.add("dense");
   return s;
 }
 
+/* A media row shows what is playing: the artwork in place of the icon, the title and artist beneath the name, and a play and pause button. An idle player shows its source only when the device's row is set to show it. */
 function mediaRow(icon, name, id, key, sub) {
+  var np = !(UIDEV[id] || {}).nonp;
+  function playing() {
+    return np && (V_(id) === "playing" || V_(id) === "paused");
+  }
   return pill(icon, name, {
     pin: pinPop(key, id, name, icon),
     on: function () {
       return mediaOn(id);
     },
-    sub: sub
-      ? function () {
-          var s = V_(id);
-          if (s === "off") return "Off";
-          var a = A(id);
-          var parts = [a.media_title, a.source].filter(function (x) {
-            return x;
-          });
-          return parts.length ? parts.join(" · ") : cap(s);
-        }
-      : null,
+    art: function () {
+      return playing() ? A(id).entity_picture_local || A(id).entity_picture || "" : "";
+    },
+    action: {
+      label: _T("play_pause"),
+      icon: function () {
+        return V_(id) === "playing" ? "pause" : "play";
+      },
+      show: playing,
+      fn: function () {
+        call("media_player", "media_play_pause", { entity_id: id });
+      },
+    },
+    sub:
+      sub || np
+        ? function () {
+            var s = V_(id);
+            if (s === "off") return sub ? _T("off") : "";
+            var a = A(id),
+              parts = [a.media_title, a.media_artist || a.source].filter(function (x) {
+                return x;
+              });
+            if (parts.length && (sub || playing())) return parts.join(" · ");
+            return sub ? cap(s) : "";
+          }
+        : null,
     tap: function () {
       showPopup(key, true);
     },
@@ -880,6 +969,9 @@ function acRow(id, key, name, icon) {
     on: function () {
       var s = V_(id);
       return !!s && s !== "off" && svOk(id);
+    },
+    tone: function () {
+      return V_(id) === "heat" ? "heat" : "climate";
     },
     sub: function () {
       var a = A(id),
@@ -995,6 +1087,7 @@ function tile(icon, name, labelFn, onFn, tapFn, tintFn) {
   );
   t.querySelector(".nm").textContent = name;
   var sb = t.querySelector(".sb");
+  if (iconKind(icon)) t.dataset.k = iconKind(icon);
   t.addEventListener("click", tapFn);
   var was = null;
   t.refresh = function () {

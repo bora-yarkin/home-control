@@ -471,7 +471,7 @@ function secAdd(sc, k) {
 /* The kinds of section there are, by what they are for, for the Add section list. */
 var SEC_GROUPS = [
   ["sec_group_section", "tune", ["devs"]],
-  ["sec_group_overview", "home", ["glance", "rooms", "alerts", "chips", "status"]],
+  ["sec_group_overview", "home", ["glance", "now", "rooms", "alerts", "chips", "status"]],
   ["sec_group_scenes", "scene", ["pinned"]],
   ["sec_group_information", "info", ["chart", "read", "note", "security", "energy"]],
   ["sec_group_cameras", "cam", ["camera", "cameras"]],
