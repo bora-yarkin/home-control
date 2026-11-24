@@ -17,7 +17,7 @@ from homeassistant.config_entries import ConfigEntry
 from homeassistant.const import Platform
 from homeassistant.core import HomeAssistant
 
-from . import homekit, published
+from . import homekit, published, tvhome
 from .const import (
     CONF_ADMIN_ONLY,
     CONF_ICON,
@@ -82,12 +82,14 @@ async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
     )
     entry.runtime_data = await live_setup.async_setup(hass, entry)
     await published.async_setup(hass, entry)
+    await tvhome.async_setup(hass, entry)
     if not hass.services.has_service(DOMAIN, "scene_start"):
         live_services.async_register(hass)
         live_websocket.async_register(hass)
         effects_websocket.async_register(hass)
         homekit.async_register(hass)
         published.async_register(hass)
+        tvhome.async_register(hass)
     await hass.config_entries.async_forward_entry_setups(entry, PLATFORMS)
     entry.async_on_unload(entry.add_update_listener(_reload))
     return True
