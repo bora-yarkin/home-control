@@ -180,6 +180,7 @@ function masterLightList(box, sec, scope, redraw) {
         group = sec.mgl && lpIsGroup(n),
         edit = n.key.indexOf("light.") === 0 ? editLight(n) : null,
         row = pill(n.icon || "light", n.name, {
+          kind: "light",
           sub: function () {
             return group ? lpCount(n) + " " + _T("lights").toLowerCase() : n.key;
           },

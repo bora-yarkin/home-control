@@ -148,5 +148,6 @@ test("rows of blinds, appliances and vacuums take their kind from what the devic
   assert.match(frontend("devices.js"), /kind: "cover"/);
   assert.match(frontend("appliance.js"), /kind: "appliance"/);
   assert.match(frontend("scenes.js"), /kind: "clean"/);
+  assert.match(readFileSync(new URL("app/mastersettings.js", FRONTEND), "utf8"), /kind: "light"/, "a light in the order list is a light whatever icon it has");
   assert.match(widgets, /var kind = o\.kind \|\| iconKind\(icon\)/);
 });
