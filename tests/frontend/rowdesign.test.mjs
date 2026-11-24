@@ -17,7 +17,7 @@ function iconKinds() {
   return sandbox.iconKind;
 }
 
-test("an icon stands for a kind of device: lights, climate, media or security, built-in or Material Design; anything else has none", () => {
+test("an icon stands for a kind of device (lights, climate, media, security, power, cleaning, scenes, appliances, blinds, warnings, links), built-in or Material Design, and any other icon is of kind other, so no icon is left without a colour", () => {
   const kind = iconKinds();
   for (const [icon, want] of [
     ["light", "light"],
@@ -32,9 +32,21 @@ test("an icon stands for a kind of device: lights, climate, media or security, b
     ["lock", "security"],
     ["cctv", "security"],
     ["mdi:door-open", "security"],
-    ["plug", ""],
-    ["vac", ""],
-    ["mdi:printer", ""],
+    ["plug", "power"],
+    ["mdi:battery-60", "power"],
+    ["vac", "clean"],
+    ["mdi:robot-vacuum", "clean"],
+    ["scene", "scene"],
+    ["play", "scene"],
+    ["printer", "appliance"],
+    ["mdi:printer", "appliance"],
+    ["mdi:blinds", "cover"],
+    ["alert", "alert"],
+    ["swap", "link"],
+    ["mdi:phone-ring", "security"],
+    ["cog", "other"],
+    ["plus", "other"],
+    ["mdi:something-odd", "other"],
     ["", ""],
     [undefined, ""],
   ])
@@ -124,4 +136,12 @@ test("On now is a kind of section that exists once, is offered in the Add sectio
   assert.match(sections, /"glance",\s*"now",\s*"rooms"/);
   assert.match(sections, /if \(k === "now"\) return secNow\(\);/);
   assert.match(readFileSync(new URL("app/editor.js", FRONTEND), "utf8"), /\["glance", "now", "rooms"/);
+});
+
+test("rows of blinds, appliances and vacuums take their kind from what the device is, not from the icon the owner picked", () => {
+  const frontend = (file) => readFileSync(new URL("app/" + file, FRONTEND), "utf8");
+  assert.match(frontend("devices.js"), /kind: "cover"/);
+  assert.match(frontend("appliance.js"), /kind: "appliance"/);
+  assert.match(frontend("scenes.js"), /kind: "clean"/);
+  assert.match(widgets, /var kind = o\.kind \|\| iconKind\(icon\)/);
 });

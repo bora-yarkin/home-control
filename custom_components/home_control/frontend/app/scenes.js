@@ -659,6 +659,7 @@ function devRowRaw(d) {
   if (d.kind === "vacuum") {
     pk = devPop(d);
     return pill(d.icon || "vac", d.name, {
+      kind: "clean",
       tap: function () {
         showPopup(pk, true);
       },
@@ -674,6 +675,7 @@ function devRowRaw(d) {
     pk = devPop(d);
     var pw = powerSib(d.id);
     return pill(d.icon || "plug", d.name, {
+      kind: iconKind(d.icon || "plug") === "other" ? "power" : "",
       on: function () {
         return isOn(d.id);
       },

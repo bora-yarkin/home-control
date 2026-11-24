@@ -953,12 +953,27 @@ body.pinhdr:not(.editing) .wrap::before{content:"";position:fixed;top:0;left:0;r
 [data-k=heat]{--kc:#ee8442}
 [data-k=media]{--kc:#a487f2}
 [data-k=security]{--kc:#45bd84}
+[data-k=power]{--kc:#bcd04a}
+[data-k=clean]{--kc:#3fc2b4}
+[data-k=scene]{--kc:#e774a8}
+[data-k=appliance]{--kc:#e0a060}
+[data-k=cover]{--kc:#8fb3a0}
+[data-k=alert]{--kc:#f0a24a}
+[data-k=link]{--kc:#8d9fe0}
+[data-k=other]{--kc:var(--acc)}
 body.light [data-k=light]{--kc:#c98a0a}
 body.light [data-k=climate]{--kc:#1f86c8}
 body.light [data-k=heat]{--kc:#d4631a}
 body.light [data-k=media]{--kc:#7b5bdc}
 body.light [data-k=security]{--kc:#1f9a63}
-.pill[data-k] .ic,.tile[data-k] .ic{color:color-mix(in srgb,var(--kc) 78%,var(--ink2))}
+body.light [data-k=power]{--kc:#7f9a10}
+body.light [data-k=clean]{--kc:#14968a}
+body.light [data-k=scene]{--kc:#c93f80}
+body.light [data-k=appliance]{--kc:#b9772a}
+body.light [data-k=cover]{--kc:#4f8570}
+body.light [data-k=alert]{--kc:#c97a10}
+body.light [data-k=link]{--kc:#5a6fc4}
+.pill[data-k]:not([data-k=other]) .ic,.tile[data-k]:not([data-k=other]) .ic,.sel[data-k]:not([data-k=other]) .ic,main .pill[data-k=other] .ic,main .tile[data-k=other] .ic,main .sel[data-k=other] .ic{color:color-mix(in srgb,var(--kc) 78%,var(--ink2))}
 .pill.on[data-k]:not(.lc):not(.lci),.tile.on[data-k]:not(.lc):not(.lci){background:color-mix(in srgb,var(--kc) 13%,var(--f-card))!important;border-color:color-mix(in srgb,var(--kc) 48%,var(--f-line))!important}
 .pill.on[data-k]:not(.lc):not(.lci) .ic,.tile.on[data-k]:not(.lc):not(.lci) .ic{background:color-mix(in srgb,var(--kc) 34%,var(--f-raise));border-color:color-mix(in srgb,var(--kc) 58%,var(--f-line2));color:var(--ink)}
 /* A row that is playing shows its artwork in the icon circle and a play and pause button at its end. */

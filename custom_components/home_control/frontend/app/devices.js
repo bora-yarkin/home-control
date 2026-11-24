@@ -562,6 +562,7 @@ function coverPos(id) {
 function coverRow(d) {
   var id = d.id;
   return pill(d.icon || "swap", d.name, {
+    kind: "cover",
     on: function () {
       return ["open", "opening"].indexOf(V_(id)) >= 0;
     },

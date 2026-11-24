@@ -4,6 +4,9 @@ Format: [Keep a Changelog](https://keepachangelog.com/). Versions follow [semant
 
 ## [Unreleased]
 
+### Changed
+- **Every icon has a colour**: besides lights, climate, media and security, power and batteries are lime, cleaning teal, scenes and actions pink, appliances warm sand, blinds and garage doors sage, warnings orange and linked sections slate. Any other icon takes the dashboard accent on the pages. A blind, an appliance or a vacuum is coloured by what it is, whatever icon was picked for it, and the dropdown rows are coloured like the others.
+
 ## [0.22.0] - 2026-11-24
 
 ### Added

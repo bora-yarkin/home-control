@@ -242,18 +242,26 @@ function slideIcon(r, o, refresh) {
   );
 }
 
-/* The kind of device an icon stands for. A row's colour comes from its kind: lights amber, climate and air blue, media violet, security green; anything else keeps the dashboard accent. */
+/* The kind of device an icon stands for. A row's colour comes from its kind: lights amber, climate and air blue, media violet, security green, power and batteries lime, cleaning teal, scenes and actions pink, appliances and blinds their own warm and sage tones, warnings orange, links slate. Any other icon is "other", which takes the dashboard accent, so no icon is left without a colour. */
 var KINDWORDS = [
-  ["light", /^(light|lamp|floor|ceiling|strip|bright|flood|lights|mdi:(lightbulb|lamp|ceiling|floor-lamp|led|string-lights|wall-sconce))/],
-  ["climate", /^(ac|fan|purifier|thermo|drop|mdi:(air-|fan|snowflake|thermo|radiator|heat|water|humid))/],
-  ["media", /^(tv|apple|speaker|media|movie|mdi:(television|speaker|music|cast|projector|youtube|netflix|radio|disc))/],
-  ["security", /^(lock|padlock|cam|cctv|camoff|walk|motion|bell|mdi:(lock|door|shield|cctv|camera|doorbell|garage|alarm|smoke))/],
+  ["light", /^(light|lamp|floor|ceiling|strip|bright|flood|lights|mdi:(lightbulb|lamp|ceiling|floor-lamp|led|string-lights|wall-sconce|spotlight|track-light))/],
+  ["climate", /^(ac|fan|purifier|thermo|drop|mdi:(air-|fan|snowflake|thermo|radiator|heat|water|humid|weather|wind))/],
+  ["media", /^(tv|apple|speaker|media|movie|playc|mdi:(television|speaker|music|cast|projector|youtube|netflix|radio|disc|amplifier|surround|apple|android))/],
+  ["security", /^(lock|padlock|cam|cctv|camoff|walk|motion|bell|phone|mdi:(lock|door|shield|cctv|camera|doorbell|garage|alarm|smoke|phone|bell|gate|key|window-open|eye))/],
+  ["power", /^(plug|powerset|power|battery|mdi:(power|battery|flash|lightning|ev-|solar|meter|transmission|gauge|current))/],
+  ["clean", /^(vac|broom|rug|mdi:(robot|vacuum|broom|mop|spray|washing|vacuum-cleaner))/],
+  ["scene", /^(scene|sparkle|palette|play|rec|mdi:(palette|movie-open|party|creation|auto-fix|star|heart|play|script|robot-happy))/],
+  ["appliance", /^(printer|mdi:(printer|stove|fridge|coffee|kettle|microwave|dishwasher|oven|toaster|blender|iron|hair-dryer|washing-machine|dryer|rice-cooker|water-boiler))/],
+  ["cover", /^(blind|shutter|mdi:(blinds|window-shutter|roller|curtains|garage-variant))/],
+  ["alert", /^(alert|warn|mdi:(alert|warning|bell-alert))/],
+  ["link", /^(swap|link|mdi:(link|share|swap))/],
 ];
 
 function iconKind(icon) {
   var n = String(icon || "");
+  if (!n) return "";
   for (var i = 0; i < KINDWORDS.length; i++) if (KINDWORDS[i][1].test(n)) return KINDWORDS[i][0];
-  return "";
+  return "other";
 }
 
 /* A small round button at the end of a row (play and pause on a media row): its own tap, never the row's. */
@@ -289,7 +297,7 @@ function rowArt(icn, url, icon) {
 function pill(icon, name, o) {
   var r = mk("div", "pill pane" + (o.tap ? "" : " static") + (o.on ? " tg" : ""));
   r.dataset.i = icon;
-  var kind = iconKind(icon);
+  var kind = o.kind || iconKind(icon);
   if (kind) r.dataset.k = kind;
   r.innerHTML =
     ic(icon) +
@@ -472,6 +480,7 @@ function sliderRow(o) {
 
 function selectTile(label, opts, cur, pick, icon, fmt) {
   var r = mk("div", "sel pane");
+  if (iconKind(icon)) r.dataset.k = iconKind(icon);
   r.innerHTML =
     (icon ? ic(icon) : "") +
     "<span class='tx'><span class='nm'></span><span class='sb'></span></span><span class='chev'>" +
