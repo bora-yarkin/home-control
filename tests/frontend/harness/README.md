@@ -28,6 +28,10 @@ With the file there, the harness opens on your Home page and uses it for everyth
 
 Not in the snapshot: pictures and streams (cameras, a vacuum's map), history, and whatever changes after the export, so a value read from a live device (a temperature, a count) can differ a little from the real page at the moment you compare.
 
+## The header sky
+
+`index.html?sky` opens a small control at the bottom left: the weather (sunny, partly cloudy, cloudy, rain, heavy rain, storm, snow, fog, windy, clear night), the height of the sun (-30 to 60 degrees), and a button that sweeps the sun from night to day in about 30 seconds so the dawn and dusk colours can be watched. `?sky=storm@30` (also rain, heavy, snow, fog, wind, night, partly, sunny, cloudy) starts on a storm with the sun 30 degrees up. It sets the pretend weather and sun of the harness only; the sky is on the Home page and on every room without a picture, and *Weather sky* in Appearance turns it off.
+
 ## Checking the spacing
 
 `await auditSpacing(["stg-hue", "hue-bridge"])` (in the page's console or the browser tool) opens each popup and measures the gap between its rows. Every

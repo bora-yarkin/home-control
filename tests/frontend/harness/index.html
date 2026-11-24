@@ -14,6 +14,7 @@ await import("/custom_components/home_control/frontend/dashboard-panel.js?t=" + 
 import { makeHass } from "./mock-hass.js";
 import { auditSpacing } from "./audit.js";
 import { buildShowcase } from "./showcase.js";
+import { skyControl } from "./skycontrol.js";
 import { auditLayout, auditSurfaces, prepareKit, snapshotSurfaces, standardSurfaces } from "./layout.js";
 window.auditSpacing = auditSpacing;
 window.buildShowcase = buildShowcase;
@@ -35,6 +36,9 @@ panel.hass = hass;
 // The page "Showcase" has a device of every kind (showcase.js). Without a home snapshot it is opened at start; with one the harness stays on your Home page. ?showcase=0 leaves it out.
 // ?demo=0 with a home snapshot leaves the invented rooms out: the pages are then exactly your dashboard's (the demo rooms' lights, TVs and so on add to totals such as "lights on" on the Home page).
 if (query.get("showcase") !== "0" && !(home && query.get("demo") === "0")) buildShowcase();
+
+// ?sky shows a control for the header sky: the weather and the height of the sun (?sky=storm@30 starts on a storm with the sun 30 degrees up).
+if (query.has("sky")) skyControl(hass, query);
 
 // ?door=ringing | call | security-ringing | security-call shows the call popup of the pretend door station (a camera with a picture), or of a
 // guard desk (no camera picture, only the station's audio-wave picture, and nothing to unlock: `can_unlock: false`). The pictures are stand-ins.
