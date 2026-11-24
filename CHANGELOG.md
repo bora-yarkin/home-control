@@ -4,6 +4,8 @@ Format: [Keep a Changelog](https://keepachangelog.com/). Versions follow [semant
 
 ## [Unreleased]
 
+## [0.22.1] - 2026-11-24
+
 ### Changed
 - **A room's icon is always the accent**: the lists of rooms, the room tiles of Home and the room popups no longer take a colour from the icon picked for the room (a door was green, a bed purple).
 - **The header's power button is the size of search and settings** (it was 46 pixels while they were 38 to 42).
