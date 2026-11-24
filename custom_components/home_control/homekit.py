@@ -76,8 +76,14 @@ def changed_lists(entry: ConfigEntry, entity_id: str, expose: bool) -> dict[str,
             new["include_entities"].append(entity_id)
     else:
         new["include_entities"] = [x for x in new["include_entities"] if x != entity_id]
-        if entity_filter(new)(entity_id):
+        if not any(new[key] for key in ("include_domains", "include_entities", "include_entity_globs")):
+            if "*" not in new["exclude_entity_globs"]:
+                new["exclude_entity_globs"].append("*")
+        elif entity_filter(new)(entity_id):
             new["exclude_entities"].append(entity_id)
+    if not any(new[key] for key in ("include_domains", "include_entities", "include_entity_globs")) and "*" not in new["exclude_entity_globs"]:
+        # No list is left, and a filter with nothing in it shows everything: "show nothing" is written as an exclusion of every entity.
+        new["exclude_entity_globs"].append("*")
     if bool(entity_filter(new)(entity_id)) != expose:
         raise HomeKitError("The bridge's list could not be changed for this entity. Change it in the bridge's own settings.")
     return new

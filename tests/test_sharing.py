@@ -71,6 +71,17 @@ async def test_asking_for_what_already_is_changes_nothing(hass):
     assert dict(entry.options) == before
 
 
+async def test_taking_the_last_entity_off_leaves_a_list_that_shows_nothing_not_one_that_shows_everything(hass):
+    entry = bridge(hass)
+    make_exist(hass, "scene.evening", "switch.kettle", "light.lamp")
+    assert homekit.set_exposed(hass, None, "switch.kettle", False) is True
+    assert not any(homekit.is_exposed(entry, e) for e in ("switch.kettle", "scene.evening", "light.lamp"))
+    assert lists(entry)["include_entities"] == [] and lists(entry)["exclude_entity_globs"] == ["*"]
+    assert homekit.set_exposed(hass, None, "scene.evening", True) is True
+    assert homekit.is_exposed(entry, "scene.evening") and not homekit.is_exposed(entry, "switch.kettle") and not homekit.is_exposed(entry, "light.lamp")
+    assert lists(entry)["include_entities"] == ["scene.evening"]
+
+
 async def test_a_scene_of_an_included_domain_is_taken_off_by_excluding_it(hass):
     entry = bridge(hass, {"include_domains": ["scene"], "include_entities": [], "exclude_domains": [], "exclude_entities": []})
     make_exist(hass, "scene.evening")
