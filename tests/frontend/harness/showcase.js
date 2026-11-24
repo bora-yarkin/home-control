@@ -110,7 +110,9 @@ const sleep = (ms) => new Promise((resolve) => setTimeout(resolve, ms));
 /* The page "Showcase" with a device of every kind, put there the way the builders do it. Runs in the page (it uses the panel's own functions). */
 export async function buildShowcase() {
   const w = window;
-  while (!w.BOOTED || !w.UI || !w.addCandidate) await sleep(200);
+  /* With a real home the saved dashboard replaces the first layout once it has been read; the rooms are added after that. */
+  while (!w.BOOTED || !w.UI || !w.addCandidate || (window.__home && !w.STORE_NET)) await sleep(200);
+  await sleep(300);
   if (w.UI.rooms.some((r) => r.id === "showcase")) return;
   const sections = [
     ["lights", "Lights", "lights"],
@@ -123,6 +125,17 @@ export async function buildShowcase() {
   ];
   w.UI.rooms.push({ id: "showcase", name: "Showcase", short: "Showcase", icon: "home", area: "" });
   w.UI.layout.rooms.showcase = [{ id: "status", k: "status", hide: false }, { id: "camera", k: "camera", hide: false, devs: [] }].concat(sections.map(([id, t, i]) => ({ id, k: "devs", t, i, hide: false, devs: [] })));
+  /* The first invented room of the harness, the demo living room, is not made by the dashboard's seeding when a real home is loaded (its saved layout is used instead): it is made here. */
+  if (window.__home && !w.UI.rooms.some((r) => r.id === "r_living")) {
+    const h = w.H();
+    const zones = w.zoneLightIds(h.states, h.entities);
+    const list = Object.keys(h.states)
+      .filter((id) => w.areaIdOf(id) === "living" && !zones[id] && !(h.entities[id] && (h.entities[id].entity_category || h.entities[id].hidden || h.entities[id].disabled_by)))
+      .map((id) => w.areaDevice("living", id))
+      .filter(Boolean);
+    w.UI.rooms.push({ id: "r_living", name: "Demo living room", short: "Demo", icon: "home", area: "living" });
+    w.UI.layout.rooms.r_living = [{ id: "status", k: "status", hide: false }].concat(w.groupSections(list));
+  }
   w.uiChanged();
   const put = (sec, ids) =>
     ids.forEach((id) => {
@@ -219,7 +232,7 @@ export async function buildShowcase() {
   w.uiChanged();
   w.refresh();
   await sleep(300);
-  w.go("showcase");
+  if (!window.__home) w.go("showcase");
 }
 
 /* Remotes made the way a person would with the builder, as a test of what it can build: a Samsung TV remote as a grid, and a common AV receiver remote as a grid and as a picture (the picture is kept out of the
