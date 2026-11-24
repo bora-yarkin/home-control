@@ -90,20 +90,58 @@ function greeting() {
 
 var HDRC = [];
 
-/* The clock is shown in the regular header unless it is turned off. The slim header leaves it out unless it is turned on. */
-function hdrClockShown(mt, size) {
-  return (size || hdrSize()) === "slim" ? mt.clockSlim === true : mt.clock !== false;
+/* The clock is shown unless it is turned off. */
+function hdrClockShown(mt) {
+  return mt.clock !== false;
 }
 
-/* An item is shown unless it has been turned off; an item with no choice of its own is hidden in the slim header. */
-function hdrShown(it, size) {
-  if (it.show === true || it.show === false) return it.show;
-  return (size || hdrSize()) !== "slim";
+/* An item is shown unless it has been turned off. */
+function hdrShown(it) {
+  return it.show !== false;
 }
 
-/* The header size this user sees: their own choice in Appearance, otherwise the one set for the page. */
-function hdrSize() {
-  return PREFS.hdrSize || (UI.meta || {}).size || "regular";
+/* The page's status tiles (a room's readings, or the Home page's climate tiles) as a row of the header, when the page's header settings say so and nothing is being edited. The row changes with the page, and a page with no status tiles keeps the short header. The page's own Status section is left out while they are here. */
+var HSTF = [];
+
+function hdrStatusOn() {
+  return ((UI && UI.meta) || {}).hdrStatus === true && !editing();
+}
+
+/* Builds the row for the open page; without force it keeps the row when the page and its tiles are the same. */
+function hdrStatusSync(force) {
+  var hd = document.querySelector(".hdr");
+  if (!hd) return;
+  var on = hdrStatusOn(),
+    sig = on ? VIEW + "|" + JSON.stringify(VIEW === "home" ? UI.chips : UI.stat[VIEW] || []) : "";
+  if (!force && hd._hstSig === sig) return;
+  hd._hstSig = sig;
+  HSTF.forEach(function (f) {
+    var i = LIVE.indexOf(f);
+    if (i >= 0) LIVE.splice(i, 1);
+  });
+  HSTF = [];
+  var old = hd.querySelector("#hst");
+  if (old) old.remove();
+  if (!on) return;
+  var mine = [],
+    prev = CUR,
+    g;
+  CUR = mine;
+  try {
+    g = VIEW === "home" ? chipGrid() : statGrid(VIEW);
+  } finally {
+    CUR = prev;
+  }
+  if (!g) return;
+  var box = mk("div", "hstat");
+  box.id = "hst";
+  box.appendChild(g);
+  hd.appendChild(box);
+  mine.forEach(function (f) {
+    LIVE.push(f);
+    HSTF.push(f);
+    f();
+  });
 }
 
 function hdrBuild() {
@@ -111,8 +149,6 @@ function hdrBuild() {
     mt = UI.meta || {},
     hd = document.querySelector(".hdr");
   if (!box || !hd) return;
-  hd.classList.toggle("slim", hdrSize() === "slim");
-  hd.classList.toggle("noclock", !hdrClockShown(mt));
   hd.classList.toggle("greet", !!mt.greet);
   box.innerHTML = "";
   HDRC = [];
@@ -124,8 +160,54 @@ function hdrBuild() {
   hdrLive();
 }
 
+/* The weather entity's condition as the sky it paints: [what is in the sky, how strong]. */
+var HSKYW = {
+  sunny: ["clear", ""],
+  "clear-night": ["clear", ""],
+  partlycloudy: ["partly", ""],
+  cloudy: ["cloudy", ""],
+  exceptional: ["cloudy", "heavy"],
+  rainy: ["rain", ""],
+  pouring: ["rain", "heavy"],
+  "lightning-rainy": ["storm", "heavy"],
+  lightning: ["storm", ""],
+  snowy: ["snow", ""],
+  "snowy-rainy": ["snow", "heavy"],
+  hail: ["snow", "heavy"],
+  fog: ["fog", ""],
+  windy: ["clear", "fast"],
+  "windy-variant": ["partly", "fast"],
+};
+
+/* The header's backdrop is the sky over the house (sky.js): what the weather entity says, lit by the height of the sun as Home Assistant's sun says, else by the clock. A page with a room picture keeps the picture. Mine, in Appearance, turns it off. */
+function hdrSky() {
+  var hd = document.querySelector(".hdr");
+  if (!hd) return;
+  var sky = hd.querySelector(".hsky"),
+    w = firstWeather(),
+    c = w && S(w) ? HSKYW[V_(w)] : null,
+    show = !!c && PREFS.sky !== false && ((UI && UI.meta) || {}).sky !== false && !document.body.classList.contains("rwall");
+  if (!show) {
+    if (sky) sky.classList.remove("on");
+    skyStop();
+    return;
+  }
+  if (!sky) {
+    sky = mk("div", "hsky");
+    hd.insertBefore(sky, hd.firstChild);
+  }
+  var sun = S("sun.sun") ? A("sun.sun") : null,
+    now = new Date(),
+    hour = now.getHours() + now.getMinutes() / 60,
+    elev = sun && typeof sun.elevation === "number" ? sun.elevation : 55 * Math.sin((Math.PI * (hour - 6)) / 12);
+  if (V_(w) === "clear-night") elev = Math.min(elev, -10);
+  sky.classList.add("on");
+  skyShow(sky, { kind: c[0], heavy: c[1] === "heavy", fast: c[1] === "fast", elev: elev });
+}
+
 function hdrLive() {
   roomOffSync();
+  hdrSky();
   var mt = UI.meta || {},
     eb = document.querySelector(".eyebrow");
   if (eb && mt.greet) {
@@ -165,21 +247,6 @@ var HLAB = {
 function hdrPage(box, m) {
   m.hdr = m.hdr || [];
   function draw() {
-    box.appendChild(sep(_T("header_size_page"), "tune"));
-    box.appendChild(
-      seg(
-        [
-          ["regular", _T("regular")],
-          ["slim", _T("slim_2")],
-        ],
-        m.size || "regular",
-        function (v) {
-          m.size = v;
-          uiChanged();
-          redrawBox(box, draw);
-        }
-      )
-    );
     box.appendChild(
       pill("bright", _T("greeting"), {
         on: function () {
@@ -199,16 +266,43 @@ function hdrPage(box, m) {
         },
       })
     );
+    box.appendChild(
+      pill("bright", _T("weather_sky"), {
+        on: function () {
+          return m.sky !== false;
+        },
+        sub: function () {
+          return m.sky !== false ? _T("the_sky_behind_the_header_for_everyone") : _T("off");
+        },
+        tap: function () {
+          m.sky = m.sky === false;
+          uiChanged();
+          redrawBox(box, draw);
+        },
+      })
+    );
+    box.appendChild(
+      pill("thermo", _T("status_in_the_header"), {
+        on: function () {
+          return m.hdrStatus === true;
+        },
+        sub: function () {
+          return m.hdrStatus === true ? _T("the_status_tiles_of_each_page_are_a_row_of_the_header") : _T("off");
+        },
+        tap: function () {
+          m.hdrStatus = !m.hdrStatus;
+          uiChanged();
+          redrawBox(box, draw);
+        },
+      })
+    );
     box.appendChild(sep(_T("header_items"), "home"));
-    if (m.size === "slim") {
-      box.appendChild(hintRow(_T("slim_header_hides_items")));
-    }
     var rows = [];
     m.hdr.forEach(function (it, i) {
       var r = hdrItem(it) || { i: "info", t: HLAB[it.k] },
         p = pill(r.i, r.t, {
           sub: function () {
-            return HLAB[it.k] + (hdrShown(it, m.size) ? "" : " · " + _T("hidden").toLowerCase());
+            return HLAB[it.k] + (hdrShown(it) ? "" : " · " + _T("hidden").toLowerCase());
           },
           tap: function () {
             showPopup("manage-hitem:" + i, true);
@@ -273,15 +367,15 @@ function hitemPage(b, i) {
   b.appendChild(box);
   function draw() {
     box.appendChild(
-      pill(hdrShown(it, m.size) ? "eye" : "eyeoff", _T("show_in_header"), {
+      pill(hdrShown(it) ? "eye" : "eyeoff", _T("show_in_header"), {
         on: function () {
-          return hdrShown(it, m.size);
+          return hdrShown(it);
         },
         sub: function () {
-          return hdrShown(it, m.size) ? _T("shown") : _T("hidden");
+          return hdrShown(it) ? _T("shown") : _T("hidden");
         },
         tap: function () {
-          it.show = !hdrShown(it, m.size);
+          it.show = !hdrShown(it);
           uiChanged();
           redrawBox(box, draw);
         },
@@ -417,7 +511,7 @@ function roomHeaderPage(b, rid) {
       },
     })
   );
-  b.appendChild(hintRow(_T("the_header_size_greeting_and_items_a")));
+  b.appendChild(hintRow(_T("the_greeting_and_items_are_shared_by_every_page")));
   var hb = mk("div");
   b.appendChild(hb);
   hdrPage(hb, UI.meta);

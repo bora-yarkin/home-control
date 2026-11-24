@@ -4,6 +4,23 @@ Format: [Keep a Changelog](https://keepachangelog.com/). Versions follow [semant
 
 ## [Unreleased]
 
+## [0.22.0] - 2026-11-24
+
+### Added
+- **On now**, a section for the Home page (*Add section*, Overview): the players, air conditioners and fans that are on, each with the room it is in, and one row for the lights that names the rooms they are on in. Each row opens its device's popup. The section is hidden while nothing is on.
+- **A media row that plays shows what plays**: the artwork in place of its icon, the title and artist under its name, and a play and pause button. A device whose *Now playing* is off shows none of it.
+- **A sky behind the header**, painted on a canvas from the weather entity and the height of the sun (Home Assistant's sun; without one, the clock): the colours follow the sun's elevation from night through dawn and dusk to day. The sun is a bright disc with a corona and two sets of rays that turn in opposite directions while each ray grows and shrinks. The clouds are noise in two layers moving at different speeds, lit from the side the sun is on (cloudy is a bright broken cloud with blue between, fog is a milky haze with low wisps, no cloud). Rain lands on the header's buttons and chips, sprays, and runs down them in beads that fall from the lowest point; storms draw forked, flickering bolts and light the cloud; a clear night has stars, a moon and the odd meteor. The sun's light is laid over the sky in gold (orange near the horizon). No pictures. With a sky the header text is light in both themes, with a scrim as strong as the sky is bright, and the buttons and chips are outlines on the sky. It stands still with reduced motion, gives way to a room's picture, and *Weather sky* in Appearance turns it off.
+- **Two header settings** (*Names and header*, shared by every page): *Weather sky* (on by default; off gives the plain header as before, and each person can still turn it off for themselves in Appearance) and *Status in the header* (off by default): the page's status tiles (a room's readings, or the Home page's climate tiles) become a row of pills in the header, the same pills as the weather and lights chips. The header grows by the row, the row changes with the page, and the page's own Status section is left out while the pills are there (not while editing, so they can be edited where they are). Rain also lands on those pills.
+
+### Removed
+- **The slim header**, with its settings (the header size of the page and *Header size (my account)* in Appearance). The header has one size; a saved page that said slim keeps the regular header.
+
+### Changed
+- **Rows have a colour by kind and state**: lights amber, climate and air blue (an air conditioner that heats, orange), media violet, security green. The icon always carries its kind's colour; a row that is on takes it as its tint instead of the one accent.
+- **A section of four or more plain rows lays them out in as many columns as fit**, so a long list of switches does not run down the page.
+- **The picture of a room is the backdrop of its header** (it filled the whole page before), fading into the page.
+- **Type**: section names are small capitals above rows with firmer names, values and numbers, and a lighter clock.
+
 ## [0.21.0] - 2026-11-23
 
 ### Changed

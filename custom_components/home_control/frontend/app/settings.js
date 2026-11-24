@@ -151,7 +151,7 @@ var STG_INDEX = [
   [_T("backup_and_about"), "backup about diagnostics", "data", null],
   [_T("change_log"), "changes undo who edit history", "data", "manage-log"],
   [_T("backup_and_restore"), "download export import restore", "data", "manage-backup"],
-  [_T("stg_idx_header"), "header clock greeting size weather people slim names page", "dev", "manage-names"],
+  [_T("stg_idx_header"), "header clock greeting weather people names page", "dev", "manage-names"],
   [_T("stg_idx_batteries"), "batteries battery low tracked", "notify", "manage-bats"],
   [_T("stg_idx_alerts"), "alerts any entity notification rule washer door", "notify", "stg-notify"],
   [_T("stg_idx_photos"), "wall photos screensaver gallery night dim idle", "wall", "stg-wall"],

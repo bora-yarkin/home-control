@@ -47,14 +47,13 @@ function namesPage(b) {
   b.appendChild(
     pill("clock", _T("show_the_clock_and_date"), {
       on: function () {
-        return hdrClockShown(m, m.size);
+        return hdrClockShown(m);
       },
       sub: function () {
-        return hdrClockShown(m, m.size) ? _T("shown_in_the_header") : _T("hidden");
+        return hdrClockShown(m) ? _T("shown_in_the_header") : _T("hidden");
       },
       tap: function () {
-        if (m.size === "slim") m.clockSlim = !hdrClockShown(m, m.size);
-        else m.clock = !hdrClockShown(m, m.size);
+        m.clock = !hdrClockShown(m);
         uiChanged();
       },
     })

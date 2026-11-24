@@ -43,7 +43,8 @@ function importEffects(content) {
   });
 }
 
-export function makeHass(query) {
+/* `home` is the snapshot of a real home (export-home.js, tests/frontend/harness/local/home.json): its states, registries, saved dashboard and plugin answers are added to the invented ones, and the real ones win. */
+export function makeHass(query, home = null) {
   const withSync = query.get("sync") !== "0";
   const withBox = query.get("box") !== "0";
   // The Showcase page (showcase.js) is part of the harness; ?showcase=0 leaves it out.
@@ -185,8 +186,19 @@ export function makeHass(query) {
   if (withShowcase) devices.push(...showcaseDevices);
   devices.push(...BATTERY_DEVICES.map(([id, name, byUser, area]) => ({ id, name, name_by_user: byUser, area_id: area, manufacturer: "Invented", model: "Test" })));
 
+  if (home) {
+    for (const st of home.states) states[st.entity_id] = st;
+    const have = new Set(entities.map((e) => e.entity_id));
+    entities.push(...(home.entities || []).filter((e) => !have.has(e.entity_id)));
+    const haveDevices = new Set(devices.map((d) => d.id));
+    devices.push(...(home.devices || []).filter((d) => !haveDevices.has(d.id)));
+  }
   const groups = {};
   const stored = { user: {}, system: {} };
+  if (home) {
+    for (const [key, value] of Object.entries(home.system || {})) if (value !== null) stored.system[key] = value;
+    for (const [key, value] of Object.entries(home.userData || {})) if (value !== null) stored.user[key] = value;
+  }
   const calls = [];
   window.__calls = calls;
   const listeners = {};
@@ -269,8 +281,8 @@ export function makeHass(query) {
         case "config/entity_registry/update": return Promise.resolve({ entity_entry: { entity_id: msg.entity_id } });
         case "config_entries/update": return Promise.resolve({});
         case "config/device_registry/list": return Promise.resolve(devices);
-        case "config/area_registry/list": return Promise.resolve([{ area_id: "living", name: "Living room", floor_id: null }]);
-        case "config/floor_registry/list": return Promise.resolve([]);
+        case "config/area_registry/list": return Promise.resolve([{ area_id: "living", name: "Living room", floor_id: null }, ...((home && home.areas) || [])]);
+        case "config/floor_registry/list": return Promise.resolve((home && home.floors) || []);
         case "frontend/get_user_data": return Promise.resolve({ value: stored.user[msg.key] ?? null });
         case "frontend/get_system_data": return Promise.resolve({ value: stored.system[msg.key] ?? null });
         case "frontend/set_user_data": stored.user[msg.key] = msg.value; return Promise.resolve();
@@ -278,13 +290,13 @@ export function makeHass(query) {
         case "config/auth/list": return Promise.resolve([]);
         case "history/history_during_period": return Promise.resolve({});
         case "logbook/get_events": return Promise.resolve([]);
-        case "home_control/effects": return effectSources().then((sources) => ({ sources }));
-        case "home_control/plugins": return Promise.resolve({ plugins: withSync ? [{ id: "hue_plus", name: "Hue Plus", menu: "/hue_plus_static/menu.js", version: "harness" }] : [] });
+        case "home_control/effects": return home && home.effects ? Promise.resolve(home.effects) : effectSources().then((sources) => ({ sources }));
+        case "home_control/plugins": return home && home.plugins ? Promise.resolve(home.plugins) : Promise.resolve({ plugins: withSync ? [{ id: "hue_plus", name: "Hue Plus", menu: "/hue_plus_static/menu.js", version: "harness" }] : [] });
         case "home_control/effects_import": return importEffects(msg.content);
         case "home_control/effects_delete": imported = null; return Promise.resolve({ ok: true });
         case "call_service": {
           calls.push({ domain: msg.domain, service: msg.service, data: msg.service_data, response: true });
-          if (msg.domain === "hue_plus" && msg.service === "get_resources") return Promise.resolve({ response: resources });
+          if (msg.domain === "hue_plus" && msg.service === "get_resources") return Promise.resolve({ response: (home && home.hueResources) || resources });
 
           if (msg.domain === "hue_plus" && msg.service === "import_hue_scene")
             return Promise.resolve({
@@ -294,7 +306,7 @@ export function makeHass(query) {
                 states: [{ entity_id: "light.desk_lamp", on: true, brightness: 143, k: 2237 }, { entity_id: "light.shelf_strip", on: false }],
               },
             });
-          if (msg.domain === "home_control" && msg.service === "get_library") return Promise.resolve({ response: { scenes: [], areas: [], presets: [] } });
+          if (msg.domain === "home_control" && msg.service === "get_library") return Promise.resolve({ response: (home && home.library) || { scenes: [], areas: [], presets: [] } });
           return Promise.resolve({ response: {} });
         }
         default: return Promise.resolve(null);
@@ -317,9 +329,9 @@ export function makeHass(query) {
       ...(withSync ? { hue_plus: Object.fromEntries(["get_resources", "set_effect", "set_style", "configure_light", "timed_effect", "signal", "create_routine", "configure_button", "set_streaming_end_state", "stream_colors", "stop_streaming", "trigger_automation", "set_motion_area", "create_motion_area", "set_motion_area_lights", "delete_motion_area", "update_routine", "update_automation", "delete_automation", "set_auto_update", "check_for_update", "install_bridge_update", "set_zigbee_channel", "search_for_devices", "remove_matter_fabric", "revoke_app", "update_entertainment_area", "import_hue_scene", "create_scene", "update_scene", "delete_scene", "create_daily_smart_scene", "set_name"].map((s) => [s, {}])) } : {}),
       home_control: Object.fromEntries(["scene_start", "scene_update", "scene_freeze", "scene_play", "scene_stop", "scene_save", "scene_delete", "area_save", "area_delete", "locate_light", "get_library"].map((s) => [s, {}])),
     },
-    config: { unit_system: { temperature: "°C" }, time_zone: "UTC", language: "en", components: [] },
+    config: { unit_system: { temperature: "°C" }, time_zone: "UTC", language: "en", components: [], ...(home ? { ...home.config, components: [] } : {}) },
     user: { id: "u1", name: "Test user", is_admin: query.get("user") !== "guest", is_owner: true },
-    locale: { language: "en", time_format: "24" },
+    locale: home && home.locale ? home.locale : { language: "en", time_format: "24" },
     connected: true,
     connection,
     callService(domain, service, data) {
@@ -425,5 +437,6 @@ export function makeHass(query) {
       document.querySelector("dashboard-panel") && (document.querySelector("dashboard-panel").hass = hass);
     },
   };
+  if (home && home.services) hass.services = { ...hass.services, ...home.services };
   return hass;
 }

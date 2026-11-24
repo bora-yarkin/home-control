@@ -1,5 +1,5 @@
 {
-  "version": 403,
+  "version": 424,
   "files": [
     "integrations.js",
     "app/strings.js",
@@ -29,6 +29,7 @@
     "app/editor.js",
     "app/pages.js",
     "app/header.js",
+    "app/sky.js",
     "app/glance.js",
     "app/pins.js",
     "app/appearance.js",

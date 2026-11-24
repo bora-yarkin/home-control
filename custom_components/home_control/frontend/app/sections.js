@@ -77,6 +77,7 @@ var SECTYPES = {
       wide: 1,
     },
     rooms: { t: _T("rooms"), i: "home", d: _T("links_to_every_page"), one: 1 },
+    now: { t: _T("on_now"), i: "power", d: _T("what_is_running_right_now_and_where"), one: 1 },
     glance: {
       t: _T("at_a_glance"),
       i: "home",
@@ -101,6 +102,7 @@ var SECTYPES = {
   SEC_PICK = [
     "devs",
     "glance",
+    "now",
     "rooms",
     "alerts",
     "chips",
@@ -256,6 +258,7 @@ function secBuildEl(s) {
   if (k === "chips") return homeStatus();
   if (k === "rooms") return secRooms();
   if (k === "glance") return secGlance();
+  if (k === "now") return secNow();
   if (k === "pinned") return pinsSection();
   if (k === "status") return roomStatus(pk);
   return customSection(s);
@@ -359,6 +362,7 @@ function secList(scope) {
   RULESIG[scope] = ruleSig(scope);
   secOrder(scope).forEach(function (s) {
     if (s.hide && !editing()) return;
+    if ((s.k === "status" || s.k === "chips") && typeof hdrStatusOn === "function" && hdrStatusOn()) return;
     var ok = ruleOk(s);
     if (!ok && !editing()) return;
     CURSEC = s;
@@ -1017,6 +1021,97 @@ function secRooms() {
   });
   if (ed) nodes.push(edAdd(_T("add_room"), addRoom));
   return section(secT("rooms", _T("rooms")), secI("rooms", "home"), nodes);
+}
+
+/* What is running right now, wherever it is: a row for every player, air conditioner and fan that is on, with the room it is in, and one row for the lights that names the rooms they are on in. Each row is the device's own row, so it opens the device's own popup. The section is hidden while nothing is on. */
+function secNow() {
+  var box = mk("div", "nowbox"),
+    key = null;
+  function running(d) {
+    var st = V_(d.id);
+    if (d.kind === "media") return !(UIDEV[d.id] || {}).nonp && mediaOn(d.id);
+    if (d.kind === "climate") return !!st && ["off", "unknown", "unavailable"].indexOf(st) < 0;
+    if (d.kind === "fan") return isOn(d.id);
+    return false;
+  }
+  function litRooms() {
+    var by = {};
+    devsOf("light").forEach(function (d) {
+      if (isOn(d.id)) by[d.room] = (by[d.room] || 0) + 1;
+    });
+    return UI.rooms
+      .filter(function (r) {
+        return by[r.id];
+      })
+      .map(function (r) {
+        return r.name + " " + by[r.id];
+      });
+  }
+  function build() {
+    var devs = devsOf().filter(running),
+      lit = litRooms(),
+      k = devs
+        .map(function (d) {
+          return d.room + d.id;
+        })
+        .join("|") +
+        "#" +
+        lit.join("|") +
+        "#" +
+        editing();
+    if (k === key) return;
+    key = k;
+    box.innerHTML = "";
+    var empty = !devs.length && !lit.length;
+    box.style.display = empty && !editing() ? "none" : "";
+    if (empty && !editing()) return;
+    var sec = section(secT("now", _T("on_now")), secI("now", "power"), []);
+    if (lit.length) {
+      var ids = devsOf("light")
+          .filter(function (d) {
+            return isOn(d.id);
+          })
+          .map(function (d) {
+            return d.id;
+          }),
+        lr = pill("lights", _T("lights"), {
+          on: function () {
+            return true;
+          },
+          sub: function () {
+            return lit.join(" · ");
+          },
+          tap: function () {
+            showPopup("g-lights", false);
+          },
+        });
+      reg(function () {
+        tintIcon(lr, avgLight(lightUnits(ids).filter(isOn)));
+      });
+      sec.appendChild(lr);
+    }
+    devs.forEach(function (d) {
+      var row = devRow(d);
+      if (!row) return;
+      var where = mk("span", "where");
+      where.textContent = (roomById(d.room) || {}).name || "";
+      row.querySelector(".nm").appendChild(where);
+      sec.appendChild(row);
+    });
+    if (empty)
+      sec.appendChild(
+        pill("info", _T("nothing_is_on"), {
+          sub: function () {
+            return _T("lights_players_air_conditioners_and");
+          },
+        })
+      );
+    box.appendChild(sec);
+    if (box._attach) box._attach();
+  }
+  reg(build);
+  build();
+  return box;
 }
 
 function secGlance() {

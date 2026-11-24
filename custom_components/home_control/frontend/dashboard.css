@@ -422,10 +422,12 @@ body.light .idd-row:hover,body.light .idd-row.on{background:rgba(20,24,31,.07)}
 .idd-n{font-size:var(--fs-m);text-transform:capitalize}
 .idd-foot{margin-top:8px;border-top:1px solid var(--edge);padding-top:8px}
 .idd-add{font-size:var(--fs-m);color:var(--aE);cursor:pointer;padding:4px 6px}
-#rwall{position:fixed;inset:0;z-index:0;pointer-events:none}
-#rwall img{width:100%;height:100%;object-fit:cover}
-#rwall::after{content:"";position:absolute;inset:0;background:linear-gradient(180deg,rgba(0,0,0,.35),rgba(0,0,0,.62))}
-body.light #rwall::after{background:linear-gradient(180deg,rgba(255,255,255,.5),rgba(255,255,255,.8))}
+/* The picture of a room is the backdrop of its header: it fills the top of the page and fades into the page colour, and the header card lets it show through. */
+#rwall,.rwall-x{position:fixed;left:0;right:0;top:0;height:min(340px,52vh);z-index:0;pointer-events:none}
+#rwall img,.rwall-x img{width:100%;height:100%;object-fit:cover}
+#rwall::after,.rwall-x::after{content:"";position:absolute;inset:0;background:linear-gradient(180deg,rgba(0,0,0,.25),rgba(0,0,0,.5) 60%,var(--f-bg))}
+body.light #rwall::after,body.light .rwall-x::after{background:linear-gradient(180deg,rgba(255,255,255,.3),rgba(255,255,255,.6) 60%,var(--f-bg))}
+body.rwall .hdr{background:transparent!important;border-color:transparent!important}
 .offbar{position:fixed;left:50%;top:10px;transform:translate(-50%,-160%);z-index:120;padding:9px 16px;border-radius:var(--r-m);font-size:var(--fs-m);font-weight:600;background:#8a2433;color:#fff;border:1px solid rgba(255,255,255,.35);transition:transform .3s;max-width:calc(100% - 32px);text-align:center}
 body.off .offbar{transform:translate(-50%,0)}
 :focus-visible{outline:3px solid var(--aE);outline-offset:2px}
@@ -589,13 +591,6 @@ textarea.sq{resize:none;line-height:1.4;padding:11px 0}
 .hchips:empty{display:none}
 .hchip{display:flex;align-items:center;gap:6px;padding:5px 12px 5px 9px;border-radius:999px;font-size:var(--fs-s);font-weight:500;color:var(--ink);border:1px solid rgba(255,255,255,.18);white-space:nowrap;background:var(--f-raise);border-color:var(--f-line2)}
 .hchip svg{width:15px;height:15px;fill:none;stroke:currentColor;stroke-width:1.7;stroke-linecap:round;stroke-linejoin:round;opacity:.85}
-.hdr.slim{padding:12px 20px;border-radius:var(--r-l);margin-bottom:16px}
-.hdr.slim .eyebrow{display:none}
-.hdr.slim .title{font-size:26px;margin-top:0}
-.hdr.slim #clk{font-size:30px}
-.hdr.slim #dt{display:none}
-.hdr.slim .hchips{margin-top:6px}
-.hdr.slim.greet .eyebrow{display:block}
 .sec-h{display:flex;align-items:center;gap:10px;font-size:var(--fs-l);font-weight:600;color:var(--ink);margin:var(--sp-head);letter-spacing:.01em}
 .pill .sb,.tile .sb{font-size:var(--fs-s);letter-spacing:.005em}
 .gb span{font-size:var(--fs-s);color:var(--ink2)}
@@ -641,10 +636,6 @@ body.editing main{padding-top:calc(94px + var(--sat,0px))}
 body.pinhdr:not(.editing) main{padding-top:0}
 body.pinhdr:not(.editing) .hdr{position:sticky;top:calc(12px + var(--sat,0px));margin-top:calc(12px + var(--sat,0px));z-index:6}
 body.pinhdr:not(.editing) .wrap::before{content:"";position:fixed;top:0;left:0;right:0;height:calc(40px + var(--sat,0px));z-index:5;background:var(--f-bg);pointer-events:none}
-/* A slim header without a clock is one row: the name on the left, search and settings on the right. */
-@media(max-width:600px){.hdr.slim.noclock{flex-wrap:nowrap}
-.hdr.slim.noclock>div:first-child{flex:1 1 auto}
-.hdr.slim.noclock .rt{flex:0 0 auto}}
 .sep .rnd{order:1;margin-left:8px}
 .sep .secact{width:30px;height:30px}
 .sep .secact svg{width:16px;height:16px}
@@ -955,3 +946,65 @@ body.pinhdr:not(.editing) .wrap::before{content:"";position:fixed;top:0;left:0;r
 .ml-kids{padding:8px 0 0 22px}
 
 .pill.danger,.pill.danger .nm{color:#ff6b62}
+
+/* ---- Kind colours: what a row is shows in its icon, what it is doing shows in its tint ---- */
+[data-k=light]{--kc:#e9ae3c}
+[data-k=climate]{--kc:#4fa8e0}
+[data-k=heat]{--kc:#ee8442}
+[data-k=media]{--kc:#a487f2}
+[data-k=security]{--kc:#45bd84}
+body.light [data-k=light]{--kc:#c98a0a}
+body.light [data-k=climate]{--kc:#1f86c8}
+body.light [data-k=heat]{--kc:#d4631a}
+body.light [data-k=media]{--kc:#7b5bdc}
+body.light [data-k=security]{--kc:#1f9a63}
+.pill[data-k] .ic,.tile[data-k] .ic{color:color-mix(in srgb,var(--kc) 78%,var(--ink2))}
+.pill.on[data-k]:not(.lc):not(.lci),.tile.on[data-k]:not(.lc):not(.lci){background:color-mix(in srgb,var(--kc) 13%,var(--f-card))!important;border-color:color-mix(in srgb,var(--kc) 48%,var(--f-line))!important}
+.pill.on[data-k]:not(.lc):not(.lci) .ic,.tile.on[data-k]:not(.lc):not(.lci) .ic{background:color-mix(in srgb,var(--kc) 34%,var(--f-raise));border-color:color-mix(in srgb,var(--kc) 58%,var(--f-line2));color:var(--ink)}
+/* A row that is playing shows its artwork in the icon circle and a play and pause button at its end. */
+.ic.art{overflow:hidden;border-radius:10px;padding:0}
+.ic.art img{width:100%;height:100%;object-fit:cover;display:block}
+.pill .pact{flex:none;order:3;width:36px;height:36px;margin-left:8px;border-radius:50%;display:flex;align-items:center;justify-content:center;padding:0;cursor:pointer;color:var(--ink);background:color-mix(in srgb,var(--kc,var(--acc)) 28%,var(--f-raise));border:1px solid color-mix(in srgb,var(--kc,var(--acc)) 55%,var(--f-line2))}
+.pill .pact svg{width:18px;height:18px;fill:none;stroke:currentColor;stroke-width:1.8;stroke-linecap:round;stroke-linejoin:round}
+.pill .pact:focus-visible{outline-offset:2px}
+/* A section of four or more plain rows lays them out in as many columns as fit. */
+.sec.dense{display:grid;grid-template-columns:repeat(auto-fill,minmax(280px,1fr));column-gap:var(--sp)}
+.sec.dense>.sec-h{grid-column:1/-1}
+.sec.dense>.pill{min-height:52px}
+.sec.dense>.pill .ic{width:36px;height:36px}
+.sec.dense>.pill .ic svg{width:20px;height:20px}
+.pill .nm .where{font-size:var(--fs-s);font-weight:400;color:var(--ink2);margin-left:8px}
+/* ---- Type: a clear order of size and weight, so titles, section names, row names and values read apart ---- */
+.title{font-weight:600;letter-spacing:-.03em}
+#clk{font-weight:300;letter-spacing:-.02em}
+.sec-h{font-size:var(--fs-s);font-weight:600;letter-spacing:.04em;text-transform:uppercase;color:var(--ink2)}
+.sec-h svg{width:16px;height:16px}
+.subsec>.sec-h{text-transform:none;letter-spacing:.01em}
+.pill .nm,.tile .nm{font-size:15.5px;font-weight:600;letter-spacing:-.005em}
+.pill .sb,.tile .sb{font-size:var(--fs-s);font-weight:400}
+.pill .vl{font-weight:500}
+.pill.on .vl{color:var(--ink)}
+.gb b{font-weight:600;letter-spacing:-.01em}
+.gb span{font-size:var(--fs-xs);letter-spacing:.03em}
+
+/* ---- The sky behind the header (sky.js paints the canvas). With a sky the header is one piece: its text is light in both themes, a scrim (as strong as the sky is bright) keeps it readable, and the buttons and chips are outlines on the sky, not dark discs cut out of it. ---- */
+.hdr{position:relative;overflow:hidden}
+.hsky{position:absolute;inset:0;border-radius:inherit;overflow:hidden;pointer-events:none;z-index:0;opacity:0;transition:opacity 1.2s;--scrim:.3}
+.hsky.on{opacity:1}
+.hsky canvas{position:absolute;inset:0;width:100%;height:100%;display:block}
+.hsky::after{content:"";position:absolute;inset:0;background:linear-gradient(90deg,rgba(8,12,20,calc(var(--scrim) + .3)) 0,rgba(8,12,20,calc(var(--scrim) + .08)) 36%,rgba(8,12,20,var(--scrim)) 100%),linear-gradient(0deg,rgba(8,12,20,calc(var(--scrim) * .8)) 0,transparent 45%)}
+body.rwall .hsky{display:none}
+.hdr:has(.hsky.on){--ink:#f5f7fa;--ink2:rgba(245,247,250,.8);border-color:rgba(255,255,255,.14)!important}
+.hdr:has(.hsky.on) #clk,.hdr:has(.hsky.on) #dt,.hdr:has(.hsky.on) .title,.hdr:has(.hsky.on) .eyebrow,.hdr:has(.hsky.on) .hchip{text-shadow:0 1px 2px rgba(0,0,0,.35),0 1px 12px rgba(0,0,0,.4)}
+.hdr:has(.hsky.on) .rnd.pane,.hdr:has(.hsky.on) .hchip{background:rgba(255,255,255,.09)!important;border:1px solid rgba(255,255,255,.3)!important;color:var(--ink);box-shadow:none!important}
+.hdr:has(.hsky.on) .rnd.pane:hover,.hdr:has(.hsky.on) .rnd.pane:active{background:rgba(255,255,255,.2)!important}
+.hdr>.hskytop{position:absolute;inset:0;width:100%;height:100%;z-index:3;pointer-events:none;border-radius:inherit}
+/* The status of a page as a row of the header: a pill for each reading, the same pills as the weather and lights chips (label, then value). The header grows by the row. */
+.hdr:has(>.hstat){flex-wrap:wrap}
+.hdr>.hstat{flex:1 1 100%;order:5;margin-top:12px;min-width:0;position:relative;z-index:1}
+.hdr .hstat .glance{display:flex!important;flex-wrap:wrap;gap:8px;grid-template-columns:none!important;margin-bottom:0}
+.hdr .hstat .gb{display:flex;flex-direction:row-reverse;align-items:baseline;gap:7px;padding:5px 12px;border-radius:999px;text-align:left;font-size:var(--fs-s);white-space:nowrap;background:var(--f-raise)!important;border:1px solid var(--f-line2)!important;box-shadow:none!important}
+.hdr .hstat .gb b{display:inline;font-size:var(--fs-s);font-weight:600;letter-spacing:0}
+.hdr .hstat .gb span{font-size:var(--fs-s);letter-spacing:0;color:var(--ink2)}
+.hdr .hstat .gb.off b::before{margin-right:5px}
+.hdr:has(.hsky.on) .hstat .gb{background:rgba(255,255,255,.09)!important;border-color:rgba(255,255,255,.3)!important;text-shadow:0 1px 2px rgba(0,0,0,.35),0 1px 10px rgba(0,0,0,.35)}
