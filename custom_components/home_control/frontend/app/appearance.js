@@ -21,7 +21,6 @@ var PREFS = {
   wallDim: true,
   pinHdr: true,
   sky: true,
-  hdrSize: "",
   startView: "",
   accH: 174,
   tf: "auto",
@@ -39,7 +38,6 @@ function mergePrefs(v) {
   if (typeof v.startView === "string" && /^[a-z0-9_-]{0,24}$/.test(v.startView))
     PREFS.startView = v.startView;
   if (v.tf === "auto" || v.tf === "12" || v.tf === "24") PREFS.tf = v.tf;
-  if (v.hdrSize === "regular" || v.hdrSize === "slim" || v.hdrSize === "") PREFS.hdrSize = v.hdrSize;
   if (typeof v.accH === "number" && v.accH >= 0 && v.accH < 360) PREFS.accH = Math.round(v.accH);
 }
 
@@ -235,24 +233,6 @@ function appearancePage(b) {
         "clock",
         function (v) {
           return { auto: _T("like_home_assistant"), 12: _T("12_hours"), 24: _T("24_hours") }[v];
-        }
-      )
-    );
-    box.appendChild(
-      dropRow(
-        _T("header_size_mine"),
-        ["page", "regular", "slim"],
-        function () {
-          return PREFS.hdrSize || "page";
-        },
-        function (v) {
-          setPref("hdrSize", v === "page" ? "" : v);
-          hdrBuild();
-          redrawBox(box, draw);
-        },
-        "tune",
-        function (v) {
-          return { page: _T("same_as_the_page"), regular: _T("regular"), slim: _T("slim_2") }[v];
         }
       )
     );

@@ -164,8 +164,6 @@ function cleanMeta(m) {
     homeTitle: s(m.homeTitle, 40, _T("app_title")) || _T("app_title"),
     eyebrow: s(m.eyebrow, 30, _T("app_title")),
     clock: m.clock !== false,
-    clockSlim: m.clockSlim === true,
-    size: m.size === "slim" ? "slim" : "regular",
     greet: m.greet === true,
     hdr: cleanHdr(m.hdr),
   };

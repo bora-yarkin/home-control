@@ -87,3 +87,29 @@ test("the sky is darker at night than by day, and greyer under cloud than clear"
   const overcast = skyColours(45, skyParams("cloudy"))[0];
   assert.ok(Math.abs(overcast[0] - overcast[2]) < Math.abs(day[0] - day[2]), "less blue");
 });
+
+test("cloudy is a broken bright cloud and fog is a haze with no cloud at all", () => {
+  const { skyParams, skyColours } = skyFns();
+  const cloudy = skyParams("cloudy");
+  const fog = skyParams("fog");
+  assert.ok(cloudy.cover > 0.5 && cloudy.cover < 0.9 && cloudy.haze === 0);
+  assert.equal(fog.cover, 0);
+  assert.equal(fog.haze, 1);
+  const blue = (c) => c[2] - c[0];
+  assert.ok(blue(skyColours(40, cloudy)[0]) > blue(skyColours(40, fog)[0]) + 15, "cloudy keeps blue sky between the cloud, fog is grey");
+});
+
+test("a drop is on a button or chip when it is inside the rounded shape, and the shape is as wide as the control at its middle and narrows round its ends", () => {
+  const { skyInside, skyHalfWidth } = skyFns();
+  const circle = { cx: 100, cy: 50, w: 40, h: 40, r: 20 };
+  const chip = { cx: 200, cy: 50, w: 100, h: 28, r: 14 };
+  assert.equal(skyInside(circle, 100, 50), true);
+  assert.equal(skyInside(circle, 118, 50), true);
+  assert.equal(skyInside(circle, 119, 66), false, "outside the curve of the circle");
+  assert.equal(skyInside(chip, 245, 50), true);
+  assert.equal(skyInside(chip, 255, 50), false);
+  assert.equal(skyInside(chip, 200, 66), false);
+  assert.equal(skyHalfWidth(circle, 50), 20);
+  assert.ok(skyHalfWidth(circle, 68) < 10, "the circle narrows toward its bottom");
+  assert.equal(skyHalfWidth(chip, 50), 50, "a chip is its full width in the middle");
+});

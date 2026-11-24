@@ -591,13 +591,6 @@ textarea.sq{resize:none;line-height:1.4;padding:11px 0}
 .hchips:empty{display:none}
 .hchip{display:flex;align-items:center;gap:6px;padding:5px 12px 5px 9px;border-radius:999px;font-size:var(--fs-s);font-weight:500;color:var(--ink);border:1px solid rgba(255,255,255,.18);white-space:nowrap;background:var(--f-raise);border-color:var(--f-line2)}
 .hchip svg{width:15px;height:15px;fill:none;stroke:currentColor;stroke-width:1.7;stroke-linecap:round;stroke-linejoin:round;opacity:.85}
-.hdr.slim{padding:12px 20px;border-radius:var(--r-l);margin-bottom:16px}
-.hdr.slim .eyebrow{display:none}
-.hdr.slim .title{font-size:26px;margin-top:0}
-.hdr.slim #clk{font-size:30px}
-.hdr.slim #dt{display:none}
-.hdr.slim .hchips{margin-top:6px}
-.hdr.slim.greet .eyebrow{display:block}
 .sec-h{display:flex;align-items:center;gap:10px;font-size:var(--fs-l);font-weight:600;color:var(--ink);margin:var(--sp-head);letter-spacing:.01em}
 .pill .sb,.tile .sb{font-size:var(--fs-s);letter-spacing:.005em}
 .gb span{font-size:var(--fs-s);color:var(--ink2)}
@@ -643,10 +636,6 @@ body.editing main{padding-top:calc(94px + var(--sat,0px))}
 body.pinhdr:not(.editing) main{padding-top:0}
 body.pinhdr:not(.editing) .hdr{position:sticky;top:calc(12px + var(--sat,0px));margin-top:calc(12px + var(--sat,0px));z-index:6}
 body.pinhdr:not(.editing) .wrap::before{content:"";position:fixed;top:0;left:0;right:0;height:calc(40px + var(--sat,0px));z-index:5;background:var(--f-bg);pointer-events:none}
-/* A slim header without a clock is one row: the name on the left, search and settings on the right. */
-@media(max-width:600px){.hdr.slim.noclock{flex-wrap:nowrap}
-.hdr.slim.noclock>div:first-child{flex:1 1 auto}
-.hdr.slim.noclock .rt{flex:0 0 auto}}
 .sep .rnd{order:1;margin-left:8px}
 .sep .secact{width:30px;height:30px}
 .sep .secact svg{width:16px;height:16px}
@@ -1009,3 +998,4 @@ body.rwall .hsky{display:none}
 .hdr:has(.hsky.on) #clk,.hdr:has(.hsky.on) #dt,.hdr:has(.hsky.on) .title,.hdr:has(.hsky.on) .eyebrow,.hdr:has(.hsky.on) .hchip{text-shadow:0 1px 2px rgba(0,0,0,.35),0 1px 12px rgba(0,0,0,.4)}
 .hdr:has(.hsky.on) .rnd.pane,.hdr:has(.hsky.on) .hchip{background:rgba(255,255,255,.09)!important;border:1px solid rgba(255,255,255,.3)!important;color:var(--ink);box-shadow:none!important}
 .hdr:has(.hsky.on) .rnd.pane:hover,.hdr:has(.hsky.on) .rnd.pane:active{background:rgba(255,255,255,.2)!important}
+.hdr>.hskytop{position:absolute;inset:0;width:100%;height:100%;z-index:3;pointer-events:none;border-radius:inherit}

@@ -90,20 +90,14 @@ function greeting() {
 
 var HDRC = [];
 
-/* The clock is shown in the regular header unless it is turned off. The slim header leaves it out unless it is turned on. */
-function hdrClockShown(mt, size) {
-  return (size || hdrSize()) === "slim" ? mt.clockSlim === true : mt.clock !== false;
+/* The clock is shown unless it is turned off. */
+function hdrClockShown(mt) {
+  return mt.clock !== false;
 }
 
-/* An item is shown unless it has been turned off; an item with no choice of its own is hidden in the slim header. */
-function hdrShown(it, size) {
-  if (it.show === true || it.show === false) return it.show;
-  return (size || hdrSize()) !== "slim";
-}
-
-/* The header size this user sees: their own choice in Appearance, otherwise the one set for the page. */
-function hdrSize() {
-  return PREFS.hdrSize || (UI.meta || {}).size || "regular";
+/* An item is shown unless it has been turned off. */
+function hdrShown(it) {
+  return it.show !== false;
 }
 
 function hdrBuild() {
@@ -111,8 +105,6 @@ function hdrBuild() {
     mt = UI.meta || {},
     hd = document.querySelector(".hdr");
   if (!box || !hd) return;
-  hd.classList.toggle("slim", hdrSize() === "slim");
-  hd.classList.toggle("noclock", !hdrClockShown(mt));
   hd.classList.toggle("greet", !!mt.greet);
   box.innerHTML = "";
   HDRC = [];
@@ -211,21 +203,6 @@ var HLAB = {
 function hdrPage(box, m) {
   m.hdr = m.hdr || [];
   function draw() {
-    box.appendChild(sep(_T("header_size_page"), "tune"));
-    box.appendChild(
-      seg(
-        [
-          ["regular", _T("regular")],
-          ["slim", _T("slim_2")],
-        ],
-        m.size || "regular",
-        function (v) {
-          m.size = v;
-          uiChanged();
-          redrawBox(box, draw);
-        }
-      )
-    );
     box.appendChild(
       pill("bright", _T("greeting"), {
         on: function () {
@@ -246,15 +223,12 @@ function hdrPage(box, m) {
       })
     );
     box.appendChild(sep(_T("header_items"), "home"));
-    if (m.size === "slim") {
-      box.appendChild(hintRow(_T("slim_header_hides_items")));
-    }
     var rows = [];
     m.hdr.forEach(function (it, i) {
       var r = hdrItem(it) || { i: "info", t: HLAB[it.k] },
         p = pill(r.i, r.t, {
           sub: function () {
-            return HLAB[it.k] + (hdrShown(it, m.size) ? "" : " · " + _T("hidden").toLowerCase());
+            return HLAB[it.k] + (hdrShown(it) ? "" : " · " + _T("hidden").toLowerCase());
           },
           tap: function () {
             showPopup("manage-hitem:" + i, true);
@@ -319,15 +293,15 @@ function hitemPage(b, i) {
   b.appendChild(box);
   function draw() {
     box.appendChild(
-      pill(hdrShown(it, m.size) ? "eye" : "eyeoff", _T("show_in_header"), {
+      pill(hdrShown(it) ? "eye" : "eyeoff", _T("show_in_header"), {
         on: function () {
-          return hdrShown(it, m.size);
+          return hdrShown(it);
         },
         sub: function () {
-          return hdrShown(it, m.size) ? _T("shown") : _T("hidden");
+          return hdrShown(it) ? _T("shown") : _T("hidden");
         },
         tap: function () {
-          it.show = !hdrShown(it, m.size);
+          it.show = !hdrShown(it);
           uiChanged();
           redrawBox(box, draw);
         },
@@ -463,7 +437,7 @@ function roomHeaderPage(b, rid) {
       },
     })
   );
-  b.appendChild(hintRow(_T("the_header_size_greeting_and_items_a")));
+  b.appendChild(hintRow(_T("the_greeting_and_items_are_shared_by_every_page")));
   var hb = mk("div");
   b.appendChild(hb);
   hdrPage(hb, UI.meta);
