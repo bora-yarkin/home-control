@@ -512,6 +512,13 @@ window.HA={
   importFile:function(content){return ws({type:"home_control/effects_import",content:content})},
   removeFile:function(id){return ws({type:"home_control/effects_delete",file_id:id})}
  },
+ /* Sharing scenes with Siri, HomeKit and the Shortcuts app (administrators): the live scenes Home Control publishes as entities, and the HomeKit Bridge's list. */
+ sharing:{
+  published:function(){return ws({type:"home_control/published"})},
+  publish:function(sceneId,on){return ws({type:"home_control/publish",scene_id:sceneId,publish:on})},
+  homekit:function(entityIds){return ws({type:"home_control/homekit",entity_ids:entityIds})},
+  expose:function(entryId,entityId,on){return ws({type:"home_control/homekit_expose",entry_id:entryId,entity_id:entityId,expose:on})}
+ },
  /* The plus integrations that bring a script of their own: [{ id, name, menu, version }]. */
  plugins:function(){return ws({type:"home_control/plugins"}).then(function(r){return r&&r.plugins})},
  camera:camera,

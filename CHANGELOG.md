@@ -4,6 +4,9 @@ Format: [Keep a Changelog](https://keepachangelog.com/). Versions follow [semant
 
 ## [Unreleased]
 
+### Added
+- **Siri and HomeKit** (*Settings*, Dashboard): one page with a row for every live scene, Hue scene, other scene and sync switch (Hue Plus's Spotify sync), each with two switches (administrators only). *HomeKit* puts the scene on the list of the HomeKit Bridge (the page names the bridge; the bridge restarts for a moment when its list changes, and a bridge set up in configuration.yaml is left alone). *Shortcuts* is whether the Home Assistant app can offer the scene to the Shortcuts app: a scene that already is an entity always can (tapping the switch shows its exact name and how to add it in Shortcuts); a live scene is kept by Home Control and gets a `scene` entity when you switch Shortcuts on (switching HomeKit on does it first). Unpublishing, or deleting the live scene, removes the entity and takes it off the bridge's list. Only scene, script and switch entities can be put on the list, and nothing else of the bridge's settings is changed. New websocket commands `home_control/published`, `publish`, `homekit`, `homekit_expose` (all administrator-only) and a `scene` platform.
+
 ## [0.22.1] - 2026-11-24
 
 ### Changed

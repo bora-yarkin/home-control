@@ -1025,3 +1025,9 @@ body.rwall .hsky{display:none}
 .hdr .hstat .gb.off b::before{margin-right:5px}
 .hdr:has(.hsky.on) .hstat .gb{background:rgba(255,255,255,.09)!important;border-color:rgba(255,255,255,.3)!important;text-shadow:0 1px 2px rgba(0,0,0,.35),0 1px 10px rgba(0,0,0,.35)}
 .pill.danger .ic,.pill.danger .ic[data-k],.pill.danger[data-k] .ic{color:#ff6b62}
+/* Siri and HomeKit: the two switches under a scene's name. */
+.shr{display:flex;flex-wrap:wrap;gap:6px 18px;margin-top:8px}
+.shr-c{display:inline-flex;align-items:center;gap:2px;font-size:var(--fs-s);color:var(--ink2);cursor:pointer;-webkit-user-select:none;user-select:none}
+.shr-c .swt{margin-left:8px}
+.shr-c.dim{opacity:.5}
+.shr-c:focus-visible{outline-offset:3px}

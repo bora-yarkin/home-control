@@ -457,6 +457,18 @@ var POPUP_DEFS = {
   "scene-pick": function (id) {
     return { title: _T("add_device"), icon: "plus", build: scenePick };
   },
+  "stg-share": function (id) {
+    return { title: _T("siri_and_homekit"), icon: "mic", build: sharePage };
+  },
+  "share-how": function (id) {
+    return {
+      title: _T("run_it_from_shortcuts"),
+      icon: "scene",
+      build: function (b) {
+        shareHowPage(b, id);
+      },
+    };
+  },
   "stg-areas": function (id) {
     return { title: _T("areas"), icon: "target", build: stgAreas };
   },

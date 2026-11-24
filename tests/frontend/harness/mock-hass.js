@@ -262,6 +262,9 @@ export function makeHass(query, home = null) {
     home_and_away: { configured: true, clients: [] },
   };
 
+  // What the Siri and HomeKit page changes: the entities on the pretend HomeKit Bridge's list, and the entities of published live scenes.
+  const sharing = { published: {}, exposed: new Set(Object.keys(states).filter((id) => id.startsWith("scene.")).slice(0, 2)) };
+
   const connection = {
     addEventListener(name, fn) { (listeners[name] ||= []).push(fn); },
     subscribeEvents() { return Promise.resolve(() => {}); },
@@ -293,6 +296,27 @@ export function makeHass(query, home = null) {
         case "home_control/effects": return home && home.effects ? Promise.resolve(home.effects) : effectSources().then((sources) => ({ sources }));
         case "home_control/plugins": return home && home.plugins ? Promise.resolve(home.plugins) : Promise.resolve({ plugins: withSync ? [{ id: "hue_plus", name: "Hue Plus", menu: "/hue_plus_static/menu.js", version: "harness" }] : [] });
         case "home_control/effects_import": return importEffects(msg.content);
+        // Sharing scenes (the Siri and HomeKit page): a HomeKit Bridge whose list the page changes, and the entities of published live scenes.
+        case "home_control/published": return Promise.resolve({ scenes: { ...sharing.published } });
+        case "home_control/publish": {
+          if (!msg.publish) {
+            const gone = sharing.published[msg.scene_id];
+            delete sharing.published[msg.scene_id];
+            if (gone) { sharing.exposed.delete(gone); delete states[gone]; hass.states = { ...states }; }
+            return Promise.resolve({ entity_id: null });
+          }
+          const id = "scene." + msg.scene_id.replace(/[^a-z0-9_]/g, "_");
+          sharing.published[msg.scene_id] = id;
+          states[id] = { entity_id: id, state: "unknown", attributes: { friendly_name: msg.scene_id, scene_id: msg.scene_id, live: true }, last_changed: new Date().toISOString(), last_updated: new Date().toISOString(), context: { id: "pub" } };
+          hass.states = { ...states };
+          return Promise.resolve({ entity_id: id });
+        }
+        case "home_control/homekit": return Promise.resolve({ bridges: [{ entry_id: "hk1", title: "HASS Bridge", editable: true, exposed: Object.fromEntries(msg.entity_ids.map((id) => [id, sharing.exposed.has(id)])) }] });
+        case "home_control/homekit_expose": {
+          if (!/^(scene|script|switch)\./.test(msg.entity_id)) return Promise.reject({ code: "not_supported", message: msg.entity_id + " cannot be shared with HomeKit from here" });
+          if (msg.expose) sharing.exposed.add(msg.entity_id); else sharing.exposed.delete(msg.entity_id);
+          return Promise.resolve({ changed: true });
+        }
         case "home_control/effects_delete": imported = null; return Promise.resolve({ ok: true });
         case "call_service": {
           calls.push({ domain: msg.domain, service: msg.service, data: msg.service_data, response: true });
