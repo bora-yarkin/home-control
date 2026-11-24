@@ -100,6 +100,50 @@ function hdrShown(it) {
   return it.show !== false;
 }
 
+/* The page's status tiles (a room's readings, or the Home page's climate tiles) as a row of the header, when the page's header settings say so and nothing is being edited. The row changes with the page, and a page with no status tiles keeps the short header. The page's own Status section is left out while they are here. */
+var HSTF = [];
+
+function hdrStatusOn() {
+  return ((UI && UI.meta) || {}).hdrStatus === true && !editing();
+}
+
+/* Builds the row for the open page; without force it keeps the row when the page and its tiles are the same. */
+function hdrStatusSync(force) {
+  var hd = document.querySelector(".hdr");
+  if (!hd) return;
+  var on = hdrStatusOn(),
+    sig = on ? VIEW + "|" + JSON.stringify(VIEW === "home" ? UI.chips : UI.stat[VIEW] || []) : "";
+  if (!force && hd._hstSig === sig) return;
+  hd._hstSig = sig;
+  HSTF.forEach(function (f) {
+    var i = LIVE.indexOf(f);
+    if (i >= 0) LIVE.splice(i, 1);
+  });
+  HSTF = [];
+  var old = hd.querySelector("#hst");
+  if (old) old.remove();
+  if (!on) return;
+  var mine = [],
+    prev = CUR,
+    g;
+  CUR = mine;
+  try {
+    g = VIEW === "home" ? chipGrid() : statGrid(VIEW);
+  } finally {
+    CUR = prev;
+  }
+  if (!g) return;
+  var box = mk("div", "hstat");
+  box.id = "hst";
+  box.appendChild(g);
+  hd.appendChild(box);
+  mine.forEach(function (f) {
+    LIVE.push(f);
+    HSTF.push(f);
+    f();
+  });
+}
+
 function hdrBuild() {
   var box = document.getElementById("hch"),
     mt = UI.meta || {},
@@ -142,7 +186,7 @@ function hdrSky() {
   var sky = hd.querySelector(".hsky"),
     w = firstWeather(),
     c = w && S(w) ? HSKYW[V_(w)] : null,
-    show = !!c && PREFS.sky !== false && !document.body.classList.contains("rwall");
+    show = !!c && PREFS.sky !== false && ((UI && UI.meta) || {}).sky !== false && !document.body.classList.contains("rwall");
   if (!show) {
     if (sky) sky.classList.remove("on");
     skyStop();
@@ -217,6 +261,36 @@ function hdrPage(box, m) {
             var eb = document.querySelector(".eyebrow");
             if (eb) eb.textContent = m.eyebrow;
           }
+          uiChanged();
+          redrawBox(box, draw);
+        },
+      })
+    );
+    box.appendChild(
+      pill("bright", _T("weather_sky"), {
+        on: function () {
+          return m.sky !== false;
+        },
+        sub: function () {
+          return m.sky !== false ? _T("the_sky_behind_the_header_for_everyone") : _T("off");
+        },
+        tap: function () {
+          m.sky = m.sky === false;
+          uiChanged();
+          redrawBox(box, draw);
+        },
+      })
+    );
+    box.appendChild(
+      pill("thermo", _T("status_in_the_header"), {
+        on: function () {
+          return m.hdrStatus === true;
+        },
+        sub: function () {
+          return m.hdrStatus === true ? _T("the_status_tiles_of_each_page_are_a_row_of_the_header") : _T("off");
+        },
+        tap: function () {
+          m.hdrStatus = !m.hdrStatus;
           uiChanged();
           redrawBox(box, draw);
         },

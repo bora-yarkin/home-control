@@ -1,22 +1,27 @@
 /* Status tiles, the home summary, battery list, climate tiles, header chips, and alerts (devices left on, low batteries, offline) with their thresholds. */
 
+/* The status tiles of a page: one tile per reading, or nothing when it has none. */
+function statGrid(key) {
+  var it = (UI.stat[key] || []).map(function (s) {
+    return [
+      s.l,
+      function () {
+        if (s.text) {
+          return svOk(s.id) ? cap(V_(s.id)) : "Offline";
+        }
+        return sv(s.id, s.u || "", s.dp === undefined ? 1 : s.dp);
+      },
+    ];
+  });
+  return it.length ? glance(it, it.length) : null;
+}
+
 function roomStatus(key) {
   var l = UI.stat[key] || [],
-    it = l.map(function (s) {
-      return [
-        s.l,
-        function () {
-          if (s.text) {
-            return svOk(s.id) ? cap(V_(s.id)) : "Offline";
-          }
-          return sv(s.id, s.u || "", s.dp === undefined ? 1 : s.dp);
-        },
-      ];
-    });
-  if (!it.length && !editing()) return null;
+    g = statGrid(key);
+  if (!g && !editing()) return null;
   var items = [];
-  if (it.length) {
-    var g = glance(it, it.length);
+  if (g) {
     items.push(g);
     if (editing()) {
       var bx = [].slice.call(g.children);
@@ -61,12 +66,12 @@ function addStatTile(rid) {
   );
 }
 
-function homeStatus() {
-  /* Climate tiles of a hidden room are left out like the room's devices. */
+/* The climate tiles of the Home page (those of a hidden room are left out like the room's devices), or null when there are none. */
+function chipGrid() {
   var chips = UI.chips.filter(function (c) {
     return ISADMIN || modeOf(c.t).mode !== "hide";
   });
-  if (!chips.length && !editing()) return null;
+  if (!chips.length) return null;
   function th(c) {
     return function () {
       var a = c.u ? sv(c.t, c.u, 0) : sv(c.t, "°"),
@@ -86,9 +91,18 @@ function homeStatus() {
   g.classList.add("gc4");
   /* As many columns as there are tiles (at most 4), so tiles of a hidden room leave no empty space. */
   g.style.setProperty("--gcn", Math.max(1, Math.min(chips.length, 4)));
-  var items = chips.length ? [g] : [];
+  return g;
+}
+
+function homeStatus() {
+  var chips = UI.chips.filter(function (c) {
+    return ISADMIN || modeOf(c.t).mode !== "hide";
+  });
+  if (!chips.length && !editing()) return null;
+  var g = chipGrid(),
+    items = g ? [g] : [];
   if (editing()) {
-    var bx = [].slice.call(g.children);
+    var bx = g ? [].slice.call(g.children) : [];
     bx.forEach(function (b, i) {
       edMark(b, function () {
         showPopup("manage-chip:" + i, true);

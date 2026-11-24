@@ -165,6 +165,8 @@ function cleanMeta(m) {
     eyebrow: s(m.eyebrow, 30, _T("app_title")),
     clock: m.clock !== false,
     greet: m.greet === true,
+    sky: m.sky !== false,
+    hdrStatus: m.hdrStatus === true,
     hdr: cleanHdr(m.hdr),
   };
 }

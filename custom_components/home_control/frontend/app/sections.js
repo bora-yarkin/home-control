@@ -362,6 +362,7 @@ function secList(scope) {
   RULESIG[scope] = ruleSig(scope);
   secOrder(scope).forEach(function (s) {
     if (s.hide && !editing()) return;
+    if ((s.k === "status" || s.k === "chips") && typeof hdrStatusOn === "function" && hdrStatusOn()) return;
     var ok = ruleOk(s);
     if (!ok && !editing()) return;
     CURSEC = s;

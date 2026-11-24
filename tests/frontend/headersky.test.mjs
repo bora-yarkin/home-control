@@ -10,12 +10,13 @@ const header = readFileSync(new URL("header.js", APP), "utf8");
 const sky = readFileSync(new URL("sky.js", APP), "utf8");
 const code = header.slice(header.indexOf("/* The weather entity's condition as the sky"), header.indexOf("function hdrLive()"));
 
-function paint({ weather, sun, prefs = {}, picture = false, hour = 12 }) {
+function paint({ weather, sun, prefs = {}, page = {}, picture = false, hour = 12 }) {
   const shown = [];
   const layer = { classList: { add() {}, remove() {} } };
   const states = { "weather.home": weather && { state: weather }, "sun.sun": sun && { state: sun.state, attributes: { elevation: sun.elevation } } };
   const sandbox = {
     PREFS: prefs,
+    UI: { meta: page },
     Math,
     Date: class extends Date {
       getHours() {
@@ -56,6 +57,7 @@ test("a clear night is night whatever the sun says; without a sun entity the clo
 test("no sky when the weather is unknown, when I turned it off, or when the room has a picture", () => {
   assert.deepEqual(paint({ weather: "unheard-of" }), ["stopped"]);
   assert.deepEqual(paint({ weather: "sunny", prefs: { sky: false } }), ["stopped"]);
+  assert.deepEqual(paint({ weather: "sunny", page: { sky: false } }), ["stopped"], "the page turned it off for everyone");
   assert.deepEqual(paint({ weather: "sunny", picture: true }), ["stopped"]);
 });
 

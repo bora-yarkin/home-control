@@ -148,8 +148,10 @@ function skyFbm(x, y) {
   );
 }
 
+/* The sun sits in the top of the header (at most its first 150 pixels), however tall the header is. */
 function skySun(sc, w, h) {
-  return { x: w * 0.62, y: h * (0.86 - (skyClamp(sc.elev, 0, 50) / 50) * 0.56) };
+  var hs = Math.min(h, 150);
+  return { x: w * 0.62, y: hs * (0.86 - (skyClamp(sc.elev, 0, 50) / 50) * 0.56), hs: hs };
 }
 
 /* One layer of cloud (or fog): noise above a threshold set by the cover, each point lit or shaded by whether more cloud lies toward the sun, and tinted by the light of the hour. */
@@ -227,15 +229,25 @@ function skyMotes(w, h) {
 
 /* The sun: a corona, a bright yellow disc, and two sets of tapered rays that turn in opposite directions while each ray grows and shrinks on its own beat. */
 function skySunDraw(g, sun, h, vis, warm) {
-  var core = skyMix([255, 244, 190], [255, 170, 80], warm),
-    corona = skyMix([255, 206, 90], [255, 120, 50], warm),
+  var core = skyMix([255, 238, 160], [255, 160, 70], warm),
+    corona = skyMix([255, 190, 55], [255, 105, 35], warm),
+    beam = skyMix(core, corona, 0.55),
     r0 = Math.max(7, h * 0.085),
+    wash = g.createRadialGradient(sun.x, sun.y, 0, sun.x, sun.y, g.canvas.width * 0.5),
     bloom = g.createRadialGradient(sun.x, sun.y, 0, sun.x, sun.y, h * 1.7);
-  bloom.addColorStop(0, skyRgb(corona, 0.42 * vis));
-  bloom.addColorStop(0.3, skyRgb(corona, 0.15 * vis));
+  /* The light of the sun colours the whole sky around it, golden by day and orange near the horizon. It is laid over the sky, not added to it: added to a blue sky it would only turn white. */
+  g.globalCompositeOperation = "source-over";
+  wash.addColorStop(0, skyRgb(corona, 0.3 * vis));
+  wash.addColorStop(0.45, skyRgb(corona, 0.1 * vis));
+  wash.addColorStop(1, skyRgb(corona, 0));
+  g.fillStyle = wash;
+  g.fillRect(0, 0, g.canvas.width, g.canvas.height);
+  bloom.addColorStop(0, skyRgb(corona, 0.5 * vis));
+  bloom.addColorStop(0.3, skyRgb(corona, 0.24 * vis));
   bloom.addColorStop(1, skyRgb(corona, 0));
   g.fillStyle = bloom;
   g.fillRect(0, 0, g.canvas.width, g.canvas.height);
+  g.globalCompositeOperation = "lighter";
   [
     { n: 14, dir: 1, speed: 0.07, reach: 1.9, half: 0.062, a: 0.5 },
     { n: 9, dir: -1, speed: 0.05, reach: 1.35, half: 0.04, a: 0.4 },
@@ -247,7 +259,7 @@ function skySunDraw(g, sun, h, vis, warm) {
         tx = sun.x + Math.cos(ang) * len,
         ty = sun.y + Math.sin(ang) * len,
         rg = g.createLinearGradient(sun.x, sun.y, tx, ty);
-      rg.addColorStop(0, skyRgb(core, set.a * vis * (0.55 + 0.45 * pulse)));
+      rg.addColorStop(0, skyRgb(beam, set.a * vis * (0.55 + 0.45 * pulse)));
       rg.addColorStop(1, skyRgb(corona, 0));
       g.fillStyle = rg;
       g.beginPath();
@@ -258,14 +270,16 @@ function skySunDraw(g, sun, h, vis, warm) {
       g.fill();
     }
   });
+  g.globalCompositeOperation = "lighter";
   var pulseAll = 0.92 + 0.08 * Math.sin(SKYS.t * 1.3),
     glow = g.createRadialGradient(sun.x, sun.y, 0, sun.x, sun.y, h * 0.45 * pulseAll);
-  glow.addColorStop(0, skyRgb([255, 255, 240], 0.95 * vis));
+  glow.addColorStop(0, skyRgb([255, 236, 150], 1 * vis));
   glow.addColorStop(0.25, skyRgb(core, 0.7 * vis));
   glow.addColorStop(1, skyRgb(corona, 0));
   g.fillStyle = glow;
   g.fillRect(0, 0, g.canvas.width, g.canvas.height);
-  g.fillStyle = skyRgb([255, 252, 228], vis);
+  g.globalCompositeOperation = "source-over";
+  g.fillStyle = skyRgb([255, 250, 214], vis);
   g.beginPath();
   g.arc(sun.x, sun.y, r0, 0, 6.2832);
   g.fill();
@@ -440,10 +454,13 @@ function skyObstacles() {
     out = [];
   if (!hd) return out;
   var hr = hd.getBoundingClientRect();
-  [].forEach.call(hd.querySelectorAll(".rnd, .hchip"), function (el) {
-    var r = el.getBoundingClientRect();
-    if (r.width < 8 || r.height < 8 || getComputedStyle(el).display === "none") return;
-    out.push({ cx: r.left - hr.left + r.width / 2, cy: r.top - hr.top + r.height / 2, w: r.width, h: r.height, r: Math.min(r.width, r.height) / 2 });
+  [].forEach.call(hd.querySelectorAll(".rnd, .hchip, .gb"), function (el) {
+    var r = el.getBoundingClientRect(),
+      cs = getComputedStyle(el);
+    if (r.width < 8 || r.height < 8 || cs.display === "none") return;
+    var half = Math.min(r.width, r.height) / 2,
+      rad = cs.borderTopLeftRadius.indexOf("%") >= 0 ? half : Math.min(half, parseFloat(cs.borderTopLeftRadius) || half);
+    out.push({ cx: r.left - hr.left + r.width / 2, cy: r.top - hr.top + r.height / 2, w: r.width, h: r.height, r: rad });
   });
   return out;
 }
@@ -603,7 +620,7 @@ function skyDraw() {
   g.globalCompositeOperation = "lighter";
   if (sc.elev > -5) {
     var vis = skySmooth(-5, 3, sc.elev) * (1 - 0.9 * p.cover * p.cover) * (1 - 0.65 * p.haze);
-    skySunDraw(g, sun, h, vis, 1 - skySmooth(3, 28, sc.elev));
+    skySunDraw(g, sun, sun.hs, vis, 1 - skySmooth(3, 28, sc.elev));
   }
   g.globalCompositeOperation = "source-over";
   if (sc.elev < -2) {

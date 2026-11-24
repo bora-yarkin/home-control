@@ -999,3 +999,12 @@ body.rwall .hsky{display:none}
 .hdr:has(.hsky.on) .rnd.pane,.hdr:has(.hsky.on) .hchip{background:rgba(255,255,255,.09)!important;border:1px solid rgba(255,255,255,.3)!important;color:var(--ink);box-shadow:none!important}
 .hdr:has(.hsky.on) .rnd.pane:hover,.hdr:has(.hsky.on) .rnd.pane:active{background:rgba(255,255,255,.2)!important}
 .hdr>.hskytop{position:absolute;inset:0;width:100%;height:100%;z-index:3;pointer-events:none;border-radius:inherit}
+/* The status of a page as a row of the header: a pill for each reading, the same pills as the weather and lights chips (label, then value). The header grows by the row. */
+.hdr:has(>.hstat){flex-wrap:wrap}
+.hdr>.hstat{flex:1 1 100%;order:5;margin-top:12px;min-width:0;position:relative;z-index:1}
+.hdr .hstat .glance{display:flex!important;flex-wrap:wrap;gap:8px;grid-template-columns:none!important;margin-bottom:0}
+.hdr .hstat .gb{display:flex;flex-direction:row-reverse;align-items:baseline;gap:7px;padding:5px 12px;border-radius:999px;text-align:left;font-size:var(--fs-s);white-space:nowrap;background:var(--f-raise)!important;border:1px solid var(--f-line2)!important;box-shadow:none!important}
+.hdr .hstat .gb b{display:inline;font-size:var(--fs-s);font-weight:600;letter-spacing:0}
+.hdr .hstat .gb span{font-size:var(--fs-s);letter-spacing:0;color:var(--ink2)}
+.hdr .hstat .gb.off b::before{margin-right:5px}
+.hdr:has(.hsky.on) .hstat .gb{background:rgba(255,255,255,.09)!important;border-color:rgba(255,255,255,.3)!important;text-shadow:0 1px 2px rgba(0,0,0,.35),0 1px 10px rgba(0,0,0,.35)}

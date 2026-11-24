@@ -229,6 +229,7 @@ function livePatch() {
     return;
   }
   document.getElementById("tt").textContent = TITLES[VIEW] || TITLES.home;
+  hdrStatusSync(false);
   var rmv = VIEW !== "home" && UIROOM[VIEW],
     rw = document.getElementById("rwall"),
     shown = rw && rw.querySelector("img") ? rw.querySelector("img").getAttribute("src") : "";
@@ -461,6 +462,7 @@ function render() {
   document.body.classList.toggle("editing", EDIT && ISADMIN && (VIEW === "home" || !!UIROOM[VIEW]));
   edToolbar();
   b.appendChild(buildPage(VIEW, LIVE).el);
+  hdrStatusSync(true);
   clock();
   if (keep) keep();
   /* Fill live values now instead of on the next refresh tick, so nothing shows placeholders. */
@@ -772,6 +774,7 @@ function pgCommit() {
   document.body.classList.toggle("editing", EDIT && ISADMIN && (VIEW === "home" || !!UIROOM[VIEW]));
   edToolbar();
   g.tt.textContent = TITLES[VIEW] || TITLES.home;
+  hdrStatusSync(true);
   dockSel(VIEW);
   movePill();
   refresh();
