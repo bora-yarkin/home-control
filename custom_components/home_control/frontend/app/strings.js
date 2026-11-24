@@ -1376,6 +1376,8 @@ var EN = {
     "A round dial instead of the slider in this air conditioner’s popup",
   "artwork_card": "Artwork card",
   "play_pause": "Play or pause",
+  "weather_sky": "Weather sky",
+  "the_header_shows_the_sky_over_the_hou": "The header shows the sky over the house: sun, moon, clouds, rain or snow, as the weather is",
   "on_now": "On now",
   "what_is_running_right_now_and_where": "Players, air conditioners, fans and lights that are on, and the room each is in",
   "nothing_is_on": "Nothing is on",

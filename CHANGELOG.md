@@ -8,6 +8,8 @@ Format: [Keep a Changelog](https://keepachangelog.com/). Versions follow [semant
 - **On now**, a section for the Home page (*Add section*, Overview): the players, air conditioners and fans that are on, each with the room it is in, and one row for the lights that names the rooms they are on in. Each row opens its device's popup. The section is hidden while nothing is on.
 - **A media row that plays shows what plays**: the artwork in place of its icon, the title and artist under its name, and a play and pause button. A device whose *Now playing* is off shows none of it.
 
+- **A sky behind the header**: sun, moon and stars, clouds, rain, storm, snow or fog, drawn in plain CSS from the weather entity and Home Assistant's sun (dawn and dusk get a low sun; without a sun entity the clock decides). It moves slowly, stands still with reduced motion, keeps the title side readable and gives way to a room's picture. *Weather sky* in Appearance turns it off.
+
 ### Changed
 - **Rows have a colour by kind and state**: lights amber, climate and air blue (an air conditioner that heats, orange), media violet, security green. The icon always carries its kind's colour; a row that is on takes it as its tint instead of the one accent.
 - **A section of four or more plain rows lays them out in as many columns as fit**, so a long list of switches does not run down the page.

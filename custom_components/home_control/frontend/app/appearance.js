@@ -20,6 +20,7 @@ var PREFS = {
   wallMode: "clock",
   wallDim: true,
   pinHdr: true,
+  sky: true,
   hdrSize: "",
   startView: "",
   accH: 174,
@@ -29,7 +30,7 @@ var PREFS = {
 function mergePrefs(v) {
   if (!v || typeof v !== "object") return;
   if (v.theme === "dark" || v.theme === "light" || v.theme === "auto") PREFS.theme = v.theme;
-  ["wall", "wallDim", "pinHdr"].forEach(function (k) {
+  ["wall", "wallDim", "pinHdr", "sky"].forEach(function (k) {
     if (typeof v[k] === "boolean") PREFS[k] = v[k];
   });
   if (typeof v.wallIdle === "number" && v.wallIdle >= 30 && v.wallIdle <= 3600)
@@ -65,6 +66,7 @@ function applyTheme() {
   var c = document.body.classList;
   c.toggle("light", themeLight());
   c.toggle("pinhdr", PREFS.pinHdr !== false);
+  if (typeof hdrSky === "function") hdrSky();
   document.documentElement.style.setProperty("--acc", flatAccent());
   wallApply();
 }
@@ -256,6 +258,9 @@ function appearancePage(b) {
     );
     box.appendChild(
       prefPill("pin", _T("pinned_header"), "pinHdr", _T("keeps_the_header_in_view_while_you_scr"))
+    );
+    box.appendChild(
+      prefPill("bright", _T("weather_sky"), "sky", _T("the_header_shows_the_sky_over_the_hou"))
     );
   }
   redrawBox(box, draw);

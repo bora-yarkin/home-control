@@ -124,8 +124,52 @@ function hdrBuild() {
   hdrLive();
 }
 
+/* The weather entity's condition as the sky it paints: [what is in the sky, how strong]. */
+var HSKYW = {
+  sunny: ["clear", ""],
+  "clear-night": ["clear", ""],
+  partlycloudy: ["partly", ""],
+  cloudy: ["cloudy", ""],
+  exceptional: ["cloudy", "heavy"],
+  rainy: ["rain", ""],
+  pouring: ["rain", "heavy"],
+  "lightning-rainy": ["storm", "heavy"],
+  lightning: ["storm", ""],
+  snowy: ["snow", ""],
+  "snowy-rainy": ["snow", "heavy"],
+  hail: ["snow", "heavy"],
+  fog: ["fog", ""],
+  windy: ["clear", "fast"],
+  "windy-variant": ["partly", "fast"],
+};
+
+/* The header's backdrop is the sky over the house: what the weather entity says, lit by the sun (night, low sun at dawn and dusk, or day) as Home Assistant's sun says, else by the clock. A page with a room picture keeps the picture. Mine, in Appearance, turns it off. */
+function hdrSky() {
+  var hd = document.querySelector(".hdr");
+  if (!hd) return;
+  var sky = hd.querySelector(".hsky"),
+    w = firstWeather(),
+    c = w && S(w) ? HSKYW[V_(w)] : null,
+    show = !!c && PREFS.sky !== false && !document.body.classList.contains("rwall");
+  if (!show) {
+    if (sky) sky.classList.remove("on");
+    return;
+  }
+  if (!sky) {
+    sky = mk("div", "hsky", "<i class='l1'></i><i class='l2'></i><i class='l3'></i>");
+    hd.insertBefore(sky, hd.firstChild);
+  }
+  var sun = S("sun.sun") ? A("sun.sun") : null,
+    below = sun ? V_("sun.sun") === "below_horizon" : new Date().getHours() < 6 || new Date().getHours() >= 20,
+    night = V_(w) === "clear-night" || below,
+    low = !night && sun && typeof sun.elevation === "number" && sun.elevation < 10,
+    cls = "hsky on w-" + c[0] + (c[1] ? " " + c[1] : "") + " t-" + (night ? "night" : low ? "low" : "day");
+  if (sky.className !== cls) sky.className = cls;
+}
+
 function hdrLive() {
   roomOffSync();
+  hdrSky();
   var mt = UI.meta || {},
     eb = document.querySelector(".eyebrow");
   if (eb && mt.greet) {
