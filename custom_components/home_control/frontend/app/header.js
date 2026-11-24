@@ -143,90 +143,7 @@ var HSKYW = {
   "windy-variant": ["partly", "fast"],
 };
 
-/* The header's backdrop is the sky over the house: what the weather entity says, lit by the sun (night, low sun at dawn and dusk, or day) as Home Assistant's sun says, else by the clock. A page with a room picture keeps the picture. Mine, in Appearance, turns it off. */
-/* Rain is drawn on a canvas: every drop has its own place, length, speed and brightness, and the nearer ones fall faster and brighter. It runs only while the sky is rainy and the page is shown, and not at all with reduced motion. */
-var RAIN = { raf: 0, cv: null, drops: [], last: 0, w: 0, h: 0, heavy: false };
-
-function rainSize(cv) {
-  var d = Math.min(window.devicePixelRatio || 1, 2),
-    w = cv.clientWidth,
-    h = cv.clientHeight;
-  if (w === RAIN.w && h === RAIN.h) return;
-  RAIN.w = w;
-  RAIN.h = h;
-  cv.width = Math.round(w * d);
-  cv.height = Math.round(h * d);
-  cv.getContext("2d").setTransform(d, 0, 0, d, 0, 0);
-  var n = Math.round((w * h) / (RAIN.heavy ? 300 : 520));
-  RAIN.drops = [];
-  for (var i = 0; i < n; i++) RAIN.drops.push(rainDrop(true));
-}
-
-function rainDrop(anywhere) {
-  var z = Math.random();
-  return {
-    x: Math.random() * (RAIN.w + 60),
-    y: anywhere ? Math.random() * RAIN.h : -20,
-    z: z,
-    len: 7 + z * 14,
-    v: 380 + z * 620,
-    a: 0.12 + z * 0.4,
-  };
-}
-
-function rainFrame(t) {
-  var cv = RAIN.cv;
-  if (!cv || !cv.isConnected) {
-    RAIN.raf = 0;
-    return;
-  }
-  rainSize(cv);
-  var dt = Math.min((t - (RAIN.last || t)) / 1000, 0.05),
-    slant = 0.28,
-    g = cv.getContext("2d");
-  RAIN.last = t;
-  g.clearRect(0, 0, RAIN.w, RAIN.h);
-  g.lineCap = "round";
-  RAIN.drops.forEach(function (d, i) {
-    d.y += d.v * dt;
-    d.x -= d.v * dt * slant;
-    if (d.y > RAIN.h + 20 || d.x < -20) RAIN.drops[i] = d = rainDrop(false);
-    g.strokeStyle = "rgba(205,222,250," + d.a + ")";
-    g.lineWidth = 0.7 + d.z * 0.9;
-    g.beginPath();
-    g.moveTo(d.x, d.y);
-    g.lineTo(d.x + d.len * slant, d.y - d.len);
-    g.stroke();
-  });
-  RAIN.raf = requestAnimationFrame(rainFrame);
-}
-
-function hdrRain(sky, on, heavy) {
-  var still = window.matchMedia && window.matchMedia("(prefers-reduced-motion: reduce)").matches;
-  if (!on || still) {
-    if (RAIN.raf) cancelAnimationFrame(RAIN.raf);
-    RAIN.raf = 0;
-    if (RAIN.cv) RAIN.cv.getContext("2d").clearRect(0, 0, RAIN.w, RAIN.h);
-    RAIN.cv = null;
-    return;
-  }
-  var cv = sky.querySelector("canvas");
-  if (!cv) {
-    cv = document.createElement("canvas");
-    cv.className = "rain";
-    sky.appendChild(cv);
-  }
-  if (RAIN.heavy !== heavy) {
-    RAIN.heavy = heavy;
-    RAIN.w = 0;
-  }
-  RAIN.cv = cv;
-  if (!RAIN.raf) {
-    RAIN.last = 0;
-    RAIN.raf = requestAnimationFrame(rainFrame);
-  }
-}
-
+/* The header's backdrop is the sky over the house (sky.js): what the weather entity says, lit by the height of the sun as Home Assistant's sun says, else by the clock. A page with a room picture keeps the picture. Mine, in Appearance, turns it off. */
 function hdrSky() {
   var hd = document.querySelector(".hdr");
   if (!hd) return;
@@ -236,20 +153,20 @@ function hdrSky() {
     show = !!c && PREFS.sky !== false && !document.body.classList.contains("rwall");
   if (!show) {
     if (sky) sky.classList.remove("on");
-    hdrRain(null, false);
+    skyStop();
     return;
   }
   if (!sky) {
-    sky = mk("div", "hsky", "<i class='l1'></i><i class='l2'></i><i class='l3'></i>");
+    sky = mk("div", "hsky");
     hd.insertBefore(sky, hd.firstChild);
   }
   var sun = S("sun.sun") ? A("sun.sun") : null,
-    below = sun ? V_("sun.sun") === "below_horizon" : new Date().getHours() < 6 || new Date().getHours() >= 20,
-    night = V_(w) === "clear-night" || below,
-    low = !night && sun && typeof sun.elevation === "number" && sun.elevation < 10,
-    cls = "hsky on w-" + c[0] + (c[1] ? " " + c[1] : "") + " t-" + (night ? "night" : low ? "low" : "day");
-  if (sky.className !== cls) sky.className = cls;
-  hdrRain(sky, c[0] === "rain" || c[0] === "storm", c[1] === "heavy" || c[0] === "storm");
+    now = new Date(),
+    hour = now.getHours() + now.getMinutes() / 60,
+    elev = sun && typeof sun.elevation === "number" ? sun.elevation : 55 * Math.sin((Math.PI * (hour - 6)) / 12);
+  if (V_(w) === "clear-night") elev = Math.min(elev, -10);
+  sky.classList.add("on");
+  skyShow(sky, { kind: c[0], heavy: c[1] === "heavy", fast: c[1] === "fast", elev: elev });
 }
 
 function hdrLive() {
