@@ -47,6 +47,11 @@ test("an icon stands for a kind of device (lights, climate, media, security, pow
     ["cog", "other"],
     ["plus", "other"],
     ["mdi:something-odd", "other"],
+    ["mdi:desk-lamp", "light"],
+    ["mdi:lightning-bolt", "power"],
+    ["mdi:air-conditioner", "climate"],
+    ["mdi:washing-machine", "appliance"],
+    ["mdi:lightbulb-group", "light"],
     ["", ""],
     [undefined, ""],
   ])
