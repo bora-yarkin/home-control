@@ -4,7 +4,7 @@
    play/pause) go to it; power, volume, mute, channel, backlight, the inputs and every key it lacks stay with the default. */
 
 var RM_MAX = 6;
-/* What the open popup is showing: { key, sel }. Cleared when the row opens it, so each opening starts anew. */
+/* What the open popup is showing: { key, sel, view }. Cleared when the row opens it, so each opening starts anew. */
 var RMS = null;
 
 function rmPlayerId(x) {
@@ -345,33 +345,108 @@ function rmSelected(key, d) {
   return all.indexOf(RMS.sel) >= 0 ? RMS.sel : x.def;
 }
 
+/* One device's remote, put into `area`: the default as the combined view, any other as its own remote, and its Advanced settings as the device's own popup has them. */
+function rmBuild(area, d, sel) {
+  if (!H().states[sel]) area.appendChild(pill("info", _T("unavailable"), {}));
+  else if (sel === d.wx.def) mediaPopup(area, sel, rmHooks(d.wx));
+  else if (d.wx.spk.indexOf(sel) >= 0) mediaGeneric(area, sel, "media");
+  else mediaPopup(area, sel);
+  var n = ISADMIN && !(UIDEV[sel] && UIDEV[sel].noadv) ? advList(sel).length : 0;
+  if (n)
+    area.appendChild(
+      pill("tune", _T("advanced_settings"), {
+        sub: function () {
+          return cntS(n, _T("setting"), _T("settings_2"));
+        },
+        tap: function () {
+          showPopup("adv:" + sel, true);
+        },
+      })
+    );
+}
+
+/* Switching device changes what is in the popup, and never closes it: the old controls are taken out with their live updates, the new ones built in their place, and the popup eases to its new height. */
+function rmShow(sel) {
+  var o = RMS && RMS.view;
+  if (!o || !o.area.isConnected) return;
+  var from = o.area.offsetHeight;
+  o.draw(sel);
+  var t = o.area.closest(".sheet"),
+    head = t && t.querySelector(".sh-t");
+  if (head) {
+    head.querySelector("span:not(.ic):not(.chev)").textContent = entName(sel);
+    var old = head.querySelector(".ic"),
+      next = mk("div", "", ic(rmIcon(o.d, sel))).firstChild;
+    if (old && next) head.replaceChild(next, old);
+  }
+  var calm = !o.area.animate || (window.matchMedia && matchMedia("(prefers-reduced-motion: reduce)").matches);
+  if (calm) return;
+  o.area.style.overflow = "hidden";
+  o.area.animate(
+    [
+      { height: from + "px", opacity: 0 },
+      { height: o.area.offsetHeight + "px", opacity: 1 },
+    ],
+    { duration: 280, easing: "cubic-bezier(.2,.8,.2,1)" }
+  ).onfinish = function () {
+    o.area.style.overflow = "";
+  };
+}
+
 function rmPick(key, d, id) {
-  RMS = { key: key, sel: id };
+  var view = RMS && RMS.key === key ? RMS.view : null;
+  RMS = { key: key, sel: id, view: view };
   if (d.wx.keep) deviceSet(rmStore(d), id);
-  showPopup("rmaster:" + key, false);
+  rmShow(id);
+}
+
+function rmIcon(d, sel) {
+  return d.wx.spk.indexOf(sel) >= 0 ? "media" : "tv";
 }
 
 function remoteMasterPopup(key) {
   var d = rmWidget(key);
   /* the master was removed while its popup was asked for */
   if (!d || !d.wx.def) return { title: _T("rm_title"), icon: "tv", build: function () {} };
-  var sel = rmSelected(key, d);
-  return {
-    title: entName(sel),
-    icon: d.wx.spk.indexOf(sel) >= 0 ? "media" : "tv",
-    titleMenu: {
+  var sel = rmSelected(key, d),
+    menu = {
       options: rmChoices(d.wx),
       current: sel,
       fmt: entName,
       pick: function (id) {
+        menu.current = id;
         rmPick(key, d, id);
       },
-    },
+    };
+  return {
+    title: entName(sel),
+    icon: rmIcon(d, sel),
+    titleMenu: menu,
     build: function (b) {
-      if (!H().states[sel]) b.appendChild(pill("info", _T("unavailable"), {}));
-      else if (sel === d.wx.def) mediaPopup(b, sel, rmHooks(d.wx));
-      else if (d.wx.spk.indexOf(sel) >= 0) mediaGeneric(b, sel, "media");
-      else mediaPopup(b, sel);
+      var area = mk("div", "rm-body"),
+        mine = [];
+      b.appendChild(area);
+      function draw(id) {
+        area.innerHTML = "";
+        mine = [];
+        var prev = CUR;
+        CUR = mine;
+        try {
+          rmBuild(area, d, id);
+        } finally {
+          CUR = prev;
+        }
+        mine.forEach(function (f) {
+          f();
+        });
+      }
+      RMS.view = { area: area, draw: draw, d: d };
+      draw(sel);
+      reg(function () {
+        mine.forEach(function (f) {
+          f();
+        });
+      });
     },
   };
 }

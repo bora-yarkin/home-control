@@ -107,7 +107,7 @@ test("a speaker is shown while it plays something the screen is not showing", ()
 test("the popup opens on the default unless the master remembers the pick", () => {
   const states = { "media_player.tv": st("on"), "media_player.apple": st("on") };
   const kept = {};
-  const { ctx } = world(states, { deviceGet: (k, d) => kept[k] ?? d, deviceSet: (k, v) => (kept[k] = v), showPopup() {} });
+  const { ctx } = world(states, { deviceGet: (k, d) => kept[k] ?? d, deviceSet: (k, v) => (kept[k] = v), showPopup: () => assert.fail("picking a device must not open a popup") });
   const d = { wid: "w1", wx: { def: "media_player.tv", subs: [{ id: "media_player.apple", src: "HDMI 1" }], spk: [] } };
   const reopen = () => {
     ctx.RMS = null;
@@ -137,4 +137,13 @@ test("when the speaker takes now playing's row, the default's inputs stay within
   assert.match(src, /inCard = !!onTap;/, "known from whether now playing opens the input list");
   assert.match(src, /if \(free && inCard\) \{\s*var inputs = tvSources\(x\.def\)/);
   assert.match(src, /inputs\.style\.display = speakerHasRow\(\) \? "" : "none";/, "only while that row is the speaker's");
+});
+
+test("switching device rebuilds the popup's content in place, with the device's own Advanced settings, and needs no device of the dashboard", () => {
+  const src = read("remotemaster.js");
+  const pick = src.slice(src.indexOf("function rmPick("), src.indexOf("function rmIcon("));
+  assert.doesNotMatch(pick, /showPopup|closeSheet/, "the popup is never closed or opened again");
+  assert.match(src, /function rmShow\(sel\)[\s\S]*o\.draw\(sel\)/);
+  assert.match(src, /showPopup\("adv:" \+ sel, true\)/, "pushed, so back returns to the master");
+  assert.doesNotMatch(src, /secOrder|UI\.layout|devsOf|allLights|ROOMLIGHTS/, "its players are chosen from Home Assistant, whether or not they are on a page");
 });
