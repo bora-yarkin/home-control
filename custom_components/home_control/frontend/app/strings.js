@@ -450,7 +450,7 @@ var EN = {
   "vacap_action": "Action",
   "vacap_action_hint": "A Home Assistant action, for example vacuum.start.",
   "vacap_data": "Action data (JSON)",
-  "vacap_start_hint": "Actions run in order. In the data, $rooms is the chosen rooms (all when none), $room_settings is each room's choices, $vacuum the vacuum, $vacuum_device its device, $set.<field> a choice for all rooms. With no action, Start starts the vacuum.",
+  "vacap_start_hint": "Actions run in order. In the data, $rooms is the chosen rooms (all when none), $room_settings is each room's choices, $vacuum the vacuum, $vacuum_device its device, $set.<field> a choice for all rooms. A word can stand inside a text, as in {\"room\":$rooms}. A room has its own settings only when an action uses $room_settings. With no action, Start starts the vacuum.",
   "vacap_rooms": "Rooms",
   "vacap_pick_room": "Which room",
   "vacap_room": "Room",
