@@ -9,6 +9,7 @@ Format: [Keep a Changelog](https://keepachangelog.com/). Versions follow [semant
 - The *Attention* chip and tile in the header open a popup with the details.
 
 ### Fixed
+- The status row showed its top again for a moment after the header had closed over it. It now fades out with the header as it shrinks, and fades in as it opens.
 - The header's status row did not line up with the title, chips and clock above it, and the rows of the History popup were laid out like the header (since 0.24.0): both came from one class name used for two things.
 
 ## [0.24.2] - 2026-11-25
