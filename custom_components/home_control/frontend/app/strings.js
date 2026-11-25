@@ -3,7 +3,7 @@
 var EN = {
   "to_do_items": "Items",
   "to_do_item": "Item",
-  "edit_widget": "Edit this widget",
+  "edit_content": "Edit",
   "previous": "Previous",
   "next": "Next",
   "new_item": "New item",

@@ -63,19 +63,22 @@ test("the to-do list adds an item and checks one off and puts it back, with noth
   });
 });
 
-test("a pen in the top right corner of a widget opens the edit view of that widget (the one a tap gives while the page is edited)", { timeout: 120000, skip }, async () => {
+test("a pen in the top right corner of a widget with content opens a popup for that content only, not the widget's settings; a widget with nothing to edit has no pen", { timeout: 120000, skip }, async () => {
   assert.ok(chrome, "CI needs Chrome or Chromium");
   await session(async ({ ev }) => {
     await sleep(1500);
-    for (const w of ["todo", "agenda", "hallway"]) {
+    for (const w of ["todo", "agenda"]) {
       assert.equal(await ev(`(${CARD(w)}).querySelectorAll(".wh .wpen").length`), 1, w + " has one pen");
       assert.ok(await ev(`(() => { const c = ${CARD(w)}, h = c.querySelector(".wh").getBoundingClientRect(), p = c.querySelector(".wpen").getBoundingClientRect(); return p.right <= h.right + 1 && p.right >= h.right - 1; })()`), w + "'s pen is the last thing in its header, in the corner");
     }
+    assert.equal(await ev(`(${CARD("hallway")}).querySelectorAll(".wpen").length`), 0, "the vacuum has no content to edit, so no pen");
+
     await ev(`(${CARD("todo")}).querySelector(".wpen").click()`);
-    await sleep(1200);
-    const shown = await ev(`[...document.querySelectorAll(".sheet.in .sep, .sheet.in .pill")].map((e) => e.textContent.trim()).join(" | ")`);
-    assert.match(shown, /To-do/, "the edit view of the widget is open and says which widget (" + shown.slice(0, 120) + ")");
-    assert.ok(await ev(`!!document.querySelector(".sheet.in")`));
+    await sleep(1500);
+    const text = await ev(`document.querySelector(".sheet.in").innerText`);
+    assert.match(text, /Milk/, "the items are in it");
+    assert.match(text, /Add item/, "and a way to add one");
+    assert.doesNotMatch(text, /Size|Remove from the section|Move to another section|How it looks|Visible/i, "none of the widget's own settings is (" + text.replace(/\s+/g, " ").slice(0, 200) + ")");
   });
 });
 

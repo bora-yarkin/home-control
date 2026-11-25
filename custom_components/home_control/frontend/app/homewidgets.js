@@ -65,10 +65,23 @@ function wxLive(box, build) {
   };
 }
 
-/* The widget's own edit view: what a tap on it opens while the page is edited. An administrator gets it from a pen in the widget's top right corner the rest of the time; a widget that is not a device of a section (inside a stack) has none. */
-function wxEditor(d) {
-  var s = CURSEC;
-  return ISADMIN && !editing() && s && (s.devs || []).indexOf(d) >= 0 ? devEditor("~" + secKey() + "~" + s.id, d) : null;
+/* The pen of a widget that has content to edit (the items of a to-do list): it opens a popup of its own for that content and nothing else; the widget's own settings (its entity, its size, taking it off the page) are for the page editor. A widget that is
+   not a device of a section (inside a stack) has no popup to open, and no pen while the page is edited, where a tap opens the settings. */
+function wxPen(d) {
+  var f = widgetDef(d.w),
+    s = CURSEC;
+  if (!f || !f.content || editing() || !s || (s.devs || []).indexOf(d) < 0) return null;
+  return function () {
+    showPopup("wcontent:" + secKey() + ":" + s.id + ":" + d.wid, true);
+  };
+}
+
+/* What the popup of a widget's content shows. `key` is "page:section:widget". */
+function widgetContentPage(b, key) {
+  var q = key.split(":"),
+    d = widgetOfSection(q[0], q[1], q[2]),
+    f = d && widgetDef(d.w);
+  if (f && f.content && d.wx.id) f.content(b, d);
 }
 
 /* A widget that is a card of its own: one `.pane` with a header (the icon, the name, a small button when the widget can add something, and the pen) over its content, as on a phone's home screen. `widget` is the
@@ -77,7 +90,7 @@ function wxCard(d, icon, addLabel, add, widget) {
   var card = mk("div", "wcard pane"),
     head = mk("div", "wh", ic(icon) + "<b></b>"),
     body = mk("div", "wb"),
-    edit = wxEditor(widget || d);
+    edit = wxPen(widget || d);
   head.querySelector("b").textContent = d.name;
   function button(cls, glyph, label, fn) {
     var b = mk("div", "rnd pane " + cls, svg(glyph));
@@ -87,7 +100,7 @@ function wxCard(d, icon, addLabel, add, widget) {
     head.appendChild(b);
   }
   if (add) button("wadd", "plus", addLabel, add);
-  if (edit) button("wpen", "edit", _T("edit_widget"), edit);
+  if (edit) button("wpen", "edit", _T("edit_content"), edit);
   card.appendChild(head);
   card.appendChild(body);
   return { card: card, body: body };
@@ -523,6 +536,44 @@ registerWidget("agenda", {
     wxEvery(w.card, 600000, load);
     return w.card;
   },
+  /* its events (to read: Home Assistant can add an event to a calendar but not change or delete one) and a way to add one */
+  content: function (box, d) {
+    var id = d.wx.id,
+      list = mk("div");
+    box.appendChild(
+      pill("plus", _T("add_event"), {
+        tap: function () {
+          eventDlg(id, fill);
+        },
+      })
+    );
+    box.appendChild(list);
+    function fill() {
+      var from = new Date();
+      HA.calendar.events(id, from.toISOString(), new Date(from.getTime() + 60 * 86400000).toISOString()).then(
+        function (ev) {
+          list.innerHTML = "";
+          if (!ev.length) list.appendChild(hintRow(_T("nothing_coming_up")));
+          ev.slice(0, 30).forEach(function (e) {
+            var when = e.start && (e.start.dateTime || e.start.date),
+              day = when ? new Date(when) : null;
+            list.appendChild(
+              pill("clock", String(e.summary || "").slice(0, 80), {
+                sub: function () {
+                  return day ? day.toLocaleDateString([], { weekday: "short", day: "numeric", month: "short" }) + (e.start.dateTime ? " · " + day.toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" }) : "") : "";
+                },
+              })
+            );
+          });
+        },
+        function () {
+          list.innerHTML = "";
+          list.appendChild(hintRow(_T("couldn_t_load_the_calendar")));
+        }
+      );
+    }
+    fill();
+  },
   settings: function (box, d, save) {
     wxPick(box, d, _T("calendar"), "clock", ["calendar"], save);
   },
@@ -606,13 +657,20 @@ registerWidget("todo", {
     });
     return w.card;
   },
-  settings: function (box, d, save) {
-    wxPick(box, d, _T("to_do_list"), "check", ["todo"], save);
-    if (!d.wx.id) return;
-    /* the items of the list, to change the words of one (a tap) or to take one off the list (the trash, after asking) */
+  /* its items, in a popup of their own: add one, change the words of one (a tap), take one off the list (the trash, after asking) */
+  content: function (box, d) {
     var id = d.wx.id,
       list = mk("div");
-    box.appendChild(sep(_T("to_do_items"), "check"));
+    box.appendChild(
+      pill("plus", _T("add_item"), {
+        tap: function () {
+          textDlg(_T("new_item"), "", _T("add_item"), function (v) {
+            call("todo", "add_item", { entity_id: id, item: v.trim().slice(0, 120) });
+            again();
+          });
+        },
+      })
+    );
     box.appendChild(list);
     function again() {
       setTimeout(function () {
@@ -627,7 +685,7 @@ registerWidget("todo", {
           if (!items.length) list.appendChild(hintRow(_T("nothing_to_do")));
           items.forEach(function (i) {
             list.appendChild(
-              pill("note", String(i.summary || "").slice(0, 120), {
+              pill("check", String(i.summary || "").slice(0, 120), {
                 sub: function () {
                   return i.status === "completed" ? _T("done") : "";
                 },
@@ -667,6 +725,9 @@ registerWidget("todo", {
       );
     }
     fill();
+  },
+  settings: function (box, d, save) {
+    wxPick(box, d, _T("to_do_list"), "check", ["todo"], save);
   },
 });
 
