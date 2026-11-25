@@ -15,6 +15,18 @@ function entRow(label, fn) {
  A device's popup is chosen from its type and its Home Assistant integration, never from a specific entity id, and
  the extra information it shows comes from the other entities of the same Home Assistant device. So any room, and
  any device added later, gets the same controls as the ones that exist today. */
+/* A robot's battery, in percent: its own `battery_level` attribute where it still has one, else the battery sensor on its device (Home Assistant's way now). Undefined when neither says. */
+function vacBattery(id) {
+  var l = Number(A(id).battery_level);
+  if (A(id).battery_level !== undefined && isFinite(l)) return Math.round(l);
+  var s = sibsOf(id).filter(function (e) {
+    var eid = e.entity_id,
+      v = V_(eid);
+    return dom(eid) === "sensor" && A(eid).device_class === "battery" && v !== "" && isFinite(Number(v));
+  })[0];
+  return s ? Math.round(Number(V_(s.entity_id))) : undefined;
+}
+
 function sibsOf(id) {
   var dv = advDevice(id),
     h = H();
