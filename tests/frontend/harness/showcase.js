@@ -219,6 +219,26 @@ export async function buildShowcase() {
     { e: "sensor.showcase_coffee_cups", l: "Cups made", g: "Care" },
   ];
   kit.devs.push(coffee);
+  /* A robot vacuum made as an appliance: rooms, settings and what Start does, with a room's own settings behind its gear. */
+  const robo = w.apNew("vacuum");
+  robo.name = "Showcase robot vacuum";
+  robo.aid = "scvacuum1";
+  Object.assign(robo.ap.slots, { vacuum: "vacuum.hallway", map: "camera.hallway_map" });
+  robo.ap.vac = {
+    rooms: [{ k: "10", l: "Living room" }, { k: "11", l: "Bedroom" }, { k: "12", l: "Kitchen" }, { k: "13", l: "Hall" }, { k: "14", l: "Study" }],
+    sets: [
+      { k: "cleaning_mode", l: "Mode", o: ["vacuum_only", "vacuum_and_mop", "vacuum_then_mop", "mop_only"] },
+      { k: "vacuum_power", l: "Suction", o: ["quiet", "auto", "boost"] },
+      { k: "hydration", l: "Water", o: ["low", "medium", "high"] },
+      { k: "wash_repetitions", l: "Passes", o: ["1", "2"] },
+    ],
+    run: [{ action: "vacuum.send_command", data: { entity_id: "$vacuum", command: "rooms", params: { rooms: "$rooms", settings: "$room_settings" } } }],
+  };
+  robo.ap.extra = [
+    { e: "sensor.hallway_filter_left", l: "Filter", o: 1 },
+    { e: "sensor.hallway_main_brush_left", l: "Main brush", o: 1 },
+  ];
+  kit.devs.push(robo);
   const fridge = w.apNew("fridge");
   fridge.name = "Showcase fridge";
   fridge.aid = "scfridge1";
