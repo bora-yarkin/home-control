@@ -215,6 +215,7 @@ function hdrBuild() {
   (mt.hdr || []).forEach(function (it) {
     var el = mk("div", "hchip", "<span></span><span></span>");
     box.appendChild(el);
+    if (it.k === "alerts") alertsTap(el);
     HDRC.push({ it: it, el: el, ic: "", txt: "" });
   });
   hdrLive();

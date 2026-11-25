@@ -58,6 +58,6 @@ test("the header's height slides whenever it changes (a status row, a room name 
   assert.match(pages, /hdrStatusSync\(true, undefined, hf\);\n  hdrGlide\(null, hf\)/, "and on any other redraw");
   const css = read("dashboard.css");
   assert.doesNotMatch(css, /\.hdr:has\(>\.hstat\)\{flex-wrap/, "adding the row must not re-wrap the title and buttons");
-  assert.match(css, /\.hrow\{display:flex/);
-  assert.match(read("dashboard-panel.js"), /<div class="hdr pane"><div class="hrow">/);
+  assert.match(css, /\.hdrow\{display:flex/);
+  assert.match(read("dashboard-panel.js"), /<div class="hdr pane"><div class="hdrow">/);
 });

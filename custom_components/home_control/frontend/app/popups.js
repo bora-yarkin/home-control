@@ -893,6 +893,15 @@ var POPUP_DEFS = {
       },
     };
   },
+  "g-alerts": function (id) {
+    return {
+      title: _T("attention"),
+      icon: "alert",
+      build: function (b) {
+        b.appendChild(alertsDevice(true));
+      },
+    };
+  },
   "g-batteries": function (id) {
     return { title: _T("batteries"), icon: "battery", build: batsPopup };
   },

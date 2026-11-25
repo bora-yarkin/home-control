@@ -4,6 +4,13 @@ Format: [Keep a Changelog](https://keepachangelog.com/). Versions follow [semant
 
 ## [Unreleased]
 
+### Added
+- *Attention* reports a lock that is offline (every lock of the home, also one that is on no page; *Lock offline* can be switched off in the Attention settings). The unavailable lights are named.
+- The *Attention* chip and tile in the header open a popup with the details.
+
+### Fixed
+- The header's status row did not line up with the title, chips and clock above it, and the rows of the History popup were laid out like the header (since 0.24.0): both came from one class name used for two things.
+
 ## [0.24.2] - 2026-11-25
 
 ### Fixed
