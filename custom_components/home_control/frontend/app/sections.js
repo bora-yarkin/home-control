@@ -389,10 +389,24 @@ function widgetAdd(lk, k) {
   showPopup("manage-add:" + lk, true);
 }
 
+/* The Columns setting of a Section, for what it holds that builds its own grid of tiles (At a glance, Rooms, Climate overview, Cameras, Security ...): each such grid takes the number of columns chosen, as the rows of a plain Section do, and one column on a narrow screen as everywhere. */
+function applySecLay(el, lay) {
+  var n = layCols(lay);
+  if (!el || !n) return el;
+  [].forEach.call(el.querySelectorAll(".grid2,.grid3,.glance,.camgrid"), function (g) {
+    if (g.closest(".hdr")) return;
+    g.classList.remove("grid2", "grid3", "camgrid", "g2", "g3", "g4");
+    g.classList.add("gridl");
+    if (n > 1) g.classList.add("g" + n);
+    g.style.gridTemplateColumns = "";
+  });
+  return el;
+}
+
 function customSection(s) {
   var k = s.k || "devs",
     only = widgetAlone(s);
-  if (only) return only.hide && !editing() ? null : widgetDef(only.w).section(only, s);
+  if (only) return only.hide && !editing() ? null : applySecLay(widgetDef(only.w).section(only, s), s.lay);
   var ed = editing(),
     lk = "~" + secKey() + "~" + s.id,
     src = [],
@@ -450,7 +464,7 @@ function customSection(s) {
   }
   if (add) body.push(add);
   var sx = section(ttl, ico, body);
-  return sx;
+  return applySecLay(sx, s.lay);
 }
 
 /* A camera at size l: its live picture with the controls on it. The first of a page is the one the page starts and stops with the page (owner "page"). */

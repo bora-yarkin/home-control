@@ -52,3 +52,37 @@ test("the width is chosen in the Section's settings from automatic up to the pag
   assert.match(read("sections.js"), /span: s\.span \|\| 0/);
   assert.doesNotMatch(pages, /masonFlags/);
 });
+
+test("a width the person chose wins over a Section that holds something wide, so a camera Section can be made narrower than the page", () => {
+  assert.deepEqual(spans([{ wide: true, span: 2 }, {}, {}], 3), [2, 1, 1]);
+  assert.deepEqual(spans([{ wide: true, span: 1 }, { wide: true }], 3), [1, 3], "one column when chosen, the whole page when not");
+  assert.deepEqual(spans([{ wide: true, span: 2 }], 1), [1], "and a phone has one column whatever was chosen");
+});
+
+test("the Columns setting reaches the grids that At a glance, Rooms, Climate overview and the camera and security Sections build themselves", () => {
+  const sections = read("sections.js");
+  const ctx = vm.createContext({ layCols: (l) => ({ list: 1, grid2: 2, grid3: 3, grid4: 4 })[l] || 0 });
+  const from = sections.indexOf("function applySecLay(el, lay)");
+  vm.runInContext(sections.slice(from, sections.indexOf("function customSection(s)")), ctx);
+  const grid = (cls) => {
+    const set = new Set(cls.split(" "));
+    return { classList: { remove: (...c) => c.forEach((x) => set.delete(x)), add: (...c) => c.forEach((x) => set.add(x)) }, closest: () => null, style: { gridTemplateColumns: "repeat(3,1fr)" }, has: (c) => set.has(c) };
+  };
+  const g3 = grid("grid3"),
+    cam = grid("camgrid"),
+    inHeader = grid("glance");
+  inHeader.closest = () => ({});
+  const el = { querySelectorAll: () => [g3, cam, inHeader] };
+  ctx.applySecLay(el, "grid2");
+  for (const g of [g3, cam]) assert.ok(g.has("gridl") && g.has("g2") && g.style.gridTemplateColumns === "", "two columns of tiles");
+  assert.ok(!g3.has("grid3") && !cam.has("camgrid"), "the fixed layouts are replaced");
+  assert.ok(!inHeader.has("gridl"), "the header's own tiles are left alone");
+  const one = grid("grid2");
+  ctx.applySecLay({ querySelectorAll: () => [one] }, "list");
+  assert.ok(one.has("gridl") && !one.has("g2"), "one column");
+  const auto = grid("grid3");
+  ctx.applySecLay({ querySelectorAll: () => [auto] }, undefined);
+  assert.ok(auto.has("grid3") && !auto.has("gridl"), "automatic keeps what the Section does by itself");
+  assert.match(sections, /applySecLay\(widgetDef\(only\.w\)\.section\(only, s\), s\.lay\)/);
+  assert.match(sections, /return applySecLay\(sx, s\.lay\);/);
+});
