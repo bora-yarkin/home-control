@@ -271,7 +271,7 @@ var POPUP_DEFS = {
     };
   },
   "lmaster-edit": function (id) {
-    var sec = secById(id.split(":")[0], id.split(":")[1]);
+    var sec = masterById(id.split(":")[0], id.split(":")[1]);
     return {
       title: (sec && sec.mn) || _T("lights_master"),
       icon: "lights",
@@ -283,7 +283,7 @@ var POPUP_DEFS = {
   "lmaster-part": function (id) {
     var part = id.split(":")[0],
       key = id.slice(part.length + 1),
-      sec = secById(key.split(":")[0], key.split(":")[1]);
+      sec = masterById(key.split(":")[0], key.split(":")[1]);
     return {
       title: ((sec && sec.mn) || _T("lights_master")) + " · " + _T("lm_part_" + part),
       icon: "lights",

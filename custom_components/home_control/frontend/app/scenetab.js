@@ -7,7 +7,7 @@ function mscSection(root) {
   var at = String((root && root.key) || "")
       .replace(/^m:/, "")
       .split("~"),
-    e = at.length === 2 ? secById(at[0], at[1]) : null;
+    e = at.length === 2 ? masterById(at[0], at[1]) : null;
   return e && e.k === "devs" ? { scope: at[0], e: e } : null;
 }
 

@@ -53,8 +53,11 @@ function cleanWidgetDev(d, c) {
   if (c.kind === "widget") {
     if (!f || c.id) return false;
     c.w = d.w;
-    c.wid = typeof d.wid === "string" && WIDRE.test(d.wid) ? d.wid : widgetNewId();
-    c.wx = f.clean(d.wx && typeof d.wx === "object" ? d.wx : {}) || {};
+    /* a widget that is named by its id (a lights master) is dropped when the id is not valid; any other is given one */
+    if (typeof d.wid === "string" && WIDRE.test(d.wid)) c.wid = d.wid;
+    else if (f.idRequired) return false;
+    else c.wid = widgetNewId();
+    c.wx = f.clean(d.wx && typeof d.wx === "object" ? d.wx : {}, c.wid) || {};
     if (f.sizes.indexOf(d.sz) >= 0 && d.sz !== f.size) c.sz = d.sz;
   } else if (c.id && sizesOf(c).indexOf(d.sz) >= 0) c.sz = d.sz;
   return true;
@@ -68,9 +71,11 @@ function newWidgetDev(w) {
 
 function widgetRow(d, ed) {
   var f = widgetDef(d.w),
-    el = f && f.draw(d, d.wx || {}, !!ed);
+    el = f && f.draw(d, d.wx || {}, !!ed),
+    z = sizeOf(d);
   if (!el) return null;
-  el.classList.add("wgt", "w-" + sizeOf(d));
+  /* a widget that is a row of the Section (the lights master) sits in it like any other row */
+  if (z !== "row") el.classList.add("wgt", "w-" + z);
   return el;
 }
 
@@ -87,7 +92,7 @@ function secIsWide(s) {
 function widgetAlone(s) {
   var d = s.devs || [],
     f = d.length === 1 && d[0].kind === "widget" ? widgetDef(d[0].w) : null;
-  return f && f.section && !s.master && !(s.masters || []).length ? d[0] : null;
+  return f && f.section ? d[0] : null;
 }
 
 /* A plain Section holding one new widget, named and iconned as the widget is. */
@@ -539,3 +544,72 @@ overview(
     },
   }
 );
+
+/* ---- Lights master ----
+   One light that controls the lights of its Section (an automatic master: the Section's own, `own`) or the lights chosen for it (a manual one). Its settings are the widget's (cleanMaster in model.js, edited in
+   app/mastersettings.js); a Section can hold several. The master is named "page~id" with the widget's id, which for the Section's own master is the Section's id. */
+
+function masterWidgets(s) {
+  return (s.devs || []).filter(function (d) {
+    return d.kind === "widget" && d.w === "lmaster" && d.wx;
+  });
+}
+
+/* A master's settings as the code that works on masters wants them: the widget's own settings object, with the lights of its Section as `devs` (an automatic master has no lights of its own) and, for the Section's own master,
+   `k` (what the scenes page asks a section for). Both are only a view of the Section, never saved. */
+function masterView(host, d) {
+  var x = d.wx;
+  Object.defineProperty(x, "devs", { get: function () { return host.devs; }, configurable: true, enumerable: false });
+  if (x.own) Object.defineProperty(x, "k", { value: "devs", configurable: true, enumerable: false, writable: true });
+  return x;
+}
+
+/* The master of a page by its id, with the section that holds it: { host, widget, view }, or null. */
+function masterFind(scope, id) {
+  var list = secOrder(scopeKey(scope));
+  for (var i = 0; i < list.length; i++) {
+    var w = masterWidgets(list[i]).filter(function (d) {
+      return d.wid === id;
+    })[0];
+    if (w) return { host: list[i], widget: w, view: masterView(list[i], w) };
+  }
+  return null;
+}
+
+function masterById(scope, id) {
+  var f = masterFind(scope, id);
+  return f && f.view;
+}
+
+/* The widget of an automatic master a Section made from its own lights has, or null. */
+function ownMasterWidget(s) {
+  return (
+    masterWidgets(s).filter(function (d) {
+      return d.wx.own;
+    })[0] || null
+  );
+}
+
+registerWidget("lmaster", {
+  title: _T("lights_master"),
+  icon: "lights",
+  desc: _T("lm_add_item_sub"),
+  sizes: [],
+  size: "row",
+  idRequired: true,
+  clean: function (x, wid) {
+    return cleanMaster(x, wid);
+  },
+  draw: function (d, x, ed) {
+    var host = CURSEC,
+      m = masterView(host, d),
+      ids = masterLightIds(m),
+      /* the Section's own master needs two lights (it is a row of the Section); another one is shown with one while the page is edited */
+      shown = x.own ? ids.length > 1 : ids.length > (ed ? 0 : 1);
+    if (!shown || (!ed && x.mhide)) return null;
+    return lightsMasterRow(secKey() + "~" + d.wid, ids, x.mn, x.mall, x.mo, masterMeta(m));
+  },
+  edit: function (d) {
+    showPopup("lmaster-edit:" + secKey() + ":" + d.wid, true);
+  },
+});

@@ -28,7 +28,7 @@ function modelWorld() {
     TITLES: {},
     cleanCond: () => null,
   });
-  for (const f of ["model.js", "sections.js", "glance.js", "mastersettings.js", "lightsmasters.js"]) vm.runInContext(read(f), ctx, { filename: f });
+  for (const f of ["model.js", "sections.js", "widgetkinds.js", "glance.js", "mastersettings.js", "lightsmasters.js"]) vm.runInContext(read(f), ctx, { filename: f });
   ctx.cleanCond = () => null;
   return ctx;
 }
@@ -57,8 +57,10 @@ test("a scenes section that chose nothing is a collection of the page's area sce
 test("a Section that is a master's keeps its scn (the master's scenes) and is not turned into scenes", () => {
   const w = modelWorld();
   const out = plain(w.cleanLayout([{ id: "m1", k: "devs", master: 1, scn: ["x1"], devs: [] }]))[0];
-  assert.deepEqual(out.scn, ["x1"]);
-  assert.deepEqual(out.devs, []);
+  const m = out.devs.find((d) => d.kind === "widget" && d.w === "lmaster");
+  assert.deepEqual(m.wx.scn, ["x1"], "the master's scenes are the widget's");
+  assert.equal(out.scn, undefined);
+  assert.deepEqual(out.devs.filter((d) => d.kind !== "widget"), []);
 });
 
 test("a scene entity and a scene made on the dashboard are devices; a collection keeps only valid settings", () => {

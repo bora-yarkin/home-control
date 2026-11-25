@@ -45,7 +45,7 @@ function guardUnsaved(o) {
 function sceneNewPage(b, key) {
   var q = key.split(":"),
     scope = q[0],
-    e = secById(scope, q[1]);
+    e = q[2] === "s" ? secById(scope, q[1]) : masterById(scope, q[1]);
   if (!e) return;
   /* From a Section's + the new scene becomes a device of the Section; from a lights master's scenes it is one of the master's. */
   var target = { scope: scope, sid: e.id, into: q[2] === "s" ? "section" : "master" };
@@ -143,7 +143,7 @@ function sceneAreasPage(b, key) {
   var q = key.split(":"),
     scope = q[0],
     editing = q[1] === "edit",
-    e = editing ? null : secById(scope, q[1]);
+    e = editing ? null : secById(scope, q[1]) || masterById(scope, q[1]);
   if (!editing && !e) return;
   var areas = STORE.eareas.slice().sort(function (x, y) {
       return (x.room === scope ? 0 : 1) - (y.room === scope ? 0 : 1) || x.name.localeCompare(y.name);

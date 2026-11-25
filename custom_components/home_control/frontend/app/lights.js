@@ -552,7 +552,7 @@ function lightsMasterRow(sid, ids, name, all, order, meta) {
 /* The settings of a lights master: a short page with one row for each part of it (`part` empty), and a page of its own for each part. */
 function lightsMasterSettings(b, key, part) {
   var p = key.split(":"),
-    sec = secById(p[0], p[1]);
+    sec = masterById(p[0], p[1]);
   if (!sec) return;
   var box = mk("div");
   b.appendChild(box);

@@ -972,15 +972,14 @@ function secEditor(b, key) {
             var c = JSON.parse(JSON.stringify(e));
             c.id = newSecId(order);
             c.t = (e.t || ty.t).slice(0, 36) + " 2";
+            /* the widgets it holds are copies with ids of their own (a lights master is named by its id) */
             (c.devs || []).forEach(function (x) {
-              if (x.kind === "widget") x.wid = widgetNewId();
+              if (x.kind !== "widget") return;
+              x.wid = x.w === "lmaster" ? masterNewId(sk === "home" ? "home" : sk.slice(5)) : widgetNewId();
+              if (x.wx && x.w === "lmaster") x.wx.id = x.wid;
             });
             order.splice(order.indexOf(e) + 1, 0, c);
             setSecOrder(sk, order);
-            /* the lights masters it holds are copies with ids of their own */
-            (c.masters || []).forEach(function (m) {
-              m.id = masterNewId(sk === "home" ? "home" : sk.slice(5));
-            });
             uiChanged();
             toast(_T("section_duplicated"));
           },

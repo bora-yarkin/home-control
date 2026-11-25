@@ -29,6 +29,7 @@ function world(section = {}, extra = {}) {
     sceneHasTag: () => false,
     cleanTags: () => [],
     secById: (scope, sid) => (scope === "r1" && sid === "lights" ? e : sid === "sc" ? { id: "sc", k: "scenes", scn: ["c2"] } : null),
+    masterById: (scope, sid) => (scope === "r1" && sid === "lights" ? e : null),
     STORE: { scenes: stored },
     sceneById: (id) => stored.find((s) => s.id === id) || null,
     sceneAllowed: () => true,
@@ -99,21 +100,20 @@ test("a folder that loses its last scene is gone, and a scene that no longer exi
   assert.equal(e.mf, undefined);
 });
 
-test("the section keeps its sources, folders and order through the layout clean-up, and drops what is not valid", () => {
+test("a master keeps its sources, folders and order through the layout clean-up, and drops what is not valid", () => {
+  const ctx = vm.createContext({ cleanTags: (l) => (Array.isArray(l) ? l.filter((x) => typeof x === "string" && x) : []), cleanDev: () => null, ENTRE: /^[a-z_]+\.[a-z0-9_]+$/ });
   const model = read("model.js");
-  const at = model.indexOf('if (k === "devs") {\n      /* The scenes page');
-  assert.ok(at > 0);
-  const body = model.slice(at, model.indexOf("if (ty.own) {", at));
-  const run = (s) => {
-    const o = {};
-    vm.runInNewContext(`(function(s,o,k){${body}})(s,o,k)`, { s, o, k: "devs", cleanTags: (l) => (Array.isArray(l) ? l.filter((x) => typeof x === "string" && x) : []) });
-    return plain(o);
-  };
-  assert.deepEqual(run({ msrc: ["hue", "page", "page:r2", "page:Bad Id", "hue:bath", "hue:Bad Area", "sec:a1", "tag:bath", "plugin"], mf: [{ id: "f1", n: "X", s: ["c1", "scene.a", "bad key!"] }, { id: "no id!", n: "Y", s: ["c1"] }, { id: "f2", n: "Z", s: [] }], mtop: ["c1", "f:f1", "x y"] }), {
-    msrc: ["hue:@lights", "page", "page:r2", "hue:bath", "tag:bath"],
-    mf: [{ id: "f1", n: "X", s: ["c1", "scene.a"] }],
-    mtop: ["c1", "f:f1"],
-  });
+  vm.runInContext(model.slice(model.indexOf("function cleanMaster("), model.indexOf("/* A section that has a master")), ctx);
+  const run = (s) => plain(ctx.cleanMaster(s, "lights"));
+  const out = run({ msrc: ["hue", "page", "page:r2", "page:Bad Id", "hue:bath", "hue:Bad Area", "sec:a1", "tag:bath", "plugin"], mf: [{ id: "f1", n: "X", s: ["c1", "scene.a", "bad key!"] }, { id: "no id!", n: "Y", s: ["c1"] }, { id: "f2", n: "Z", s: [] }], mtop: ["c1", "f:f1", "x y"] });
+  assert.deepEqual(
+    { msrc: out.msrc, mf: out.mf, mtop: out.mtop },
+    {
+      msrc: ["hue:@lights", "page", "page:r2", "hue:bath", "tag:bath"],
+      mf: [{ id: "f1", n: "X", s: ["c1", "scene.a"] }],
+      mtop: ["c1", "f:f1"],
+    }
+  );
 });
 
 test("the Effects page has no Scenes row any more, and the light popup has the Scenes tab after Effects only for a lights master", () => {

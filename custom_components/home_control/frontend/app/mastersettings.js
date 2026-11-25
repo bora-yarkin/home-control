@@ -4,7 +4,7 @@
 /* The section of a lights master, by its name. */
 function masterSec(sid) {
   var at = String(sid).split("~");
-  return at.length === 2 ? secById(at[0], at[1]) : null;
+  return at.length === 2 ? masterById(at[0], at[1]) : null;
 }
 
 /* The lights it controls. Automatic: every light of its section, also the ones hidden in the section (hiding is for the page; the master still has them), except what this person may not see. Manual: the lights chosen for it. */
@@ -360,7 +360,7 @@ function masterSectionRows(box, sec) {
 /* Choosing the lights of a manual master: every light of Home Assistant, searched by name and filtered by area; a tap adds or takes out. */
 function masterLightsPage(b, key) {
   var p = key.split(":"),
-    sec = secById(p[0], p[1]);
+    sec = masterById(p[0], p[1]);
   if (!sec) return;
   masterLightsChooser(b, sec, uiChanged);
 }
@@ -459,7 +459,7 @@ function masterLightsChooser(b, sec, changed) {
 /* The scene the power button runs: one of the scenes of the master's own list, or none. */
 function masterSceneRunPage(b, key) {
   var p = key.split(":"),
-    sec = secById(p[0], p[1]);
+    sec = masterById(p[0], p[1]);
   if (!sec) return;
   var S0 = { root: { key: "m:" + p[0] + "~" + p[1], cmd: lightUnits(masterLightIds(sec)) } },
     rows = [];

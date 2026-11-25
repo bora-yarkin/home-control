@@ -3,14 +3,7 @@
 /* Pinned items, quick actions and scenes belong to the section that shows them; a scene is stored once in the library and sections list its id. */
 function secById(scope, sid) {
   var list = secOrder(scopeKey(scope));
-  for (var i = 0; i < list.length; i++) {
-    if (list[i].id === sid) return list[i];
-    /* a lights master held by a section (app/lightsmasters.js) is found by its own id, with the settings of a master as a section has them */
-    var held = (list[i].masters || []).filter(function (m) {
-      return m.id === sid;
-    })[0];
-    if (held) return held;
-  }
+  for (var i = 0; i < list.length; i++) if (list[i].id === sid) return list[i];
   return null;
 }
 
@@ -401,8 +394,9 @@ function customSection(s) {
     var r = deviceItem(d, ed);
     if (!r && ed) r = pill(d.icon || "plug", d.name, {});
     if (!r) return;
+    var wf = d.kind === "widget" ? widgetDef(d.w) : null;
     rows.push(
-      edMark(r, devEditor(lk, d), !!d.hide)
+      edMark(r, wf && wf.edit ? function () { wf.edit(d); } : devEditor(lk, d), !!d.hide)
     );
     src.push(d);
   });
@@ -421,29 +415,7 @@ function customSection(s) {
       rows.length > 0
     );
   }
-  var mids = k === "devs" && s.master ? masterLightIds(s) : [];
-  /* More lights masters held by the section (app/lightsmasters.js): each with the lights chosen for it, shown while the page is edited too so it can be opened. */
-  var extras = k === "devs" ? (s.masters || []).filter(function (m) { return masterLightIds(m).length > (ed ? 0 : 1) && (ed || !m.mhide); }) : [];
-  /* A lights master keeps its section on the page when it has hidden every row of it: the master is the section then. */
-  if (!rows.length && !ed && !(s.master && mids.length > 1) && !extras.length) return null;
-  /* Lights master: one light at the top that controls every light of the section (or the lights chosen for it); off unless the section turns it on. While the page is edited it opens its settings. */
-  var masterRows = [];
-  if (k === "devs" && s.master && mids.length > 1 && (ed || !s.mhide)) {
-    var mr = lightsMasterRow(secKey() + "~" + s.id, mids, s.mn, s.mall, s.mo, masterMeta(s));
-    masterRows.push(
-      edMark(mr, function () {
-        showPopup("lmaster-edit:" + secKey() + ":" + s.id, true);
-      })
-    );
-  }
-  extras.forEach(function (m) {
-    masterRows.push(
-      edMark(lightsMasterRow(secKey() + "~" + m.id, masterLightIds(m), m.mn, m.mall, m.mo, masterMeta(m)), function () {
-        showPopup("lmaster-edit:" + secKey() + ":" + m.id, true);
-      })
-    );
-  });
-  rows = masterRows.concat(rows);
+  if (!rows.length && !ed) return null;
   var body = rows;
   if (
     rows.some(function (r) {

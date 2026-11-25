@@ -498,7 +498,7 @@ function sceneRow(sc) {
 
 /* A scene put in a Section from the + : from a Section's new scene (the scene becomes a device of the Section) or from a lights master's scenes (it is one of the master's). */
 function sceneTargetAdd(target, id) {
-  var e = secById(target.scope, target.sid);
+  var e = target.into === "section" ? secById(target.scope, target.sid) : masterById(target.scope, target.sid);
   if (!e) return;
   if (target.into === "section") {
     e.devs = e.devs || [];
