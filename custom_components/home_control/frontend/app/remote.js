@@ -47,6 +47,11 @@ function remoteFind(rid) {
   /* An appliance can carry a remote too: it is found by its own id. */
   function look(d) {
     if ((d.kind === "remote" && d.rid === rid) || (d.kind === "appliance" && d.aid === rid)) found = d;
+    /* and a remote master may keep remotes of its own */
+    if (d.kind === "widget" && d.w === "rmaster")
+      ((d.wx && d.wx.own) || []).forEach(function (o) {
+        if (o.rid === rid) found = o;
+      });
   }
   allSectionLists().forEach(function (secs) {
     secs.forEach(function (s) {
@@ -115,6 +120,9 @@ function rmCall(a) {
 
 /* A press (of a button or a touch area). An action that cannot run says so; one that fails says so (call shows the error); one that goes through says nothing. A button set to ask first (a garage door) asks before it runs. */
 function remotePress(b) {
+  /* a remote master may send this button's role to the device on the screen */
+  if (b.a && b.a.hook && b.a.hook()) return;
+  if (b.hook && b.hook()) return;
   var a = rmAct(b),
     c = a && rmCall(a);
   if (!c) return;
@@ -515,10 +523,11 @@ function remotePicture(box, d, edit, redraw) {
 /* ---- using a remote ---- */
 
 /* The popup: the grid or the picture, used. Nothing here edits; the remote is built in the device's settings. */
-function remotePage(b, rid) {
+/* `given`: show this remote (a remote master's copy) instead of looking the id up. */
+function remotePage(b, rid, given) {
   var box = mk("div");
   b.appendChild(box);
-  var d = remoteFind(rid);
+  var d = given || remoteFind(rid);
   if (!d || !d.rm) return;
   var rm = d.rm;
   if (rm.v === "i" && rm.img) remotePicture(box, d, false, function () {});
@@ -526,7 +535,7 @@ function remotePage(b, rid) {
   else box.appendChild(rmGrid(d, false, null));
   reg(function () {
     /* A button whose entity became unavailable (or came back) is dimmed (or not) at once. */
-    var cur = remoteFind(rid);
+    var cur = given || remoteFind(rid);
     if (!cur) return;
     var plain = cur.rm.btns.filter(function (y) {
       return ["gap", "dpad", "touch", "now", "source", "text", "slider"].indexOf(y.a.t) < 0;

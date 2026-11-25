@@ -147,3 +147,60 @@ test("switching device rebuilds the popup's content in place, with the device's 
   assert.match(src, /showPopup\("adv:" \+ sel, true\)/, "pushed, so back returns to the master");
   assert.doesNotMatch(src, /secOrder|UI\.layout|devsOf|allLights|ROOMLIGHTS/, "its players are chosen from Home Assistant, whether or not they are on a page");
 });
+
+const key = (c) => ({ t: "key", e: "remote.ir", c });
+const custom = { rid: "rm1", name: "Sofa", icon: "media", rm: { cols: 3, btns: [{ a: { t: "dpad", u: key("UP"), d: key("DOWN"), l: key("LEFT"), r: key("RIGHT"), o: key("OK") } }, { a: key("BACK"), l: "Back" }, { a: key("MENU"), l: "Menu" }] } };
+
+function withRemotes(states = {}, extra = {}) {
+  const pressed = [];
+  const w = world(states, {
+    cleanRmAct: (a) => (a && a.e ? { t: a.t, e: a.e, c: a.c } : null),
+    cleanRemote: (r) => r || { cols: 4, btns: [] },
+    iconOk: () => true,
+    remoteFind: (rid) => (rid === "page1" ? { rid, name: "Projector", rm: custom.rm } : null),
+    remotePress: (b) => pressed.push(b.a.c),
+    npMode: () => "on",
+    ...extra,
+  });
+  return { ...w, pressed };
+}
+
+test("a custom remote, made in the master or taken from a page, is a device of it, with its options kept only for devices it has", () => {
+  const { ctx } = withRemotes();
+  const out = plain(ctx.cleanRemoteMaster({ def: "media_player.tv", subs: [{ id: "rm:rm1", src: "HDMI 2" }, { id: "rm:page1" }], spk: ["rm:rm1"], own: [custom, { rid: "unused", rm: custom.rm }], opt: { "rm:rm1": { state: "media_player.box", name: " Sofa ", roles: { back: key("BACK"), power: key("POWER") }, np: "weird", links: ["number.a", "number.a", "x"] }, "media_player.gone": { name: "x" } } }));
+  assert.deepEqual(out.subs.map((s) => s.id), ["rm:rm1", "rm:page1"]);
+  assert.deepEqual(out.spk, [], "a speaker is a media player");
+  assert.deepEqual(out.own.map((r) => r.rid), ["rm1"]);
+  assert.deepEqual(Object.keys(out.opt), ["rm:rm1"]);
+  assert.deepEqual(Object.keys(out.opt["rm:rm1"].roles), ["back"], "only the roles there are");
+  assert.equal(out.opt["rm:rm1"].name, "Sofa");
+  assert.deepEqual(out.opt["rm:rm1"].links, ["number.a"]);
+});
+
+test("a custom remote's roles are what was chosen, else its five-way pad, and it takes over and is taken over by them", () => {
+  const states = { "media_player.tv": st("on", { source: "HDMI 2" }), "media_player.apple": st("playing") };
+  const { ctx, pressed, sent } = withRemotes(states);
+  const x = { def: "media_player.tv", subs: [{ id: "rm:rm1", src: "HDMI 2" }], spk: [], own: [custom], opt: { "rm:rm1": { roles: { back: key("BACK") } } } };
+  assert.equal(ctx.rmOnScreen(x), "rm:rm1", "with no player of its own it counts as awake");
+  const hooks = ctx.rmHooks(x);
+  assert.equal(hooks.ovr("back"), true);
+  assert.equal(hooks.ovr("ok"), true);
+  assert.equal(hooks.ovr("dir", "left"), true);
+  assert.equal(hooks.ovr("home"), false, "no such role: the default keeps it");
+  assert.deepEqual(pressed, ["BACK", "OK", "LEFT"]);
+  /* the other way round: a custom default, the Apple TV on its input */
+  const y = { def: "rm:rm1", subs: [{ id: "media_player.apple", src: "HDMI 2" }], spk: [], own: [custom], opt: { "rm:rm1": { state: "media_player.tv", roles: { back: key("BACK") } } } };
+  assert.equal(ctx.rmOnScreen(y), "media_player.apple");
+  assert.equal(ctx.rmHooks(y).ovr("back"), true);
+  assert.deepEqual(plain(sent.pop()), ["remote.apple", "menu", 0]);
+  assert.equal(ctx.rmOnScreen({ ...y, opt: {} }), "", "a custom default with no player has no input to read");
+});
+
+test("the master keeps what the standalone remotes have: the builder reaches its own remotes, roles take a press, linked entities are listed", () => {
+  assert.match(read("remote.js"), /d\.kind === "widget" && d\.w === "rmaster"[\s\S]*if \(o\.rid === rid\) found = o;/);
+  assert.match(read("remote.js"), /function remotePress\(b\) \{\s*\/\*[^*]*\*\/\s*if \(b\.a && b\.a\.hook && b\.a\.hook\(\)\) return;/);
+  assert.match(read("advanced.js"), /rmLinks\(id\)/);
+  assert.match(read("media.js"), /function npMode\(id\)[\s\S]*RMNP\[id\]/);
+  assert.match(read("access.js"), /rm-\(pick\|member\)\|/, "the settings pages are an administrator's");
+  assert.match(read("remotemaster.js"), /showPopup\("remote-build:" \+ rid, true\)/);
+});

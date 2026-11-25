@@ -69,9 +69,15 @@ function addNowPlaying(b, id, icon, onTap) {
   return np;
 }
 
+/* A player's now playing style: "on" (a row), "off" or "art" (the artwork card); a remote master may say another than the page. */
+function npMode(id) {
+  var u = UIDEV[id] || {};
+  return (typeof RMNP === "object" && RMNP[id]) || (u.art ? "art" : u.nonp ? "off" : "on");
+}
+
 function nowPlaying(id, icon, onTap) {
-  if ((UIDEV[id] || {}).nonp) return null;
-  if ((UIDEV[id] || {}).art) return artCard(id, icon);
+  if (npMode(id) === "off") return null;
+  if (npMode(id) === "art") return artCard(id, icon);
   var p = pill(icon, _T("now_playing"), {
     tap: onTap
       ? function () {
@@ -289,8 +295,7 @@ function tvPickSource(id, v) {
 
 /* Where the apps go depends on the Now playing setting of the TV: as the artwork or off, a dropdown beside Power; as the normal row, the row itself opens the dropdown and the cell beside Power stays empty. */
 function tvAppsInNowPlaying(id) {
-  var u = UIDEV[id] || {};
-  return !u.nonp && !u.art;
+  return npMode(id) === "on";
 }
 
 /* Tapping the now-playing card opens the TV's apps and inputs, when they are in the card instead of a row of their own. */

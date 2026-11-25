@@ -893,6 +893,13 @@ var POPUP_DEFS = {
       },
     };
   },
+  "rm-pick": function () {
+    return { title: _T("rm_pick"), icon: "plus", build: rmPickPage };
+  },
+  "rm-member": function () {
+    var e = RMEDIT;
+    return { title: e ? rmName(e.d.wx, e.k) : _T("rm_title"), icon: e ? rmIcon(e.d.wx, e.k) : "tv", build: rmMemberPage };
+  },
   rmaster: function (id) {
     return remoteMasterPopup(id);
   },

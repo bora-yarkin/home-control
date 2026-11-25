@@ -60,9 +60,10 @@ function advLeftOut(id, eid) {
 function advList(id) {
   var dev = advDevice(id);
   /* Light popups have no Advanced menu: the light panel covers them. */
-  if ((!dev && !(UIDEV[id] && UIDEV[id].links)) || dom(id) === "light") return [];
-  var h = H(),
-    linked = (UIDEV[id] && UIDEV[id].links) || [];
+  var master = typeof rmLinks === "function" ? rmLinks(id) : [],
+    linked = ((UIDEV[id] && UIDEV[id].links) || []).concat(master);
+  if ((!dev && !linked.length) || dom(id) === "light") return [];
+  var h = H();
   return Object.values(h.entities)
     .filter(function (e) {
       return (

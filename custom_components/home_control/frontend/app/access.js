@@ -15,7 +15,7 @@ var AMODES = ["allow", "confirm", "view", "hide"],
     hide: _T("hidden"),
   };
 
-var ADMINPOP = /^(kwiz|kpick|remote-(build|keys|key|media|btn)|lgroup:|lgnew|manage|pick-|access-|scene-edit|scene-pick|live-|areas|area-edit|lpscene:|stg-|share-how|adv:|settings$)/;
+var ADMINPOP = /^(kwiz|kpick|rm-(pick|member)|remote-(build|keys|key|media|btn)|lgroup:|lgnew|manage|pick-|access-|scene-edit|scene-pick|live-|areas|area-edit|lpscene:|stg-|share-how|adv:|settings$)/;
 
 function cleanRule(r) {
   if (!r || AMODES.indexOf(r.m) < 0) return null;
