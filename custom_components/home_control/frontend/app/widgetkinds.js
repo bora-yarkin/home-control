@@ -166,6 +166,16 @@ registerWidget("note", {
       c.textContent = _T("empty_note_open_this_widget_s_setti");
       c.classList.add("dim");
     }
+    /* an administrator writes it where it is (while the page is edited a tap opens the widget's settings instead) */
+    if (ISADMIN && !ed) {
+      c.classList.add("tapedit");
+      c.addEventListener("click", function () {
+        textDlg(_T("write_a_note"), x.txt || "", _T("save"), function (v) {
+          x.txt = v.trim().slice(0, 600);
+          uiChanged();
+        }, 6);
+      });
+    }
     return c;
   },
   settings: function (box, d, save) {
@@ -241,7 +251,7 @@ registerWidget("chart", {
     );
     d.wx.ds.forEach(function (s, i) {
       box.appendChild(
-        pill("sensor", s.name, {
+        pill("thermo", s.name, {
           sub: function () {
             return s.id + " · " + _T("tap_to_remove");
           },

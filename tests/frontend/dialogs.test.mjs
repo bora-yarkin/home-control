@@ -107,7 +107,8 @@ test("the question about unsaved changes and every other choice list use the sam
 test("the TV's keyboard is a bottom sheet too: typed text is not thrown away by a tap outside, and Send sends it", () => {
   const p = page();
   const src = read("app/media.js");
-  const code = src.slice(src.indexOf("function kbDlg"), src.indexOf("\n}\n", src.indexOf("function kbDlg")) + 3);
+  const piece = (name) => src.slice(src.indexOf("function " + name), src.indexOf("\n}\n", src.indexOf("function " + name)) + 3);
+  const code = piece("textDlg") + piece("kbDlg");
   vm.runInContext(code, p.sandbox);
   const sent = [];
   p.sandbox.kbDlg((t) => sent.push(t));

@@ -1,6 +1,7 @@
-/* Widgets for a home screen (decision D-25): clock and weather, now playing, camera snapshot, vacuum, energy ring, sensor sparkline, agenda, to-do, folder and stack. They are registered in the same registry as the
-   others (app/widgetkinds.js); each says which entity it shows (checked here: the right kind of entity, nothing else), the sizes it can take, and how it is drawn. A widget only changes something when it has a control
-   of its own (the play button, the check of a to-do item, the folder's rows). */
+/* Widgets for a home screen (decision D-25): clock and weather, now playing, camera snapshot, vacuum, power ring, sensor sparkline, agenda, to-do, folder and stack. They are registered in the same registry as the
+   others (app/widgetkinds.js) and are made of the dashboard's own parts, so they look like everything else on it: a tile is a `.gb` tile, a list is rows (`pill`) under a heading, a camera is a `.vidbox`, a button is a
+   round button. Each says which entity it shows (checked here: the right kind of entity, nothing else), the sizes it can take, and what can be done in it: the to-do list adds, checks and removes items, the agenda adds
+   events, a note is written where it is, now playing and the vacuum have their buttons. Every command goes through call(), which keeps the dashboard's access settings. */
 
 /* The entity a widget is about, when it is one of those domains. */
 function wxEntity(x, doms) {
@@ -29,18 +30,11 @@ function wxPick(box, d, label, icon, doms, save) {
   );
 }
 
-/* A card of a widget: its name over a body, optionally opening a popup when tapped (not while the page is edited, where a tap opens the widget's settings). */
-function wxCard(cls, open) {
-  var c = mk("div", "wc pane " + cls);
-  if (open) c.addEventListener("click", open);
-  return c;
-}
-
-/* The name of a widget over its body, for the wide ones that would otherwise not say what they are. */
-function wxHead(c, d) {
-  var h = mk("div", "wh");
-  h.textContent = d.name;
-  c.appendChild(h);
+/* A tile of a widget: the dashboard's own tile (`.gb`: a value over its name), with whatever else a widget puts in it. */
+function wxTile(cls, open) {
+  var t = mk("div", "gb pane wt " + cls);
+  if (open) t.addEventListener("click", open);
+  return t;
 }
 
 /* Keeps something on a widget up to date as long as the widget is on the page. */
@@ -49,6 +43,35 @@ function wxEvery(el, ms, fn) {
     if (!el.isConnected) clearInterval(t);
     else fn();
   }, ms);
+}
+
+/* The part of a widget that is made again when its data changes (the rows of a list): the updates of its rows are kept apart, so rows that are gone are not updated any more. Returns the function that builds it. */
+function wxLive(box, build) {
+  var live = { fns: [] };
+  reg(function () {
+    runUpdates(live.fns, "widget update");
+  });
+  return function () {
+    var outer = CUR;
+    live.fns = [];
+    CUR = live.fns;
+    box.innerHTML = "";
+    try {
+      build(box);
+    } finally {
+      CUR = outer;
+    }
+    runUpdates(live.fns, "widget update");
+  };
+}
+
+/* A list widget: its name as a heading and its rows under it. */
+function wxList(d, icon) {
+  var box = mk("div", "wl"),
+    rows = mk("div");
+  box.appendChild(sep(d.name, icon));
+  box.appendChild(rows);
+  return { box: box, rows: rows };
 }
 
 /* ---- Clock and weather ---- */
@@ -65,30 +88,26 @@ registerWidget("clock", {
     return o;
   },
   draw: function (d, x) {
-    var c = wxCard("clk", null),
+    var t = wxTile("clk"),
       tm = mk("b"),
-      dt = mk("span"),
-      wx = mk("i");
-    c.appendChild(tm);
-    c.appendChild(dt);
-    c.appendChild(wx);
+      dt = mk("span");
+    t.appendChild(tm);
+    t.appendChild(dt);
     function weatherId() {
       return x.id || firstWeather();
     }
     function up() {
-      var n = new Date();
+      var n = new Date(),
+        w = weatherId(),
+        a = w && wxVisible(w) && S(w) ? A(w) : null,
+        cond = a ? (HCOND[V_(w)] || [cap(String(V_(w)).replace(/[-_]/g, " "))])[0] : "";
       tm.textContent = n.toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" });
-      dt.textContent = n.toLocaleDateString([], { weekday: "long", day: "numeric", month: "long" });
-      var w = weatherId(),
-        t = w && A(w).temperature;
-      if (w && !wxVisible(w)) w = "";
-      /* the words the header uses for a condition */
-      wx.textContent = w && S(w) ? (typeof t === "number" ? Math.round(t) + "° · " : "") + (HCOND[V_(w)] || [cap(String(V_(w)).replace(/[-_]/g, " "))])[0] : "";
+      dt.textContent = n.toLocaleDateString([], { weekday: "short", day: "numeric", month: "short" }) + (a ? " · " + (typeof a.temperature === "number" ? Math.round(a.temperature) + "° " : "") + cond : "");
     }
     up();
     reg(up);
-    wxEvery(c, 15000, up);
-    return c;
+    wxEvery(t, 15000, up);
+    return t;
   },
   settings: function (box, d, save) {
     wxPick(box, d, _T("weather"), "bright", ["weather"], save);
@@ -109,26 +128,36 @@ registerWidget("nowplaying", {
   draw: function (d, x, ed) {
     if (!x.id || !wxVisible(x.id)) return ed && !x.id ? pill("media", _T("choose_a_player"), {}) : null;
     var id = x.id,
-      c = wxCard("np", function () {
-        showPopup(devPop({ kind: "media", id: id, name: entName(id), icon: "media" }), true);
-      }),
+      c = mk("div", "np pane"),
       art = mk("div", "art"),
       tx = mk("div", "tx", "<b></b><span></span>"),
-      bt = mk("div", "rnd pane", svg("play"));
+      bar = mk("div", "ctl");
+    function btn(icon, service, label) {
+      var b = mk("div", "rnd pane", svg(icon));
+      b.setAttribute("role", "button");
+      b.setAttribute("aria-label", label);
+      b.addEventListener("click", function () {
+        call("media_player", service, { entity_id: id });
+      });
+      bar.appendChild(b);
+      return b;
+    }
+    btn("prev", "media_previous_track", _T("previous"));
+    var pp = btn("play", "media_play_pause", _T("play_pause"));
+    btn("next", "media_next_track", _T("next"));
     c.appendChild(art);
     c.appendChild(tx);
-    c.appendChild(bt);
-    bt.addEventListener("click", function (e) {
-      e.stopPropagation();
-      call("media_player", "media_play_pause", { entity_id: id });
+    c.appendChild(bar);
+    c.addEventListener("click", function (e) {
+      if (!e.target.closest(".rnd")) showPopup(devPop({ kind: "media", id: id, name: entName(id), icon: "media" }), true);
     });
     function up() {
       var a = A(id),
         pic = a.entity_picture_local || a.entity_picture || "";
-      art.style.backgroundImage = pic && /^(\/|https?:)/.test(pic) ? "url(" + JSON.stringify(pic) + ")" : "";
+      art.style.backgroundImage = pic && /^(\/(?!\/)|https:\/\/)/.test(pic) ? "url(" + JSON.stringify(pic) + ")" : "";
       tx.firstChild.textContent = a.media_title || entName(id);
       tx.lastChild.textContent = a.media_artist || (V_(id) === "playing" ? _T("playing") : cap(String(V_(id) || "")));
-      bt.innerHTML = svg(V_(id) === "playing" ? "pause" : "play");
+      pp.innerHTML = svg(V_(id) === "playing" ? "pause" : "play");
     }
     up();
     reg(up);
@@ -153,15 +182,16 @@ registerWidget("snapshot", {
   draw: function (d, x, ed) {
     if (!x.id || !wxVisible(x.id)) return ed && !x.id ? pill("cam", _T("choose_a_camera"), {}) : null;
     var id = x.id,
-      c = wxCard("snap", function () {
-        showPopup(devPop({ kind: "camera", id: id, name: entName(id), icon: "cam" }), true);
-      }),
+      c = mk("div", "vidbox snapw"),
       im = mk("img"),
       nm = mk("span");
     im.alt = "";
     nm.textContent = entName(id);
     c.appendChild(im);
     c.appendChild(nm);
+    c.addEventListener("click", function () {
+      showPopup(devPop({ kind: "camera", id: id, name: entName(id), icon: "cam" }), true);
+    });
     function up() {
       var tok = A(id).access_token,
         pic = A(id).entity_picture || "";
@@ -191,35 +221,43 @@ registerWidget("vacuum", {
   draw: function (d, x, ed) {
     if (!x.id || !wxVisible(x.id)) return ed && !x.id ? pill("vac", _T("choose_a_vacuum"), {}) : null;
     var id = x.id,
-      c = wxCard("vacw", function () {
-        showPopup(devPop({ kind: "vacuum", id: id, name: entName(id), icon: "vac" }), true);
+      box = mk("div", "wl"),
+      row = pill("vac", entName(id), {
+        kind: "clean",
+        sub: function () {
+          var b = A(id).battery_level;
+          return cap(String(V_(id) || "").replace(/_/g, " ")) + (typeof b === "number" ? " · " + Math.round(b) + "%" : "");
+        },
+        tap: function () {
+          showPopup(devPop({ kind: "vacuum", id: id, name: entName(id), icon: "vac" }), true);
+        },
       }),
-      tx = mk("div", "tx", "<b></b><span></span>"),
-      bt = mk("div", "rnd pane", svg("play"));
-    c.insertAdjacentHTML("afterbegin", ic("vac"));
-    c.appendChild(tx);
-    c.appendChild(bt);
-    bt.addEventListener("click", function (e) {
-      e.stopPropagation();
-      var s = V_(id);
-      call("vacuum", s === "cleaning" ? "pause" : s === "returning" ? "return_to_base" : "start", { entity_id: id });
+      bar = mk("div", "rrow");
+    box.appendChild(row);
+    [
+      ["play", "start", _T("start")],
+      ["pause", "pause", _T("pause")],
+      ["home", "return_to_base", _T("dock")],
+    ].forEach(function (b) {
+      bar.appendChild(
+        rbtn(
+          b[0],
+          function () {
+            call("vacuum", b[1], { entity_id: id });
+          },
+          b[2]
+        )
+      );
     });
-    function up() {
-      var b = A(id).battery_level;
-      tx.firstChild.textContent = entName(id);
-      tx.lastChild.textContent = cap(String(V_(id) || "").replace(/_/g, " ")) + (typeof b === "number" ? " · " + Math.round(b) + "%" : "");
-      bt.innerHTML = svg(V_(id) === "cleaning" ? "pause" : "play");
-    }
-    up();
-    reg(up);
-    return c;
+    box.appendChild(bar);
+    return box;
   },
   settings: function (box, d, save) {
     wxPick(box, d, _T("vacuum"), "vac", ["vacuum"], save);
   },
 });
 
-/* ---- Energy ring ---- */
+/* ---- Power ring ---- */
 registerWidget("ring", {
   title: _T("power_ring"),
   icon: "plug",
@@ -237,15 +275,17 @@ registerWidget("ring", {
   draw: function (d, x, ed) {
     if (!x.id || !wxVisible(x.id)) return ed && !x.id ? pill("plug", _T("choose_a_sensor"), {}) : null;
     var id = x.id,
-      c = wxCard("ringw", null),
+      t = wxTile("ringw"),
       R = 26,
-      L = 2 * Math.PI * R;
-    c.innerHTML =
+      L = 2 * Math.PI * R,
+      g = mk("div", "rg2");
+    g.innerHTML =
       "<svg viewBox='0 0 64 64'><circle class='bg' cx='32' cy='32' r='" + R + "'/><circle class='fg' cx='32' cy='32' r='" + R +
-      "' stroke-dasharray='" + L.toFixed(1) + "' stroke-dashoffset='" + L.toFixed(1) + "' transform='rotate(-90 32 32)'/></svg><b></b><span></span>";
-    var fg = c.querySelector(".fg"),
-      vl = c.querySelector("b");
-    c.lastChild.textContent = entName(id);
+      "' stroke-dasharray='" + L.toFixed(1) + "' stroke-dashoffset='" + L.toFixed(1) + "' transform='rotate(-90 32 32)'/></svg><b></b>";
+    t.appendChild(g);
+    t.appendChild(mk("span")).textContent = entName(id);
+    var fg = g.querySelector(".fg"),
+      vl = g.querySelector("b");
     function up() {
       var v = Number(V_(id)),
         f = isFinite(v) && x.max ? Math.max(0, Math.min(1, v / x.max)) : 0;
@@ -254,7 +294,7 @@ registerWidget("ring", {
     }
     up();
     reg(up);
-    return c;
+    return t;
   },
   settings: function (box, d, save) {
     wxPick(box, d, _T("sensor"), "plug", ["sensor"], save);
@@ -292,12 +332,12 @@ registerWidget("sparkline", {
   draw: function (d, x, ed) {
     if (!x.id || !wxVisible(x.id)) return ed && !x.id ? pill("thermo", _T("choose_a_sensor"), {}) : null;
     var id = x.id,
-      c = wxCard("spark", null),
+      t = wxTile("spark"),
       v = mk("b"),
       pl = mk("div", "pl");
-    c.appendChild(v);
-    c.appendChild(pl);
-    c.appendChild(mk("span")).textContent = entName(id);
+    t.appendChild(v);
+    t.appendChild(pl);
+    t.appendChild(mk("span")).textContent = entName(id);
     function up() {
       v.textContent = readText(id);
     }
@@ -320,7 +360,7 @@ registerWidget("sparkline", {
           .join("");
       pl.innerHTML = "<svg viewBox='0 0 100 24' preserveAspectRatio='none'><path d='" + path + "'/></svg>";
     });
-    return c;
+    return t;
   },
   settings: function (box, d, save) {
     wxPick(box, d, _T("sensor"), "thermo", ["sensor"], save);
@@ -342,6 +382,74 @@ registerWidget("sparkline", {
 });
 
 /* ---- Agenda ---- */
+/* Adding an event: a title, a day and a time (or the whole day), for a calendar that accepts them. */
+function eventDlg(entity, done) {
+  var now = new Date(),
+    pad = function (n) {
+      return String(n).padStart(2, "0");
+    },
+    day = now.getFullYear() + "-" + pad(now.getMonth() + 1) + "-" + pad(now.getDate()),
+    st = { title: "", day: day, time: pad((now.getHours() + 1) % 24) + ":00", all: false };
+  bottomSheet(function (box, close) {
+    function field(type, ph, key) {
+      var w = mk("div", "as-t"),
+        i = mk("input");
+      i.type = type;
+      i.placeholder = ph;
+      i.value = st[key];
+      i.addEventListener("input", function () {
+        st[key] = i.value;
+      });
+      w.appendChild(i);
+      box.appendChild(w);
+      return i;
+    }
+    var title = field("text", _T("event_title"), "title");
+    field("date", "", "day");
+    var time = field("time", "", "time");
+    var all = mk("div", "as-b", "");
+    all.setAttribute("role", "checkbox");
+    function paintAll() {
+      all.textContent = (st.all ? "✓ " : "") + _T("all_day");
+      all.setAttribute("aria-checked", st.all ? "true" : "false");
+      time.parentNode.style.display = st.all ? "none" : "";
+    }
+    all.addEventListener("click", function () {
+      st.all = !st.all;
+      paintAll();
+    });
+    box.appendChild(all);
+    paintAll();
+    var add = mk("div", "as-b");
+    add.setAttribute("role", "button");
+    add.textContent = _T("add_event");
+    add.addEventListener("click", function () {
+      if (!st.title.trim() || !/^\d{4}-\d{2}-\d{2}$/.test(st.day)) {
+        title.focus();
+        return;
+      }
+      var start = new Date(st.day + "T" + (st.all ? "00:00" : /^\d{2}:\d{2}$/.test(st.time) ? st.time : "09:00")),
+        end = new Date(start.getTime() + (st.all ? 86400000 : 3600000)),
+        f = function (d, withTime) {
+          return d.getFullYear() + "-" + pad(d.getMonth() + 1) + "-" + pad(d.getDate()) + (withTime ? " " + pad(d.getHours()) + ":" + pad(d.getMinutes()) + ":00" : "");
+        },
+        data = st.all ? { entity_id: entity, summary: st.title.trim().slice(0, 120), start_date: f(start), end_date: f(end) } : { entity_id: entity, summary: st.title.trim().slice(0, 120), start_date_time: f(start, true), end_date_time: f(end, true) };
+      close();
+      call("calendar", "create_event", data);
+      setTimeout(done, 800);
+    });
+    box.appendChild(add);
+    var no = mk("div", "as-b cancel");
+    no.setAttribute("role", "button");
+    no.textContent = _T("cancel");
+    no.addEventListener("click", close);
+    box.appendChild(no);
+    setTimeout(function () {
+      title.focus();
+    }, 380);
+  });
+}
+
 registerWidget("agenda", {
   title: _T("agenda"),
   icon: "clock",
@@ -354,37 +462,52 @@ registerWidget("agenda", {
   },
   draw: function (d, x, ed) {
     if (!x.id || !wxVisible(x.id)) return ed && !x.id ? pill("clock", _T("choose_a_calendar"), {}) : null;
-    var c = wxCard("agenda", null),
-      list = mk("div");
-    wxHead(c, d);
-    c.appendChild(list);
+    var l = wxList(d, "clock"),
+      events = null,
+      failed = false,
+      build = wxLive(l.rows, function (box) {
+        if (failed) box.appendChild(hintRow(_T("couldn_t_load_the_calendar")));
+        else if (events) {
+          events.slice(0, d.sz === "l" ? 8 : 4).forEach(function (e) {
+            var when = e.start && (e.start.dateTime || e.start.date),
+              day = when ? new Date(when) : null;
+            box.appendChild(
+              pill("clock", String(e.summary || "").slice(0, 80), {
+                sub: function () {
+                  return day ? day.toLocaleDateString([], { weekday: "short", day: "numeric", month: "short" }) + (e.start.dateTime ? " · " + day.toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" }) : "") : "";
+                },
+              })
+            );
+          });
+          if (!events.length) box.appendChild(hintRow(_T("nothing_coming_up")));
+        }
+        box.appendChild(
+          pill("plus", _T("add_event"), {
+            tap: function () {
+              eventDlg(x.id, load);
+            },
+          })
+        );
+      });
     function load() {
       var from = new Date(),
         to = new Date(from.getTime() + 14 * 86400000);
       HA.calendar.events(x.id, from.toISOString(), to.toISOString()).then(
         function (ev) {
-          list.innerHTML = "";
-          (Array.isArray(ev) ? ev : []).slice(0, d.sz === "l" ? 8 : 4).forEach(function (e) {
-            var when = e.start && (e.start.dateTime || e.start.date),
-              day = when ? new Date(when) : null,
-              row = mk("div", "ev", "<b></b><span></span>");
-            row.firstChild.textContent = String(e.summary || "").slice(0, 80);
-            row.lastChild.textContent = day
-              ? day.toLocaleDateString([], { weekday: "short", day: "numeric", month: "short" }) + (e.start.dateTime ? " · " + day.toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" }) : "")
-              : "";
-            list.appendChild(row);
-          });
-          if (!list.children.length) list.appendChild(hintRow(_T("nothing_coming_up")));
+          events = Array.isArray(ev) ? ev : [];
+          failed = false;
+          build();
         },
         function () {
-          list.innerHTML = "";
-          list.appendChild(hintRow(_T("couldn_t_load_the_calendar")));
+          failed = true;
+          build();
         }
       );
     }
+    build();
     load();
-    wxEvery(c, 600000, load);
-    return c;
+    wxEvery(l.box, 600000, load);
+    return l.box;
   },
   settings: function (box, d, save) {
     wxPick(box, d, _T("calendar"), "clock", ["calendar"], save);
@@ -404,35 +527,74 @@ registerWidget("todo", {
   },
   draw: function (d, x, ed) {
     if (!x.id || !wxVisible(x.id)) return ed && !x.id ? pill("check", _T("choose_a_list"), {}) : null;
-    var c = wxCard("todow", null),
-      list = mk("div");
-    wxHead(c, d);
-    c.appendChild(list);
-    function load() {
-      HA.todo.items(x.id).then(
-        function (items) {
-          list.innerHTML = "";
-          items
-            .filter(function (i) { return i.status !== "completed"; })
-            .slice(0, d.sz === "l" ? 10 : 5)
-            .forEach(function (i) {
-              var row = mk("div", "ti", "<i></i><span></span>");
-              row.lastChild.textContent = String(i.summary || "").slice(0, 120);
-              row.addEventListener("click", function () {
-                row.classList.add("done");
-                call("todo", "update_item", { entity_id: x.id, item: i.uid, status: "completed" });
+    var l = wxList(d, "check"),
+      items = null,
+      failed = false,
+      build = wxLive(l.rows, function (box) {
+        if (failed) box.appendChild(hintRow(_T("couldn_t_load_the_list")));
+        else if (items) {
+          var open = items.filter(function (i) { return i.status !== "completed"; }),
+            done = items.filter(function (i) { return i.status === "completed"; });
+          open.slice(0, d.sz === "l" ? 12 : 6).forEach(function (i) {
+            box.appendChild(row(i, false));
+          });
+          if (!open.length) box.appendChild(hintRow(_T("nothing_to_do")));
+          done.slice(0, 3).forEach(function (i) {
+            box.appendChild(row(i, true));
+          });
+        }
+        box.appendChild(
+          pill("plus", _T("add_item"), {
+            tap: function () {
+              textDlg(_T("new_item"), "", _T("add_item"), function (v) {
+                call("todo", "add_item", { entity_id: x.id, item: v.trim().slice(0, 120) });
                 setTimeout(load, 600);
               });
-              list.appendChild(row);
-            });
-          if (!list.children.length) list.appendChild(hintRow(_T("nothing_to_do")));
+            },
+          })
+        );
+      });
+    /* an item is checked off with a tap, and put back with a tap when it is done; the trash takes it off the list */
+    function row(i, finished) {
+      var ticked = finished;
+      return pill("note", String(i.summary || "").slice(0, 120), {
+        check: function () {
+          return ticked;
+        },
+        action: {
+          label: _T("remove_item"),
+          icon: function () {
+            return "trash";
+          },
+          show: function () {
+            return true;
+          },
+          fn: function () {
+            call("todo", "remove_item", { entity_id: x.id, item: [i.uid] });
+            setTimeout(load, 600);
+          },
+        },
+        tap: function () {
+          ticked = !ticked;
+          call("todo", "update_item", { entity_id: x.id, item: i.uid, status: ticked ? "completed" : "needs_action" });
+          setTimeout(load, 600);
+        },
+      });
+    }
+    function load() {
+      HA.todo.items(x.id).then(
+        function (list) {
+          items = list;
+          failed = false;
+          build();
         },
         function () {
-          list.innerHTML = "";
-          list.appendChild(hintRow(_T("couldn_t_load_the_list")));
+          failed = true;
+          build();
         }
       );
     }
+    build();
     load();
     /* a list's state is how many items are open: it is read again only when that changes, not on every update of the house */
     var last = V_(x.id);
@@ -442,7 +604,7 @@ registerWidget("todo", {
       last = now;
       load();
     });
-    return c;
+    return l.box;
   },
   settings: function (box, d, save) {
     wxPick(box, d, _T("to_do_list"), "check", ["todo"], save);
@@ -461,6 +623,14 @@ function folderTap(id) {
   else call("homeassistant", "toggle", { entity_id: id });
 }
 
+/* The icon an entity of a folder has on the dashboard: the one of the device when the page has it, else one for its kind. */
+function folderIcon(id) {
+  var dv = devsOf().filter(function (d) {
+    return d.id === id;
+  })[0];
+  return (dv && dv.icon) || (dom(id) === "scene" ? "scene" : dom(id) === "light" ? "lights" : dom(id) === "script" ? "play" : "plug");
+}
+
 registerWidget("folder", {
   title: _T("folder"),
   icon: "plus",
@@ -477,21 +647,21 @@ registerWidget("folder", {
   draw: function (d, x, ed) {
     var ids = x.ids.filter(wxVisible);
     if (!ids.length && !ed) return null;
-    var c = wxCard("fold", function () {
+    var t = wxTile("fold", function () {
         showPopup("wfolder:" + secKey() + ":" + CURSEC.id + ":" + d.wid, true);
       }),
       g = mk("div", "fg");
     ids.slice(0, 4).forEach(function (id) {
-      g.insertAdjacentHTML("beforeend", ic(dom(id) === "scene" ? "scene" : dom(id) === "light" ? "lights" : "plug"));
+      g.insertAdjacentHTML("beforeend", ic(folderIcon(id)));
     });
-    c.appendChild(g);
-    c.appendChild(mk("span")).textContent = d.name;
-    return c;
+    t.appendChild(g);
+    t.appendChild(mk("span")).textContent = d.name;
+    return t;
   },
   settings: function (box, d, save) {
     d.wx.ids.forEach(function (id, i) {
       box.appendChild(
-        pill("plug", entName(id), {
+        pill(folderIcon(id), entName(id), {
           sub: function () {
             return id + " · " + _T("tap_to_remove");
           },
@@ -524,7 +694,7 @@ function folderPage(b, key) {
   d.wx.ids.forEach(function (id) {
     if (!S(id) || !wxVisible(id)) return;
     b.appendChild(
-      pill(dom(id) === "scene" ? "scene" : dom(id) === "light" ? "lights" : "plug", entName(id), {
+      pill(folderIcon(id), entName(id), {
         on: function () {
           return isOn(id);
         },
@@ -559,7 +729,7 @@ registerWidget("stack", {
   },
   draw: function (d, x, ed) {
     if (!x.items.length) return ed ? pill("swap", _T("add_widgets_to_the_stack"), {}) : null;
-    var c = mk("div", "wc stk"),
+    var c = mk("div", "stk"),
       body = mk("div", "sb"),
       dots = mk("div", "sd"),
       at = 0,

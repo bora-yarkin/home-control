@@ -209,20 +209,21 @@ function touchpad(remote, keys, onHold) {
   return t;
 }
 
-function kbDlg(sendText) {
+/* A bottom sheet that asks for some text: a field (a few lines tall), the button that takes it (`label`) and Cancel. Empty text is not taken, and a stray tap outside does not throw away what was typed. */
+function textDlg(placeholder, value, label, take, rows) {
   var ta = mk("textarea");
-  ta.rows = 3;
+  ta.rows = rows || 3;
   ta.setAttribute("enterkeyhint", "send");
-  ta.placeholder = _T("type_to_send_to_the_tv");
+  ta.placeholder = placeholder;
+  ta.value = value || "";
   var closeIt = null;
-  /* Text is sent only on Send: live per-keystroke sending left half-typed text on the TV when the dialog closed mid-typing. */
   function submit() {
     var v = ta.value;
     if (!v.trim()) {
       ta.focus();
       return;
     }
-    sendText(v);
+    take(v);
     closeIt();
   }
   ta.addEventListener("keydown", function (e) {
@@ -231,30 +232,34 @@ function kbDlg(sendText) {
       submit();
     }
   });
-  /* A stray tap outside must not throw away typed text. */
   closeIt = bottomSheet(
     function (box, close) {
       var wrap = mk("div", "as-t");
       wrap.appendChild(ta);
       box.appendChild(wrap);
-      var send = mk("div", "as-b");
-      send.setAttribute("role", "button");
-      send.textContent = _T("send_btn");
-      send.addEventListener("click", submit);
+      var ok = mk("div", "as-b");
+      ok.setAttribute("role", "button");
+      ok.textContent = label;
+      ok.addEventListener("click", submit);
       var no = mk("div", "as-b cancel");
       no.setAttribute("role", "button");
       no.textContent = _T("cancel");
       no.addEventListener("click", close);
-      box.appendChild(send);
+      box.appendChild(ok);
       box.appendChild(no);
     },
     function () {
-      return !!ta.value;
+      return ta.value !== (value || "");
     }
   );
   setTimeout(function () {
     ta.focus();
   }, 380);
+}
+
+/* Text for the TV's keyboard: sent only on Send, since sending every keystroke left half-typed text on the TV when the dialog closed mid-typing. */
+function kbDlg(sendText) {
+  textDlg(_T("type_to_send_to_the_tv"), "", _T("send_btn"), sendText, 3);
 }
 
 /* The apps and inputs a TV can switch to: the source list of its media player. */

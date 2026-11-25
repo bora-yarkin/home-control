@@ -1042,46 +1042,39 @@ body.rwall .hsky{display:none}
 .wgrid>.w-s{grid-column:span 2}
 .wgrid>.w-l{min-height:220px}
 
-/* Home screen widgets (decision D-25, app/homewidgets.js). */
-.wc{display:flex;flex-direction:column;justify-content:center;gap:4px;padding:14px;min-height:92px;overflow:hidden;position:relative;cursor:default;border-radius:var(--r-row)}
-.wc>b{font-size:var(--fs-l);font-weight:600;line-height:1.1}
-.wc>span,.wc>i{font-size:var(--fs-xs);color:var(--ink2);font-style:normal}
-.wc.clk>b{font-size:34px;letter-spacing:-.5px}
-.wc.np,.wc.vacw{flex-direction:row;align-items:center;gap:12px}
-.wc.np .art{width:64px;height:64px;border-radius:10px;background:var(--f-raise) center/cover;flex:none}
-.wc.np .tx,.wc.vacw .tx{flex:1;min-width:0;display:flex;flex-direction:column;gap:2px}
-.wc .tx>b,.wc .tx>span{overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
-.wc .tx>span{font-size:var(--fs-xs);color:var(--ink2)}
-.wc.snap{padding:0;min-height:120px}
-.wc.snap img{position:absolute;inset:0;width:100%;height:100%;object-fit:cover}
-.wc.snap span{position:absolute;left:10px;bottom:8px;color:#fff;text-shadow:0 1px 3px #000a}
-.wc.ringw{align-items:center;text-align:center}
-.wc.ringw svg{width:64px;height:64px}
-.wc.ringw circle{fill:none;stroke-width:6}
-.wc.ringw .bg{stroke:var(--f-line)}
-.wc.ringw .fg{stroke:var(--acc);stroke-linecap:round;transition:stroke-dashoffset .4s}
-.wc.spark .pl{height:34px}
-.wc.spark svg{width:100%;height:100%;overflow:visible}
-.wc.spark path{fill:none;stroke:var(--acc);stroke-width:1.6;vector-effect:non-scaling-stroke}
-.wc.agenda .ev,.wc.todow .ti{display:flex;justify-content:space-between;gap:10px;padding:6px 0;border-bottom:1px solid var(--f-line)}
-.wc.agenda .ev:last-child,.wc.todow .ti:last-child{border-bottom:0}
-.wc.agenda .ev>span{color:var(--ink2);font-size:var(--fs-xs);white-space:nowrap}
-.wc.todow .ti{justify-content:flex-start;align-items:center;cursor:pointer}
-.wc.todow .ti i{width:16px;height:16px;border-radius:50%;border:2px solid var(--ink2);flex:none}
-.wc.todow .ti.done{opacity:.4;text-decoration:line-through}
-.wc.todow .ti.done i{background:var(--acc);border-color:var(--acc)}
-.wc.fold{align-items:center;text-align:center;cursor:pointer}
-.wc.fold .fg{display:grid;grid-template-columns:repeat(2,1fr);gap:4px}
-.wc.fold .fg .ic{width:26px;height:26px}
-.wc.stk{padding:0;min-height:0;background:none;border:0;box-shadow:none}
-.wc.stk .sb>.wgt{margin:0}
-.wc.stk .sd{display:flex;justify-content:center;gap:5px;margin-top:6px;cursor:pointer}
-.wc.stk .sd i{width:6px;height:6px;border-radius:50%;background:var(--f-line2)}
-.wc.stk .sd i.on{background:var(--acc)}
-
-/* One height for the tiles of a row (decision D-25): a widget tile and a sensor tile are the same size at the same width. */
+/* Home screen widgets (decision D-25, app/homewidgets.js): the dashboard's own parts, and what they need on top. */
 .wgrid>.w-xs,.wgrid>.w-s{min-height:112px}
-.wgrid>.gb{display:flex;flex-direction:column;justify-content:center;align-items:center}
-.wc.fold .fg .ic[data-k]{--kc:var(--acc)}
-.wc .wh{font-size:var(--fs-xs);color:var(--ink2);text-transform:uppercase;letter-spacing:.06em;margin-bottom:4px}
-.wc.spark .pl{display:flex;align-items:center;font-size:var(--fs-xs);color:var(--ink2)}
+.wgrid>.gb{display:flex;flex-direction:column;justify-content:center;align-items:center;padding:12px}
+.wgrid>.gb>span,.wgrid>.gb>b{max-width:100%;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.wgrid>.w-xs.gb>b,.wgrid>.w-xs .rg2 b{font-size:var(--fs-m)}
+.wt{gap:4px}
+.wt.clk>b{font-size:30px;letter-spacing:-.5px}
+.wt.ringw .rg2{position:relative;width:min(64px,100%);aspect-ratio:1}
+.wt.ringw .rg2 svg{width:100%;height:100%}
+.wt.ringw circle{fill:none;stroke-width:6}
+.wt.ringw .bg{stroke:var(--f-line)}
+.wt.ringw .fg{stroke:var(--acc);stroke-linecap:round;transition:stroke-dashoffset .4s}
+.wt.ringw .rg2 b{position:absolute;inset:0;display:flex;align-items:center;justify-content:center;font-size:var(--fs-s)}
+.wt.spark .pl{width:100%;height:30px;display:flex;align-items:center;justify-content:center;font-size:var(--fs-xs);color:var(--ink2)}
+.wt.spark svg{width:100%;height:100%;overflow:visible}
+.wt.spark path{fill:none;stroke:var(--acc);stroke-width:1.6;vector-effect:non-scaling-stroke}
+.wt.fold{cursor:pointer}
+.wt.fold .fg{display:grid;grid-template-columns:repeat(2,auto);gap:4px}
+.wt.fold .fg .ic{width:26px;height:26px}
+.wt.fold .fg .ic[data-k]{--kc:var(--acc)}
+.np{display:flex;align-items:center;gap:12px;padding:12px;border-radius:var(--r-row);cursor:pointer}
+.np .art{width:56px;height:56px;border-radius:var(--r-row);background:var(--f-raise) center/cover;flex:none}
+.np .tx{flex:1;min-width:0;display:flex;flex-direction:column;gap:2px}
+.np .tx b,.np .tx span{overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.np .tx span{font-size:var(--fs-xs);color:var(--ink2)}
+.np .ctl{display:flex;gap:var(--sp-s);flex:none}
+.snapw{aspect-ratio:16/9;margin-bottom:0}
+.snapw img{position:absolute;inset:0;width:100%;height:100%;object-fit:cover}
+.snapw span{position:absolute;left:12px;right:12px;bottom:10px;color:#fff;text-shadow:0 1px 3px #000a;font-size:var(--fs-s);overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.wl{margin-bottom:0}
+.stk .sb>*{margin-bottom:0}
+.stk .sd{display:flex;justify-content:center;gap:5px;margin-top:6px;cursor:pointer}
+.stk .sd i{width:6px;height:6px;border-radius:50%;background:var(--f-line2)}
+.stk .sd i.on{background:var(--acc)}
+.notec.tapedit{cursor:pointer}
+.asheet input{width:100%;box-sizing:border-box;border-radius:var(--r-m);padding:12px 14px;background:rgba(0,0,0,.3);border:1px solid rgba(255,255,255,.22);color:var(--ink);font:inherit;outline:none}

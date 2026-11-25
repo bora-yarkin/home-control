@@ -1,6 +1,13 @@
 /* Text shown to the user: the English strings and the lookup function _T(). */
 
 var EN = {
+  "previous": "Previous",
+  "next": "Next",
+  "new_item": "New item",
+  "event_title": "What is it?",
+  "all_day": "All day",
+  "add_event": "Add event",
+  "remove_item": "Remove item",
   "no_history_yet": "No history yet",
   "clock_and_weather": "Clock and weather",
   "the_time_and_date_and_the_weather": "The time, the date and the weather",

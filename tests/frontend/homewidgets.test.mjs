@@ -106,7 +106,7 @@ test("the new widgets are in the Add lists by being in the registry, and their f
   const files = JSON.parse(read("../version.json")).files;
   assert.ok(files.includes("app/homewidgets.js") && files.indexOf("app/homewidgets.js") > files.indexOf("app/widgetkinds.js"));
   const css = readFileSync(new URL("../dashboard.css", APP), "utf8");
-  for (const c of [".wc.np", ".wc.ringw", ".wc.fold", ".wc.stk", ".wc.agenda"]) assert.ok(css.includes(c), c);
+  for (const c of [".np{", ".wt.ringw", ".wt.fold", ".stk .sd", ".snapw"]) assert.ok(css.includes(c), c);
   assert.match(read("popups.js"), /"wfolder": function \(id\)/);
   assert.match(readFileSync(new URL("../ha-adapter.js", APP), "utf8"), /calendar:\{events:/);
 });
@@ -121,6 +121,23 @@ test("a widget does not show an entity that the dashboard's access settings hide
 
 test("a widget card has the corner radius of the dashboard's rows and tiles, and the clock says the weather in the header's words", () => {
   const css = readFileSync(new URL("../dashboard.css", APP), "utf8");
-  assert.match(css, /\.wc\{[^}]*border-radius:var\(--r-row\)/, "the same 14px as a row, a tile, a note and a chart");
+  assert.match(css, /\.np\{[^}]*border-radius:var\(--r-row\)/, "the same 14px as a row, a tile, a note and a chart (a tile and a list are the dashboard's own parts)");
   assert.match(read("homewidgets.js"), /HCOND\[V_\(w\)\]/);
+});
+
+test("every icon a widget names exists in the icon set (an unknown name is drawn as the info icon, and nobody notices)", () => {
+  const icons = read("icons.js");
+  const ctx = vm.createContext({});
+  vm.runInContext(icons.slice(icons.indexOf("var IC = {"), icons.indexOf("\n};\n", icons.indexOf("var IC = {")) + 4), ctx);
+  const known = new Set(Object.keys(vm.runInContext("IC", ctx)));
+  const used = new Set();
+  for (const file of ["widgetkinds.js", "homewidgets.js"]) {
+    const src = read(file);
+    for (const m of src.matchAll(/\b(?:pill|ic|svg|btn|rbtn|wxPick|sep|pickEntity)\(\s*(?:box,\s*d,\s*_T\("[a-z0-9_]+"\),\s*)?"([a-z0-9_-]+)"/g)) used.add(m[1]);
+    for (const m of src.matchAll(/\bicon: "([a-z0-9_-]+)"/g)) used.add(m[1]);
+    for (const m of src.matchAll(/\[\s*"([a-z0-9_-]+)",\s*"(?:start|pause|return_to_base)"/g)) used.add(m[1]);
+  }
+  used.delete("tap_to_choose");
+  const unknown = [...used].filter((n) => !known.has(n) && !/^mdi:/.test(n));
+  assert.deepEqual(unknown, [], "icons that do not exist: " + unknown.join(", "));
 });

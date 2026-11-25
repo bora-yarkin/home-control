@@ -13,9 +13,9 @@ const ROUND = ".rnd,.ic,.chev,.ck,.dk,.wg-ck,.ap-sb,.rb-g,.sh-h .rnd";
 /* Boxes that carry the app's row radius (--r-row). */
 const ROWLIKE = ".pill,.sel,.sqw,.erow,.rbtn,.gb,.ap-step,.ap-list,.ap-bar,.notec,.chartc,.tile,.qa,.wg-t,.menu,.idd-row";
 /* Cards and controls that hold text: they need padding. */
-const PADDED = ".wc,.gb,.notec,.chartc,.rbtn,.sel,.sqw,.erow";
+const PADDED = ".np,.gb,.notec,.chartc,.rbtn,.sel,.sqw,.erow";
 /* Cards and controls that must not touch each other: a gap of at least 4px between neighbours. */
-const APART = ".rnd,.ck,.pill,.sel,.rbtn,.gb,.sqw,.erow,.wc,.notec,.chartc,.vidbox,.room,.opt,.hs";
+const APART = ".rnd,.ck,.pill,.sel,.rbtn,.gb,.sqw,.erow,.np,.notec,.chartc,.vidbox,.room,.opt,.hs";
 /* A row of controls whose members should be the same size. */
 const GRIDS = ".ap-grid,.grid2,.grid3,.glance,.rrow,.seg,.wg,.cbtns";
 
@@ -71,14 +71,35 @@ export function auditLayout(root, classes) {
     if (num(radiusOf(el)) === 0) tag("radius", el, "is a card with square corners");
   });
 
-  // A card or control with text has room around it: padding on every side.
+  // A card or control with text has room around its content: the text and icons are at least 6px from every edge (padding, or the centring of a flex box: what is measured is the room, not the property).
   root.querySelectorAll(PADDED).forEach((el) => {
     if (!visible(el) || el.matches(".snap,.stk") || !(el.innerText || "").trim()) return;
-    /* a control of one line has its height from its own size, so it is the sides that count; a card needs room on all four */
-    const cs = getComputedStyle(el),
-      sides = el.matches(".rbtn,.sel,.sqw,.erow") ? [num(cs.paddingLeft), num(cs.paddingRight)] : [num(cs.paddingTop), num(cs.paddingRight), num(cs.paddingBottom), num(cs.paddingLeft)],
-      least = Math.min(...sides);
-    if (least < 6) tag("padding", el, `has ${least}px of padding on one side (at least 6px is needed)`);
+    const r = el.getBoundingClientRect(),
+      parts = [];
+    const walker = document.createTreeWalker(el, NodeFilter.SHOW_TEXT);
+    for (let n = walker.nextNode(); n; n = walker.nextNode()) {
+      if (!n.nodeValue.trim() || !n.parentElement || getComputedStyle(n.parentElement).visibility === "hidden") continue;
+      /* text cut with an ellipsis on purpose is as wide as its box: the box is what is measured */
+      let box = null;
+      for (let p = n.parentElement; p && p !== el; p = p.parentElement) if (getComputedStyle(p).textOverflow === "ellipsis" && p.scrollWidth > p.clientWidth) box = p.getBoundingClientRect();
+      if (box) parts.push(box);
+      else {
+        const range = document.createRange();
+        range.selectNodeContents(n);
+        parts.push(...[...range.getClientRects()].filter((c) => c.width > 0 && c.height > 0));
+      }
+    }
+    el.querySelectorAll("svg,img,.ic").forEach((i) => {
+      const b = i.getBoundingClientRect();
+      if (b.width > 0 && b.height > 0) parts.push(b);
+    });
+    if (!parts.length) return;
+    const left = Math.min(...parts.map((c) => c.left)),
+      right = Math.max(...parts.map((c) => c.right)),
+      top = Math.min(...parts.map((c) => c.top)),
+      bottom = Math.max(...parts.map((c) => c.bottom)),
+      least = Math.round(Math.min(left - r.left, r.right - right, top - r.top, r.bottom - bottom));
+    if (least < 6) tag("padding", el, `has its content ${least}px from an edge (at least 6px is needed)`);
   });
 
   // Alignment: rows that span the container line up with each other, and with the container's edges.

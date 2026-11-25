@@ -200,6 +200,13 @@ export function makeHass(query, home = null) {
     for (const [key, value] of Object.entries(home.userData || {})) if (value !== null) stored.user[key] = value;
   }
   const calls = [];
+  let todoItems = [{ uid: "t1", summary: "Milk", status: "needs_action" }, { uid: "t2", summary: "Bread", status: "needs_action" }, { uid: "t3", summary: "Coffee beans", status: "needs_action" }, { uid: "t4", summary: "Already bought", status: "completed" }];
+  const dayAt = (days, h) => new Date(Date.now() + days * 86400000 + h * 3600000).toISOString();
+  const calendarEvents = [
+    { summary: "Dentist", start: { dateTime: dayAt(0, 3) }, end: { dateTime: dayAt(0, 4) } },
+    { summary: "Parents' visit", start: { date: dayAt(2, 0).slice(0, 10) }, end: { date: dayAt(3, 0).slice(0, 10) } },
+    { summary: "Bins out", start: { dateTime: dayAt(4, 1) }, end: { dateTime: dayAt(4, 2) } },
+  ];
   window.__calls = calls;
   const listeners = {};
   const resources = {
@@ -292,7 +299,7 @@ export function makeHass(query, home = null) {
         case "frontend/set_system_data": stored.system[msg.key] = msg.value; return Promise.resolve();
         case "config/auth/list": return Promise.resolve([]);
         case "history/history_during_period": return Promise.resolve({});
-        case "todo/item/list": return Promise.resolve({ items: [{ uid: "t1", summary: "Milk", status: "needs_action" }, { uid: "t2", summary: "Bread", status: "needs_action" }, { uid: "t3", summary: "Coffee beans", status: "needs_action" }, { uid: "t4", summary: "Already bought", status: "completed" }] });
+        case "todo/item/list": return Promise.resolve({ items: todoItems.map((i) => ({ ...i })) });
         case "logbook/get_events": return Promise.resolve([]);
         case "home_control/effects": return home && home.effects ? Promise.resolve(home.effects) : effectSources().then((sources) => ({ sources }));
         case "home_control/plugins": return home && home.plugins ? Promise.resolve(home.plugins) : Promise.resolve({ plugins: withSync ? [{ id: "hue_plus", name: "Hue Plus", menu: "/hue_plus_static/menu.js", version: "harness" }] : [] });
@@ -382,6 +389,11 @@ export function makeHass(query, home = null) {
     connection,
     callService(domain, service, data) {
       calls.push({ domain, service, data });
+      // The to-do list and the calendar of the Showcase page keep what is added, checked and removed.
+      if (domain === "todo" && service === "add_item") todoItems.push({ uid: "t" + (todoItems.length + 10), summary: data.item, status: "needs_action" });
+      if (domain === "todo" && service === "update_item") todoItems.forEach((i) => i.uid === data.item && (i.status = data.status));
+      if (domain === "todo" && service === "remove_item") todoItems = todoItems.filter((i) => ![].concat(data.item).includes(i.uid));
+      if (domain === "calendar" && service === "create_event") calendarEvents.push({ summary: data.summary, start: data.start_date ? { date: data.start_date } : { dateTime: new Date(data.start_date_time.replace(" ", "T")).toISOString() }, end: {} });
       if (domain === "hue_plus" && service === "set_motion_area" && data.enabled === true) {
         const area = resources.motion_areas.areas.filter((x) => x.id === data.area)[0];
         if (area) area.health = "healthy";
@@ -426,14 +438,7 @@ export function makeHass(query, home = null) {
     },
     // Home Assistant's "Group" helper of the type light: its configuration and options flows, enough to make, change and delete one.
     callApi(method, path, body) {
-      if (/^calendars\//.test(path)) {
-        const at = (days, h) => new Date(Date.now() + days * 86400000 + h * 3600000).toISOString();
-        return Promise.resolve([
-          { summary: "Dentist", start: { dateTime: at(0, 3) }, end: { dateTime: at(0, 4) } },
-          { summary: "Parents' visit", start: { date: at(2, 0).slice(0, 10) }, end: { date: at(3, 0).slice(0, 10) } },
-          { summary: "Bins out", start: { dateTime: at(4, 1) }, end: { dateTime: at(4, 2) } },
-        ]);
-      }
+      if (/^calendars\//.test(path)) return Promise.resolve(calendarEvents.slice().sort((a, b) => String(a.start.dateTime || a.start.date).localeCompare(String(b.start.dateTime || b.start.date))));
       const flowPath = /^config\/config_entries\/(flow|options\/flow)(?:\/(.+))?$/.exec(path);
       if (flowPath) {
         const options = flowPath[1] === "options/flow";

@@ -255,8 +255,8 @@ export async function buildShowcase() {
   wide.devs.push(
     wd("nowplaying", { id: "media_player.showcase_speaker" }, undefined, "now"),
     wd("vacuum", { id: "vacuum.hallway" }, undefined, "vac"),
-    wd("agenda", { id: "calendar.showcase_family" }, undefined, "agenda"),
-    wd("todo", { id: "todo.showcase_shopping" }, undefined, "todo"),
+    wd("agenda", { id: "calendar.showcase_family" }, undefined, "Agenda"),
+    wd("todo", { id: "todo.showcase_shopping" }, undefined, "To-do"),
     wd("chart", { ds: [{ id: "sensor.showcase_temperature", name: "Temperature" }, { id: "sensor.showcase_humidity", name: "Humidity" }], r: "24h" }, undefined, "chart"),
     wd("note", { txt: "A wide note across the whole section." }, "m", "note"),
     wd("snapshot", { id: "camera.showcase_garden" }, "m", "snap wide"),
