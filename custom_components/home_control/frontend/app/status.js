@@ -273,8 +273,7 @@ function statTile(b, key) {
     s = l[i];
   if (!s) return;
   if (s.k === "alerts") {
-    stgIdentity(
-      b,
+    b.appendChild(
       textRow(
         "edit",
         _T("label"),
@@ -295,9 +294,7 @@ function statTile(b, key) {
         popBack();
       },
     });
-    var abox = mk("div");
-    b.appendChild(abox);
-    stgActions(abox, [rmAlert], [rmAlert]);
+    stgActions(b, [rmAlert], [rmAlert]);
     return;
   }
   stgIdentity(

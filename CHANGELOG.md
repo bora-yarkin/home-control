@@ -4,6 +4,12 @@ Format: [Keep a Changelog](https://keepachangelog.com/). Versions follow [semant
 
 ## [Unreleased]
 
+## [0.24.1] - 2026-11-25
+
+### Fixed
+- The settings of an *Attention* tile in the header's status tiles did not open, so it could not be renamed or removed; they open now (label and *Remove tile*).
+- The *Attention* header chip and tile showed different icons in the header's settings; both show the alert icon.
+
 ## [0.24.0] - 2026-11-25
 
 ### Added

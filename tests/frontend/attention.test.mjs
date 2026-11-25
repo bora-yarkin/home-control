@@ -66,3 +66,38 @@ test("the sky is drawn at one stage height that the header shows as much of as i
   const css = readFileSync(new URL("../dashboard.css", APP), "utf8");
   assert.match(css, /\.hsky canvas\{position:absolute;inset:0 0 auto 0/, "anchored to the top, clipped by the header");
 });
+
+test("the Attention tile's editor opens (label and remove), and removing it takes the tile off the page's row", () => {
+  const from = status.indexOf("function statTile(b, key)");
+  const body = status.slice(from, status.indexOf("/* home climate tiles */"));
+  const made = [];
+  let popped = 0,
+    changed = 0;
+  const el = (kind, label, o) => ({ kind, label, o, kids: [], appendChild(c) { if (!c) throw new Error("appendChild(" + c + ")"); this.kids.push(c); } });
+  const ctx = vm.createContext({
+    UI: { stat: { home: [{ k: "alerts", l: "Attention" }] } },
+    textRow: (i, label) => el("text", label),
+    pill: (i, label, o) => el("pill", label, o),
+    stgActions: (parent, rows) => rows.forEach((r) => parent.appendChild(r)),
+    stgIdentity() {
+      throw new Error("the one-field editor must not use the two-field layout helper");
+    },
+    popBack: () => popped++,
+    uiChanged: () => changed++,
+    _T: (k) => k,
+  });
+  vm.runInContext(body, ctx);
+  const b = el("box");
+  ctx.statTile(b, "home:0");
+  assert.deepEqual(b.kids.map((k) => k.kind + ":" + k.label), ["text:label", "pill:remove_tile"]);
+  b.kids[1].o.tap();
+  assert.equal(ctx.UI.stat.home.length, 0);
+  assert.equal(popped, 1);
+  assert.ok(changed >= 1);
+});
+
+test("the Attention chip and the Attention tile use the same icon in the header's settings", () => {
+  const header = read("header.js");
+  assert.match(header, /pill\(t\.k === "alerts" \? "alert" : "thermo"/);
+  assert.match(header, /i: it\.k === "alerts" \? "alert" : "info"/);
+});
