@@ -49,7 +49,7 @@ function seedSections(scope) {
         widgetSection("rooms", "rooms"),
         { id: "scenes", k: "devs", t: _T("scenes"), i: "scene", hide: false, devs: [{ id: "scenes-home", kind: "scenes", name: _T("scenes"), icon: "scene", spage: ["page:home"] }] },
       ]
-    : [widgetSection("status", "status"), { id: "main", k: "devs", hide: false, devs: [] }];
+    : [statusSection([]), { id: "main", k: "devs", hide: false, devs: [] }];
 }
 
 /* Sections for a list of devices, one for each of what they are (lights, media, climate, controls, sensors, other devices; cameras as a camera section), named and iconned for it. Only the ones that have devices. */
@@ -172,6 +172,21 @@ function secBuildEl(s) {
   return customSection(s);
 }
 
+/* The temperature of a room for its tile on the Home page: the first of the header's status tiles that is one, else the first sensor of the page that is a temperature. */
+function roomTempId(k) {
+  var isTemp = function (id) {
+    return typeof id === "string" && dom(id) === "sensor" && A(id).device_class === "temperature";
+  };
+  var tile = (UI.stat[k] || []).filter(function (s) {
+    return !s.text && isTemp(s.id);
+  })[0];
+  if (tile) return tile.id;
+  var d = ((UI.devs || {})[k] || []).filter(function (x) {
+    return x.kind === "sensor" && isTemp(x.id);
+  })[0];
+  return d ? d.id : "";
+}
+
 /* The section a linked section shows, or null. */
 function linkTarget(d) {
   var q = ((d.wx && d.wx.ref) || "").split(":");
@@ -278,8 +293,6 @@ function secList(scope) {
   RULESIG[scope] = ruleSig(scope);
   secOrder(scope).forEach(function (s) {
     if (s.hide && !editing()) return;
-    var al = widgetAlone(s);
-    if (al && (al.w === "status" || al.w === "chips") && typeof hdrStatusOn === "function" && hdrStatusOn()) return;
     var ok = ruleOk(s);
     if (!ok && !editing()) return;
     CURSEC = s;
@@ -298,7 +311,7 @@ function secList(scope) {
     outer.push(liveOf(el));
     if (!ok) ruleMark(el);
     if (s.hide) hideMark(el);
-    list.push({ el: el, wide: secIsWide(s), id: s.id });
+    list.push({ el: el, wide: secIsWide(s), span: s.span || 0, id: s.id });
   });
   return list;
 }
@@ -772,13 +785,11 @@ function secRooms() {
       cams = ds.filter(function (d) {
         return d.kind === "camera";
       }).length;
-    var tt = (UI.stat[k] || []).filter(function (s) {
-        return !s.text && /°/.test(s.u || "");
-      })[0],
+    var tt = roomTempId(k),
       temp = function () {
         if (!tt) return "";
-        var v = sv(tt.id, tt.u || "", tt.dp === undefined ? 1 : tt.dp);
-        return v === "Offline" || v === "–" ? "" : " · " + v;
+        var v = readText(tt);
+        return v === "–" ? "" : " · " + v;
       };
     var label = ls.length
       ? function () {

@@ -122,15 +122,16 @@ function seedUI() {
       area: a.area_id,
     });
     devs[rid] = list;
-    layoutRooms[rid] = [widgetSection("status", "status")].concat(groupSections(list));
+    var tiles = [];
     stat[rid] = [];
     if (t) {
-      stat[rid].push({ l: _T("temperature"), id: t, u: TEMPU(), dp: 1 });
+      tiles.push(statusDevice({ l: _T("temperature"), id: t }));
       var c = { l: a.name, t: t };
       if (hu) c.h = hu;
       chips.push(c);
     }
-    if (hu) stat[rid].push({ l: _T("humidity"), id: hu, u: "%", dp: 0 });
+    if (hu) tiles.push(statusDevice({ l: _T("humidity"), id: hu }));
+    layoutRooms[rid] = [statusSection(tiles)].concat(groupSections(list));
   });
   all.forEach(function (id) {
     if ((dom(id) === "sensor" || dom(id) === "binary_sensor") && A(id).device_class === "battery")
@@ -142,7 +143,7 @@ function seedUI() {
     chips: chips.slice(0, 4),
     stat: stat,
     bats: bats.slice(0, 30),
-    layout: { v: 7, home: seedSections("home"), rooms: layoutRooms, cols: {} },
+    layout: { v: 8, home: seedSections("home"), rooms: layoutRooms, cols: {} },
     meta: {
       homeTab: _T("home"),
       homeTitle: _T("app_title"),
@@ -167,7 +168,6 @@ function cleanMeta(m) {
     clock: m.clock !== false,
     greet: m.greet === true,
     sky: m.sky !== false,
-    hdrStatus: m.hdrStatus === true,
     hdr: cleanHdr(m.hdr),
   };
 }
@@ -486,8 +486,81 @@ function cleanDev(d) {
   return c;
 }
 
+/* A status tile as a device of a Section: the reading, as a tile. */
+function statusDevice(s) {
+  return { id: s.id, name: String(s.l).slice(0, 40), icon: "thermo", kind: "sensor", sz: "s" };
+}
+
+/* The Status Section of a page, a plain Section: its tiles are devices added like any other (a sensor as a tile). */
+function statusSection(devs) {
+  return { id: "status", k: "devs", t: _T("status"), i: "thermo", hide: false, devs: devs || [] };
+}
+
+/* Layout 8 (decision D-27): the status tiles of a page are in two independent places. In the header: the page's own list (`stat`, edited in the header's settings), shown whenever it has tiles. In the page: a plain Status Section whose tiles are
+   devices. Until now one setting chose between them (`hdrStatus`), so a dashboard keeps what it showed: with the setting on, the tiles stay in the header and the Status Section is empty (and the Home page's climate tiles, which the header showed
+   in place of the section, are its header tiles and the section is hidden); with it off, the tiles move into the Section and the header has none. */
+function statusToSections(u) {
+  if (!u.layout || typeof u.layout !== "object") return u;
+  var hdr = !!(u.meta && u.meta.hdrStatus === true),
+    lay = JSON.parse(JSON.stringify(u.layout)),
+    stat = JSON.parse(JSON.stringify(u.stat && typeof u.stat === "object" ? u.stat : {})),
+    isWidget = function (d, w) {
+      return !!d && d.kind === "widget" && d.w === w;
+    },
+    is = function (s, w) {
+      return !!s && (s.k === w || (Array.isArray(s.devs) && s.devs.some(function (d) { return isWidget(d, w); })));
+    },
+    changed = false;
+  [["home", lay.home]]
+    .concat(
+      Object.keys(lay.rooms || {}).map(function (k) {
+        return [k, lay.rooms[k]];
+      })
+    )
+    .forEach(function (p) {
+      (Array.isArray(p[1]) ? p[1] : []).forEach(function (s) {
+        if (is(s, "status")) {
+          var tiles = Array.isArray(stat[p[0]]) ? stat[p[0]] : [],
+            own = (Array.isArray(s.devs) ? s.devs : []).filter(function (d) {
+              return !isWidget(d, "status");
+            });
+          s.k = "devs";
+          s.devs = hdr
+            ? own
+            : own.concat(
+                tiles
+                  .filter(function (t) {
+                    return t && typeof t.id === "string" && typeof t.l === "string";
+                  })
+                  .map(statusDevice)
+              );
+          if (!hdr) stat[p[0]] = [];
+          if (!s.t) s.t = _T("status");
+          if (!s.i) s.i = "thermo";
+          changed = true;
+        }
+        if (hdr && is(s, "chips")) {
+          s.hide = true;
+          changed = true;
+        }
+      });
+    });
+  if (hdr && Array.isArray(u.chips) && u.chips.length && !(stat.home && stat.home.length))
+    stat.home = u.chips
+      .filter(function (c) {
+        return c && typeof c.t === "string" && typeof c.l === "string";
+      })
+      .map(function (c) {
+        var e = { l: c.l, id: c.t, u: c.u || "°", dp: c.u ? 0 : 1 };
+        if (c.h) e.h = c.h;
+        return e;
+      });
+  return changed || hdr ? Object.assign({}, u, { layout: lay, stat: stat }) : u;
+}
+
 function cleanUI(u) {
   if (!u || typeof u !== "object") return null;
+  u = statusToSections(u);
   function ok(s, n) {
     return typeof s === "string" && s.length > 0 && s.length <= n;
   }
@@ -619,6 +692,8 @@ function cleanUI(u) {
     u.stat[rid].slice(0, 6).forEach(function (s) {
       if (!s || !ok(s.l, 30) || typeof s.id !== "string" || !ENTRE.test(s.id)) return;
       var c = { l: s.l, id: s.id };
+      /* a tile of two readings, as the Home page's climate tiles are (a temperature and a humidity) */
+      if (typeof s.h === "string" && ENTRE.test(s.h)) c.h = s.h;
       if (typeof s.u === "string" && s.u.length <= 10) c.u = s.u;
       if (typeof s.dp === "number") c.dp = Math.max(0, Math.min(3, Math.round(s.dp)));
       if (s.text) c.text = 1;
@@ -632,7 +707,7 @@ function cleanUI(u) {
   });
   var lv = u.layout && u.layout.v,
     cur = lv >= 4 ? { home: u.layout.home, rooms: u.layout.rooms || {} } : { home: null, rooms: {} };
-  o.layout.v = 7;
+  o.layout.v = 8;
   o.layout.home = cleanLayout(cur.home || seedSections("home"));
   Object.keys(ids).forEach(function (rid) {
     o.layout.rooms[rid] = cleanLayout(cur.rooms[rid] || seedSections("room:" + rid));
@@ -964,6 +1039,7 @@ function cleanLayout(a) {
     )
       o.when = { id: wh.id, is: wh.is, not: !!wh.not };
     if (layCols(s.lay)) o.lay = s.lay;
+    if (s.span === 1 || s.span === 2 || s.span === 3 || s.span === 4) o.span = s.span;
     var an = (Array.isArray(s.and) ? s.and : []).slice(0, 4).map(cleanCond).filter(Boolean);
     if (an.length) o.and = an;
     if ((k === "scenes" || k === "devs") && Array.isArray(s.scn))

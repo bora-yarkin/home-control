@@ -59,11 +59,11 @@ test("a chart section is a chart widget with its sensors (at most four, once eac
   assert.equal(out[0].r, undefined);
 });
 
-test("a camera section's cameras are shown live (size l), and the layout is marked version 7", () => {
+test("a camera section's cameras are shown live (size l), and the layout is marked version 8", () => {
   const w = world();
   const out = plain(w.cleanLayout([{ id: "k1", k: "camera", devs: [dev("camera.door", "camera")] }]));
   assert.equal(out[0].devs[0].sz, "l");
-  assert.equal(plain(w.cleanUI({ rooms: [], layout: { v: 6, home: [], rooms: {} } })).layout.v, 7);
+  assert.equal(plain(w.cleanUI({ rooms: [], layout: { v: 6, home: [], rooms: {} } })).layout.v, 8);
 });
 
 test("security, cameras and energy sections are plain Sections with their widget, and the price and currency of energy move onto it", () => {
@@ -88,10 +88,9 @@ test("the overview sections are plain Sections with their widget, and what they 
     { id: "l1", k: "link", ref: "home:g1" },
     { id: "r1", k: "rooms", t: "Where" },
     { id: "n1", k: "now" },
-    { id: "s1", k: "status" },
     { id: "c1", k: "chips" },
   ]));
-  assert.deepEqual(out.map((s) => s.devs[0].w), ["alerts", "glance", "pinned", "link", "rooms", "now", "status", "chips"]);
+  assert.deepEqual(out.map((s) => s.devs[0].w), ["alerts", "glance", "pinned", "link", "rooms", "now", "chips"]);
   assert.deepEqual(out[1].devs[0].wx.gl, { o: ["media", "lights"], h: ["robot"], c: [], lm: ["home~mx"] }, "an unknown tile is dropped");
   assert.equal(out[2].devs[0].wx.lay, "grid3");
   assert.equal(out[2].devs[0].wx.pins[0].id, "light.a");

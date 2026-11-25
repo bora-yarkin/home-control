@@ -25,7 +25,7 @@ test("nothing of the slim header is left in the code, the style sheet or the set
     assert.doesNotMatch(read(file), /slim|hdrSize|clockSlim/i, file);
 });
 
-test("a page has the weather sky on and no status row in its header until its settings say otherwise", () => {
+test("a page has the weather sky on, and there is no setting that turns the status row on or off", () => {
   const sandbox = { _T: (k) => k, cleanHdr: () => [] };
   vm.createContext(sandbox);
   const model = read("app/model.js");
@@ -33,15 +33,28 @@ test("a page has the weather sky on and no status row in its header until its se
   vm.runInContext(model.slice(from, model.indexOf("\n}\n", from) + 3), sandbox);
   const clean = (m) => JSON.parse(JSON.stringify(sandbox.cleanMeta(m)));
   assert.equal(clean({}).sky, true);
-  assert.equal(clean({}).hdrStatus, false);
-  assert.equal(clean({ sky: false, hdrStatus: true }).sky, false);
-  assert.equal(clean({ sky: false, hdrStatus: true }).hdrStatus, true);
-  assert.equal(clean({ sky: "no", hdrStatus: "yes" }).hdrStatus, false, "only true turns the row on");
+  assert.equal(clean({ sky: false }).sky, false);
+  assert.equal("hdrStatus" in clean({ hdrStatus: true }), false, "the setting is gone: the row is there when the page has tiles for it");
 });
 
-test("the status row of the header is built from the page's own status tiles, and the page leaves its Status section out while it is there", () => {
+test("the status row of the header is the page's own list of tiles, shown whenever it has some, and nothing hides a section for it", () => {
   const header = read("app/header.js");
-  assert.match(header, /VIEW === "home" \? chipGrid\(\) : statGrid\(VIEW\)/);
-  assert.match(read("app/sections.js"), /al && \(al\.w === "status" \|\| al\.w === "chips"\) && typeof hdrStatusOn === "function" && hdrStatusOn\(\)/);
-  assert.match(header, /hdrStatusOn\(\) \{\s*return .*hdrStatus === true && !editing\(\)/, "not while editing, so the tiles can be edited where they are");
+  assert.match(header, /g = statGrid\(key\)/);
+  assert.match(header, /on = tiles\.length > 0/);
+  assert.doesNotMatch(header, /hdrStatusOn|hdrStatus\b/);
+  assert.doesNotMatch(read("app/sections.js"), /hdrStatusOn/, "a page's sections are never left out for the header");
+  assert.match(header, /function hdrStatusBlock\(/, "its tiles are chosen in the header's settings, for the page picked there");
+});
+
+test("the status row is a drawer that slides open and shut when a page change begins, inside a header whose own row never changes layout", () => {
+  const header = read("app/header.js");
+  assert.match(header, /function hdrSlide\(hd, box, from, to, fromMt, toMt, done\)/);
+  assert.match(header, /prefers-reduced-motion: reduce/);
+  assert.match(header, /marginTop: fromMt/, "the height and the gap above it move together");
+  assert.match(header, /function hdrStatusSync\(force, key\)/);
+  assert.match(read("app/pages.js"), /hdrStatusSync\(false, key\)/, "it starts with the page change, so the header and the page move together");
+  const css = read("dashboard.css");
+  assert.doesNotMatch(css, /\.hdr:has\(>\.hstat\)\{flex-wrap/, "adding the row must not re-wrap the title and buttons");
+  assert.match(css, /\.hrow\{display:flex/);
+  assert.match(read("dashboard-panel.js"), /<div class="hdr pane"><div class="hrow">/);
 });

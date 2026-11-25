@@ -421,10 +421,6 @@ overview("now", _T("on_now"), "power", _T("what_is_running_right_now_and_where")
   return secNow();
 }, { size: "s" });
 
-overview("status", _T("status_tiles"), "thermo", _T("readings_for_this_page_such_as_tempe"), function () {
-  return roomStatus(pageKey());
-}, { sizes: ["m"] });
-
 overview("chips", _T("climate_overview"), "thermo", _T("temperature_and_humidity_at_a_glance"), function () {
   return homeStatus();
 }, { sizes: ["m"] });

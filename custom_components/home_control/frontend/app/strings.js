@@ -1,6 +1,8 @@
 /* Text shown to the user: the English strings and the lookup function _T(). */
 
 var EN = {
+  "status_tiles_in_the_header": "Status tiles in the header",
+  "status_tiles_in_the_header_hint": "A row under the header's items, for the page chosen here: its readings as tiles. It does not depend on the page's Status section, which has its own tiles (add a sensor to it like any device). A page with none keeps the short header.",
   "src_group_room": "Room",
   "src_group_zone": "Zone",
   "to_do_items": "Items",
@@ -431,6 +433,8 @@ var EN = {
   "location": "Location",
   "depth": "Depth",
   "width": "Width",
+  "one_column": "1 column",
+  "a_section_is_one_column_on_a_narrow_scre": "A section is one column wide on a narrow screen, and never wider than the page has columns.",
   "drag_a_light_across_the_floor": "Drag a light across the floor. Tap a card to add a light.",
   "drag_a_light_up_or_down": "Drag a light up or down to set its height",
   "add_at_least_one_light": "Add at least one light",

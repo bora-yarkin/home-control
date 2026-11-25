@@ -4,6 +4,13 @@ Format: [Keep a Changelog](https://keepachangelog.com/). Versions follow [semant
 
 ## [Unreleased]
 
+### Added
+- **Section width** (decision D-28): in a Section's settings, *Width* takes it one to four columns wide (up to the page's columns; the last is full width). It shrinks with the screen and is one column on a phone.
+
+### Changed
+- **Status tiles are in two independent places** (decision D-27): the header's status row is a page's own list of tiles, edited in the header's settings (*Status tiles in the header*), and the Status Section is a plain Section whose tiles are added like any device. The setting that chose between them is gone; dashboards are converted when they open (layout 8) and show what they showed.
+- The header slides to its new height when you move to a page with more or fewer status tiles, and the page follows it, instead of jumping.
+
 ## [0.23.0] - 2026-11-25
 
 ### Added

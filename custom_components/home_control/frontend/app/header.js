@@ -100,48 +100,103 @@ function hdrShown(it) {
   return it.show !== false;
 }
 
-/* The page's status tiles (a room's readings, or the Home page's climate tiles) as a row of the header, when the page's header settings say so and nothing is being edited. The row changes with the page, and a page with no status tiles keeps the short header. The page's own Status section is left out while they are here. */
+/* The status tiles of the open page (its own list, set in the header's settings: decision D-27) as a row of the header. The row changes with the page, and a page with no status tiles keeps the short header. It is independent of the page's own Status
+   section, whose tiles are devices. */
 var HSTF = [];
 
-function hdrStatusOn() {
-  return ((UI && UI.meta) || {}).hdrStatus === true && !editing();
-}
-
 /* Builds the row for the open page; without force it keeps the row when the page and its tiles are the same. */
-function hdrStatusSync(force) {
-  var hd = document.querySelector(".hdr");
-  if (!hd) return;
-  var on = hdrStatusOn(),
-    sig = on ? VIEW + "|" + JSON.stringify(VIEW === "home" ? UI.chips : UI.stat[VIEW] || []) : "";
-  if (!force && hd._hstSig === sig) return;
-  hd._hstSig = sig;
+/* The status row is a drawer under the header's text: it slides open and shut like a dropdown when the page shown has tiles and the one before did not (or the other way round), and its height eases when the number of rows changes. It is started when a page change begins (`key` is the page that is coming), so the header and the page move together. */
+function hdrStatusDrop(box) {
   HSTF.forEach(function (f) {
     var i = LIVE.indexOf(f);
     if (i >= 0) LIVE.splice(i, 1);
   });
   HSTF = [];
-  var old = hd.querySelector("#hst");
-  if (old) old.remove();
-  if (!on) return;
+  if (box) box.remove();
+}
+
+function hdrStatusSync(force, key) {
+  var hd = document.querySelector(".hdr");
+  if (!hd) return;
+  key = key || (PG ? PG.key : VIEW);
+  var tiles = UI.stat[key] || [],
+    on = tiles.length > 0,
+    sig = on ? key + "|" + JSON.stringify(tiles) : "";
+  if (!force && hd._hstSig === sig) return;
+  var first = hd._hstSig === undefined;
+  hd._hstSig = sig;
+  var box = hd.querySelector("#hst"),
+    gap = parseFloat(getComputedStyle(hd).rowGap) || 0,
+    from = box ? box.getBoundingClientRect().height : 0,
+    fromMt = box ? parseFloat(getComputedStyle(box).marginTop) || 0 : -gap;
+  if (hd._hslide) {
+    hd._hslide.forEach(function (a) {
+      a.onfinish = a.oncancel = null;
+      a.cancel();
+    });
+    hd._hslide = null;
+  }
+  var calm = first || !hd.animate || (window.matchMedia && matchMedia("(prefers-reduced-motion: reduce)").matches);
+  if (!on) {
+    if (!box) return;
+    if (calm) {
+      hdrStatusDrop(box);
+      return;
+    }
+    box.style.height = "0px";
+    box.style.marginTop = -gap + "px";
+    hdrSlide(hd, box, from, 0, fromMt, -gap, function () {
+      hdrStatusDrop(box);
+    });
+    return;
+  }
   var mine = [],
     prev = CUR,
     g;
   CUR = mine;
   try {
-    g = VIEW === "home" ? chipGrid() : statGrid(VIEW);
+    g = statGrid(key);
   } finally {
     CUR = prev;
   }
   if (!g) return;
-  var box = mk("div", "hstat");
-  box.id = "hst";
-  box.appendChild(g);
-  hd.appendChild(box);
+  HSTF.forEach(function (f) {
+    var i = LIVE.indexOf(f);
+    if (i >= 0) LIVE.splice(i, 1);
+  });
+  HSTF = [];
+  if (!box) {
+    box = mk("div", "hstat");
+    box.id = "hst";
+    hd.appendChild(box);
+  }
+  box.style.height = "";
+  box.style.marginTop = "";
+  box.innerHTML = "";
+  var inner = mk("div", "hstin");
+  inner.appendChild(g);
+  box.appendChild(inner);
   mine.forEach(function (f) {
     LIVE.push(f);
     HSTF.push(f);
     f();
   });
+  var to = box.getBoundingClientRect().height;
+  if (calm || Math.abs(from - to) < 1) return;
+  hdrSlide(hd, box, from, to, fromMt, 0, null);
+}
+
+/* One slide of the drawer: its height and the gap above it, which are all that moves, so the page under the header follows frame by frame. */
+function hdrSlide(hd, box, from, to, fromMt, toMt, done) {
+  var opt = { duration: 340, easing: "cubic-bezier(.2,.8,.2,1)" },
+    a = box.animate([{ height: from + "px", marginTop: fromMt + "px" }, { height: to + "px", marginTop: toMt + "px" }], opt),
+    b = box.firstChild ? box.firstChild.animate([{ opacity: from ? 1 : 0 }, { opacity: to ? 1 : 0 }], opt) : null,
+    all = b ? [a, b] : [a];
+  hd._hslide = all;
+  a.onfinish = function () {
+    if (hd._hslide === all) hd._hslide = null;
+    if (done) done();
+  };
 }
 
 function hdrBuild() {
@@ -244,6 +299,65 @@ var HLAB = {
   entity: _T("a_sensor_reading"),
 };
 
+/* The page whose status tiles the header settings list: the one that was open when they were. */
+var HSTPAGE = "";
+
+/* The status tiles of one page, as a row of the header (each its own tile, edited like the others); the page is chosen here, since each has its own. */
+function hdrStatusBlock(box, redraw) {
+  var pages = ["home"].concat(
+      UI.rooms.map(function (r) {
+        return r.id;
+      })
+    ),
+    pg = pages.indexOf(HSTPAGE) >= 0 ? HSTPAGE : pages.indexOf(VIEW) >= 0 ? VIEW : "home",
+    l = (UI.stat[pg] = UI.stat[pg] || []);
+  box.appendChild(sep(_T("status_tiles_in_the_header"), "thermo"));
+  box.appendChild(hintRow(_T("status_tiles_in_the_header_hint")));
+  box.appendChild(
+    dropRow(
+      _T("page"),
+      pages,
+      function () {
+        return pg;
+      },
+      function (v) {
+        HSTPAGE = v;
+        redraw();
+      },
+      "home",
+      function (v) {
+        return v === "home" ? UI.meta.homeTab || _T("home") : (roomById(v) || { name: v }).name;
+      }
+    )
+  );
+  var rows = [];
+  l.forEach(function (t, i) {
+    var p = pill("thermo", t.l, {
+      sub: function () {
+        return t.id;
+      },
+      tap: function () {
+        showPopup("manage-stat-tile:" + pg + ":" + i, true);
+      },
+    });
+    box.appendChild(p);
+    rows.push(p);
+  });
+  makeSortable(box, rows, function (f, to) {
+    l.splice(to, 0, l.splice(f, 1)[0]);
+    uiChanged();
+    redraw();
+  });
+  if (l.length < 6)
+    box.appendChild(
+      pill("plus", _T("add_status_tile"), {
+        tap: function () {
+          addStatTile(pg);
+        },
+      })
+    );
+}
+
 function hdrPage(box, m) {
   m.hdr = m.hdr || [];
   function draw() {
@@ -281,21 +395,9 @@ function hdrPage(box, m) {
         },
       })
     );
-    box.appendChild(
-      pill("thermo", _T("status_in_the_header"), {
-        on: function () {
-          return m.hdrStatus === true;
-        },
-        sub: function () {
-          return m.hdrStatus === true ? _T("the_status_tiles_of_each_page_are_a_row_of_the_header") : _T("off");
-        },
-        tap: function () {
-          m.hdrStatus = !m.hdrStatus;
-          uiChanged();
-          redrawBox(box, draw);
-        },
-      })
-    );
+    hdrStatusBlock(box, function () {
+      redrawBox(box, draw);
+    });
     box.appendChild(sep(_T("header_items"), "home"));
     var rows = [];
     m.hdr.forEach(function (it, i) {

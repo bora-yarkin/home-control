@@ -9,21 +9,23 @@ function dockState() {
 }
 
 /* Sections are laid out by script instead of by CSS columns or grids. A section is placed in the shortest column in list order; a full-width one (or a half-width one standing alone between full-width ones) takes the whole row. Because the result depends only on the list order and the measured heights, the same list always gives the same page, and a drag can show exactly where a section will land. */
-function masonFlags(its, n) {
-  var w = its.map(function (it) {
-    return !!it.wide || n === 1;
+function masonSpans(its, n) {
+  /* A section the person gave a width takes that many columns (never more than the page has, so it shrinks with the screen and is one column on a phone); a full-width one takes them all. Of the rest, one standing alone in a run takes the whole row. */
+  var sp = its.map(function (it) {
+    if (n === 1 || it.wide) return n;
+    return it.span > 0 ? Math.min(it.span, n) : 1;
   });
-  for (var a = 0; a < w.length;) {
-    if (w[a]) {
+  for (var a = 0; a < sp.length;) {
+    if (sp[a] >= n) {
       a++;
       continue;
     }
     var b = a;
-    while (b < w.length && !w[b]) b++;
-    if (b - a === 1) w[a] = true;
+    while (b < sp.length && sp[b] < n) b++;
+    if (b - a === 1 && !(its[a].span > 0)) sp[a] = n;
     a = b;
   }
-  return w;
+  return sp;
 }
 
 function outerH(el) {
@@ -34,29 +36,27 @@ function outerH(el) {
 /* Columns whose heights differ by no more than this (px) are the same height when placing a section. */
 var MASON_TIE = 60;
 
-function masonPlan(its, fl, hts, W, n, gap) {
+function masonPlan(its, sp, hts, W, n, gap) {
   var cw = (W - (n - 1) * gap) / n,
     col = [],
     pos = [],
     c;
   for (c = 0; c < n; c++) col.push(0);
   its.forEach(function (it, j) {
-    if (fl[j]) {
-      var y = Math.max.apply(null, col);
-      pos.push({ x: 0, y: y, w: W, h: hts[j] });
-      for (c = 0; c < n; c++) col[c] = y + hts[j];
-    } else {
-      /* The shortest column, but columns within a few pixels of each other count as equal and the first of them is taken: otherwise a small change of height (a power button appearing in a header) would send the next sections to the other column. */
-      var b = 0;
-      for (c = 1; c < n; c++) if (col[c] < col[b]) b = c;
-      for (c = 0; c < b; c++)
-        if (col[c] - col[b] <= MASON_TIE) {
-          b = c;
-          break;
-        }
-      pos.push({ x: b * (cw + gap), y: col[b], w: cw, h: hts[j] });
-      col[b] += hts[j];
-    }
+    var s = Math.max(1, Math.min(sp[j], n));
+    /* The first column (or run of s columns) that is the shortest, but runs within a few pixels of each other count as equal and the first of them is taken: otherwise a small change of height (a power button appearing in a header) would send the next sections to the other column. */
+    var top = [];
+    for (c = 0; c + s <= n; c++) top.push(Math.max.apply(null, col.slice(c, c + s)));
+    var b = 0;
+    for (c = 1; c < top.length; c++) if (top[c] < top[b]) b = c;
+    for (c = 0; c < b; c++)
+      if (top[c] - top[b] <= MASON_TIE) {
+        b = c;
+        break;
+      }
+    var y = top[b];
+    pos.push({ x: b * (cw + gap), y: y, w: s * cw + (s - 1) * gap, h: hts[j] });
+    for (c = b; c < b + s; c++) col[c] = y + hts[j];
   });
   return { pos: pos, H: Math.max.apply(null, col.concat([0])) };
 }
@@ -78,14 +78,14 @@ function masonLayout(h) {
   if (!W) return;
   var n = colCount(h),
     its = masonVisible(h),
-    fl = masonFlags(its, n),
+    sp = masonSpans(its, n),
     cw = (W - (n - 1) * 24) / n;
   its.forEach(function (it, j) {
-    it.el.style.width = (fl[j] ? W : cw) + "px";
+    it.el.style.width = sp[j] * cw + (sp[j] - 1) * 24 + "px";
   });
   var pl = masonPlan(
     its,
-    fl,
+    sp,
     its.map(function (it) {
       return outerH(it.el);
     }),
@@ -128,7 +128,7 @@ function flow(body, list) {
     if (!s.el) return;
     s.el._flowBody = body;
     if (EDIT && ISADMIN && s.id && !s.el.dataset.sid) editDecorate(esc, s);
-    h._items.push({ el: s.el, wide: !!s.wide, id: s.id });
+    h._items.push({ el: s.el, wide: !!s.wide, span: s.span || 0, id: s.id });
     h.appendChild(s.el);
   });
   body.appendChild(h);
@@ -256,12 +256,12 @@ function livePatch() {
     fresh = [];
   list.forEach(function (s) {
     var o = s.id && old[s.id];
-    if (o && !!o.wide === !!s.wide && sectionSig(o.el) === sectionSig(s.el)) {
+    if (o && !!o.wide === !!s.wide && (o.span || 0) === (s.span || 0) && sectionSig(o.el) === sectionSig(s.el)) {
       s.el._dead = true;
       items.push(o);
     } else {
       s.el._flowBody = pg;
-      var it = { el: s.el, wide: !!s.wide, id: s.id };
+      var it = { el: s.el, wide: !!s.wide, span: s.span || 0, id: s.id };
       items.push(it);
       fresh.push(it);
     }
@@ -686,6 +686,7 @@ function pgBegin(key, dir) {
     half: false,
   };
   pgSet(0);
+  hdrStatusSync(false, key);
 }
 
 function pgSet(p) {
@@ -774,7 +775,7 @@ function pgCommit() {
   document.body.classList.toggle("editing", EDIT && ISADMIN && (VIEW === "home" || !!UIROOM[VIEW]));
   edToolbar();
   g.tt.textContent = TITLES[VIEW] || TITLES.home;
-  hdrStatusSync(true);
+  hdrStatusSync(false);
   dockSel(VIEW);
   movePill();
   refresh();

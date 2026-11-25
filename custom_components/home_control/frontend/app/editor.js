@@ -563,13 +563,17 @@ function secOrderPage(b, key) {
       if (!h.isConnected || !h._items) return;
       var its = masonVisible(h),
         n = h._n || colCount(h),
-        fl = masonFlags(its, n),
+        sp = masonSpans(its, n),
         W = h.clientWidth,
         cw = (W - (n - 1) * 24) / n;
       its.forEach(function (it, j) {
         var x = parseFloat((/translate\(([-\d.]+)px/.exec(it.el.style.transform) || [0, 0])[1]);
         out[it.id] =
-          fl[j] && n > 1 ? _T("full_width") : _T("column") + " " + (Math.round(x / (cw + 24)) + 1);
+          sp[j] > 1 && sp[j] >= n
+            ? _T("full_width")
+            : sp[j] > 1
+              ? _T("columns") + " " + (Math.round(x / (cw + 24)) + 1) + "–" + (Math.round(x / (cw + 24)) + sp[j])
+              : _T("column") + " " + (Math.round(x / (cw + 24)) + 1);
       });
     });
     return out;
@@ -857,7 +861,7 @@ function roomNewPage(b) {
             sections = draft.area && draft.suggest ? groupSections(areaDevices(draft.area)) : [];
           if (!sections.length) sections = [{ id: "main", k: "devs", hide: false, devs: [] }];
           UI.rooms.push({ id: id, name: draft.name || _T("new_room"), short: "", icon: "home", area: draft.area });
-          UI.layout.rooms[id] = [widgetSection("status", "status")].concat(sections);
+          UI.layout.rooms[id] = [statusSection([])].concat(sections);
           uiChanged();
           toast(_T("rn_created"));
           closeSheet();
@@ -928,6 +932,35 @@ function secEditor(b, key) {
         )
       );
     }
+    /* How many of the page's columns the Section takes. It shrinks with the screen: on a phone every Section is one column, and a Section is never wider than the page has columns. */
+    var pcn = pageCols(sk) || 2;
+    box.appendChild(sep(_T("width"), "tune"));
+    box.appendChild(
+      dropRow(
+        _T("width"),
+        ["auto"].concat(
+          Array.apply(null, Array(Math.max(1, pcn))).map(function (_, i) {
+            return i + 1;
+          })
+        ),
+        function () {
+          return e.span || "auto";
+        },
+        function (v) {
+          if (v === "auto") delete e.span;
+          else e.span = v;
+          save();
+          redrawBox(box, draw);
+        },
+        "tune",
+        function (v) {
+          return v === "auto" ? _T("automatic") : v >= pcn && pcn > 1 ? _T("full_width") : v === 1 ? _T("one_column") : v + " " + _T("columns").toLowerCase();
+        }
+      )
+    );
+    var wh = mk("div", "hint");
+    wh.textContent = _T("a_section_is_one_column_on_a_narrow_scre");
+    box.appendChild(wh);
     /* Whether it is shown and when, then the actions. */
     box.appendChild(sep(_T("dp_in_the_section"), "home"));
     box.appendChild(

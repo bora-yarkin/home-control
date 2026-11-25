@@ -1,49 +1,26 @@
 /* Status tiles, the home summary, battery list, climate tiles, header chips, and alerts (devices left on, low batteries, offline) with their thresholds. */
 
-/* The status tiles of a page: one tile per reading, or nothing when it has none. */
+/* The value of a status tile of the header: a reading with its unit, or the state as words, or two readings of one tile (a temperature and a humidity). */
+function statValue(s) {
+  var a = s.text ? (svOk(s.id) ? cap(V_(s.id)) : "Offline") : sv(s.id, s.u || "", s.dp === undefined ? 1 : s.dp);
+  if (!s.h) return a;
+  var b = sv(s.h, "%", 0);
+  if (a === "Offline" && b === "Offline") return "Offline";
+  if (a === "–" && b === "–") return "–";
+  return a + " · " + b;
+}
+
+/* The status tiles of a page that the header shows (decision D-27: its own list, set in the header's settings): one tile per reading, or nothing when it has none. */
 function statGrid(key) {
   var it = (UI.stat[key] || []).map(function (s) {
     return [
       s.l,
       function () {
-        if (s.text) {
-          return svOk(s.id) ? cap(V_(s.id)) : "Offline";
-        }
-        return sv(s.id, s.u || "", s.dp === undefined ? 1 : s.dp);
+        return statValue(s);
       },
     ];
   });
   return it.length ? glance(it, it.length) : null;
-}
-
-function roomStatus(key) {
-  var l = UI.stat[key] || [],
-    g = statGrid(key);
-  if (!g && !editing()) return null;
-  var items = [];
-  if (g) {
-    items.push(g);
-    if (editing()) {
-      var bx = [].slice.call(g.children);
-      bx.forEach(function (b, i) {
-        edMark(b, function () {
-          showPopup("manage-stat-tile:" + key + ":" + i, true);
-        });
-      });
-      edSort(bx, function (f, t) {
-        var a = UI.stat[key];
-        a.splice(t, 0, a.splice(f, 1)[0]);
-        uiChanged();
-      });
-    }
-  }
-  if (editing() && l.length < 6)
-    items.push(
-      edAdd(_T("add_status_tile"), function () {
-        addStatTile(key);
-      })
-    );
-  return section(secT("status", _T("status")), secI("status", "thermo"), items);
 }
 
 function addStatTile(rid) {
@@ -317,11 +294,7 @@ function statTile(b, key) {
     );
     box.appendChild(
       entRow(_T("value_now"), function () {
-        return s.text
-          ? svOk(s.id)
-            ? cap(V_(s.id))
-            : "Offline"
-          : sv(s.id, s.u || "", s.dp === undefined ? 1 : s.dp);
+        return statValue(s);
       })
     );
     box.appendChild(

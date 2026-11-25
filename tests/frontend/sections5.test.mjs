@@ -81,7 +81,8 @@ test("a new Home page starts with Attention, At a glance, Rooms and Scenes; a ne
   assert.deepEqual(home[3].devs.map((d) => [d.kind, d.spage]), [["scenes", ["page:home"]]]);
   const room = plain(w.seedSections("room:r1"));
   assert.deepEqual(room.map((s) => s.k), ["devs", "devs"]);
-  assert.equal(room[0].devs[0].w, "status");
+  assert.equal(room[0].id, "status");
+  assert.deepEqual(room[0].devs, [], "the Status Section is a plain Section, empty until sensors are added to it like any device");
   assert.deepEqual(room[1].devs, []);
 });
 
