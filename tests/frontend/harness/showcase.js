@@ -30,7 +30,7 @@ export function showcaseStates() {
     s("switch.showcase_purifier_alarm", "on", { friendly_name: "Showcase air purifier Alarm" }),
     s("media_player.showcase_apple_tv", "playing", { friendly_name: "Showcase Apple TV", media_title: "Film night", media_artist: "", app_name: "Movies", source_list: ["Movies", "Music"], supported_features: 152463, volume_level: 0.3 }),
     s("remote.showcase_apple_tv", "on", { friendly_name: "Showcase Apple TV remote" }),
-    s("media_player.showcase_speaker", "playing", { friendly_name: "Showcase speaker", media_title: "A song", media_artist: "An artist", media_album_name: "An album", volume_level: 0.4, is_volume_muted: false, media_duration: 210, media_position: 70, media_position_updated_at: new Date().toISOString(), supported_features: 152461 }),
+    s("media_player.showcase_speaker", "playing", { friendly_name: "Showcase speaker", media_title: "A song", media_artist: "An artist", entity_picture: "/tests/frontend/harness/audio-wave.svg", media_album_name: "An album", volume_level: 0.4, is_volume_muted: false, media_duration: 210, media_position: 70, media_position_updated_at: new Date().toISOString(), supported_features: 152461 }),
     s("media_player.showcase_receiver", "on", { friendly_name: "Showcase receiver", source: "HDMI 1", source_list: ["HDMI 1", "HDMI 2", "Radio"], volume_level: 0.25, supported_features: 152461 }),
     s("remote.showcase_receiver_ir", "on", { friendly_name: "Showcase receiver infrared" }),
     s("select.showcase_receiver_sound_mode", "Movie", { friendly_name: "Showcase receiver Sound mode", options: ["Movie", "Music", "Pure"] }),
@@ -70,6 +70,10 @@ export function showcaseStates() {
     s("switch.showcase_fridge_supercool_freezer", "off", { friendly_name: "Showcase fridge Super freeze" }),
     s("switch.showcase_fridge_eco", "on", { friendly_name: "Showcase fridge Eco mode" }),
     s("lock.showcase_front", "locked", { friendly_name: "Showcase front door lock" }),
+    s("weather.showcase_home", "partlycloudy", { friendly_name: "Showcase weather", temperature: 17.4, temperature_unit: "°C" }),
+    s("calendar.showcase_family", "off", { friendly_name: "Showcase family calendar" }),
+    s("todo.showcase_shopping", "3", { friendly_name: "Showcase shopping list" }),
+    s("sensor.showcase_power", "1840", { friendly_name: "Showcase power", unit_of_measurement: "W", device_class: "power" }),
     s("sensor.showcase_temperature", "21.4", { friendly_name: "Showcase temperature", unit_of_measurement: "°C", device_class: "temperature" }),
     s("sensor.showcase_humidity", "48", { friendly_name: "Showcase humidity", unit_of_measurement: "%", device_class: "humidity" }),
     s("binary_sensor.showcase_window", "on", { friendly_name: "Showcase window", device_class: "window" }),
@@ -122,6 +126,9 @@ export async function buildShowcase() {
     ["controls", "Controls and sensors", "tune"],
     ["kit", "Appliances and remotes", "plug"],
     ["scenes", "Scenes", "scene"],
+    ["wtiles", "Widgets: tiles", "tune"],
+    ["wwide", "Widgets: wide", "tune"],
+    ["wmore", "Widgets: folder and stack", "tune"],
   ];
   w.UI.rooms.push({ id: "showcase", name: "Showcase", short: "Showcase", icon: "home", area: "" });
   w.UI.layout.rooms.showcase = [w.widgetSection("status", "status"), { id: "camera", k: "devs", t: "Camera", i: "cam", hide: false, devs: [] }].concat(sections.map(([id, t, i]) => ({ id, k: "devs", t, i, hide: false, devs: [] })));
@@ -229,6 +236,38 @@ export async function buildShowcase() {
   sc.devs.push({ id: "", sid: "scshow1", name: "Scene", icon: "scene", kind: "cscene" });
   put("scenes", ["scene.showcase_relax", "scene.showcase_focus"]);
   sc.devs.push({ id: "", name: "Showcase scene collection", icon: "scene", kind: "scenes", spage: ["page:showcase"] });
+  /* The widgets of the registry, each at the sizes it can take, with entities of the page. */
+  const wd = (type, wx, sz, name) => ({ kind: "widget", id: "", w: type, wid: "w" + type.slice(0, 4) + (sz || "d"), name: name || type, icon: "info", wx, ...(sz ? { sz } : {}) });
+  const tiles = w.secById("showcase", "wtiles"),
+    wide = w.secById("showcase", "wwide"),
+    more = w.secById("showcase", "wmore");
+  tiles.devs.push(
+    wd("clock", { id: "weather.showcase_home" }, "s"),
+    wd("ring", { id: "sensor.showcase_power", max: 3000 }, "xs", "ring1"),
+    wd("ring", { id: "sensor.showcase_humidity", max: 100 }, "xs", "ring2"),
+    wd("sparkline", { id: "sensor.showcase_temperature", r: "24h" }, "s"),
+    wd("note", { txt: "A note at tile size." }, "s"),
+    wd("snapshot", { id: "camera.showcase_garden" }, "s"),
+    wd("folder", { ids: ["light.showcase_lamp", "scene.showcase_relax", "script.showcase_goodnight", "switch.showcase_plug"] }, "xs", "Folder"),
+    { id: "sensor.showcase_temperature", name: "Temperature", icon: "thermo", kind: "sensor", sz: "xs" },
+    { id: "sensor.showcase_humidity", name: "Humidity", icon: "drop", kind: "sensor", sz: "s" },
+  );
+  wide.devs.push(
+    wd("nowplaying", { id: "media_player.showcase_speaker" }, undefined, "now"),
+    wd("vacuum", { id: "vacuum.hallway" }, undefined, "vac"),
+    wd("agenda", { id: "calendar.showcase_family" }, undefined, "agenda"),
+    wd("todo", { id: "todo.showcase_shopping" }, undefined, "todo"),
+    wd("chart", { ds: [{ id: "sensor.showcase_temperature", name: "Temperature" }, { id: "sensor.showcase_humidity", name: "Humidity" }], r: "24h" }, undefined, "chart"),
+    wd("note", { txt: "A wide note across the whole section." }, "m", "note"),
+    wd("snapshot", { id: "camera.showcase_garden" }, "m", "snap wide"),
+    { id: "camera.showcase_garden", name: "Showcase garden camera", icon: "cam", kind: "camera", sz: "l" },
+  );
+  more.devs.push(
+    wd("stack", { items: [wd("note", { txt: "First of a stack. Swipe, or tap the dots." }), wd("sparkline", { id: "sensor.showcase_temperature" }), wd("ring", { id: "sensor.showcase_power", max: 3000 })] }, "m", "stack"),
+    wd("security", {}, undefined, "security"),
+    wd("energy", { price: 0.25, cur: "€" }, undefined, "energy"),
+  );
+  [tiles, wide, more].forEach((sec) => (sec.devs = sec.devs.map((d) => w.cleanDev(d)).filter(Boolean)));
   w.uiChanged();
   w.refresh();
   await sleep(300);

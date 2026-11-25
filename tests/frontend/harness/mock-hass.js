@@ -292,6 +292,7 @@ export function makeHass(query, home = null) {
         case "frontend/set_system_data": stored.system[msg.key] = msg.value; return Promise.resolve();
         case "config/auth/list": return Promise.resolve([]);
         case "history/history_during_period": return Promise.resolve({});
+        case "todo/item/list": return Promise.resolve({ items: [{ uid: "t1", summary: "Milk", status: "needs_action" }, { uid: "t2", summary: "Bread", status: "needs_action" }, { uid: "t3", summary: "Coffee beans", status: "needs_action" }, { uid: "t4", summary: "Already bought", status: "completed" }] });
         case "logbook/get_events": return Promise.resolve([]);
         case "home_control/effects": return home && home.effects ? Promise.resolve(home.effects) : effectSources().then((sources) => ({ sources }));
         case "home_control/plugins": return home && home.plugins ? Promise.resolve(home.plugins) : Promise.resolve({ plugins: withSync ? [{ id: "hue_plus", name: "Hue Plus", menu: "/hue_plus_static/menu.js", version: "harness" }] : [] });
@@ -425,6 +426,14 @@ export function makeHass(query, home = null) {
     },
     // Home Assistant's "Group" helper of the type light: its configuration and options flows, enough to make, change and delete one.
     callApi(method, path, body) {
+      if (/^calendars\//.test(path)) {
+        const at = (days, h) => new Date(Date.now() + days * 86400000 + h * 3600000).toISOString();
+        return Promise.resolve([
+          { summary: "Dentist", start: { dateTime: at(0, 3) }, end: { dateTime: at(0, 4) } },
+          { summary: "Parents' visit", start: { date: at(2, 0).slice(0, 10) }, end: { date: at(3, 0).slice(0, 10) } },
+          { summary: "Bins out", start: { dateTime: at(4, 1) }, end: { dateTime: at(4, 2) } },
+        ]);
+      }
       const flowPath = /^config\/config_entries\/(flow|options\/flow)(?:\/(.+))?$/.exec(path);
       if (flowPath) {
         const options = flowPath[1] === "options/flow";

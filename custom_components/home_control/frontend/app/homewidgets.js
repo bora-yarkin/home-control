@@ -155,8 +155,10 @@ registerWidget("snapshot", {
     c.appendChild(im);
     c.appendChild(nm);
     function up() {
-      var tok = A(id).access_token;
+      var tok = A(id).access_token,
+        pic = A(id).entity_picture || "";
       if (tok) im.src = HA.camera.snapshotUrl(id, tok) + "&t=" + Date.now();
+      else if (/^\/[A-Za-z0-9_./?=&%-]*$/.test(pic)) im.src = pic;
     }
     up();
     wxEvery(c, 20000, up);
