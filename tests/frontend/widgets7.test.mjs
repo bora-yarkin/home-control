@@ -20,9 +20,13 @@ function world() {
     uiChanged() {},
     H: () => ({ states: {}, areas: {} }),
     cleanCond: () => null,
+    GL_IDS: ["lights", "acs", "fans", "batteries", "media", "robot"],
+    GL_DOMS: ["light", "switch", "sensor"],
   };
   vm.createContext(sandbox);
   for (const f of ["model.js", "sections.js", "widgetkinds.js"]) vm.runInContext(read(f), sandbox, { filename: f });
+  const pins = read("pins.js");
+  vm.runInContext(pins.slice(0, pins.indexOf("function pinKey")), sandbox, { filename: "pins.js" });
   sandbox.cleanCond = () => null;
   return sandbox;
 }
@@ -60,6 +64,51 @@ test("a camera section's cameras are shown live (size l), and the layout is mark
   const out = plain(w.cleanLayout([{ id: "k1", k: "camera", devs: [dev("camera.door", "camera")] }]));
   assert.equal(out[0].devs[0].sz, "l");
   assert.equal(plain(w.cleanUI({ rooms: [], layout: { v: 6, home: [], rooms: {} } })).layout.v, 7);
+});
+
+test("security, cameras and energy sections are plain Sections with their widget, and the price and currency of energy move onto it", () => {
+  const out = plain(world().cleanLayout([
+    { id: "s1", k: "security" },
+    { id: "s2", k: "cameras", t: "All cameras" },
+    { id: "s3", k: "energy", price: 0.25, cur: "€" },
+  ]));
+  assert.deepEqual(out.map((s) => [s.k, s.devs[0].w]), [["devs", "security"], ["devs", "cameras"], ["devs", "energy"]]);
+  assert.equal(out[1].t, "All cameras", "a name the person gave is kept");
+  assert.deepEqual(out[2].devs[0].wx, { price: 0.25, cur: "€" });
+  assert.equal(out[2].price, undefined);
+  const bad = plain(world().cleanLayout([{ id: "s3", k: "energy", price: -4, cur: "toolong" }]));
+  assert.deepEqual(bad[0].devs[0].wx, {}, "a price that is not a positive number, and a long currency, are dropped");
+});
+
+test("the overview sections are plain Sections with their widget, and what they kept moves onto it", () => {
+  const out = plain(world().cleanLayout([
+    { id: "a1", k: "alerts" },
+    { id: "g1", k: "glance", gl: { o: ["media", "lights"], h: ["robot", "bogus"], c: [], lm: ["home~mx"] } },
+    { id: "p1", k: "pinned", lay: "grid3", pins: [{ id: "light.a", name: "A", icon: "lights", room: "" }] },
+    { id: "l1", k: "link", ref: "home:g1" },
+    { id: "r1", k: "rooms", t: "Where" },
+    { id: "n1", k: "now" },
+    { id: "s1", k: "status" },
+    { id: "c1", k: "chips" },
+  ]));
+  assert.deepEqual(out.map((s) => s.devs[0].w), ["alerts", "glance", "pinned", "link", "rooms", "now", "status", "chips"]);
+  assert.deepEqual(out[1].devs[0].wx.gl, { o: ["media", "lights"], h: ["robot"], c: [], lm: ["home~mx"] }, "an unknown tile is dropped");
+  assert.equal(out[2].devs[0].wx.lay, "grid3");
+  assert.equal(out[2].devs[0].wx.pins[0].id, "light.a");
+  assert.equal(out[2].lay, undefined);
+  assert.equal(out[3].devs[0].wx.ref, "home:g1");
+  assert.equal(out[4].t, "Where");
+  const bad = plain(world().cleanLayout([{ id: "l2", k: "link", ref: "../../etc" }]));
+  assert.deepEqual(bad[0].devs[0].wx, {}, "a reference that is not page:section is dropped");
+});
+
+test("an overview widget is the whole of its Section when it is alone (drawn as it always was), and a Section of several things draws it as a sub-section", () => {
+  const w = world();
+  assert.equal(w.widgetAlone({ devs: [{ kind: "widget", w: "rooms" }] }).w, "rooms");
+  assert.equal(w.widgetAlone({ devs: [{ kind: "widget", w: "rooms" }, { kind: "light" }] }), null);
+  assert.equal(w.widgetAlone({ devs: [{ kind: "widget", w: "note" }] }), null, "a note has no section of its own");
+  assert.equal(w.secIsWide({ devs: [{ kind: "widget", w: "alerts" }] }), true);
+  assert.equal(w.secIsWide({ devs: [{ kind: "widget", w: "rooms" }] }), false, "Rooms was never full width");
 });
 
 test("what is not valid is dropped, not kept half made: an unknown widget type, a size the type does not have, a widget with an entity", () => {

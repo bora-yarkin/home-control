@@ -95,10 +95,6 @@ function cardStack(list) {
   return st;
 }
 
-function cardSection(s, list, title, icon) {
-  return section(s.t || title, s.i && iconOk(s.i) ? s.i : icon, [cardStack(list)]);
-}
-
 function securityList() {
   var E = secEnts(),
     list = [],

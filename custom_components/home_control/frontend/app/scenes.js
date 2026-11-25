@@ -52,10 +52,12 @@ function pruneSceneRefs() {
         s.scn = s.scn.filter(function (id) {
           return ok[id];
         });
-      if (s.pins)
-        s.pins = s.pins.filter(function (p) {
-          return p.kind !== "cscene" || ok[p.sid];
-        });
+      (s.devs || []).forEach(function (d) {
+        if (d.kind === "widget" && d.wx && d.wx.pins)
+          d.wx.pins = d.wx.pins.filter(function (p) {
+            return p.kind !== "cscene" || ok[p.sid];
+          });
+      });
     });
   });
 }

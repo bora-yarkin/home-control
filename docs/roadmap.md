@@ -76,9 +76,9 @@ Order: A, then B, then C. Each is released and checked on the real box (with Hue
 ## P12 One kind of section, everything else a widget (2026-11-25, the owner's request; decision D-25)
 - P12-1 built and checked (node 475, the harness; not on the box): the widget registry (`app/widgetkinds.js`), the `widget` device kind, sizes (`xs`, `s`, `m`, `l`) and the four-column section grid. Acceptance: a widget of every registered type is checked, saved, drawn and edited through the registry; an unknown type is dropped, not kept half-valid; rows of a Section look as they do now.
 - P12-2 built and checked (node 475, the harness; not on the box): Layout 7, part 1: Readings, Note, Chart and Camera become widgets/sizes. Acceptance: a saved layout with those sections opens as plain sections with the same content and settings; the pre-migration copy is kept.
-- P12-3 planned: Cameras, Security and Energy become widgets. Acceptance as P12-2.
-- P12-4 planned: Attention, On now, At a glance, Pinned, Rooms and Linked section become widgets. Acceptance as P12-2.
-- P12-5 planned: Status tiles and Climate overview retired (header status pills; widget *Readings strip* kept), and the lights master moves from the Section to a widget of it. Acceptance as P12-2, and every master setting (tabs, sources, folders, names, hidden rows) is kept.
+- P12-3 built and checked (node 478, the harness; not on the box): Cameras, Security and Energy become widgets. Acceptance as P12-2.
+- P12-4 built and checked (node 478, the harness; not on the box): Attention, On now, At a glance, Pinned, Rooms and Linked section become widgets. Acceptance as P12-2.
+- P12-5 in progress: Status tiles and Climate overview are widgets now (built and checked, as above; the header still hides them while its status pills are on). Remaining: the lights master moves from the Section to a widget of it. Acceptance as P12-2, and every master setting (tabs, sources, folders, names, hidden rows) is kept.
 - P12-6 planned: editing widgets: add from a gallery, resize, reorder, remove. Acceptance: in edit mode a widget can be resized to any size its type supports and the size is saved.
 - P12-7 planned: new widgets: clock and weather, now playing, camera snapshot, vacuum, energy ring, sensor sparkline, agenda, to-do, folder, stack. Acceptance: each is added from the gallery, saved and drawn at every size it supports, and is read-only unless it has a control.
 

@@ -11,6 +11,12 @@ var WIDGETS = {},
 
 /* Adds a widget type: { title, icon, desc, sizes, size, clean(wx) -> wx, draw(d, wx, editing) -> element or null, settings(box, d, save) }. */
 function registerWidget(w, def) {
+  /* A widget that is an overview built as a section of its own (def.section) is drawn, next to other things in a Section, as a sub-section. */
+  if (def.section && !def.draw)
+    def.draw = function (d) {
+      var el = def.section(d);
+      return el ? cardStack([{ el: el }]) : null;
+    };
   WIDGETS[w] = def;
 }
 
@@ -71,9 +77,33 @@ function widgetRow(d, ed) {
 /* Whether a Section needs the full width of the page: it holds a widget or a live camera that is as wide as the page. */
 function secIsWide(s) {
   return (s.devs || []).some(function (d) {
-    var z = sizeOf(d);
-    return !d.hide && (z === "m" || z === "l");
+    var f = d.kind === "widget" ? widgetDef(d.w) : null,
+      z = sizeOf(d);
+    return !d.hide && (f && f.wide ? f.wide(d) : z === "m" || z === "l");
   });
+}
+
+/* The widget a Section holds when it holds nothing else: such a Section is drawn as the widget's own section (the overviews), so a page looks as it always did. */
+function widgetAlone(s) {
+  var d = s.devs || [],
+    f = d.length === 1 && d[0].kind === "widget" ? widgetDef(d[0].w) : null;
+  return f && f.section && !s.master && !(s.masters || []).length ? d[0] : null;
+}
+
+/* A plain Section holding one new widget, named and iconned as the widget is. */
+function widgetSection(id, w) {
+  var f = widgetDef(w);
+  return { id: id, k: "devs", hide: false, t: f.title.slice(0, 40), i: f.icon, devs: [newWidgetDev(w)] };
+}
+
+/* The widget with this id in a section of a page. */
+function widgetOfSection(scopeId, secId, wid) {
+  var s = secById(scopeId, secId);
+  return (
+    ((s && s.devs) || []).filter(function (d) {
+      return d.kind === "widget" && d.wid === wid;
+    })[0] || null
+  );
 }
 
 /* The settings every sized device or widget has: its size (a widget may have only one, and then none is offered). */
@@ -104,7 +134,7 @@ function sizeSettings(box, d, redraw) {
 
 function widgetSettings(c) {
   var f = widgetDef(c.d.w);
-  if (!f) return;
+  if (!f || !f.settings) return;
   c.box.appendChild(sep(f.title, f.icon));
   f.settings(c.box, c.d, function () {
     uiChanged();
@@ -238,3 +268,274 @@ registerWidget("chart", {
       );
   },
 });
+
+/* Security, Energy and Cameras: overviews built from the home's own entities (drawn in security.js and camera.js). */
+registerWidget("security", {
+  title: _T("security"),
+  icon: "lock",
+  desc: _T("locks_alarms_doors_and_windows"),
+  sizes: ["m"],
+  size: "m",
+  clean: function () {
+    return {};
+  },
+  draw: function () {
+    return cardStack(securityList());
+  },
+});
+
+registerWidget("cameras", {
+  title: _T("cameras"),
+  icon: "cam",
+  desc: _T("all_cameras_in_one_grid"),
+  sizes: ["m"],
+  size: "m",
+  clean: function () {
+    return {};
+  },
+  draw: function () {
+    return cardStack(cameraList());
+  },
+});
+
+registerWidget("energy", {
+  title: _T("energy_and_usage"),
+  icon: "plug",
+  desc: _T("power_now_and_usage_over_the_week"),
+  sizes: ["m"],
+  size: "m",
+  clean: function (x) {
+    var o = {},
+      pr = Number(x.price);
+    if (isFinite(pr) && pr > 0 && pr <= 1000) o.price = pr;
+    if (typeof x.cur === "string" && x.cur && x.cur.length <= 4) o.cur = x.cur;
+    return o;
+  },
+  draw: function (d, x) {
+    return cardStack(energyList(x));
+  },
+  settings: function (box, d, save) {
+    box.appendChild(
+      numRow(
+        "plug",
+        _T("price_per_kwh_empty_hides_the_cost"),
+        d.wx.price,
+        function (v) {
+          if (v && v > 0) d.wx.price = Math.round(v * 10000) / 10000;
+          else delete d.wx.price;
+          save();
+        },
+        0,
+        1000
+      )
+    );
+    box.appendChild(
+      textRow(
+        "edit",
+        _T("currency_symbol"),
+        d.wx.cur || "",
+        function (v) {
+          if (v) d.wx.cur = v.slice(0, 4);
+          else delete d.wx.cur;
+          save();
+        },
+        4
+      )
+    );
+  },
+});
+
+/* The overviews: each is built as a section of its own (alerts, rooms, glance ...), and is the whole of a Section made for it. */
+function overview(w, title, icon, desc, build, extra) {
+  registerWidget(
+    w,
+    Object.assign(
+      {
+        title: title,
+        icon: icon,
+        desc: desc,
+        sizes: ["s", "m"],
+        size: "m",
+        clean: function () {
+          return {};
+        },
+        section: build,
+      },
+      extra || {}
+    )
+  );
+}
+
+overview("alerts", _T("attention"), "alert", _T("things_that_need_attention"), function () {
+  return alertsBox();
+}, {
+  sizes: ["m"],
+  settings: function (box) {
+    [
+      ["battery", _T("low_batteries"), "battery"],
+      ["vacuum", _T("robot_vacuum_needs_attention"), "vac"],
+      ["camera", _T("camera_offline"), "cam"],
+      ["climate", _T("air_conditioner_offline"), "ac"],
+      ["lights", _T("light_unavailable"), "lights"],
+    ].forEach(function (a) {
+      box.appendChild(
+        pill(a[2], a[1], {
+          on: function () {
+            return alertOn(a[0]);
+          },
+          tap: function () {
+            var off = ((STORE.cfg && STORE.cfg.alertOff) || []).slice(),
+              i = off.indexOf(a[0]);
+            if (i >= 0) off.splice(i, 1);
+            else off.push(a[0]);
+            STORE.cfg = cleanCfg(Object.assign({}, STORE.cfg, { alertOff: off }));
+            storeChanged();
+            refresh();
+          },
+        })
+      );
+    });
+  },
+});
+
+overview("rooms", _T("rooms"), "home", _T("links_to_every_page"), function () {
+  return secRooms();
+}, { size: "s" });
+
+overview("now", _T("on_now"), "power", _T("what_is_running_right_now_and_where"), function () {
+  return secNow();
+}, { size: "s" });
+
+overview("status", _T("status_tiles"), "thermo", _T("readings_for_this_page_such_as_tempe"), function () {
+  return roomStatus(pageKey());
+}, { sizes: ["m"] });
+
+overview("chips", _T("climate_overview"), "thermo", _T("temperature_and_humidity_at_a_glance"), function () {
+  return homeStatus();
+}, { sizes: ["m"] });
+
+/* At a glance: which tiles, in what order, and the tiles made by hand; kept on the widget (app/glance.js reads them from the page's first one). */
+overview(
+  "glance",
+  _T("at_a_glance"),
+  "home",
+  _T("counts_of_what_is_on_open_or_running"),
+  function () {
+    return secGlance();
+  },
+  {
+    size: "s",
+    clean: function (x) {
+      var o = {},
+        gl = cleanGlance(x.gl);
+      if (gl) o.gl = gl;
+      return o;
+    },
+  }
+);
+
+/* Pinned: the favourite devices and scenes (at most 12), and how many columns they take. */
+overview(
+  "pinned",
+  _T("pinned"),
+  "pin",
+  _T("your_favourite_devices"),
+  function (d) {
+    return pinsSection(d);
+  },
+  {
+    sizes: ["m"],
+    clean: function (x) {
+      var o = { pins: cleanPins(x.pins) };
+      if (layCols(x.lay)) o.lay = x.lay;
+      return o;
+    },
+    settings: function (box, d, save) {
+      box.appendChild(
+        pill("pin", _T("pinned_items"), {
+          sub: function () {
+            return d.wx.pins.length + " / 12";
+          },
+          tap: function () {
+            var s = hostSection(d);
+            showPopup("pick-pin:" + secKey() + ":" + s.id + ":" + d.wid, true);
+          },
+        })
+      );
+      box.appendChild(
+        dropRow(
+          _T("columns"),
+          ["auto", "list", "grid2", "grid3", "grid4"],
+          function () {
+            return d.wx.lay || "auto";
+          },
+          function (v) {
+            if (v === "auto") delete d.wx.lay;
+            else d.wx.lay = v;
+            save();
+          },
+          "tune",
+          function (v) {
+            return v === "auto" ? _T("automatic") : String(layCols(v));
+          }
+        )
+      );
+    },
+  }
+);
+
+/* Linked section: shows a section of another page, so it is edited once and appears wherever it is linked. */
+overview(
+  "link",
+  _T("linked_section"),
+  "swap",
+  _T("shows_a_section_from_another_page"),
+  function (d) {
+    return linkSection(d);
+  },
+  {
+    sizes: ["m"],
+    wide: function (d) {
+      var r = linkTarget(d);
+      return !!r && secIsWide(r);
+    },
+    clean: function (x) {
+      return typeof x.ref === "string" && /^[a-z0-9_-]{1,24}:[a-z][a-z0-9_]{1,14}$/.test(x.ref) ? { ref: x.ref } : {};
+    },
+    settings: function (box, d, save) {
+      var q = (d.wx.ref || "").split(":"),
+        ls = d.wx.ref ? secById(q[0], q[1]) : null,
+        host = hostSection(d);
+      box.appendChild(
+        pill("swap", ls ? secName(ls) : _T("no_section_chosen"), {
+          sub: function () {
+            return ls ? (TITLES[q[0]] || q[0]) + " · " + _T("tap_to_choose_another_2") : _T("tap_to_choose");
+          },
+          tap: function () {
+            showPopup("sec-link:" + secKey() + ":" + host.id + ":" + d.wid, true);
+          },
+        })
+      );
+      if (ls)
+        box.appendChild(
+          pill("plus", _T("make_an_independent_copy"), {
+            sub: function () {
+              return _T("stops_following_the_original_section");
+            },
+            tap: function () {
+              var c = JSON.parse(JSON.stringify(ls)),
+                order = secOrder(CURSCOPE);
+              c.id = newSecId(order);
+              (c.devs || []).forEach(function (x) {
+                if (x.kind === "widget") x.wid = widgetNewId();
+              });
+              order[order.indexOf(host)] = c;
+              setSecOrder(CURSCOPE, order);
+              uiChanged();
+              popBack();
+            },
+          })
+        );
+    },
+  }
+);

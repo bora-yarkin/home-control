@@ -42,6 +42,6 @@ test("a page has the weather sky on and no status row in its header until its se
 test("the status row of the header is built from the page's own status tiles, and the page leaves its Status section out while it is there", () => {
   const header = read("app/header.js");
   assert.match(header, /VIEW === "home" \? chipGrid\(\) : statGrid\(VIEW\)/);
-  assert.match(read("app/sections.js"), /s\.k === "status" \|\| s\.k === "chips"\) && typeof hdrStatusOn === "function" && hdrStatusOn\(\)/);
+  assert.match(read("app/sections.js"), /al && \(al\.w === "status" \|\| al\.w === "chips"\) && typeof hdrStatusOn === "function" && hdrStatusOn\(\)/);
   assert.match(header, /hdrStatusOn\(\) \{\s*return .*hdrStatus === true && !editing\(\)/, "not while editing, so the tiles can be edited where they are");
 });

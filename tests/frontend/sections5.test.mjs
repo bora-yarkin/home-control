@@ -55,8 +55,9 @@ test("sections of layout 4 that held devices become one kind, Section, and keep 
 test("quick actions are scenes, and the kinds that are not devices stay as they are", () => {
   const w = world();
   const out = plain(w.cleanLayout([{ id: "quick", k: "quick", scn: ["a"] }, { id: "glance", k: "glance" }, { id: "rooms", k: "rooms" }, { id: "alerts", k: "alerts" }, { id: "nt", k: "note", txt: "hi" }]));
-  assert.deepEqual(out.map((s) => s.k), ["devs", "glance", "rooms", "alerts", "devs"]);
+  assert.deepEqual(out.map((s) => s.k), ["devs", "devs", "devs", "devs", "devs"], "every section is a plain Section");
   assert.deepEqual(out[0].devs.map((d) => d.kind + ":" + d.sid), ["cscene:a"], "its scenes are devices of the Section");
+  assert.deepEqual(out.slice(1, 4).map((s) => s.devs[0].w), ["glance", "rooms", "alerts"], "the overviews are widgets");
   assert.equal(out[4].devs[0].wx.txt, "hi", "a note section is a Section with a note widget");
 });
 
@@ -72,19 +73,20 @@ test("a master of the section (its own, or held) is kept by a Section whatever i
 test("a new Home page starts with Attention, At a glance, Rooms and Scenes; a new room with its status tiles and one empty Section", () => {
   const w = world();
   const home = plain(w.seedSections("home"));
-  assert.deepEqual(home.map((s) => s.k), ["alerts", "glance", "rooms", "devs"]);
+  assert.deepEqual(home.map((s) => s.k), ["devs", "devs", "devs", "devs"]);
+  assert.deepEqual(home.slice(0, 3).map((s) => s.devs[0].w), ["alerts", "glance", "rooms"]);
   assert.equal(home[3].t, "scenes");
   assert.deepEqual(home[3].devs.map((d) => [d.kind, d.spage]), [["scenes", ["page:home"]]]);
   const room = plain(w.seedSections("room:r1"));
-  assert.deepEqual(room.map((s) => s.k), ["status", "devs"]);
+  assert.deepEqual(room.map((s) => s.k), ["devs", "devs"]);
+  assert.equal(room[0].devs[0].w, "status");
   assert.deepEqual(room[1].devs, []);
 });
 
-test("the Add section list has every kind, grouped, and a kind that exists once is listed too, as already on the page", () => {
+test("the Add section list has the plain Section and every widget type of the registry, and a section does not change type", () => {
   const editor = read("editor.js");
-  for (const k of ["devs", "glance", "rooms", "alerts", "chips", "status", "pinned", "security", "energy", "cameras", "link"]) assert.match(editor, new RegExp('"' + k + '"'), k);
   assert.match(editor, /Object\.keys\(WIDGETS\)/, "every widget type of the registry is offered");
-  assert.match(editor, /already_on_this_page/);
+  assert.match(editor, /\["sec_group_section", "tune", \["devs"\]\]/);
   assert.doesNotMatch(editor, /secSetKind|secTypePage/, "a section does not change type");
 });
 

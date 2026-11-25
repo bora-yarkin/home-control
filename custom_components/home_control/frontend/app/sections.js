@@ -26,40 +26,6 @@ var SECTYPES = {
       noun: _T("device_2"),
       add: "devices",
     },
-    security: { t: _T("security"), i: "lock", d: _T("locks_alarms_doors_and_windows") },
-    energy: { t: _T("energy_and_usage"), i: "plug", d: _T("power_now_and_usage_over_the_week") },
-    cameras: { t: _T("cameras"), i: "cam", d: _T("all_cameras_in_one_grid") },
-    status: {
-      t: _T("status_tiles"),
-      i: "thermo",
-      d: _T("readings_for_this_page_such_as_tempe"),
-      one: 1,
-      wide: 1,
-    },
-    alerts: {
-      t: _T("attention"),
-      i: "alert",
-      d: _T("things_that_need_attention"),
-      one: 1,
-      wide: 1,
-    },
-    chips: {
-      t: _T("climate_overview"),
-      i: "thermo",
-      d: _T("temperature_and_humidity_at_a_glance"),
-      one: 1,
-      wide: 1,
-    },
-    rooms: { t: _T("rooms"), i: "home", d: _T("links_to_every_page"), one: 1 },
-    now: { t: _T("on_now"), i: "power", d: _T("what_is_running_right_now_and_where"), one: 1 },
-    glance: {
-      t: _T("at_a_glance"),
-      i: "home",
-      d: _T("counts_of_what_is_on_open_or_running"),
-      one: 1,
-    },
-    pinned: { t: _T("pinned"), i: "pin", d: _T("your_favourite_devices"), wide: 1 },
-    link: { t: _T("linked_section"), i: "swap", d: _T("shows_a_section_from_another_page") },
   },
   /* What the sections of layout 4 and earlier are called now: [name, icon, kind they become]. Quick actions are Scenes. */
   LEGACY_SECTYPES = {
@@ -71,30 +37,7 @@ var SECTYPES = {
     other: [_T("other_devices"), "plug"],
     quick: [_T("quick_actions_2"), "scene"],
     scenes: [_T("scenes"), "scene"],
-  },
-  /* The order the Add section list shows them in, by what they are for. */
-  SEC_PICK = [
-    "devs",
-    "glance",
-    "now",
-    "rooms",
-    "alerts",
-    "chips",
-    "status",
-    "pinned",
-    "security",
-    "energy",
-    "cameras",
-    "link",
-  ],
-  /* The sections a new Home page starts with. */
-  HOME_TPL = [
-    ["alerts", "alerts"],
-    ["glance", "glance"],
-    ["rooms", "rooms"],
-  ],
-  /* A new room page starts with its status tiles and one empty Section (suggested sections are offered when a room is made, see suggestSections). */
-  ROOM_TPL = ["status"];
+  };
 
 function secName(s) {
   return s.t || (SECTYPES[s.k] || SECTYPES.devs).t;
@@ -104,14 +47,16 @@ function secIcon(s) {
   return s.i && iconOk(s.i) ? s.i : (SECTYPES[s.k] || SECTYPES.devs).i;
 }
 
+/* A new Home page starts with Attention, At a glance, Rooms and Scenes; a new room page with its status tiles and one empty Section (suggested sections are offered when a room is made, see suggestSections). */
 function seedSections(scope) {
   return scope === "home"
-    ? HOME_TPL.map(function (x) {
-        return { id: x[0], k: x[1], hide: false };
-      }).concat([{ id: "scenes", k: "devs", t: _T("scenes"), i: "scene", hide: false, devs: [{ id: "scenes-home", kind: "scenes", name: _T("scenes"), icon: "scene", spage: ["page:home"] }] }])
-    : ROOM_TPL.map(function (id) {
-        return { id: id, k: id, hide: false };
-      }).concat([{ id: "main", k: "devs", hide: false, devs: [] }]);
+    ? [
+        widgetSection("alerts", "alerts"),
+        widgetSection("glance", "glance"),
+        widgetSection("rooms", "rooms"),
+        { id: "scenes", k: "devs", t: _T("scenes"), i: "scene", hide: false, devs: [{ id: "scenes-home", kind: "scenes", name: _T("scenes"), icon: "scene", spage: ["page:home"] }] },
+      ]
+    : [widgetSection("status", "status"), { id: "main", k: "devs", hide: false, devs: [] }];
 }
 
 /* Sections for a list of devices, one for each of what they are (lights, media, climate, controls, sensors, other devices; cameras as a camera section), named and iconned for it. Only the ones that have devices. */
@@ -134,7 +79,17 @@ function groupSections(list) {
   var cams = list.filter(function (d) {
     return d.kind === "camera";
   });
-  if (cams.length) out.push({ id: "camera", k: "camera", hide: false, devs: cams });
+  if (cams.length)
+    out.push({
+      id: "camera",
+      k: "devs",
+      t: _T("camera"),
+      i: "cam",
+      hide: false,
+      devs: cams.map(function (d) {
+        return Object.assign({}, d, { sz: "l" });
+      }),
+    });
   return out;
 }
 
@@ -219,37 +174,35 @@ function pageKey() {
   return CURSCOPE === "home" ? "home" : CURSCOPE.slice(5);
 }
 
-/* Builds one section of the page from its type. */
+/* Builds one section of the page. */
 function secBuildEl(s) {
-  var k = s.k || "devs",
-    pk = pageKey();
-  if (k === "link") return linkSection(s);
-  if (k === "alerts") return alertsBox();
-  if (k === "chips") return homeStatus();
-  if (k === "rooms") return secRooms();
-  if (k === "glance") return secGlance();
-  if (k === "now") return secNow();
-  if (k === "pinned") return pinsSection();
-  if (k === "status") return roomStatus(pk);
   return customSection(s);
 }
 
-/* A linked section shows another page's section, so one section is edited once and appears wherever it is linked. */
-function secKindOf(s) {
-  if (s.k === "link" && s.ref) {
-    var q = s.ref.split(":"),
-      r = secById(q[0], q[1]);
-    if (r && r.k !== "link") return r.k;
-  }
-  return s.k;
+/* The section a linked section shows, or null. */
+function linkTarget(d) {
+  var q = ((d.wx && d.wx.ref) || "").split(":");
+  return q[1] ? secById(q[0], q[1]) : null;
 }
 
-function linkSection(s) {
-  var q = (s.ref || "").split(":"),
-    src = s.ref ? secById(q[0], q[1]) : null,
+/* The Section of the current page that holds a widget. */
+function hostSection(d) {
+  return (
+    secOrder(CURSCOPE).filter(function (s) {
+      return (s.devs || []).indexOf(d) >= 0;
+    })[0] || null
+  );
+}
+
+/* How deep linked sections show linked sections: a link to a section that links back would never end. */
+var LINKDEPTH = 0;
+
+function linkSection(d) {
+  var src = linkTarget(d),
     ed = editing(),
-    host = secKey();
-  if (!src || src.k === "link") {
+    host = hostSection(d),
+    q = ((d.wx && d.wx.ref) || "").split(":");
+  if (!src || src === host || LINKDEPTH > 3) {
     return ed
       ? section(secT("link", _T("linked_section")), secI("link", "swap"), [
           pill("swap", _T("choose_a_section_to_show_here"), {
@@ -257,7 +210,7 @@ function linkSection(s) {
               return _T("the_linked_section_is_missing_or_not");
             },
             tap: function () {
-              showPopup("sec-link:" + host + ":" + s.id, true);
+              showPopup("sec-link:" + secKey() + ":" + host.id + ":" + d.wid, true);
             },
           }),
         ])
@@ -268,9 +221,11 @@ function linkSection(s) {
     pe = CURSEC;
   CURSCOPE = scopeKey(q[0]);
   CURSEC = src;
+  LINKDEPTH++;
   try {
     return secBuildEl(src);
   } finally {
+    LINKDEPTH--;
     CURSCOPE = pc;
     CURSEC = pe;
   }
@@ -279,8 +234,8 @@ function linkSection(s) {
 function secLinkPage(b, key) {
   var p = key.split(":"),
     host = p[0],
-    e = secById(host, p[1]);
-  if (!e) return;
+    w = widgetOfSection(host, p[1], p[2]);
+  if (!w) return;
   ["home"]
     .concat(
       UI.rooms.map(function (r) {
@@ -288,9 +243,8 @@ function secLinkPage(b, key) {
       })
     )
     .forEach(function (pid) {
-      if (pid === host) return;
       var list = secOrder(scopeKey(pid)).filter(function (s) {
-        return s.k !== "link";
+        return !(pid === host && s.id === p[1]);
       });
       if (!list.length) return;
       b.appendChild(sep(TITLES[pid] || pid, pid === "home" ? "home" : "bed"));
@@ -298,18 +252,16 @@ function secLinkPage(b, key) {
         b.appendChild(
           pill(secIcon(s), secName(s), {
             on: function () {
-              return e.ref === pid + ":" + s.id;
+              return w.wx.ref === pid + ":" + s.id;
             },
             sub: function () {
               return (SECTYPES[s.k] || SECTYPES.devs).t;
             },
             tap: function () {
-              e.ref = pid + ":" + s.id;
+              w.wx.ref = pid + ":" + s.id;
               setSecOrder(scopeKey(host), secOrder(scopeKey(host)));
               uiChanged();
-              STACK.pop();
-              CURRENT = null;
-              showPopup("manage-sec:" + key, false);
+              popBack();
             },
           })
         );
@@ -333,7 +285,8 @@ function secList(scope) {
   RULESIG[scope] = ruleSig(scope);
   secOrder(scope).forEach(function (s) {
     if (s.hide && !editing()) return;
-    if ((s.k === "status" || s.k === "chips") && typeof hdrStatusOn === "function" && hdrStatusOn()) return;
+    var al = widgetAlone(s);
+    if (al && (al.w === "status" || al.w === "chips") && typeof hdrStatusOn === "function" && hdrStatusOn()) return;
     var ok = ruleOk(s);
     if (!ok && !editing()) return;
     CURSEC = s;
@@ -352,7 +305,7 @@ function secList(scope) {
     outer.push(liveOf(el));
     if (!ok) ruleMark(el);
     if (s.hide) hideMark(el);
-    list.push({ el: el, wide: !!(SECTYPES[secKindOf(s)] || {}).wide || secIsWide(s), id: s.id });
+    list.push({ el: el, wide: secIsWide(s), id: s.id });
   });
   return list;
 }
@@ -431,10 +384,9 @@ function widgetAdd(lk, k) {
 }
 
 function customSection(s) {
-  var k = s.k || "devs";
-  if (k === "security") return cardSection(s, securityList(), _T("security"), "lock");
-  if (k === "energy") return cardSection(s, energyList(s), _T("energy_and_usage"), "plug");
-  if (k === "cameras") return cardSection(s, cameraList(), _T("cameras"), "cam");
+  var k = s.k || "devs",
+    only = widgetAlone(s);
+  if (only) return only.hide && !editing() ? null : widgetDef(only.w).section(only, s);
   var ed = editing(),
     lk = "~" + secKey() + "~" + s.id,
     src = [],

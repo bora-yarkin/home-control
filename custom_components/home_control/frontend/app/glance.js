@@ -170,23 +170,30 @@ var GL_IDS = ["lights", "acs", "fans", "batteries", "media", "robot"],
     robot: _T("robot"),
   };
 
+/* The At a glance widget of the current page (the first, when there are more); its tiles are kept on it. */
+function glanceWidget() {
+  var secs = secOrder(CURSCOPE);
+  for (var i = 0; i < secs.length; i++)
+    for (var j = 0; j < (secs[i].devs || []).length; j++) {
+      var d = secs[i].devs[j];
+      if (d.kind === "widget" && d.w === "glance") return d;
+    }
+  return null;
+}
+
 function glanceCfg() {
-  var e = secOrder(CURSCOPE).filter(function (x) {
-      return x.k === "glance";
-    })[0],
-    g = (e && e.gl) || {};
+  var w = glanceWidget(),
+    g = (w && w.wx.gl) || {};
   return { o: g.o || [], h: g.h || [], c: g.c || [], lm: g.lm || [] };
 }
 
 function glanceSave(fn) {
-  var o = secOrder(CURSCOPE),
-    e = o.filter(function (x) {
-      return x.k === "glance";
-    })[0];
-  e.gl = e.gl || { o: [], h: [], c: [] };
-  if (!e.gl.c) e.gl.c = [];
-  fn(e.gl);
-  setSecOrder(CURSCOPE, o);
+  var w = glanceWidget();
+  if (!w) return;
+  w.wx.gl = w.wx.gl || { o: [], h: [], c: [] };
+  if (!w.wx.gl.c) w.wx.gl.c = [];
+  fn(w.wx.gl);
+  setSecOrder(CURSCOPE, secOrder(CURSCOPE));
   uiChanged();
 }
 

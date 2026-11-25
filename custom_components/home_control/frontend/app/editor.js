@@ -398,6 +398,8 @@ function resetPage(sc) {
     devs = [];
   old.forEach(function (x) {
     (x.devs || []).forEach(function (d) {
+      /* the overviews are in the fresh sections already */
+      if (d.kind === "widget" && widgetDef(d.w) && widgetDef(d.w).section) return;
       devs.push(d);
     });
   });
@@ -412,14 +414,11 @@ function resetPage(sc) {
       secForDevice(fresh, d).devs.push(d);
     });
   old.forEach(function (x) {
-    if (!x.pins && !x.scn) return;
+    if (!x.scn) return;
     var t = fresh.filter(function (y) {
-      return y.k === x.k && !y.pins && !y.scn;
+      return y.k === x.k && !y.scn;
     })[0];
-    if (t) {
-      if (x.pins) t.pins = x.pins;
-      if (x.scn) t.scn = x.scn;
-    }
+    if (t) t.scn = x.scn;
   });
   setSecOrder(sc, fresh);
   uiChanged();
@@ -468,14 +467,7 @@ function secAdd(sc, k) {
 }
 
 /* The kinds of section there are, by what they are for, for the Add section list. */
-var SEC_GROUPS = [
-  ["sec_group_section", "tune", ["devs"]],
-  ["sec_group_overview", "home", ["glance", "now", "rooms", "alerts", "chips", "status"]],
-  ["sec_group_scenes", "scene", ["pinned"]],
-  ["sec_group_information", "info", ["security", "energy"]],
-  ["sec_group_cameras", "cam", ["cameras"]],
-  ["sec_group_tools", "swap", ["link"]],
-];
+var SEC_GROUPS = [["sec_group_section", "tune", ["devs"]]];
 
 function secTypesPage(b, scopeId) {
   var sc = scopeKey(scopeId),
@@ -865,7 +857,7 @@ function roomNewPage(b) {
             sections = draft.area && draft.suggest ? groupSections(areaDevices(draft.area)) : [];
           if (!sections.length) sections = [{ id: "main", k: "devs", hide: false, devs: [] }];
           UI.rooms.push({ id: id, name: draft.name || _T("new_room"), short: "", icon: "home", area: draft.area });
-          UI.layout.rooms[id] = [{ id: "status", k: "status", hide: false }].concat(sections);
+          UI.layout.rooms[id] = [widgetSection("status", "status")].concat(sections);
           uiChanged();
           toast(_T("rn_created"));
           closeSheet();
@@ -913,100 +905,8 @@ function secEditor(b, key) {
   function draw() {
     var k = e.k || "devs",
       ty = SECTYPES[k] || SECTYPES.devs;
-    if (k === "link") {
-      var lq = (e.ref || "").split(":"),
-        ls = e.ref ? secById(lq[0], lq[1]) : null;
-      box.appendChild(
-        pill("swap", ls ? secName(ls) : _T("no_section_chosen"), {
-          sub: function () {
-            return ls
-              ? (TITLES[lq[0]] || lq[0]) + " · " + _T("tap_to_choose_another_2")
-              : _T("tap_to_choose");
-          },
-          tap: function () {
-            showPopup("sec-link:" + key, true);
-          },
-        })
-      );
-      if (ls && ls.k !== "link")
-        box.appendChild(
-          pill("plus", _T("make_an_independent_copy"), {
-            sub: function () {
-              return _T("stops_following_the_original_section");
-            },
-            tap: function () {
-              var c = JSON.parse(JSON.stringify(ls));
-              c.id = newSecId(order);
-              delete c.ref;
-              order[order.indexOf(e)] = c;
-              setSecOrder(sk, order);
-              uiChanged();
-              popBack();
-            },
-          })
-        );
-    }
-    if (k === "energy") {
-      box.appendChild(sep(_T("cost"), "plug"));
-      box.appendChild(
-        numRow(
-          "plug",
-          _T("price_per_kwh_empty_hides_the_cost"),
-          e.price,
-          function (v) {
-            if (v && v > 0) e.price = Math.round(v * 10000) / 10000;
-            else delete e.price;
-            save();
-          },
-          0,
-          1000
-        )
-      );
-      box.appendChild(
-        textRow(
-          "edit",
-          _T("currency_symbol"),
-          e.cur || "",
-          function (v) {
-            if (v) e.cur = v.slice(0, 4);
-            else delete e.cur;
-            save();
-          },
-          4
-        )
-      );
-    }
-    if (k === "alerts") {
-      box.appendChild(sep(_T("show_these_alerts"), "alert"));
-      [
-        ["battery", _T("low_batteries"), "battery"],
-        ["vacuum", _T("robot_vacuum_needs_attention"), "vac"],
-        ["camera", _T("camera_offline"), "cam"],
-        ["climate", _T("air_conditioner_offline"), "ac"],
-        ["lights", _T("light_unavailable"), "lights"],
-      ].forEach(function (a) {
-        box.appendChild(
-          pill(a[2], a[1], {
-            on: function () {
-              return alertOn(a[0]);
-            },
-            tap: function () {
-              var off = ((STORE.cfg && STORE.cfg.alertOff) || []).slice(),
-                i = off.indexOf(a[0]);
-              if (i >= 0) off.splice(i, 1);
-              else off.push(a[0]);
-              STORE.cfg = cleanCfg(Object.assign({}, STORE.cfg, { alertOff: off }));
-              storeChanged();
-              refresh();
-            },
-          })
-        );
-      });
-    }
     /* Sections that list items can show them in one, two or three columns. Pinned items and quick actions already had a default shape (2 columns, 4 tiles), which stays when nothing is chosen. */
-    if (
-      ["devs", "pinned"].indexOf(k) >= 0
-    ) {
+    if (k === "devs") {
       box.appendChild(sep(_T("layout"), "tune"));
       box.appendChild(
         dropRow(
@@ -1028,17 +928,6 @@ function secEditor(b, key) {
         )
       );
     }
-    if (k === "pinned")
-      box.appendChild(
-        pill("pin", _T("pinned_items"), {
-          sub: function () {
-            return (e.pins || []).length + " / 12";
-          },
-          tap: function () {
-            showPopup("pick-pin:" + key, true);
-          },
-        })
-      );
     /* Whether it is shown and when, then the actions. */
     box.appendChild(sep(_T("dp_in_the_section"), "home"));
     box.appendChild(
@@ -1083,6 +972,9 @@ function secEditor(b, key) {
             var c = JSON.parse(JSON.stringify(e));
             c.id = newSecId(order);
             c.t = (e.t || ty.t).slice(0, 36) + " 2";
+            (c.devs || []).forEach(function (x) {
+              if (x.kind === "widget") x.wid = widgetNewId();
+            });
             order.splice(order.indexOf(e) + 1, 0, c);
             setSecOrder(sk, order);
             /* the lights masters it holds are copies with ids of their own */

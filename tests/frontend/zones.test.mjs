@@ -48,6 +48,7 @@ test("a new dashboard puts the main light of a gradient tube on its page and not
     _T: (k) => k,
   });
   vm.runInContext(readFileSync(new URL("model.js", APP), "utf8"), context);
+  vm.runInContext(readFileSync(new URL("widgetkinds.js", APP), "utf8"), context);
   const seeded = plain(context.seedUI());
   assert.deepEqual(seeded.devs.r_room.map((d) => d.id), ["light.tube", "light.lamp"]);
 });

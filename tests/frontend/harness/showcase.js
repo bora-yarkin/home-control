@@ -124,7 +124,7 @@ export async function buildShowcase() {
     ["scenes", "Scenes", "scene"],
   ];
   w.UI.rooms.push({ id: "showcase", name: "Showcase", short: "Showcase", icon: "home", area: "" });
-  w.UI.layout.rooms.showcase = [{ id: "status", k: "status", hide: false }, { id: "camera", k: "camera", hide: false, devs: [] }].concat(sections.map(([id, t, i]) => ({ id, k: "devs", t, i, hide: false, devs: [] })));
+  w.UI.layout.rooms.showcase = [w.widgetSection("status", "status"), { id: "camera", k: "devs", t: "Camera", i: "cam", hide: false, devs: [] }].concat(sections.map(([id, t, i]) => ({ id, k: "devs", t, i, hide: false, devs: [] })));
   /* The first invented room of the harness, the demo living room, is not made by the dashboard's seeding when a real home is loaded (its saved layout is used instead): it is made here. */
   if (window.__home && !w.UI.rooms.some((r) => r.id === "r_living")) {
     const h = w.H();
@@ -134,7 +134,7 @@ export async function buildShowcase() {
       .map((id) => w.areaDevice("living", id))
       .filter(Boolean);
     w.UI.rooms.push({ id: "r_living", name: "Demo living room", short: "Demo", icon: "home", area: "living" });
-    w.UI.layout.rooms.r_living = [{ id: "status", k: "status", hide: false }].concat(w.groupSections(list));
+    w.UI.layout.rooms.r_living = [w.widgetSection("status", "status")].concat(w.groupSections(list));
   }
   w.uiChanged();
   const put = (sec, ids) =>
