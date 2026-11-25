@@ -418,7 +418,7 @@ function hdrPage(box, m) {
     box.appendChild(sep(_T("header_items"), "home"));
     var rows = [];
     m.hdr.forEach(function (it, i) {
-      var r = hdrItem(it) || { i: "info", t: HLAB[it.k] },
+      var r = hdrItem(it) || { i: it.k === "alerts" ? "alert" : "info", t: HLAB[it.k] },
         p = pill(r.i, r.t, {
           sub: function () {
             return HLAB[it.k] + (hdrShown(it) ? "" : " · " + _T("hidden").toLowerCase());
