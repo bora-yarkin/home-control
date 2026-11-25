@@ -915,6 +915,12 @@ var POPUP_DEFS = {
   "vacap-a": function (id) {
     return { title: _T("vacap_start_actions"), icon: "play", build: function (b) { vacapItemPage(b, id, "run"); } };
   },
+  "vacap-zones": function (id) {
+    return { title: _T("vacap_zones"), icon: "target", build: function (b) { vacapZonePage(b, id); } };
+  },
+  "vacap-text": function (id) {
+    return { title: _T("vacap_text"), icon: "edit", build: function (b) { vacapTextPage(b, id); } };
+  },
   "vacap-pick": function () {
     return {
       title: _T("vacap_pick_room"),

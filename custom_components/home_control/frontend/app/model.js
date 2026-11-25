@@ -353,6 +353,18 @@ function cleanVac(v) {
   v = v && typeof v === "object" ? v : {};
   var out = { rooms: [], sets: [], run: [] };
   if (v.nost) out.nost = 1;
+  if (v.nopr) out.nopr = 1;
+  var z = v.zones,
+    plainData = function (x) {
+      return x && typeof x === "object" && !Array.isArray(x) && JSON.stringify(x).length <= 1000;
+    };
+  if (z && word(z.action, /^[a-z_]+\.[a-z0-9_]+$/)) {
+    out.zones = { action: z.action, data: plainData(z.data) ? JSON.parse(JSON.stringify(z.data)) : {} };
+    ["no_go", "walls"].forEach(function (k) {
+      var path = word(z[k], /^[A-Za-z0-9_*|.-]{1,200}$/);
+      if (path) out.zones[k] = path;
+    });
+  }
   list(v.rooms, 40).forEach(function (r) {
     var k = r && word(r.k, /^[A-Za-z0-9_-]{1,24}$/);
     if (k && !out.rooms.some(function (x) { return x.k === k; })) out.rooms.push({ k: k, l: label(r.l) });
@@ -379,6 +391,14 @@ function cleanVac(v) {
     if (!action || !r.data || typeof r.data !== "object" || Array.isArray(r.data) || JSON.stringify(r.data).length > 1000) return;
     var step = { action: action, data: JSON.parse(JSON.stringify(r.data)) };
     if (r.each) step.each = 1;
+    if (r.expect && typeof r.expect === "object") {
+      var expect = {};
+      Object.keys(r.expect).slice(0, 4).forEach(function (n) {
+        var x = r.expect[n];
+        if (/^[A-Za-z0-9_]{1,40}$/.test(n) && (typeof x === "boolean" || (typeof x === "number" && isFinite(x)) || (typeof x === "string" && x.length <= 40))) expect[n] = x;
+      });
+      if (Object.keys(expect).length) step.expect = expect;
+    }
     out.run.push(step);
   });
   return out;

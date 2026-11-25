@@ -2,9 +2,12 @@
    its settings and what Start does.
    ap.vac: rooms [{k: the value the vacuum knows the room by, l: its name}], sets [{k: the field name, l: label, o: [values], e?: a select entity for all rooms}],
    run [{action: "domain.service", data: {...}}]. In an action's data these words are replaced when Start is tapped: "$rooms" (the chosen rooms, all of them when none),
+   "$room_numbers" (the same, digits as numbers),
    "$room_settings" ({room: {field: value}}, only what was chosen), "$vacuum" (the vacuum entity), "$vacuum_device" (its device id), "$set.<field>" (the choice for all rooms).
    An action that needs a word with nothing behind it is skipped. With no action Start starts the vacuum. The map is the appliance's own picture from the remote builder, whose
-   touch areas pick rooms, else the map entity. A room's own settings are kept with the dashboard, as the Xiaomi rooms' are. */
+   touch areas pick rooms, else the map entity. A room's own settings are kept with the dashboard, as the Xiaomi rooms' are; ap.vac.nopr turns them off.
+   ap.vac.zones {action, data, no_go, walls} asks the vacuum for its no-go zones and walls: an action that answers, and where in the answer they are.
+   Everything here can also be read and written as text (app/vacsetup.js). The format is described in docs/vacuum-appliance.md. */
 
 var VACAP = {};
 /* The room list a map's touch area is choosing from. */
@@ -74,6 +77,55 @@ function vacapZones(ap, mapEnt) {
     { wall: false, items: from("no_go", "no_go_areas") },
     { wall: true, items: from("walls", "virtual_walls") },
   ];
+}
+
+/* The values at a path of an answer: names separated by ".", "*" for every value of an object or list, "|" between places to try (the first that holds anything wins). A text that holds
+   JSON on the way is read as JSON, since some vacuums answer in text. Lists found at the end are joined. */
+function vacapPath(value, path) {
+  function open(v) {
+    if (typeof v === "string" && /^\s*[\[{]/.test(v))
+      try {
+        return JSON.parse(v);
+      } catch (e) {}
+    return v;
+  }
+  function walk(v, parts, out) {
+    v = open(v);
+    if (!parts.length) {
+      if (Array.isArray(v)) out.push.apply(out, v);
+      else if (v && typeof v === "object") out.push(v);
+      return;
+    }
+    if (!v || typeof v !== "object") return;
+    if (parts[0] === "*")
+      Object.keys(v).forEach(function (k) {
+        walk(v[k], parts.slice(1), out);
+      });
+    else if (Object.prototype.hasOwnProperty.call(v, parts[0])) walk(v[parts[0]], parts.slice(1), out);
+  }
+  var alternatives = String(path).split("|");
+  for (var i = 0; i < alternatives.length; i++) {
+    var found = [];
+    walk(value, alternatives[i].split("."), found);
+    if (found.length) return found;
+  }
+  return [];
+}
+
+/* The zones for the map: asked from the vacuum when an action for that is set, else read from the entities and the map. */
+function vacapZoneGroups(ap, vacuum, mapEnt) {
+  var z = vacapConf(ap).zones;
+  if (!z) return Promise.resolve(vacapZones(ap, mapEnt));
+  var e = vacuum && H().entities && H().entities[vacuum],
+    data = vacapFill(z.data, { $vacuum: vacuum || "", $vacuum_device: (e && e.device_id) || "" }),
+    p = z.action.split(".");
+  if (data === undefined) return Promise.resolve([]);
+  return window.HA.serviceResponse(p[0], p[1], data).then(function (r) {
+    return [
+      { wall: false, items: vacapPath(r, z.no_go || "no_go_areas|no_go") },
+      { wall: true, items: vacapPath(r, z.walls || "virtual_walls|walls") },
+    ];
+  });
 }
 
 /* The rooms: those listed in the set-up, else the ones the map names (its `rooms` attribute: {number, name}), as a vacuum card reads them from the robot. */
@@ -159,6 +211,11 @@ function vacapSendsRoomSettings(conf) {
   return /\$room_settings|\$room\./.test(JSON.stringify(conf.run));
 }
 
+/* A room has settings of its own when they are not turned off and Start sends them. */
+function vacapPerRoom(conf) {
+  return !conf.nopr && conf.sets.length > 0 && vacapSendsRoomSettings(conf);
+}
+
 /* The words of an action's data, filled in. A string that is only a word becomes its value; a word inside a longer string is written into it (a list or an object as JSON, a number
    written as digits as a number: {"room":$rooms} gives {"room":[3,4]}, which some vacuums take as one text). Returns undefined when a word has nothing behind it, so that the action is
    skipped. */
@@ -173,7 +230,7 @@ function vacapFill(data, words) {
     if (Array.isArray(w)) return JSON.stringify(w.map(vacapValue));
     return w && typeof w === "object" ? JSON.stringify(w) : JSON.stringify(String(w)).slice(1, -1);
   }
-  var WORD = /\$(set\.[A-Za-z0-9_]+|room_settings|room_name|room\.[A-Za-z0-9_]+|rooms|room|vacuum_device|vacuum)/g;
+  var WORD = /\$(set\.[A-Za-z0-9_]+|room_settings|room_name|room_numbers|room\.[A-Za-z0-9_]+|rooms|room|vacuum_device|vacuum)/g;
   function walk(x) {
     if (typeof x === "string" && x.charAt(0) === "$" && (Object.prototype.hasOwnProperty.call(words, x) || !/[^$A-Za-z0-9_.]/.test(x))) return value(x);
     if (typeof x === "string" && x.indexOf("$") >= 0)
@@ -205,7 +262,7 @@ function vacapWords(ap, vacuum, chosen, all, pref) {
         }),
     settings = {},
     e = vacuum && H().entities && H().entities[vacuum],
-    words = { $rooms: rooms.slice(), $vacuum: vacuum || "", $vacuum_device: (e && e.device_id) || "" };
+    words = { $rooms: rooms.slice(), $room_numbers: rooms.map(vacapValue), $vacuum: vacuum || "", $vacuum_device: (e && e.device_id) || "" };
   rooms.forEach(function (r) {
     var own = pref(r),
       m = {};
@@ -222,10 +279,38 @@ function vacapWords(ap, vacuum, chosen, all, pref) {
   return words;
 }
 
+/* One action of Start. Some integrations call every action a success and say what really happened in the answer: with `expect` ({field: value}) the answer is read, an action
+   whose answer says otherwise is sent once more, and then Start fails with the answer's `error`. */
+function vacapCall(domain, service, data, expect) {
+  if (!expect) return H().callService(domain, service, data);
+  var again = true;
+  function go() {
+    return window.HA.serviceResponse(domain, service, data).then(function (answer) {
+      var wrong =
+        answer &&
+        Object.keys(expect).filter(function (k) {
+          return answer[k] !== expect[k];
+        })[0];
+      if (!wrong) return;
+      if (again) {
+        again = false;
+        return vacapPause().then(go);
+      }
+      throw new Error(answer.error || wrong + " " + answer[wrong]);
+    });
+  }
+  return go();
+}
+
 /* Runs the actions one after the other. */
 function vacapStart(ap, vacuum, chosen, all, pref) {
-  var conf = vacapConf(ap),
-    words = vacapWords(ap, vacuum, chosen, all, pref);
+  var conf = vacapConf(ap);
+  /* a room's own choices are kept while they are turned off, but not sent */
+  if (conf.nopr)
+    pref = function () {
+      return {};
+    };
+  var words = vacapWords(ap, vacuum, chosen, all, pref);
   /* a select bound to a setting takes the choice for all rooms first */
   var before = conf.sets
     .filter(function (s) {
@@ -257,7 +342,7 @@ function vacapStart(ap, vacuum, chosen, all, pref) {
       if (data === undefined) return;
       var p = r.action.split(".");
       actions.push(function () {
-        return H().callService(p[0], p[1], data);
+        return vacapCall(p[0], p[1], data, r.expect);
       });
     });
   });
@@ -391,7 +476,7 @@ function vacapPage(b, d) {
         return (apFind(d.aid) || d).map || {};
       },
       zones: function () {
-        return Promise.resolve(vacapZones(ap, mapEnt));
+        return vacapZoneGroups(ap, vacuum, mapEnt);
       },
     });
   else if (img) {
@@ -476,7 +561,7 @@ function vacapPage(b, d) {
       t._k = r.k;
       t.setAttribute("role", "button");
       /* a room's own settings are offered only when Start sends them */
-      if (ISADMIN && conf.sets.length && vacapSendsRoomSettings(conf)) {
+      if (ISADMIN && vacapPerRoom(conf)) {
         var gear = mk("span", "rb-g", svg("tune"));
         gear.title = _T("room_preferences");
         gear.addEventListener("click", function (e) {
@@ -793,10 +878,36 @@ function vacapEditor(box, d, redraw) {
     "vacap_start_actions"
   );
   box.appendChild(hintRow(_T("vacap_start_hint")));
+  box.appendChild(sep(_T("vacap_options"), "tune"));
+  box.appendChild(
+    flagPill("home", _T("vacap_per_room"), conf, "nopr", function (on) {
+      return !on ? _T("off") : vacapSendsRoomSettings(conf) ? _T("on_cap") : _T("vacap_per_room_unsent");
+    }, true)
+  );
+  box.appendChild(
+    pill("target", _T("vacap_zones"), {
+      sub: function () {
+        return conf.zones ? conf.zones.action : _T("vacap_zones_from_entities");
+      },
+      tap: function () {
+        showPopup("vacap-zones:" + aid, true);
+      },
+    })
+  );
   box.appendChild(
     flagPill("info", _T("vacap_status_tile"), conf, "nost", function (on) {
       return on ? _T("on_cap") : _T("off");
     }, true)
+  );
+  box.appendChild(
+    pill("edit", _T("vacap_text"), {
+      sub: function () {
+        return _T("vacap_text_sub");
+      },
+      tap: function () {
+        showPopup("vacap-text:" + aid, true);
+      },
+    })
   );
   /* the map's look, the same settings a vacuum device has */
   if (ap.slots.map && !(d.rm && d.rm.v === "i" && d.rm.img))
@@ -811,6 +922,58 @@ function vacapEditor(box, d, redraw) {
       },
       redraw: redraw,
     });
+}
+
+/* Where the no-go zones come from: nothing set, the entities and the map; else an action that answers with them. */
+function vacapZonePage(b, aid) {
+  var d = apFind(aid);
+  if (!d) return;
+  var conf = vacapConf(d.ap),
+    z = conf.zones || { action: "", data: {}, no_go: "", walls: "" };
+  function keep() {
+    if (z.action) conf.zones = z;
+    else delete conf.zones;
+    uiChanged();
+  }
+  function field(label, key, re, max) {
+    b.appendChild(sep(_T(label), "edit"));
+    b.appendChild(
+      textRow(
+        "edit",
+        _T(label),
+        z[key] || "",
+        function (v) {
+          if (v && !re.test(v)) return toast(_T("vacap_bad_value"));
+          z[key] = v;
+          keep();
+        },
+        max
+      )
+    );
+  }
+  b.appendChild(hintRow(_T("vacap_zones_hint")));
+  field("vacap_action", "action", /^[a-z_]+\.[a-z0-9_]+$/, 80);
+  b.appendChild(sep(_T("vacap_data"), "edit"));
+  b.appendChild(
+    areaRow(
+      _T("vacap_data"),
+      JSON.stringify(z.data || {}, null, 2),
+      function (v) {
+        try {
+          var o = JSON.parse(v || "{}");
+          if (!o || typeof o !== "object" || Array.isArray(o)) throw new Error("not an object");
+          z.data = o;
+          keep();
+        } catch (e) {
+          toast(_T("vacap_bad_data"));
+        }
+      },
+      1000
+    )
+  );
+  field("vacap_zones_path", "no_go", /^[A-Za-z0-9_*|.-]+$/, 200);
+  field("vacap_walls_path", "walls", /^[A-Za-z0-9_*|.-]+$/, 200);
+  b.appendChild(hintRow(_T("vacap_path_hint")));
 }
 
 /* Whether the map's further settings are open in the editor. */
@@ -912,6 +1075,25 @@ function vacapItemPage(b, key, list) {
         },
         1000
       )
+    );
+    field(
+      "vacap_expect",
+      Object.keys(x.expect || {})
+        .map(function (k) {
+          return k + "=" + x.expect[k];
+        })
+        .join(", "),
+      function (v) {
+        var expect = {};
+        v.split(",").forEach(function (pair) {
+          var m = /^\s*([A-Za-z0-9_]+)\s*=\s*(.+?)\s*$/.exec(pair);
+          if (m) expect[m[1]] = /^-?\d+$/.test(m[2]) ? Number(m[2]) : m[2] === "true" ? true : m[2] === "false" ? false : m[2];
+        });
+        if (Object.keys(expect).length) x.expect = expect;
+        else delete x.expect;
+      },
+      200,
+      "vacap_expect_hint"
     );
     b.appendChild(hintRow(_T("vacap_start_hint")));
   }

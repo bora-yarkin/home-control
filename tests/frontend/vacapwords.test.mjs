@@ -31,7 +31,9 @@ test("a word with nothing behind it skips the action, alone or inside a text, an
 test("a room has its own settings only when Start sends them", () => {
   assert.equal(ctx.vacapSendsRoomSettings({ run: [{ data: { p: "$rooms" } }] }), false);
   assert.equal(ctx.vacapSendsRoomSettings({ run: [{ data: { s: "$room_settings" } }] }), true);
-  assert.match(src, /ISADMIN && conf\.sets\.length && vacapSendsRoomSettings\(conf\)/);
+  assert.equal(ctx.vacapPerRoom({ sets: [{}], run: [{ data: { s: "$room_settings" } }] }), true);
+  assert.equal(ctx.vacapPerRoom({ nopr: 1, sets: [{}], run: [{ data: { s: "$room_settings" } }] }), false, "turned off");
+  assert.match(src, /ISADMIN && vacapPerRoom\(conf\)/);
 });
 
 test("an action once per room gets that room's words, with a setting's value as the number the vacuum knows it by", () => {
