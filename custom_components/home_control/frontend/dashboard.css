@@ -571,7 +571,7 @@ body.editing main{padding-top:calc(94px + env(safe-area-inset-top,0px))}
 .gridl.lp-pg>:last-child:nth-child(odd){grid-column:1/-1}
 .chartc{padding:12px 14px 12px}
 .chartc .rg{display:flex;justify-content:flex-end;gap:6px;margin-bottom:8px}
-.chartc .rg .rbtn{min-height:28px;padding:0 11px;border-radius:var(--r-s);font-size:var(--fs-s)}
+.chartc .rg .rbtn{min-height:28px;padding:0 11px;border-radius:var(--r-row);font-size:var(--fs-s)}
 .chartc .plw{position:relative}
 .chartc svg{width:100%;height:132px;display:block;overflow:visible;color:var(--ink)}
 .chartc .ax{position:absolute;left:2px;top:-2px;font-size:var(--fs-xs);color:var(--ink2)}
