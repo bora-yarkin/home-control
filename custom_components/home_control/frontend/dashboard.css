@@ -1043,7 +1043,7 @@ body.rwall .hsky{display:none}
 .wgrid>.w-l{min-height:220px}
 
 /* Home screen widgets (decision D-25, app/homewidgets.js). */
-.wc{display:flex;flex-direction:column;justify-content:center;gap:4px;padding:14px;min-height:92px;overflow:hidden;position:relative;cursor:default}
+.wc{display:flex;flex-direction:column;justify-content:center;gap:4px;padding:14px;min-height:92px;overflow:hidden;position:relative;cursor:default;border-radius:var(--r-row)}
 .wc>b{font-size:var(--fs-l);font-weight:600;line-height:1.1}
 .wc>span,.wc>i{font-size:var(--fs-xs);color:var(--ink2);font-style:normal}
 .wc.clk>b{font-size:34px;letter-spacing:-.5px}

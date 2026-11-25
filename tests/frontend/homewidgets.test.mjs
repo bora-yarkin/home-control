@@ -118,3 +118,9 @@ test("a widget does not show an entity that the dashboard's access settings hide
   assert.match(src, /x\.ids\.filter\(wxVisible\)/, "a folder leaves out what is hidden");
   assert.doesNotMatch(src, /callRaw\(/, "no widget calls a service around the access gate");
 });
+
+test("a widget card has the corner radius of the dashboard's rows and tiles, and the clock says the weather in the header's words", () => {
+  const css = readFileSync(new URL("../dashboard.css", APP), "utf8");
+  assert.match(css, /\.wc\{[^}]*border-radius:var\(--r-row\)/, "the same 14px as a row, a tile, a note and a chart");
+  assert.match(read("homewidgets.js"), /HCOND\[V_\(w\)\]/);
+});

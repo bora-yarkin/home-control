@@ -73,7 +73,7 @@ registerWidget("clock", {
     c.appendChild(dt);
     c.appendChild(wx);
     function weatherId() {
-      return x.id || Object.keys(H().states).filter(function (k) { return k.indexOf("weather.") === 0; })[0] || "";
+      return x.id || firstWeather();
     }
     function up() {
       var n = new Date();
@@ -82,7 +82,8 @@ registerWidget("clock", {
       var w = weatherId(),
         t = w && A(w).temperature;
       if (w && !wxVisible(w)) w = "";
-      wx.textContent = w && S(w) ? (typeof t === "number" ? Math.round(t) + "° · " : "") + cap(String(V_(w)).replace(/-/g, " ")) : "";
+      /* the words the header uses for a condition */
+      wx.textContent = w && S(w) ? (typeof t === "number" ? Math.round(t) + "° · " : "") + (HCOND[V_(w)] || [cap(String(V_(w)).replace(/[-_]/g, " "))])[0] : "";
     }
     up();
     reg(up);
