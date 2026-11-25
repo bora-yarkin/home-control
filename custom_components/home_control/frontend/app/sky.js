@@ -659,32 +659,23 @@ function skyDrawTop(ds) {
   });
 }
 
+/* The height the sky is drawn at, at least (px). */
+var SKYH_MIN = 320;
+
 function skyDraw() {
   var cv = SKYS.cv,
     sc = SKYS.scene;
   if (!cv || !sc) return;
   var dpr = Math.min(window.devicePixelRatio || 1, 2),
     w = cv.clientWidth,
-    h = cv.clientHeight;
-  if (!w || !h) return;
-  /* While the header slides open or shut the sky keeps the size it had and is stretched with the header; sizing it on every frame would make a new picture, with new stars and clouds, sixty times a second. It takes its new size once, when the slide ends. */
-  if (SKYS.w && SKYS.hd && SKYS.hd._hslide && w === SKYS.w) {
-    w = SKYS.w;
-    h = SKYS.h;
-  }
+    /* The sky is drawn at one height, taller than the header ever is (it only grows if the header does), and the header shows as much of it as it is tall. A header that opens or shuts, as its status row comes and goes, then reveals or hides sky instead of stretching it or making a new one. */
+    h = Math.max(SKYS.stage || 0, SKYH_MIN, cv.parentNode.clientHeight);
+  if (!w || !cv.parentNode.clientHeight) return;
+  SKYS.stage = h;
+  cv.style.height = h + "px";
+  if (SKYS.top) SKYS.top.style.height = h + "px";
   var p = sc.p;
-  if (SKYS.w && w === SKYS.w && h !== SKYS.h && SKYS.key === sc.key) {
-    /* Only the height changed (the header's status row came or went): the same stars, clouds and drops are kept, moved to their place in the new height, and only the picture is given its new size. */
-    var kh = h / SKYS.h;
-    [SKYS.stars, SKYS.parts, SKYS.motes].forEach(function (l) {
-      (l || []).forEach(function (o) {
-        o.y *= kh;
-      });
-    });
-    SKYS.h = h;
-    cv.width = Math.round(w * dpr);
-    cv.height = Math.round(h * dpr);
-  } else if (w !== SKYS.w || h !== SKYS.h || SKYS.key !== sc.key) {
+  if (w !== SKYS.w || h !== SKYS.h || SKYS.key !== sc.key) {
     SKYS.w = w;
     SKYS.h = h;
     SKYS.key = sc.key;

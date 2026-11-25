@@ -56,8 +56,13 @@ test("the header takes Attention as a chip and a tile, and each is cleaned", () 
   assert.match(header, /add_attention/);
 });
 
-test("the sky keeps its stars and clouds when only the header's height changes, and holds its size while the header slides", () => {
+test("the sky is drawn at one stage height that the header shows as much of as it is tall, so a header that opens or shuts never stretches or remakes it", () => {
   const sky = read("sky.js");
-  assert.match(sky, /SKYS\.hd\._hslide && w === SKYS\.w/);
-  assert.match(sky, /o\.y \*= kh/);
+  assert.match(sky, /var SKYH_MIN = 320/);
+  assert.match(sky, /h = Math\.max\(SKYS\.stage \|\| 0, SKYH_MIN, cv\.parentNode\.clientHeight\)/);
+  assert.match(sky, /cv\.style\.height = h \+ "px"/);
+  assert.match(sky, /SKYS\.top\.style\.height = h \+ "px"/, "the drops on the controls share the same stage");
+  assert.doesNotMatch(sky, /o\.y \*= kh/);
+  const css = readFileSync(new URL("../dashboard.css", APP), "utf8");
+  assert.match(css, /\.hsky canvas\{position:absolute;inset:0 0 auto 0/, "anchored to the top, clipped by the header");
 });

@@ -1011,14 +1011,14 @@ body.light [data-k=link]{--kc:#5a6fc4}
 .hdr{position:relative;overflow:hidden}
 .hsky{position:absolute;inset:0;border-radius:inherit;overflow:hidden;pointer-events:none;z-index:0;opacity:0;transition:opacity 1.2s;--scrim:.3}
 .hsky.on{opacity:1}
-.hsky canvas{position:absolute;inset:0;width:100%;height:100%;display:block}
+.hsky canvas{position:absolute;inset:0 0 auto 0;width:100%;height:100%;display:block}
 .hsky::after{content:"";position:absolute;inset:0;background:linear-gradient(90deg,rgba(8,12,20,calc(var(--scrim) + .3)) 0,rgba(8,12,20,calc(var(--scrim) + .08)) 36%,rgba(8,12,20,var(--scrim)) 100%),linear-gradient(0deg,rgba(8,12,20,calc(var(--scrim) * .8)) 0,transparent 45%)}
 body.rwall .hsky{display:none}
 .hdr:has(.hsky.on){--ink:#f5f7fa;--ink2:rgba(245,247,250,.8);border-color:rgba(255,255,255,.14)!important}
 .hdr:has(.hsky.on) #clk,.hdr:has(.hsky.on) #dt,.hdr:has(.hsky.on) .title,.hdr:has(.hsky.on) .eyebrow,.hdr:has(.hsky.on) .hchip{text-shadow:0 1px 2px rgba(0,0,0,.35),0 1px 12px rgba(0,0,0,.4)}
 .hdr:has(.hsky.on) .rnd.pane,.hdr:has(.hsky.on) .hchip{background:rgba(255,255,255,.09)!important;border:1px solid rgba(255,255,255,.3)!important;color:var(--ink);box-shadow:none!important}
 .hdr:has(.hsky.on) .rnd.pane:hover,.hdr:has(.hsky.on) .rnd.pane:active{background:rgba(255,255,255,.2)!important}
-.hdr>.hskytop{position:absolute;inset:0;width:100%;height:100%;z-index:3;pointer-events:none;border-radius:inherit}
+.hdr>.hskytop{position:absolute;inset:0 0 auto 0;width:100%;height:100%;z-index:3;pointer-events:none;border-radius:inherit}
 /* The status of a page as a row of the header: a pill for each reading, the same pills as the weather and lights chips (label, then value). The header grows by the row. */
 .hdr>.hstat{position:relative;z-index:1;overflow:hidden}
 .hdr .hstin{padding-top:12px}

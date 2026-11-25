@@ -10,7 +10,7 @@ Format: [Keep a Changelog](https://keepachangelog.com/). Versions follow [semant
 
 ### Changed
 - **Status tiles are in two independent places** (decision D-27): the header's status row is a page's own list of tiles, edited in the header's settings (*Status tiles in the header*), and the Status Section is a plain Section whose tiles are added like any device. The setting that chose between them is gone; dashboards are converted when they open (layout 8) and show what they showed.
-- The header slides to its new height when you move to a page with more or fewer status tiles, and the page follows it, instead of jumping, and the sky behind it keeps its stars and clouds instead of being drawn again on every frame.
+- The header slides to its new height when you move to a page with more or fewer status tiles, and the page follows it, instead of jumping, and the sky behind it is drawn at one height that the header reveals or clips, so it no longer stretches or jumps when the header opens or shuts.
 
 ## [0.23.0] - 2026-11-25
 
