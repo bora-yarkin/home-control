@@ -17,6 +17,9 @@ var AP_SLOTS = {
   vacuum: { l: "ap_vacuum_entity", doms: ["vacuum"] },
   battery: { l: "battery", doms: ["sensor"], read: true },
   map: { l: "px_map", doms: ["camera", "image"], read: true },
+  position: { l: "vacap_position", doms: ["sensor"], read: true },
+  no_go: { l: "no_go_zones", doms: ["sensor"], read: true },
+  walls: { l: "vacap_walls", doms: ["sensor"], read: true },
 };
 
 /* A type only chooses which slots the editor offers first and the icon: every slot can still be used on any type. */
@@ -28,7 +31,7 @@ var AP_TYPES = {
   coffee: { l: "ap_coffee", icon: "drop", names: { program: "ap_n_drink", level: "ap_n_strength" }, slots: ["state", "program", "level", "start", "stop", "progress", "remaining", "door", "permission"] },
   fridge: { l: "ap_fridge", icon: "thermo", names: { temperature: "ap_n_fridge", level: "ap_n_mode" }, slots: ["state", "temperature", "current", "door", "level"] },
   projector: { l: "ap_projector", icon: "media", names: { program: "ap_n_source", level: "ap_n_picture", temperature: "ap_n_keystone" }, slots: ["state", "program", "level", "start", "stop", "remaining", "temperature"] },
-  vacuum: { l: "ap_vacuum", icon: "vac", slots: ["vacuum", "battery", "map", "state"] },
+  vacuum: { l: "ap_vacuum", icon: "vac", slots: ["vacuum", "battery", "map", "position", "no_go", "walls", "state"] },
   other: { l: "ap_appliance", icon: "plug", slots: ["state", "program", "level", "start", "stop", "progress", "remaining", "door", "permission", "temperature", "duration"] },
 };
 var AP_EXTRA_DOMS = ["select", "input_select", "number", "input_number", "switch", "input_boolean", "binary_sensor", "sensor", "button", "input_button", "script"];

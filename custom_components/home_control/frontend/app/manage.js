@@ -1057,6 +1057,7 @@ function devBehaviourTab(c) {
 
 /* How a vacuum's map is drawn. The choices are kept in d.map and the key is dropped when it is back to its default. */
 function devVacuumMapOptions(c) {
+  /* also a robot vacuum appliance's map: its `d` keeps the same settings */
   var d = c.d,
     box = c.box,
     mp = (d.map = d.map || {});

@@ -4,6 +4,12 @@ Format: [Keep a Changelog](https://keepachangelog.com/). Versions follow [semant
 
 ## [Unreleased]
 
+### Added
+- **The robot vacuum appliance looks and works like the vacuum card** (decision D-34), from entities you choose, with no integration of its own: the map scrolls and opens on the robot (*Robot position*), is drawn in your style (minimal colouring, room names, trail, no-go zones and walls), and the *Map* settings are in its set-up. A setting can be *only for single rooms*, give the numbers the vacuum knows its values by and a default; an action can run *once per room* with that room's words (`$room`, `$room_name`, `$room.<setting>`), as a Xiaomi saves each room's settings before cleaning. Choices keep the order you list. The status tile can be switched off.
+
+### Fixed
+- A robot vacuum appliance's map was shown at its full height and could not be scrolled.
+
 ## [0.28.2] - 2026-11-26
 
 ### Added

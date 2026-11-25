@@ -24,12 +24,56 @@ function vacapWord(v) {
   return RBLAB[v] || cap(String(v).replace(/_/g, " "));
 }
 
+/* A setting's choices: the select's own, in the order given in the setting when it lists them. */
 function vacapOptions(set) {
-  return set.e && apHas(set.e) ? (A(set.e).options || []).slice() : (set.o || []).slice();
+  var own = set.e && apHas(set.e) ? (A(set.e).options || []).slice() : null,
+    listed = (set.o || []).slice();
+  if (!own) return listed;
+  var ordered = listed.filter(function (x) {
+    return own.indexOf(x) >= 0;
+  });
+  return ordered.length ? ordered : own;
+}
+
+/* A short wait between one command to the vacuum and the next, so that it is not told two things at once. */
+var VACAP_WAIT = 1000;
+
+function vacapPause() {
+  return new Promise(function (r) {
+    setTimeout(r, VACAP_WAIT);
+  });
+}
+
+/* A room's value of a setting: its own, else the choice for all rooms, else the setting's default, as the number the vacuum knows it by when the setting gives numbers. */
+function vacapRoomValue(set, own, all) {
+  var v = own[set.k] || all[set.k] || set.d || "";
+  if (!v) return "";
+  return set.c && set.c[v] !== undefined ? set.c[v] : vacapValue(v);
 }
 
 function vacapPrefKey(aid, room) {
   return aid + ":" + room;
+}
+
+/* No-go zones and virtual walls, from the entities chosen for them, else the map's own attributes: the first list each one has. */
+function vacapZones(ap, mapEnt) {
+  function list(id, names) {
+    if (!id) return [];
+    var a = A(id),
+      k = names.concat(Object.keys(a)).filter(function (n) {
+        return Array.isArray(a[n]);
+      })[0];
+    return k ? a[k] : [];
+  }
+  function from(slot, attr) {
+    if (ap.slots[slot] && apHas(ap.slots[slot])) return list(ap.slots[slot], [attr]);
+    var a = A(mapEnt)[attr];
+    return Array.isArray(a) ? a : [];
+  }
+  return [
+    { wall: false, items: from("no_go", "no_go_areas") },
+    { wall: true, items: from("walls", "virtual_walls") },
+  ];
 }
 
 /* A value as the action wants it: a number written as digits is a number. */
@@ -38,7 +82,7 @@ function vacapValue(v) {
 }
 
 function vacapSendsRoomSettings(conf) {
-  return JSON.stringify(conf.run).indexOf("$room_settings") >= 0;
+  return /\$room_settings|\$room\./.test(JSON.stringify(conf.run));
 }
 
 /* The words of an action's data, filled in. A string that is only a word becomes its value; a word inside a longer string is written into it (a list or an object as JSON, a number
@@ -53,9 +97,9 @@ function vacapFill(data, words) {
   }
   function written(w) {
     if (Array.isArray(w)) return JSON.stringify(w.map(vacapValue));
-    return w && typeof w === "object" ? JSON.stringify(w) : String(w);
+    return w && typeof w === "object" ? JSON.stringify(w) : JSON.stringify(String(w)).slice(1, -1);
   }
-  var WORD = /\$(set\.[A-Za-z0-9_]+|room_settings|rooms|vacuum_device|vacuum)/g;
+  var WORD = /\$(set\.[A-Za-z0-9_]+|room_settings|room_name|room\.[A-Za-z0-9_]+|rooms|room|vacuum_device|vacuum)/g;
   function walk(x) {
     if (typeof x === "string" && x.charAt(0) === "$" && (Object.prototype.hasOwnProperty.call(words, x) || !/[^$A-Za-z0-9_.]/.test(x))) return value(x);
     if (typeof x === "string" && x.indexOf("$") >= 0)
@@ -111,31 +155,46 @@ function vacapStart(ap, vacuum, chosen, all, pref) {
   /* a select bound to a setting takes the choice for all rooms first */
   var before = conf.sets
     .filter(function (s) {
-      return s.e && apHas(s.e) && all[s.k] && all[s.k] !== V_(s.e);
+      return !s.r && s.e && apHas(s.e) && all[s.k] && all[s.k] !== V_(s.e);
     })
     .map(function (s) {
       return function () {
         return H().callService(dom(s.e), "select_option", { entity_id: s.e, option: all[s.k] });
       };
     });
-  var actions = conf.run
-    .map(function (r) {
-      var data = vacapFill(r.data, words);
-      if (data === undefined) return null;
+  var actions = [];
+  conf.run.forEach(function (r) {
+    /* an action once per room gets that room's words as well */
+    var times = r.each
+      ? words.$rooms.map(function (k) {
+          var room = conf.rooms.filter(function (x) {
+              return x.k === k;
+            })[0] || { k: k, l: k },
+            own = pref(k),
+            extra = { $room: vacapValue(k), $room_name: room.l || k };
+          conf.sets.forEach(function (s) {
+            extra["$room." + s.k] = vacapRoomValue(s, own, all);
+          });
+          return Object.assign({}, words, extra);
+        })
+      : [words];
+    times.forEach(function (w) {
+      var data = vacapFill(r.data, w);
+      if (data === undefined) return;
       var p = r.action.split(".");
-      return function () {
+      actions.push(function () {
         return H().callService(p[0], p[1], data);
-      };
-    })
-    .filter(Boolean);
+      });
+    });
+  });
   if (!actions.length && vacuum)
     actions = [
       function () {
         return H().callService("vacuum", "start", { entity_id: vacuum });
       },
     ];
-  return before.concat(actions).reduce(function (p, step) {
-    return p.then(step);
+  return before.concat(actions).reduce(function (p, step, i) {
+    return p.then(i ? vacapPause : null).then(step);
   }, Promise.resolve());
 }
 
@@ -239,14 +298,27 @@ function vacapPage(b, d) {
     paint();
   }
 
-  if (img || mapEnt) {
+  /* a map entity is drawn as the vacuum card's map: scrolled to the robot, coloured as set, with names, trail and zones */
+  if (!img && mapEnt)
+    vacMapView(b, {
+      id: vacuum,
+      me: mapEnt,
+      ps: ap.slots.position && apHas(ap.slots.position) ? ap.slots.position : "",
+      opts: function () {
+        return (apFind(d.aid) || d).map || {};
+      },
+      zones: function () {
+        return Promise.resolve(vacapZones(ap, mapEnt));
+      },
+    });
+  else if (img) {
     var box = mk("div", "rb-map pane vacap-map"),
       wrap = mk("div", "rb-mapw"),
       pic = mk("img");
     pic.alt = _T("map_of_the_robot_vacuum");
     wrap.appendChild(pic);
     box.appendChild(wrap);
-    if (img) {
+    {
       pic.src = img.u;
       img.hs.forEach(function (h) {
         if (!h.a || h.a.t !== "room") return;
@@ -262,14 +334,6 @@ function vacapPage(b, d) {
         wrap.appendChild(z);
       });
     }
-    var paintMap = function () {
-      if (img) return;
-      var u = A(mapEnt).entity_picture || "";
-      if (u && mapPicOk(u) && pic.getAttribute("src") !== u) pic.src = u;
-      box.style.display = pic.getAttribute("src") ? "" : "none";
-    };
-    paintMap();
-    reg(paintMap);
     b.appendChild(box);
   }
 
@@ -282,7 +346,7 @@ function vacapPage(b, d) {
         return v !== undefined && isFinite(v) ? v + "%" : "–";
       },
     ]);
-  if (vacuum)
+  if (vacuum && !conf.nost)
     readings.push([
       _T("status"),
       function () {
@@ -348,7 +412,9 @@ function vacapPage(b, d) {
     b.appendChild(tiles);
   }
 
-  conf.sets.forEach(function (s) {
+  conf.sets.filter(function (s) {
+    return !s.r;
+  }).forEach(function (s) {
     if (state.all[s.k] === undefined) state.all[s.k] = s.e && apHas(s.e) && svOk(s.e) ? V_(s.e) : "";
     vacapChoices(
       b,
@@ -538,7 +604,28 @@ function vacapEditor(box, d, redraw) {
     "vacap_start_actions"
   );
   box.appendChild(hintRow(_T("vacap_start_hint")));
+  box.appendChild(
+    flagPill("info", _T("vacap_status_tile"), conf, "nost", function (on) {
+      return on ? _T("on_cap") : _T("off");
+    }, true)
+  );
+  /* the map's look, the same settings a vacuum device has */
+  if (ap.slots.map && !(d.rm && d.rm.v === "i" && d.rm.img))
+    devVacuumMapOptions({
+      d: d,
+      box: box,
+      get mapMore() {
+        return VACAPMAPMORE;
+      },
+      set mapMore(v) {
+        VACAPMAPMORE = v;
+      },
+      redraw: redraw,
+    });
 }
+
+/* Whether the map's further settings are open in the editor. */
+var VACAPMAPMORE = false;
 
 function vacapItemPage(b, key, list) {
   var p = key.split(":"),
@@ -584,7 +671,40 @@ function vacapItemPage(b, key, list) {
         },
       })
     );
+    b.appendChild(
+      flagPill("home", _T("vacap_room_only"), x, "r", function (on) {
+        return on ? _T("on_cap") : _T("off");
+      })
+    );
+    field(
+      "vacap_codes",
+      Object.keys(x.c || {})
+        .map(function (n) {
+          return n + "=" + x.c[n];
+        })
+        .join(", "),
+      function (v) {
+        var codes = {};
+        v.split(",").forEach(function (pair) {
+          var m = /^\s*([^=]+?)\s*=\s*(-?\d+(\.\d+)?)\s*$/.exec(pair);
+          if (m) codes[m[1]] = Number(m[2]);
+        });
+        if (Object.keys(codes).length) x.c = codes;
+        else delete x.c;
+      },
+      300,
+      "vacap_codes_hint"
+    );
+    field("vacap_default", x.d || "", function (v) {
+      if (v) x.d = v.slice(0, 40);
+      else delete x.d;
+    }, 40);
   } else {
+    b.appendChild(
+      flagPill("repeat", _T("vacap_each_room"), x, "each", function (on) {
+        return on ? _T("vacap_each_room_on") : _T("off");
+      })
+    );
     field("vacap_action", x.action, function (v) { if (/^[a-z_]+\.[a-z0-9_]+$/.test(v)) x.action = v; else toast(_T("vacap_bad_value")); }, 80, "vacap_action_hint");
     b.appendChild(sep(_T("vacap_data"), "edit"));
     b.appendChild(

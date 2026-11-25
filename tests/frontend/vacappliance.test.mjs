@@ -25,6 +25,7 @@ function world(calls = []) {
     dom: (id) => id.split(".")[0],
   });
   const src = read("appliancevac.js");
+  ctx.setTimeout = (f) => setTimeout(f, 0);
   vm.runInContext(slice(src, "function vacapConf(", "/* One setting as the Xiaomi card"), ctx);
   return ctx;
 }

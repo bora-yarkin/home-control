@@ -305,6 +305,9 @@ function cleanAppliance(a) {
       vacuum: ["vacuum"],
       battery: ["sensor"],
       map: ["camera", "image"],
+      position: ["sensor"],
+      no_go: ["sensor"],
+      walls: ["sensor"],
     },
     extraDoms = ["select", "input_select", "number", "input_number", "switch", "input_boolean", "binary_sensor", "sensor", "button", "input_button", "script"],
     out = { type: "other", slots: {}, extra: [] };
@@ -348,6 +351,7 @@ function cleanVac(v) {
     };
   v = v && typeof v === "object" ? v : {};
   var out = { rooms: [], sets: [], run: [] };
+  if (v.nost) out.nost = 1;
   list(v.rooms, 40).forEach(function (r) {
     var k = r && word(r.k, /^[A-Za-z0-9_-]{1,24}$/);
     if (k && !out.rooms.some(function (x) { return x.k === k; })) out.rooms.push({ k: k, l: label(r.l) });
@@ -357,12 +361,24 @@ function cleanVac(v) {
     if (!k || out.sets.some(function (x) { return x.k === k; })) return;
     var o = { k: k, l: label(s.l), o: list(s.o, 8).filter(function (x) { return word(x, /^[A-Za-z0-9 &_-]{1,40}$/); }) };
     if (word(s.e, /^(input_)?select\.[a-z0-9_]+$/)) o.e = s.e;
+    /* only for single rooms; the number the vacuum knows each value by, and the value used when none is chosen */
+    if (s.r) o.r = 1;
+    if (s.c && typeof s.c === "object") {
+      var codes = {};
+      Object.keys(s.c).slice(0, 8).forEach(function (n) {
+        if (word(n, /^[A-Za-z0-9 &_-]{1,40}$/) && typeof s.c[n] === "number" && isFinite(s.c[n])) codes[n] = s.c[n];
+      });
+      if (Object.keys(codes).length) o.c = codes;
+    }
+    if (word(s.d, /^[A-Za-z0-9 &_-]{1,40}$/)) o.d = s.d;
     out.sets.push(o);
   });
   list(v.run, 4).forEach(function (r) {
     var action = r && word(r.action, /^[a-z_]+\.[a-z0-9_]+$/);
     if (!action || !r.data || typeof r.data !== "object" || Array.isArray(r.data) || JSON.stringify(r.data).length > 1000) return;
-    out.run.push({ action: action, data: JSON.parse(JSON.stringify(r.data)) });
+    var step = { action: action, data: JSON.parse(JSON.stringify(r.data)) };
+    if (r.each) step.each = 1;
+    out.run.push(step);
   });
   return out;
 }
@@ -508,7 +524,7 @@ function cleanDev(d) {
     if (xt.length) c.xtag = xt;
     if (d.keepname) c.keepname = 1;
   }
-  if (d.kind === "vacuum" && d.map && typeof d.map === "object") {
+  if ((d.kind === "vacuum" || (d.kind === "appliance" && d.ap && d.ap.type === "vacuum")) && d.map && typeof d.map === "object") {
     var m = {};
     if (d.map.m === 1) m.m = 1;
     if ([11, 16, 19].indexOf(d.map.ls) >= 0) m.ls = d.map.ls;
