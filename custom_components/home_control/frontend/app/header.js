@@ -106,7 +106,43 @@ function hdrShown(it) {
 var HSTF = [];
 
 /* Builds the row for the open page; without force it keeps the row when the page and its tiles are the same. */
-/* The status row is a drawer under the header's text: it slides open and shut like a dropdown when the page shown has tiles and the one before did not (or the other way round), and its height eases when the number of rows changes. It is started when a page change begins (`key` is the page that is coming), so the header and the page move together. */
+/* The header's height slides whenever it changes, whatever the cause: the status row coming or going, a room name that fits on one line or needs two. A caller takes the height the header has (hdrBegin: any slide in progress is ended, so the next measure is the natural height), changes the header, then hdrGlide eases from the old height to the new one, clipped by the header, while the page below follows. */
+function hdrBegin(hd) {
+  hd = hd || document.querySelector(".hdr");
+  if (!hd) return 0;
+  var from = hd.getBoundingClientRect().height;
+  if (hd._hslide) {
+    hd._hslide.cancel();
+    hd._hslide = null;
+  }
+  return from;
+}
+
+function hdrGlide(hd, from) {
+  hd = hd || document.querySelector(".hdr");
+  if (!hd) return;
+  var closing = hd._hclose;
+  hd._hclose = null;
+  /* a status row that is going away stays in place while the header closes over it, but is not part of the height it closes to */
+  if (closing) closing.style.display = "none";
+  var to = hd.getBoundingClientRect().height;
+  if (closing) closing.style.display = "";
+  var drop = function () {
+    if (closing) hdrStatusDrop(closing);
+  };
+  if (!from || Math.abs(from - to) < 1 || !hd.animate || (window.matchMedia && matchMedia("(prefers-reduced-motion: reduce)").matches)) {
+    drop();
+    return;
+  }
+  var a = hd.animate([{ height: from + "px" }, { height: to + "px" }], { duration: 340, easing: "cubic-bezier(.2,.8,.2,1)" });
+  hd._hslide = a;
+  a.onfinish = a.oncancel = function () {
+    if (hd._hslide === a) hd._hslide = null;
+    drop();
+  };
+}
+
+/* The status row of a page: a row under the header's text, in the header, whose tiles are the page's own. */
 function hdrStatusDrop(box) {
   HSTF.forEach(function (f) {
     var i = LIVE.indexOf(f);
@@ -116,7 +152,8 @@ function hdrStatusDrop(box) {
   if (box) box.remove();
 }
 
-function hdrStatusSync(force, key) {
+/* Sets the status row for page `key` (the open page, or the one that is coming). With `from` (a height taken by hdrBegin) the caller glides afterwards; without it this does the whole thing, for a change in the tiles or the alerts alone. */
+function hdrStatusSync(force, key, from) {
   var hd = document.querySelector(".hdr");
   if (!hd) return;
   key = key || (PG ? PG.key : VIEW);
@@ -124,31 +161,14 @@ function hdrStatusSync(force, key) {
     on = tiles.length > 0,
     sig = on ? key + "|" + JSON.stringify(tiles) : "";
   if (!force && hd._hstSig === sig) return;
-  var first = hd._hstSig === undefined;
+  var alone = from === undefined,
+    first = hd._hstSig === undefined;
+  if (alone) from = first ? 0 : hdrBegin(hd);
   hd._hstSig = sig;
-  var box = hd.querySelector("#hst"),
-    gap = parseFloat(getComputedStyle(hd).rowGap) || 0,
-    from = box ? box.getBoundingClientRect().height : 0,
-    fromMt = box ? parseFloat(getComputedStyle(box).marginTop) || 0 : -gap;
-  if (hd._hslide) {
-    hd._hslide.forEach(function (a) {
-      a.onfinish = a.oncancel = null;
-      a.cancel();
-    });
-    hd._hslide = null;
-  }
-  var calm = first || !hd.animate || (window.matchMedia && matchMedia("(prefers-reduced-motion: reduce)").matches);
+  var box = hd.querySelector("#hst");
   if (!on) {
-    if (!box) return;
-    if (calm) {
-      hdrStatusDrop(box);
-      return;
-    }
-    box.style.height = "0px";
-    box.style.marginTop = -gap + "px";
-    hdrSlide(hd, box, from, 0, fromMt, -gap, function () {
-      hdrStatusDrop(box);
-    });
+    if (box) hd._hclose = box;
+    if (alone) hdrGlide(hd, from);
     return;
   }
   var mine = [],
@@ -161,6 +181,7 @@ function hdrStatusSync(force, key) {
     CUR = prev;
   }
   if (!g) return;
+  hd._hclose = null;
   HSTF.forEach(function (f) {
     var i = LIVE.indexOf(f);
     if (i >= 0) LIVE.splice(i, 1);
@@ -171,8 +192,6 @@ function hdrStatusSync(force, key) {
     box.id = "hst";
     hd.appendChild(box);
   }
-  box.style.height = "";
-  box.style.marginTop = "";
   box.innerHTML = "";
   var inner = mk("div", "hstin");
   inner.appendChild(g);
@@ -182,22 +201,7 @@ function hdrStatusSync(force, key) {
     HSTF.push(f);
     f();
   });
-  var to = box.getBoundingClientRect().height;
-  if (calm || Math.abs(from - to) < 1) return;
-  hdrSlide(hd, box, from, to, fromMt, 0, null);
-}
-
-/* One slide of the drawer: its height and the gap above it, which are all that moves, so the page under the header follows frame by frame. */
-function hdrSlide(hd, box, from, to, fromMt, toMt, done) {
-  var opt = { duration: 340, easing: "cubic-bezier(.2,.8,.2,1)" },
-    a = box.animate([{ height: from + "px", marginTop: fromMt + "px" }, { height: to + "px", marginTop: toMt + "px" }], opt),
-    b = box.firstChild ? box.firstChild.animate([{ opacity: from ? 1 : 0 }, { opacity: to ? 1 : 0 }], opt) : null,
-    all = b ? [a, b] : [a];
-  hd._hslide = all;
-  a.onfinish = function () {
-    if (hd._hslide === all) hd._hslide = null;
-    if (done) done();
-  };
+  if (alone) hdrGlide(hd, from);
 }
 
 function hdrBuild() {

@@ -46,13 +46,16 @@ test("the status row of the header is the page's own list of tiles, shown whenev
   assert.match(header, /function hdrStatusBlock\(/, "its tiles are chosen in the header's settings, for the page picked there");
 });
 
-test("the status row is a drawer that slides open and shut when a page change begins, inside a header whose own row never changes layout", () => {
+test("the header's height slides whenever it changes (a status row, a room name on two lines), starting with the page change, inside a header whose own row never changes layout", () => {
   const header = read("app/header.js");
-  assert.match(header, /function hdrSlide\(hd, box, from, to, fromMt, toMt, done\)/);
+  assert.match(header, /function hdrBegin\(hd\)/);
+  assert.match(header, /function hdrGlide\(hd, from\)/);
   assert.match(header, /prefers-reduced-motion: reduce/);
-  assert.match(header, /marginTop: fromMt/, "the height and the gap above it move together");
-  assert.match(header, /function hdrStatusSync\(force, key\)/);
-  assert.match(read("app/pages.js"), /hdrStatusSync\(false, key\)/, "it starts with the page change, so the header and the page move together");
+  assert.match(header, /hd\.animate\(\[\{ height: from/);
+  assert.match(header, /function hdrStatusSync\(force, key, from\)/);
+  const pages = read("app/pages.js");
+  assert.match(pages, /PG\.tt\.textContent = TITLES\[key\] \|\| TITLES\.home;\n  hdrStatusSync\(false, key, hFrom\);\n  hdrGlide\(hdOpen, hFrom\);/, "measured with the coming page's title and status row, when the page change begins");
+  assert.match(pages, /hdrStatusSync\(true, undefined, hf\);\n  hdrGlide\(null, hf\)/, "and on any other redraw");
   const css = read("dashboard.css");
   assert.doesNotMatch(css, /\.hdr:has\(>\.hstat\)\{flex-wrap/, "adding the row must not re-wrap the title and buttons");
   assert.match(css, /\.hrow\{display:flex/);

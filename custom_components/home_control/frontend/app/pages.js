@@ -228,8 +228,10 @@ function livePatch() {
     render();
     return;
   }
+  var lf = hdrBegin();
   document.getElementById("tt").textContent = TITLES[VIEW] || TITLES.home;
-  hdrStatusSync(false);
+  hdrStatusSync(false, undefined, lf);
+  hdrGlide(null, lf);
   var rmv = VIEW !== "home" && UIROOM[VIEW],
     rw = document.getElementById("rwall"),
     shown = rw && rw.querySelector("img") ? rw.querySelector("img").getAttribute("src") : "";
@@ -449,6 +451,7 @@ function clock() {
 }
 
 function render() {
+  var hf = RVIEW ? hdrBegin() : 0;
   var keep = RVIEW === VIEW ? scrollHold() : null;
   RVIEW = VIEW;
   if (SHEET) closeSheet();
@@ -462,7 +465,8 @@ function render() {
   document.body.classList.toggle("editing", EDIT && ISADMIN && (VIEW === "home" || !!UIROOM[VIEW]));
   edToolbar();
   b.appendChild(buildPage(VIEW, LIVE).el);
-  hdrStatusSync(true);
+  hdrStatusSync(true, undefined, hf);
+  hdrGlide(null, hf);
   clock();
   if (keep) keep();
   /* Fill live values now instead of on the next refresh tick, so nothing shows placeholders. */
@@ -686,7 +690,14 @@ function pgBegin(key, dir) {
     half: false,
   };
   pgSet(0);
-  hdrStatusSync(false, key);
+  /* The header takes the height it will have on the page that is coming (its title may need two lines, it may have a status row) and slides to it while the pages move; its title is changed halfway, as before. */
+  var hdOpen = document.querySelector(".hdr"),
+    hFrom = hdrBegin(hdOpen),
+    title = PG.tt.textContent;
+  PG.tt.textContent = TITLES[key] || TITLES.home;
+  hdrStatusSync(false, key, hFrom);
+  hdrGlide(hdOpen, hFrom);
+  PG.tt.textContent = title;
 }
 
 function pgSet(p) {
