@@ -36,14 +36,13 @@ async function session(run) {
   }
 }
 
-test("the to-do list adds an item, checks one off and puts it back, changes the words of one, and removes one from its edit sheet", { timeout: 120000, skip }, async () => {
+test("the to-do list adds an item and checks one off and puts it back, with nothing on the rows but the circle", { timeout: 120000, skip }, async () => {
   assert.ok(chrome, "CI needs Chrome or Chromium");
-  await session(async ({ rows, check, pen, add, submit, ev }) => {
+  await session(async ({ rows, check, add, submit, ev }) => {
     await sleep(1500);
     let list = await rows("todo");
     assert.ok(list.some((r) => r.name === "Milk" && !r.done), "the open items are listed");
-    assert.equal(await ev(`(${CARD("todo")}).querySelectorAll(".pact, .wr [data-i=trash]").length`), 0, "no trash button sits on the rows");
-    assert.equal(await ev(`(${CARD("todo")}).querySelectorAll(".wr .wedit").length`), list.length, "each row has its pen");
+    assert.equal(await ev(`(${CARD("todo")}).querySelectorAll(".wr .rnd, .wr .pact, .wr button").length`), 0, "no button of any kind sits on the rows");
 
     await add("todo");
     await sleep(700);
@@ -61,22 +60,22 @@ test("the to-do list adds an item, checks one off and puts it back, changes the 
     await sleep(1500);
     list = await rows("todo");
     assert.ok(list.some((r) => r.name === "Milk" && !r.done), "tapping the circle again puts it back");
+  });
+});
 
-    await pen("todo", "Coffee beans");
-    await sleep(700);
-    assert.equal(await ev(`document.querySelector(".asheet.in textarea").value`), "Coffee beans", "the sheet has the words of the item");
-    await submit([["textarea", "Coffee"]], 0);
+test("a pen in the top right corner of a widget opens the edit view of that widget (the one a tap gives while the page is edited)", { timeout: 120000, skip }, async () => {
+  assert.ok(chrome, "CI needs Chrome or Chromium");
+  await session(async ({ ev }) => {
     await sleep(1500);
-    list = await rows("todo");
-    assert.ok(list.some((r) => r.name === "Coffee") && !list.some((r) => r.name === "Coffee beans"), "the words are changed");
-
-    await pen("todo", "Bread");
-    await sleep(700);
-    assert.ok(await ev(`!!document.querySelector(".asheet.in .as-b.danger")`), "taking it off the list is in the sheet, in red");
-    await ev(`document.querySelector(".asheet.in .as-b.danger").click()`);
-    await sleep(1500);
-    list = await rows("todo");
-    assert.equal(list.some((r) => r.name === "Bread"), false, "the item is off the list");
+    for (const w of ["todo", "agenda", "hallway"]) {
+      assert.equal(await ev(`(${CARD(w)}).querySelectorAll(".wh .wpen").length`), 1, w + " has one pen");
+      assert.ok(await ev(`(() => { const c = ${CARD(w)}, h = c.querySelector(".wh").getBoundingClientRect(), p = c.querySelector(".wpen").getBoundingClientRect(); return p.right <= h.right + 1 && p.right >= h.right - 1; })()`), w + "'s pen is the last thing in its header, in the corner");
+    }
+    await ev(`(${CARD("todo")}).querySelector(".wpen").click()`);
+    await sleep(1200);
+    const shown = await ev(`[...document.querySelectorAll(".sheet.in .sep, .sheet.in .pill")].map((e) => e.textContent.trim()).join(" | ")`);
+    assert.match(shown, /To-do/, "the edit view of the widget is open and says which widget (" + shown.slice(0, 120) + ")");
+    assert.ok(await ev(`!!document.querySelector(".sheet.in")`));
   });
 });
 

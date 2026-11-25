@@ -65,23 +65,32 @@ function wxLive(box, build) {
   };
 }
 
-/* A widget that is a card of its own: one `.pane` with a header (the icon, the name, and a small button when the widget can add something) over its content, as on a phone's home screen. Returns the card, its body, and the header's button. */
-function wxCard(d, icon, addLabel, add) {
+/* The widget's own edit view: what a tap on it opens while the page is edited. An administrator gets it from a pen in the widget's top right corner the rest of the time; a widget that is not a device of a section (inside a stack) has none. */
+function wxEditor(d) {
+  var s = CURSEC;
+  return ISADMIN && !editing() && s && (s.devs || []).indexOf(d) >= 0 ? devEditor("~" + secKey() + "~" + s.id, d) : null;
+}
+
+/* A widget that is a card of its own: one `.pane` with a header (the icon, the name, a small button when the widget can add something, and the pen) over its content, as on a phone's home screen. `widget` is the
+   widget's device when `d` only gives the name. Returns the card and its body. */
+function wxCard(d, icon, addLabel, add, widget) {
   var card = mk("div", "wcard pane"),
     head = mk("div", "wh", ic(icon) + "<b></b>"),
     body = mk("div", "wb"),
-    btn = null;
+    edit = wxEditor(widget || d);
   head.querySelector("b").textContent = d.name;
-  if (add) {
-    btn = mk("div", "rnd pane wadd", svg("plus"));
-    btn.setAttribute("role", "button");
-    btn.setAttribute("aria-label", addLabel);
-    btn.addEventListener("click", add);
-    head.appendChild(btn);
+  function button(cls, glyph, label, fn) {
+    var b = mk("div", "rnd pane " + cls, svg(glyph));
+    b.setAttribute("role", "button");
+    b.setAttribute("aria-label", label);
+    b.addEventListener("click", fn);
+    head.appendChild(b);
   }
+  if (add) button("wadd", "plus", addLabel, add);
+  if (edit) button("wpen", "edit", _T("edit_widget"), edit);
   card.appendChild(head);
   card.appendChild(body);
-  return { card: card, body: body, btn: btn };
+  return { card: card, body: body };
 }
 
 /* ---- Clock and weather ---- */
@@ -231,7 +240,7 @@ registerWidget("vacuum", {
   draw: function (d, x, ed) {
     if (!x.id || !wxVisible(x.id)) return ed && !x.id ? pill("vac", _T("choose_a_vacuum"), {}) : null;
     var id = x.id,
-      w = wxCard({ name: entName(id) }, "vac"),
+      w = wxCard({ name: entName(id) }, "vac", "", null, d),
       st = mk("span", "wsub"),
       bar = mk("div", "wbar");
     w.card.querySelector(".wh b").after(st);
@@ -520,35 +529,6 @@ registerWidget("agenda", {
 });
 
 /* ---- To-do ---- */
-/* An item of the list: its words to change, and a way to take it off the list that is not on show until the item is opened. */
-function itemDlg(value, save, remove) {
-  var ta = mk("textarea");
-  ta.rows = 3;
-  ta.value = value;
-  bottomSheet(function (box, close) {
-    var wrap = mk("div", "as-t");
-    wrap.appendChild(ta);
-    box.appendChild(wrap);
-    function button(label, cls, fn) {
-      var b = mk("div", "as-b" + (cls ? " " + cls : ""));
-      b.setAttribute("role", "button");
-      b.textContent = label;
-      b.addEventListener("click", fn);
-      box.appendChild(b);
-    }
-    button(_T("save"), "", function () {
-      if (!ta.value.trim()) return ta.focus();
-      close();
-      save(ta.value.trim().slice(0, 120));
-    });
-    button(_T("remove_item"), "danger", function () {
-      close();
-      remove();
-    });
-    button(_T("cancel"), "cancel", close);
-  });
-}
-
 registerWidget("todo", {
   title: _T("to_do"),
   icon: "check",
@@ -582,14 +562,10 @@ registerWidget("todo", {
           box.appendChild(row(i, true));
         });
       });
-    /* a tap on the circle checks an item off, or puts it back; the pen opens it, to change its words or to take it off the list */
+    /* a tap on the circle checks an item off, or puts it back */
     function row(i, finished) {
       var r = mk("div", "wr" + (finished ? " done" : ""), "<span class='ck2'></span><span class='nm'></span>"),
-        pen = mk("div", "rnd pane wedit", svg("edit")),
         ticked = finished;
-      pen.setAttribute("role", "button");
-      pen.setAttribute("aria-label", _T("edit_item"));
-      r.appendChild(pen);
       r.querySelector(".nm").textContent = String(i.summary || "").slice(0, 120);
       r.querySelector(".ck2").setAttribute("role", "checkbox");
       r.querySelector(".ck2").setAttribute("aria-checked", finished ? "true" : "false");
@@ -598,19 +574,6 @@ registerWidget("todo", {
         r.classList.toggle("done", ticked);
         call("todo", "update_item", { entity_id: x.id, item: i.uid, status: ticked ? "completed" : "needs_action" });
         setTimeout(load, 600);
-      });
-      pen.addEventListener("click", function () {
-        itemDlg(
-          String(i.summary || ""),
-          function (v) {
-            call("todo", "update_item", { entity_id: x.id, item: i.uid, rename: v });
-            setTimeout(load, 600);
-          },
-          function () {
-            call("todo", "remove_item", { entity_id: x.id, item: [i.uid] });
-            setTimeout(load, 600);
-          }
-        );
       });
       return r;
     }
