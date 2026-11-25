@@ -529,6 +529,9 @@ registerWidget("agenda", {
 });
 
 /* ---- To-do ---- */
+/* The to-do lists drawn on the page, by entity: each knows how to read its list again, so the edit view can refresh the card after an item is changed there. */
+var TODO_LOAD = {};
+
 registerWidget("todo", {
   title: _T("to_do"),
   icon: "check",
@@ -592,6 +595,7 @@ registerWidget("todo", {
     }
     build();
     load();
+    TODO_LOAD[x.id] = load;
     /* a list's state is how many items are open: it is read again only when that changes, not on every update of the house */
     var last = V_(x.id);
     reg(function () {
@@ -604,6 +608,65 @@ registerWidget("todo", {
   },
   settings: function (box, d, save) {
     wxPick(box, d, _T("to_do_list"), "check", ["todo"], save);
+    if (!d.wx.id) return;
+    /* the items of the list, to change the words of one (a tap) or to take one off the list (the trash, after asking) */
+    var id = d.wx.id,
+      list = mk("div");
+    box.appendChild(sep(_T("to_do_items"), "check"));
+    box.appendChild(list);
+    function again() {
+      setTimeout(function () {
+        if (TODO_LOAD[id]) TODO_LOAD[id]();
+        fill();
+      }, 600);
+    }
+    function fill() {
+      HA.todo.items(id).then(
+        function (items) {
+          list.innerHTML = "";
+          if (!items.length) list.appendChild(hintRow(_T("nothing_to_do")));
+          items.forEach(function (i) {
+            list.appendChild(
+              pill("note", String(i.summary || "").slice(0, 120), {
+                sub: function () {
+                  return i.status === "completed" ? _T("done") : "";
+                },
+                tap: function () {
+                  textDlg(_T("to_do_item"), String(i.summary || ""), _T("save"), function (v) {
+                    call("todo", "update_item", { entity_id: id, item: i.uid, rename: v.trim().slice(0, 120) });
+                    again();
+                  });
+                },
+                action: {
+                  label: _T("remove_item"),
+                  icon: function () {
+                    return "trash";
+                  },
+                  show: function () {
+                    return true;
+                  },
+                  fn: function () {
+                    confirmDlg(
+                      _T("remove_item") + ": " + String(i.summary || "").slice(0, 60) + "?",
+                      function () {
+                        call("todo", "remove_item", { entity_id: id, item: [i.uid] });
+                        again();
+                      },
+                      _T("remove_item")
+                    );
+                  },
+                },
+              })
+            );
+          });
+        },
+        function () {
+          list.innerHTML = "";
+          list.appendChild(hintRow(_T("couldn_t_load_the_list")));
+        }
+      );
+    }
+    fill();
   },
 });
 

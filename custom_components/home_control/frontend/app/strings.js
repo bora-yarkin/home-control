@@ -1,6 +1,8 @@
 /* Text shown to the user: the English strings and the lookup function _T(). */
 
 var EN = {
+  "to_do_items": "Items",
+  "to_do_item": "Item",
   "edit_widget": "Edit this widget",
   "previous": "Previous",
   "next": "Next",

@@ -79,6 +79,34 @@ test("a pen in the top right corner of a widget opens the edit view of that widg
   });
 });
 
+test("the edit view of a to-do widget lists its items: the words of one are changed, and one is taken off the list after asking", { timeout: 120000, skip }, async () => {
+  assert.ok(chrome, "CI needs Chrome or Chromium");
+  await session(async ({ ev, rows, submit }) => {
+    await sleep(1500);
+    await ev(`(${CARD("todo")}).querySelector(".wpen").click()`);
+    await sleep(1500);
+    const items = () => ev(`[...document.querySelectorAll(".sheet.in .pill .nm")].map((n) => n.textContent)`);
+    const row = (name) => `[...document.querySelectorAll(".sheet.in .pill")].find((p) => p.querySelector(".nm").textContent === ${JSON.stringify(name)})`;
+    assert.ok((await items()).includes("Coffee beans"), "the items are in the edit view (" + (await items()).join(", ") + ")");
+
+    await ev(`${row("Coffee beans")}.click()`);
+    await sleep(700);
+    assert.equal(await ev(`document.querySelector(".asheet.in textarea").value`), "Coffee beans", "the sheet has the words of the item");
+    await submit([["textarea", "Coffee"]]);
+    await sleep(2000);
+    assert.ok((await items()).includes("Coffee"), "renamed in the edit view");
+    assert.ok((await rows("todo")).some((r) => r.name === "Coffee"), "and on the card");
+
+    await ev(`${row("Bread")}.querySelector(".pact").click()`);
+    await sleep(700);
+    assert.equal((await items()).includes("Bread"), true, "asking comes first: nothing is removed yet");
+    await ev(`document.querySelector(".asheet.in .as-b.danger").click()`);
+    await sleep(2000);
+    assert.equal((await items()).includes("Bread"), false, "removed from the edit view");
+    assert.equal((await rows("todo")).some((r) => r.name === "Bread"), false, "and from the card");
+  });
+});
+
 test("the agenda adds an event with a title and a day, and an empty title adds nothing", { timeout: 120000, skip }, async () => {
   assert.ok(chrome, "CI needs Chrome or Chromium");
   await session(async ({ rows, add, submit, ev }) => {
