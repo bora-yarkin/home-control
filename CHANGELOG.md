@@ -4,6 +4,17 @@ Format: [Keep a Changelog](https://keepachangelog.com/). Versions follow [semant
 
 ## [Unreleased]
 
+## [0.28.0] - 2026-11-26
+
+### Added
+- **Robot vacuum appliance** (decision D-33; checked on the harness with an invented vacuum, no real robot started): a new appliance type, built like the others, for any brand, with the Xiaomi vacuum's card: map, readings as tiles, room tiles (several at once, each with its own settings behind the gear), your cleaning settings, *Start*, and Pause, Resume and Stop and dock while it works. In *Set up this appliance* you list the rooms, the settings and what *Start* does (your Home Assistant actions, with `$rooms`, `$room_settings`, `$vacuum`, `$vacuum_device` and `$set.<field>` filled in). The map is a camera or image, or a picture added with the remote builder whose touch areas pick rooms.
+
+### Removed
+- The automatic room card of 0.27.0 and its stored shapes, pictures and room settings (`vx.rooms[].s`, `.o`, `vx.pic`). A vacuum device shows the generic controls and its bound buttons again, as before 0.27.0; make a Robot vacuum appliance for rooms.
+
+### Fixed
+- A touch area on an appliance's picture could not be opened to change or remove it.
+
 ## [0.27.1] - 2026-11-26
 
 ### Fixed

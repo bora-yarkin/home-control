@@ -192,6 +192,8 @@ var RM_ENT_DOMS = ["script", "button", "input_button", "scene", "switch"];
 var RM_MEDIA = ["volume_up", "volume_down", "volume_mute", "play_pause", "play", "pause", "stop", "next", "previous", "turn_on", "turn_off", "toggle"];
 
 function cleanRmAct(a) {
+  /* a room of a robot vacuum appliance, on its map picture */
+  if (a && a.t === "room") return typeof a.r === "string" && /^[A-Za-z0-9_-]{1,24}$/.test(a.r) ? { t: "room", r: a.r } : null;
   if (!a || typeof a !== "object" || typeof a.e !== "string" || !ENTRE.test(a.e)) return null;
   var d = a.e.split(".")[0];
   if (!a.t || a.t === "ent") return RM_ENT_DOMS.indexOf(d) >= 0 ? { t: "ent", e: a.e } : null;
@@ -300,10 +302,13 @@ function cleanAppliance(a) {
       door: ["binary_sensor", "sensor"],
       permission: ["binary_sensor", "switch", "input_boolean"],
       level: ["number", "input_number", "select", "input_select"],
+      vacuum: ["vacuum"],
+      battery: ["sensor"],
+      map: ["camera", "image"],
     },
     extraDoms = ["select", "input_select", "number", "input_number", "switch", "input_boolean", "binary_sensor", "sensor", "button", "input_button", "script"],
     out = { type: "other", slots: {}, extra: [] };
-  if (a && ["oven", "washer", "dryer", "dishwasher", "coffee", "fridge", "projector", "other"].indexOf(a.type) >= 0) out.type = a.type;
+  if (a && ["oven", "washer", "dryer", "dishwasher", "coffee", "fridge", "projector", "vacuum", "other"].indexOf(a.type) >= 0) out.type = a.type;
   Object.keys(slotDoms).forEach(function (k) {
     var e = a && a.slots && a.slots[k];
     if (typeof e === "string" && ENTRE.test(e) && slotDoms[k].indexOf(e.split(".")[0]) >= 0) out.slots[k] = e;
@@ -325,6 +330,39 @@ function cleanAppliance(a) {
       if (x.o) row.o = 1;
       out.extra.push(row);
     }
+  });
+  if (out.type === "vacuum" || (a && a.vac)) out.vac = cleanVac(a && a.vac);
+  return out;
+}
+
+/* A robot vacuum appliance's own configuration (app/appliancevac.js): rooms, settings and what Start does. */
+function cleanVac(v) {
+  var word = function (s, re) {
+      return typeof s === "string" && re.test(s) ? s : "";
+    },
+    label = function (s) {
+      return typeof s === "string" ? s.slice(0, 24) : "";
+    },
+    list = function (x, n) {
+      return Array.isArray(x) ? x.slice(0, n) : [];
+    };
+  v = v && typeof v === "object" ? v : {};
+  var out = { rooms: [], sets: [], run: [] };
+  list(v.rooms, 40).forEach(function (r) {
+    var k = r && word(r.k, /^[A-Za-z0-9_-]{1,24}$/);
+    if (k && !out.rooms.some(function (x) { return x.k === k; })) out.rooms.push({ k: k, l: label(r.l) });
+  });
+  list(v.sets, 6).forEach(function (s) {
+    var k = s && word(s.k, /^[A-Za-z0-9_]{1,40}$/);
+    if (!k || out.sets.some(function (x) { return x.k === k; })) return;
+    var o = { k: k, l: label(s.l), o: list(s.o, 8).filter(function (x) { return word(x, /^[A-Za-z0-9 &_-]{1,40}$/); }) };
+    if (word(s.e, /^(input_)?select\.[a-z0-9_]+$/)) o.e = s.e;
+    out.sets.push(o);
+  });
+  list(v.run, 4).forEach(function (r) {
+    var action = r && word(r.action, /^[a-z_]+\.[a-z0-9_]+$/);
+    if (!action || !r.data || typeof r.data !== "object" || Array.isArray(r.data) || JSON.stringify(r.data).length > 1000) return;
+    out.run.push({ action: action, data: JSON.parse(JSON.stringify(r.data)) });
   });
   return out;
 }
@@ -406,23 +444,9 @@ function cleanDev(d) {
       })
       .slice(0, 40)
       .map(function (x) {
-        var o = { e: x.e, l: typeof x.l === "string" ? x.l.slice(0, 24) : "" };
-        /* its shapes on the map (rectangles in percent) and the settings of its own */
-        var s = (Array.isArray(x.s) ? x.s : []).slice(0, 8).filter(function (r) {
-          return Array.isArray(r) && r.length === 4 && r.every(function (n) {
-            return typeof n === "number" && isFinite(n) && n >= 0 && n <= 100;
-          });
-        });
-        if (s.length) o.s = s;
-        var so = (Array.isArray(x.o) ? x.o : []).filter(function (y, i, a) {
-          return ent(y, ["select", "input_select"]) && a.indexOf(y) === i;
-        }).slice(0, 8);
-        if (so.length) o.o = so;
-        return o;
+        return { e: x.e, l: typeof x.l === "string" ? x.l.slice(0, 24) : "" };
       });
     if (rooms.length) vx.rooms = rooms;
-    /* a map drawn for the dashboard (an uploaded picture), used instead of the vacuum's map entity */
-    if (typeof d.vx.pic === "string" && /^\/home_control_remotes\/[a-f0-9]{12}\.(png|jpg|webp)$/.test(d.vx.pic)) vx.pic = d.vx.pic;
     [["modes", ["select", "input_select", "number", "input_number", "switch", "input_boolean"]], ["care", ["sensor", "binary_sensor", "number", "input_number"]]].forEach(function (g) {
       var l = (Array.isArray(d.vx[g[0]]) ? d.vx[g[0]] : [])
         .filter(function (e, i, a) {

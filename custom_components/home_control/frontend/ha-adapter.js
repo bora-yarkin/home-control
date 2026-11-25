@@ -539,8 +539,6 @@ window.HA={
  automations:automations,
  scripts:scripts,
  remotePictures:remotePictures,
- lightGroups:lightGroups,
- /* The areas a vacuum's segments are mapped to (Home Assistant's own setting, used by vacuum.clean_area): { area_id: [segment ids] }. */
- vacuum:{areas:function(entityId){return ws({type:"config/entity_registry/get",entity_id:entityId}).then(function(r){var o=r&&r.options&&r.options.vacuum;return(o&&o.area_mapping)||{}})}}
+ lightGroups:lightGroups
 };
 })();

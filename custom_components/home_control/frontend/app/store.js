@@ -401,15 +401,23 @@ function cleanCfg(c) {
     if (c.mediaCtl === true) o.mediaCtl = true;
     if (c.rb && typeof c.rb === "object")
       Object.keys(c.rb)
-        .slice(0, 40)
+        .slice(0, 120)
         .forEach(function (id) {
           var p = c.rb[id];
-          if (!/^\d{1,3}$/.test(id) || !p || typeof p !== "object") return;
+          /* a Xiaomi room by its number; a vacuum appliance's room as "<appliance>:<room>" */
+          if (!/^(\d{1,3}|[a-z0-9_]{1,40}:[A-Za-z0-9_-]{1,24})$/.test(id) || !p || typeof p !== "object") return;
           var q = {};
           ["mode", "fan", "water"].forEach(function (k) {
             if (typeof p[k] === "string" && /^[A-Za-z0-9 &_-]{1,40}$/.test(p[k])) q[k] = p[k];
           });
           if (p.times === 2 || p.times === 3) q.times = p.times;
+          /* a vacuum appliance's own settings of a room */
+          if (id.indexOf(":") > 0)
+            Object.keys(p)
+              .slice(0, 6)
+              .forEach(function (k) {
+                if (/^[A-Za-z0-9_]{1,40}$/.test(k) && typeof p[k] === "string" && /^[^<>]{1,40}$/.test(p[k])) q[k] = p[k];
+              });
           if (Object.keys(q).length) o.rb[id] = q;
         });
     if (c.gx && typeof c.gx === "object")

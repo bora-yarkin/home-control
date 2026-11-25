@@ -1,5 +1,5 @@
 {
-  "version": 493,
+  "version": 494,
   "files": [
     "integrations.js",
     "app/strings.js",
@@ -16,7 +16,6 @@
     "app/media.js",
     "app/climate.js",
     "app/vacuum.js",
-    "app/vacrooms.js",
     "app/camera.js",
     "app/advanced.js",
     "app/kinds.js",
@@ -64,6 +63,7 @@
     "app/controls.js",
     "app/appliance.js",
     "app/appliancedial.js",
+    "app/appliancevac.js",
     "app/lightgroups.js",
     "app/addpopup.js",
     "app/profiles.js",

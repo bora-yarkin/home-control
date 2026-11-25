@@ -903,6 +903,39 @@ var POPUP_DEFS = {
   rmaster: function (id) {
     return remoteMasterPopup(id);
   },
+  "vacap-room": function (id) {
+    return { title: _T("room_preferences"), icon: "tune", build: function (b) { vacapRoomPage(b, id); } };
+  },
+  "vacap-r": function (id) {
+    return { title: _T("vacap_room"), icon: "vac", build: function (b) { vacapItemPage(b, id, "rooms"); } };
+  },
+  "vacap-s": function (id) {
+    return { title: _T("vacap_settings"), icon: "tune", build: function (b) { vacapItemPage(b, id, "sets"); } };
+  },
+  "vacap-a": function (id) {
+    return { title: _T("vacap_start_actions"), icon: "play", build: function (b) { vacapItemPage(b, id, "run"); } };
+  },
+  "vacap-pick": function () {
+    return {
+      title: _T("vacap_pick_room"),
+      icon: "vac",
+      build: function (b) {
+        var p = VACAPPICK;
+        if (!p) return;
+        if (!p.rooms.length) b.appendChild(hintRow(_T("vacap_no_rooms")));
+        p.rooms.forEach(function (r) {
+          b.appendChild(
+            pill("vac", r.l || r.k, {
+              tap: function () {
+                popBack();
+                p.done({ t: "room", r: r.k });
+              },
+            })
+          );
+        });
+      },
+    };
+  },
   "g-alerts": function (id) {
     return {
       title: _T("attention"),

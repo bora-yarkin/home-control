@@ -89,7 +89,7 @@ function remoteUsable(e) {
 
 /* Whether an action can run now: a key needs its remote entity, a media control its player, a press its entity. */
 function rmUsable(a) {
-  if (!a) return false;
+  if (!a || a.t === "room") return false;
   if (a.t === "ent" || !a.t) return remoteUsable(a.e);
   var s = H().states[a.e];
   if (s && s.state !== "unavailable") return true;
@@ -100,6 +100,8 @@ function rmUsable(a) {
 
 /* The service call of an action, as [domain, service, data]. */
 function rmCall(a) {
+  /* a room on a vacuum's map is chosen on its own card, it calls nothing */
+  if (a.t === "room") return null;
   if (a.t === "key") {
     /* A power key goes over the TV's network socket, which is closed while the TV is off: the media player is turned on instead. */
     if (a.w && V_(a.w) === "off") return ["media_player", "turn_on", { entity_id: a.w }];
@@ -171,6 +173,11 @@ function rmHold(el, b, after) {
 /* What an action is called, for lists: "KEY_UP · Living TV". */
 function rmActName(a) {
   if (!a) return "";
+  if (a.t === "room") {
+    var vd = RM.vacuum && apFind(RM.vacuum),
+      vr = vd && vacapConf(vd.ap).rooms.filter(function (r) { return r.k === a.r; })[0];
+    return _T("vacap_room") + " " + ((vr && vr.l) || a.r);
+  }
   var who = A(a.e).friendly_name || a.e;
   if (a.t === "key") return a.c + " · " + who;
   if (a.t === "media") return _T(RM_MEDIA_LABEL[a.m]) + " · " + who;
@@ -408,13 +415,15 @@ function rmGrid(d, edit, onTap, tiles) {
 function remotePicture(box, d, edit, redraw) {
   var img = d.rm.img;
   if (!img) return;
+  /* an appliance that carries a remote is known by its own id */
+  var id = d.rid || d.aid;
   var wrap = mk("div", "rm-img"),
     pic = mk("img");
   pic.src = img.u;
   pic.alt = d.name;
   pic.draggable = false;
   wrap.appendChild(pic);
-  var sel = RM.sel && RM.sel.rid === d.rid ? RM.sel.i : -1;
+  var sel = RM.sel && RM.sel.rid === id ? RM.sel.i : -1;
   function place(el, h) {
     el.style.left = h.x + "%";
     el.style.top = h.y + "%";
@@ -454,8 +463,8 @@ function remotePicture(box, d, edit, redraw) {
       t.addEventListener("pointerdown", function (e) {
         e.stopPropagation();
         e.preventDefault();
-        var already = RM.sel && RM.sel.rid === d.rid && RM.sel.i === i;
-        RM.sel = { rid: d.rid, i: i };
+        var already = RM.sel && RM.sel.rid === id && RM.sel.i === i;
+        RM.sel = { rid: id, i: i };
         var r = wrap.getBoundingClientRect(),
           sx = e.clientX,
           sy = e.clientY,
@@ -473,7 +482,7 @@ function remotePicture(box, d, edit, redraw) {
         t.onpointerup = t.onpointercancel = function () {
           t.onpointermove = t.onpointerup = t.onpointercancel = null;
           if (moved) uiChanged();
-          else if (already) showPopup("remote-btn:" + d.rid + ":h" + i, true);
+          else if (already) showPopup("remote-btn:" + id + ":h" + i, true);
           redraw();
         };
       });
@@ -513,7 +522,7 @@ function remotePicture(box, d, edit, redraw) {
       rmChooseAction(function (a) {
         var h = { x: Math.max(0, Math.min(88, px - 6)), y: Math.max(0, Math.min(94, py - 3)), w: 12, h: 6, r: "rect", a: a };
         img.hs.push(h);
-        RM.sel = { rid: d.rid, i: img.hs.length - 1 };
+        RM.sel = { rid: id, i: img.hs.length - 1 };
         uiChanged();
       });
     });
@@ -554,6 +563,8 @@ function remotePage(b, rid, given) {
 
 /* Where the remote is built: opened from the device's settings. The grid or the picture in editing, and what can be added. */
 function remoteBuild(b, rid) {
+  var vd = apFind(rid);
+  RM.vacuum = vd && vd.ap && vd.ap.type === "vacuum" ? rid : null;
   var box = mk("div");
   b.appendChild(box);
   function draw() {
@@ -764,6 +775,13 @@ function rmChooseAction(done) {
     var next = done(a);
     if (next) showPopup(next, true);
     else if (CURRENT) showPopup(CURRENT, false);
+  }
+  /* On a robot vacuum's picture (its map) an area picks one of its rooms. */
+  var vacap = RM.vacuum && apFind(RM.vacuum);
+  if (vacap) {
+    VACAPPICK = { rooms: vacapConf(vacap.ap).rooms, done: finish };
+    showPopup("vacap-pick", true);
+    return;
   }
   pickEntity(_T("rm_choose_what_the_button_runs"), REMOTE_PICK_DOMS, null, function (id) {
     var d = dom(id);
@@ -1113,6 +1131,7 @@ function remoteBtnPage(b, key) {
         },
       })
     );
+    if (a.t === "room") return;
     var sw = [];
     if (["key", "media", "webos"].indexOf(a.t) >= 0)
       sw.push(

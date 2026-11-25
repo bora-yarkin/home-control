@@ -14,6 +14,9 @@ var AP_SLOTS = {
   door: { l: "ap_door", doms: ["binary_sensor", "sensor"], read: true },
   permission: { l: "ap_remote_start_allowed", doms: ["binary_sensor", "switch", "input_boolean"], read: true },
   level: { l: "ap_level", doms: ["number", "input_number", "select", "input_select"] },
+  vacuum: { l: "ap_vacuum_entity", doms: ["vacuum"] },
+  battery: { l: "battery", doms: ["sensor"], read: true },
+  map: { l: "px_map", doms: ["camera", "image"], read: true },
 };
 
 /* A type only chooses which slots the editor offers first and the icon: every slot can still be used on any type. */
@@ -25,6 +28,7 @@ var AP_TYPES = {
   coffee: { l: "ap_coffee", icon: "drop", names: { program: "ap_n_drink", level: "ap_n_strength" }, slots: ["state", "program", "level", "start", "stop", "progress", "remaining", "door", "permission"] },
   fridge: { l: "ap_fridge", icon: "thermo", names: { temperature: "ap_n_fridge", level: "ap_n_mode" }, slots: ["state", "temperature", "current", "door", "level"] },
   projector: { l: "ap_projector", icon: "media", names: { program: "ap_n_source", level: "ap_n_picture", temperature: "ap_n_keystone" }, slots: ["state", "program", "level", "start", "stop", "remaining", "temperature"] },
+  vacuum: { l: "ap_vacuum", icon: "vac", slots: ["vacuum", "battery", "map", "state"] },
   other: { l: "ap_appliance", icon: "plug", slots: ["state", "program", "level", "start", "stop", "progress", "remaining", "door", "permission", "temperature", "duration"] },
 };
 var AP_EXTRA_DOMS = ["select", "input_select", "number", "input_number", "switch", "input_boolean", "binary_sensor", "sensor", "button", "input_button", "script"];
@@ -175,6 +179,7 @@ function apRow(d) {
       if (apActive(ap) && s.remaining) return apLeft(s.remaining);
       if (s.state && apHas(s.state)) return apStateText(s.state);
       if (s.program && apHas(s.program)) return entVal(s.program);
+      if (ap.type === "vacuum" && s.vacuum && apHas(s.vacuum)) return apStateText(s.vacuum);
       return "";
     },
     tap: function () {
@@ -434,6 +439,19 @@ function apPage(b, aid) {
     bound = Object.keys(s).filter(function (k) {
       return apHas(s[k]);
     });
+  /* The robot vacuum has a page of its own, drawn as the Xiaomi vacuum's card (appliancevac.js). */
+  if (ap.type === "vacuum") {
+    vacapPage(b, d);
+    var kept = { type: ap.type, slots: ap.slots, extra: ap.extra.filter(function (x) { return !x.o; }) };
+    apDetails(b, kept, aid);
+    /* buttons made with the remote builder, when the picture is not the map */
+    if (d.rm && d.rm.v !== "i" && d.rm.btns.length) {
+      b.appendChild(sep(_T("rm_buttons"), "play"));
+      remotePage(b, aid);
+    }
+    if (ISADMIN) b.appendChild(pill("tune", _T("ap_set_up"), { tap: function () { showPopup("ap-edit:" + aid, true); } }));
+    return;
+  }
   if (!bound.length && !ap.extra.length) {
     b.appendChild(hintRow(ISADMIN ? _T("ap_nothing_is_bound_yet_choose_set_up") : _T("ap_nothing_is_bound_yet")));
   }
@@ -587,6 +605,10 @@ function apEditPage(b, aid) {
             },
           })
         );
+      });
+    if (ap.type === "vacuum")
+      vacapEditor(box, d, function () {
+        redrawBox(box, draw);
       });
     /* The rows added beyond the slots: any entity that can be read or set, in the order they are shown (drag to change it). */
     box.appendChild(sep(_T("ap_rows"), "tune"));
