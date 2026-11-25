@@ -23,6 +23,15 @@ function world({ states = {}, scenes = [], bridge = { entry_id: "hk", title: "Br
     pluginSceneKind: (id) => (id.startsWith("scene.hue_") ? { icon: "palette" } : null),
     pluginDeviceKind: (id) => (id === "switch.sync" ? { sync: true, icon: "sparkle" } : id === "switch.other" ? { icon: "plug" } : null),
     hkDevices: () => [],
+    sceneGroupOf: (id) => {
+      const a = (states[id] || {}).attributes || {};
+      return a.group_type ? { type: a.group_type, name: a.group_name, token: "group:" + a.group_type + ":" + a.group_name.toLowerCase() } : null;
+    },
+    sceneGroups: () => [
+      { token: "group:room:bed", label: "Hue · Room · Bed" },
+      { token: "group:zone:bed", label: "Hue · Zone · Bed" },
+    ],
+    sceneGroupLabel: (g) => "Hue · " + (g.type === "zone" ? "Zone" : "Room") + " · " + g.name,
     liveIcon: () => "sparkle",
     liveId: (id) => String(id),
     liveSceneArea: () => area,
@@ -159,4 +168,25 @@ test("the page is wired in: a settings category, its popups, administrators only
   assert.match(frontend("version.json"), /app\/sharing\.js/);
   const adapter = frontend("ha-adapter.js");
   for (const type of ["published", "publish", "homekit", "homekit_expose"]) assert.match(adapter, new RegExp(`type:"home_control/${type}"`));
+});
+
+test("a room's scene and the scene of the same name in a zone of it are under a heading each, and each row says which group it is in", () => {
+  const states = {
+    "scene.hue_room_relax": { attributes: { friendly_name: "Bed Relax", group_type: "room", group_name: "Bed" } },
+    "scene.hue_zone_relax": { attributes: { friendly_name: "Bed Relax", group_type: "zone", group_name: "Bed" } },
+    "scene.hue_nogroup": { attributes: { friendly_name: "Odd one" } },
+    "scene.classic": { attributes: { friendly_name: "Evening" } },
+  };
+  const { w } = world({ states });
+  const sections = JSON.parse(JSON.stringify(w.shareSections(w.shareItems())));
+  assert.deepEqual(sections.map((s) => [s.title, s.items.map((i) => i.key)]), [
+    ["Hue · Room · Bed", ["scene.hue_room_relax"]],
+    ["Hue · Zone · Bed", ["scene.hue_zone_relax"]],
+    ["share_group_hue", ["scene.hue_nogroup"]],
+    ["share_group_classic", ["scene.classic"]],
+  ], "the room's before the zone's, then the Hue scenes in no group, then the other scenes");
+  const status = (id) => w.shareStatus(w.shareItems().find((i) => i.key === id));
+  assert.match(status("scene.hue_room_relax"), /^Hue · Room · Bed · /);
+  assert.match(status("scene.hue_zone_relax"), /^Hue · Zone · Bed · /);
+  assert.equal(status("scene.classic").startsWith("Hue"), false, "a scene in no group says nothing of one");
 });

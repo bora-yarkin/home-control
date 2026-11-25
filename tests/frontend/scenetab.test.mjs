@@ -38,6 +38,7 @@ function world(section = {}, extra = {}) {
     UIROOM: { r1: { name: "Bora's Bedroom", area: "bora" } },
     sceneShortName: (name) => name.replace(/^Bathroom /, ""),
     sceneGroupIds: (token) => (token === "group:zone:wardrobe" ? ["scene.ward_a", "scene.ward_b"] : []),
+    sceneNameSuffixes: (ids) => (ids.includes("scene.ward_a") && ids.includes("scene.bath_dim") ? { "scene.ward_a": " · Zone", "scene.bath_dim": " · Room" } : {}),
     secScenes: (s) => s.scn.map((id) => stored.find((x) => x.id === id)),
     lightingScenesExtra: () => () => [{ id: "scene.bath_dim", kind: {} }],
     uiChanged() {},
@@ -81,6 +82,14 @@ test("a Hue room or zone chosen as a source adds the scenes of that group, with 
   assert.deepEqual(keys(items), ["scene.ward_a", "scene.ward_b", "scene.bath_dim"]);
   assert.ok(items.every((x) => x.kind === "plugin"));
   assert.deepEqual(keys(world({ msrc: ["group:room:nothing"] }).w.mscItems({ root: { key: "m:r1~lights" } })), [], "a group with no scenes brings none");
+});
+
+test("two scenes of one name in a room and in a zone of it say which is which, in the master's tiles", () => {
+  const { w } = world({ msrc: ["group:zone:wardrobe", "hue:@lights"] });
+  const names = plain(w.mscItems({ root: { key: "m:r1~lights" } }).map((x) => x.name));
+  assert.equal(names.find((n) => n.endsWith(" · Zone")) !== undefined, true);
+  assert.equal(names.find((n) => n.endsWith(" · Room")) !== undefined, true);
+  assert.equal(names.includes("Dim"), false, "the bare name is not left on a scene that has a namesake");
 });
 
 test("removing a scenes section does not remove a scene from the master that was made from its own +", () => {

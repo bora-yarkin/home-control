@@ -27,6 +27,7 @@ function shareItems() {
         name: A(id).friendly_name || id,
         icon: kind && typeof kind.icon === "string" ? kind.icon : "scene",
         entity: id,
+        hg: kind ? sceneGroupOf(id) : null,
       });
     else if (dom(id) === "switch" && (pluginDeviceKind(id) || {}).sync)
       items.push({ group: "sync", key: id, name: A(id).friendly_name || id, icon: pluginDeviceKind(id).icon || "sparkle", entity: id });
@@ -34,6 +35,36 @@ function shareItems() {
   return items.sort(function (a, b) {
     return String(a.name).localeCompare(b.name);
   });
+}
+
+var SHARE_GROUPS = [
+  ["live", "share_group_live", "sparkle"],
+  ["hue", "share_group_hue", "palette"],
+  ["classic", "share_group_classic", "scene"],
+  ["sync", "share_group_sync", "sparkle"],
+];
+
+/* The page's headings and what is under each, in order. A plugin's scenes (Hue) are under a heading for each of its rooms and zones, since the scenes of a room and of a zone in it can have one name; the ones in no group are under the plugin's own. */
+function shareSections(items) {
+  var out = [];
+  SHARE_GROUPS.forEach(function (g) {
+    var list = items.filter(function (it) {
+      return it.group === g[0];
+    });
+    if (g[0] === "hue") {
+      sceneGroups().forEach(function (gr) {
+        var mine = list.filter(function (it) {
+          return it.hg && it.hg.token === gr.token;
+        });
+        if (mine.length) out.push({ title: gr.label, icon: g[2], items: mine });
+      });
+      list = list.filter(function (it) {
+        return !it.hg;
+      });
+    }
+    if (list.length) out.push({ title: _T(g[1]), icon: g[2], items: list });
+  });
+  return out;
 }
 
 function shareLoad(done) {
@@ -139,10 +170,10 @@ function shareSetPublished(it, on, done) {
 function shareStatus(it) {
   var e = shareEntity(it),
     hk = !!(e && SHARE.bridge && SHARE.bridge.exposed[e]),
-    sc = !!e;
-  if (hk) return _T("homekit") + " · " + _T("shortcuts");
-  if (sc) return _T("shortcuts");
-  return _T("not_shared_yet");
+    sc = !!e,
+    what = hk ? _T("homekit") + " · " + _T("shortcuts") : sc ? _T("shortcuts") : _T("not_shared_yet");
+  /* the room or zone it is in leads, so a scene is told from the one of the same name in another group wherever the page is scrolled to */
+  return it.hg ? sceneGroupLabel(it.hg) + " · " + what : what;
 }
 
 /* A switch with its name, in the line under a scene's name. */
@@ -214,12 +245,6 @@ function shareRow(it, redraw) {
   return row;
 }
 
-var SHARE_GROUPS = [
-  ["live", "share_group_live", "sparkle"],
-  ["hue", "share_group_hue", "palette"],
-  ["classic", "share_group_classic", "scene"],
-  ["sync", "share_group_sync", "sparkle"],
-];
 
 function sharePage(b) {
   var box = mk("div");
@@ -237,13 +262,9 @@ function sharePage(b) {
     var items = shareItems();
     hkBridgeBlock(box, again);
     hkDeviceGroups(box, again);
-    SHARE_GROUPS.forEach(function (g) {
-      var list = items.filter(function (it) {
-        return it.group === g[0];
-      });
-      if (!list.length) return;
-      box.appendChild(sep(_T(g[1]) + " · " + list.length, g[2]));
-      list.forEach(function (it) {
+    shareSections(items).forEach(function (sec) {
+      box.appendChild(sep(sec.title + " · " + sec.items.length, sec.icon));
+      sec.items.forEach(function (it) {
         box.appendChild(shareRow(it, again));
       });
     });

@@ -598,9 +598,10 @@ function sceneCollectionRow(d) {
   it.stored.forEach(function (sc) {
     box.appendChild(sceneRow(sc));
   });
+  var words = sceneNameSuffixes(it.ents);
   it.ents.forEach(function (id) {
     var kind = pluginSceneKind(id),
-      nm = d.keepname ? A(id).friendly_name || id : sceneShortName(A(id).friendly_name || id, ctx, {});
+      nm = (d.keepname ? A(id).friendly_name || id : sceneShortName(A(id).friendly_name || id, ctx, {})) + (words[id] || "");
     box.appendChild(sceneEntRow(id, nm, kind ? kind.icon : "scene", null, ctx));
   });
   /* Taken now: the page and Section being drawn are not known any more when the button is tapped. */

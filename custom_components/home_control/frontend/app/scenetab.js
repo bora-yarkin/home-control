@@ -84,6 +84,19 @@ function mscItems(S) {
       });
     }
   });
+  /* A room's scene and the scene of the same name in a zone of it say which is which. */
+  var words = sceneNameSuffixes(
+    out
+      .filter(function (it) {
+        return it.kind === "plugin";
+      })
+      .map(function (it) {
+        return it.id;
+      })
+  );
+  out.forEach(function (it) {
+    if (words[it.id]) it.name += words[it.id];
+  });
   return out;
 }
 

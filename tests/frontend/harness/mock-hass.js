@@ -81,6 +81,7 @@ export function makeHass(query, home = null) {
     state("scene.living_room_reading", "unknown", { friendly_name: "Living room Reading", name: "Reading", is_dynamic: false, group_name: "Living room", group_type: "room" }),
     // A Hue zone of the same name as the room, and one more zone: their scenes are in the area of their device, as the room's are.
     state("scene.living_room_zone_cosy", "unknown", { friendly_name: "Living room Cosy", name: "Cosy", is_dynamic: false, group_name: "Living room", group_type: "zone" }),
+    state("scene.living_room_zone_reading", "unknown", { friendly_name: "Living room Reading", name: "Reading", is_dynamic: false, group_name: "Living room", group_type: "zone" }),
     state("scene.shelf_zone_bright", "unknown", { friendly_name: "Shelf Bright", name: "Bright", is_dynamic: false, group_name: "Shelf", group_type: "zone" }),
     state("select.living_room_scene", "Reading", { friendly_name: "Scene", options: ["Arctic aurora", "Reading"] }),
     // Home Control's own integration plays live scenes for every light; its sensor lists what is running.
@@ -150,6 +151,7 @@ export function makeHass(query, home = null) {
     reg("scene.living_room_arctic_aurora", "hue_plus", "scene-1", "dev-living-group", { area_id: "living" }),
     reg("scene.living_room_reading", "hue", "scene-2", "dev-living-group", { area_id: "living" }),
     reg("scene.living_room_zone_cosy", "hue_plus", "scene-3z", "dev-living-group", {}),
+    reg("scene.living_room_zone_reading", "hue_plus", "scene-5z", "dev-living-group", {}),
     reg("scene.shelf_zone_bright", "hue_plus", "scene-4z", "dev-living-group", {}),
     reg("select.living_room_scene", "hue_plus", "group-1_scene", "dev-living-group", { area_id: "living" }),
     ...(withSync

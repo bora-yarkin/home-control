@@ -432,6 +432,37 @@ function sceneGroupOf(id) {
   return { type: a.group_type, name: name, token: "group:" + a.group_type + ":" + groupSlug(name) };
 }
 
+/* "Hue · Zone · Bed Storage": a group named in full. */
+function sceneGroupLabel(g) {
+  return _T("src_hue") + " · " + _T(g.type === "zone" ? "src_group_zone" : "src_group_room") + " · " + g.name;
+}
+
+/* Scenes of different groups can have one name (a room's "Relax" and the "Relax" of a zone in it). For the scenes of a list whose names are the same, a word that tells them apart, as { id: " · Zone" }: the kind of their group, with the
+   name of the group too where two of them are of one kind. A scene with a name of its own, or in no group, gets none. */
+function sceneNameSuffixes(ids) {
+  var byName = {},
+    out = {};
+  ids.forEach(function (id) {
+    var n = A(id).friendly_name || id;
+    if (sceneGroupOf(id)) (byName[n] = byName[n] || []).push(id);
+  });
+  Object.keys(byName).forEach(function (n) {
+    var list = byName[n];
+    if (list.length < 2) return;
+    var kind = function (id) {
+        return _T(sceneGroupOf(id).type === "zone" ? "src_group_zone" : "src_group_room");
+      },
+      count = {};
+    list.forEach(function (id) {
+      count[kind(id)] = (count[kind(id)] || 0) + 1;
+    });
+    list.forEach(function (id) {
+      out[id] = " · " + kind(id) + (count[kind(id)] > 1 ? " · " + sceneGroupOf(id).name : "");
+    });
+  });
+  return out;
+}
+
 /* Every group the scenes of plugins are in, rooms before zones and each by name: [{ token, type, name, label ("Hue · Zone · Bed Storage"), ids }]. */
 function sceneGroups() {
   var by = {};
@@ -440,7 +471,7 @@ function sceneGroups() {
     if (id.indexOf("scene.") !== 0) return;
     var g = sceneGroupOf(id);
     if (!g) return;
-    (by[g.token] = by[g.token] || { token: g.token, type: g.type, name: g.name, label: _T("src_hue") + " · " + _T(g.type === "zone" ? "src_group_zone" : "src_group_room") + " · " + g.name, ids: [] }).ids.push(id);
+    (by[g.token] = by[g.token] || { token: g.token, type: g.type, name: g.name, label: sceneGroupLabel(g), ids: [] }).ids.push(id);
   });
   return Object.keys(by)
     .map(function (k) {
