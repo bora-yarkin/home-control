@@ -975,6 +975,7 @@ body.light [data-k=alert]{--kc:#c97a10}
 body.light [data-k=link]{--kc:#5a6fc4}
 .ic[data-k],.pill[data-k] .ic,.tile[data-k] .ic,.sel[data-k] .ic{color:color-mix(in srgb,var(--kc) 78%,var(--ink2))}
 .pill[data-k] .ic[data-k],.tile[data-k] .ic[data-k],.sel[data-k] .ic[data-k]{--kc:inherit}
+.opts[data-k] .opt .ic[data-k],.rooms[data-k] .room .ic[data-k]{--kc:inherit}
 .pill.on[data-k]:not(.lc):not(.lci),.tile.on[data-k]:not(.lc):not(.lci){background:color-mix(in srgb,var(--kc) 13%,var(--f-card))!important;border-color:color-mix(in srgb,var(--kc) 48%,var(--f-line))!important}
 .pill.on[data-k]:not(.lc):not(.lci) .ic,.tile.on[data-k]:not(.lc):not(.lci) .ic{background:color-mix(in srgb,var(--kc) 34%,var(--f-raise));border-color:color-mix(in srgb,var(--kc) 58%,var(--f-line2));color:var(--ink)}
 /* A row that is playing shows its artwork in the icon circle and a play and pause button at its end. */

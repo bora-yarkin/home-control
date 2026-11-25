@@ -162,7 +162,8 @@ def _entity_config(entry: ConfigEntry, entity_id: str, accessory_type: str | Non
 def set_exposed(hass: HomeAssistant, entry_id: str | None, entity_id: str, expose: bool, accessory_type: str | None = None) -> bool:
     """Shows the entity on the bridge, as the accessory asked for when there is a choice, or stops showing it. True when the bridge's settings changed."""
     domain = entity_id.partition(".")[0]
-    if domain not in EXPOSABLE_DOMAINS or not _known(hass, entity_id):
+    # Taking an entity off the list needs no entity: one that was renamed or deleted must still be removable from it.
+    if domain not in EXPOSABLE_DOMAINS or (expose and not _known(hass, entity_id)):
         raise HomeKitError(
             f"{entity_id} cannot be put on the HomeKit list from here: it must exist and be something HomeKit has an accessory for."
         )
