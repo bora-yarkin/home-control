@@ -172,6 +172,7 @@ function rbOptSec(b, label, ent, key, get, set, inherit) {
     sv = head.lastChild,
     g = mk("div", "opts"),
     rs = null;
+  g.setAttribute("data-k", "clean");
   head.firstChild.textContent = label;
   if (inherit) {
     rs = mk("span", "rb-chip pane", _T("same_as_all"));
@@ -380,6 +381,7 @@ function robotCard(b) {
   );
   var ch = hd.querySelector(".rb-chips");
   var tiles = mk("div", "rooms");
+  tiles.setAttribute("data-k", "clean");
   var start = mk("div", "rb-start pane");
   function paintStart() {
     rbTrack();

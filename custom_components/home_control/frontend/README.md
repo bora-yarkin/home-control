@@ -20,6 +20,8 @@ Home Assistant. Anything that Home Assistant does well (automations, helpers, gr
 | `app/staticmaker.js` | Classic scenes: the editor (a light opens the light popup, other devices slide open in place, live scenes can be added), saving, deleting. |
 | `app/vlights.js` | Lights that exist only in the dashboard: the Colors light of the live scene maker and its colours (up to 10), which answer to the light popup like a light made of zones. `core.js` reads them before Home Assistant's states and `callRaw` gives them the commands meant for them. |
 | `app/livemaker.js` | The live scene maker: the light popup with the Colors light, the lights of the chosen areas, the effects and settings of the whole scene, preview and saving. `livescenes.js` keeps playing, sharing with Hue Plus and the scene's popup. |
+| `app/sharing.js` | Settings, Siri and HomeKit: a row for every scene (live, Hue, classic) and sync switch with a HomeKit and a Shortcuts switch (decision D-23), and the page that says how to find a scene in the Shortcuts app. Administrators only. |
+| `app/homekit.js` | The devices half of the Siri and HomeKit page (decision D-24): the HomeKit Bridge (making it, pairing it), what each device is shown as, the devices on the bridge and a TV's Home key. |
 | `app/doorcall.js` | Door calls: the popup of a ringing intercom (camera, answer, end, unlock, talk, listen), opened by itself and when the dashboard is opened during a call, and the audio it uses (`docs/intercom-contract.md`). |
 | `app/kinds.js` | Guided setup of a device that has other entities (a TV's remote, a camera's second stream, pan/tilt, privacy and detection entities): finds them by itself, offers a searchable list for the rest, keeps the links with the device, and says whether a TV gets the full or the basic remote. Add a kind of device in `DEVSETUP`. |
 | `integrations.js` | Everything that is specific to one integration (xiaomi_miot, robot_vacuum_map, samsungtv_smart, apple_tv, androidtv_remote). It draws nothing and reads nothing from the page. |
@@ -42,6 +44,7 @@ Popups are made of a few shared pieces. A popup that needs one of these uses it 
 | `guardUnsaved` (`scenenew.js`) | The one rule for a form that saves: the checkmark, and Save / Discard when it is closed with changes. |
 | `redrawBox`, `swapContent` (`manage.js`) | Draw a popup's content again, with or without the slide. |
 | `iconPick` (`icons.js`), `textRow` (`manage.js`), `dropRow` (`appearance.js`), `entRow` (`devices.js`), `pickEntity` (`widgets.js`) | The icon list, the name field, a dropdown row, a read-only line, the entity picker. |
+| `registerWidget`, `widgetDef`, `sizeOf`, `widgetRow` (`widgetkinds.js`), `homewidgets.js` | A widget is a device of kind `widget` with a type and settings (`wx`); the type, registered here, says what it is, its sizes, how its settings are checked, drawn and edited. A Section is a grid of four columns (`xs` 1, `s` 2, `m` and `l` 4). The overviews, the lights master and the home screen widgets are types. |
 | `devManage` and the `dev*Tab` functions (`manage.js`) | A device's settings: one function for each tab (Look, Options, Placement, More) and one for each kind's options. A new kind's options are one more function called from `devOptionsTab`. |
 
 The light popup (`lightpanel.js`) is a design of its own (the `lp-*` rules) and is changed on its own.

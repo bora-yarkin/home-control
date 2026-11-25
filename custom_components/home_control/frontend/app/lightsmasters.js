@@ -1,43 +1,33 @@
 /* More than one lights master in a section, moving and copying a master to another section, and the At a glance lights popup that lists the lights of the masters too.
-   A Lights section has one master of its own (its settings are on the section, see app/mastersettings.js). It can also hold more, in `masters`: each is a holder of the same settings (name `mn`, lights `ml`, power button `mpw`, scenes `scn`, `msrc`, `mf`, `mtop`, and so on) under an id of its own, so everything that works on a master by "page~id" (the popup, its settings, its scenes) works on one that is held. A held master is always manual: the lights are chosen for it, and it never touches the lights of the section that holds it. */
-
-/* The settings a master has, which go with it when it is moved or copied to another section. The two that hide the section's own lights and sync (mhl, mhs) are about the section it was in, so they do not. */
-var LM_KEYS = ["mn", "mall", "mo", "mm", "ml", "mgl", "mtab", "lx", "mhide", "mxt", "mpw", "mps", "msync", "msyncid", "scn", "msrc", "mf", "mtop", "mgr"];
-var LM_OWN = LM_KEYS.concat(["mhl", "mhs", "master"]);
+   A lights master is a widget of a Section (app/widgetkinds.js, decision D-25): its settings (name `mn`, lights `ml`, power button `mpw`, scenes `scn`, `msrc`, `mf`, `mtop`, and so on) are the widget's, and a Section can hold
+   several. The one made from the Section's own lights is `own`; every other is manual: the lights are chosen for it. Everything that works on a master by "page~id" (the popup, its settings, its scenes) finds it with masterById. */
 
 /* The sections of a list with the lights masters they hold, for what is kept on both the same way (the scenes a master lists). */
 function secsAndMasters(list) {
   var out = [];
   list.forEach(function (s) {
     out.push(s);
-    (s.masters || []).forEach(function (m) {
-      out.push(m);
+    masterWidgets(s).forEach(function (d) {
+      out.push(masterView(s, d));
     });
   });
   return out;
 }
 
-/* The section that holds a master (a lights section with `masters` that has it), or null when the master is a section's own. */
+/* The section that holds a master that is not the section's own (one chosen lights for, made on its own), or null when the master is the section's own. */
 function masterHost(scope, id) {
-  return (
-    secOrder(scopeKey(scope)).filter(function (s) {
-      return (s.masters || []).some(function (m) {
-        return m.id === id;
-      });
-    })[0] || null
-  );
+  var f = masterFind(scope, id);
+  return f && !f.widget.wx.own ? f.host : null;
 }
 
-/* Whether a lights section leaves a row out because one of its masters (its own, or one it holds) has the light, or the sync, and is set to keep it. */
+/* Whether a lights section leaves a row out because one of its masters has the light, or the sync, and is set to keep it. */
 function masterLeavesOut(s, d) {
   var pk = pluginDeviceKind(d.id);
-  /* the section's own master leaves out every light row of the section; a held one only the lights it has */
-  function leaves(m, own) {
+  /* the section's own master leaves out every light row of the section; another only the lights it has */
+  return masterWidgets(s).some(function (w) {
+    var m = masterView(s, w);
     if (pk) return !!(pk.sync && m.mhs);
-    return d.kind === "light" && !!m.mhl && (own || masterLightIds(m).indexOf(d.id) >= 0);
-  }
-  return (!!s.master && leaves(s, true)) || (s.masters || []).some(function (m) {
-    return leaves(m, false);
+    return d.kind === "light" && !!m.mhl && (!!m.own || masterLightIds(m).indexOf(d.id) >= 0);
   });
 }
 
@@ -45,7 +35,7 @@ function masterLeavesOut(s, d) {
 function masterNewId(scope) {
   var id;
   do id = "m" + Math.random().toString(36).slice(2, 7);
-  while (secById(scope, id) || !/^[a-z][a-z0-9_]{1,14}$/.test(id));
+  while (secById(scope, id) || masterById(scope, id) || !/^[a-z][a-z0-9_]{1,14}$/.test(id));
   return id;
 }
 
@@ -81,9 +71,9 @@ function allMasters() {
   pages.forEach(function (p) {
     secOrder(scopeKey(p[0])).forEach(function (s) {
       if (s.k !== "devs" || s.hide) return;
-      if (s.master) out.push({ key: p[0] + "~" + s.id, scope: p[0], page: p[1], host: s, sec: s, own: true, ids: masterLightIds(s) });
-      (s.masters || []).forEach(function (m) {
-        out.push({ key: p[0] + "~" + m.id, scope: p[0], page: p[1], host: s, sec: m, own: false, ids: masterLightIds(m) });
+      masterWidgets(s).forEach(function (w) {
+        var m = masterView(s, w);
+        out.push({ key: p[0] + "~" + w.wid, scope: p[0], page: p[1], host: s, sec: m, own: !!m.own, ids: masterLightIds(m) });
       });
     });
   });
@@ -92,21 +82,25 @@ function allMasters() {
 
 /* ---- making one ---- */
 
+/* A lights master as a widget of a Section, with the id it is named by and the settings it starts with. */
+function masterDevice0(id, wx) {
+  return { kind: "widget", id: "", w: "lmaster", wid: id, name: _T("lights_master"), icon: "lights", wx: Object.assign({ id: id, master: 1 }, wx) };
+}
+
 /* What the + of a Lights section asks first when "Lights master" is chosen: an automatic master (the section's own, made from the section's lights and named All lights) or a manual one (the lights are chosen for it). `key` is "page:section". */
 function masterAddPage(b, key) {
   var p = key.split(":"),
     host = secById(p[0], p[1]);
   if (!host || host.k !== "devs") return;
-  var hasOwn = !!host.master;
+  var hasOwn = !!ownMasterWidget(host);
   b.appendChild(
     pill("restart", _T("master_auto"), {
       sub: function () {
         return hasOwn ? _T("lm_add_auto_taken") : _T("lm_add_auto_sub");
       },
       tap: function () {
-        if (host.master) return toast(_T("lm_add_auto_taken"));
-        host.master = 1;
-        host.mn = _T("all_lights");
+        if (ownMasterWidget(host)) return toast(_T("lm_add_auto_taken"));
+        host.devs = [masterDevice0(masterNewId(p[0]), { own: 1, mn: _T("all_lights") })].concat(host.devs || []);
         uiChanged();
         toast(_T("lm_made"));
         closeSheet();
@@ -142,9 +136,9 @@ function masterNewPage(b, key) {
     },
     tap: function () {
       if (draft.ml.length < 2) return toast(_T("lm_choose_at_least_two_lights"));
-      var h = { id: masterNewId(p[0]), master: 1, mm: 1, ml: draft.ml };
+      var h = { mm: 1, ml: draft.ml };
       if (draft.mn) h.mn = draft.mn;
-      host.masters = (host.masters || []).concat([h]);
+      host.devs = (host.devs || []).concat([masterDevice0(masterNewId(p[0]), h)]);
       uiChanged();
       toast(_T("lm_made"));
       popBack();
@@ -160,13 +154,12 @@ function masterNewPage(b, key) {
 
 /* ---- moving and copying ---- */
 
-/* Gives a master to another section: a copy of its settings in `target.masters`, and, when it is moved, takes it out of where it was. A master that was automatic is saved as manual with the lights it had, so it still has them in the other section; the target's own lights are not touched. Returns the new master. */
+/* Gives a master to another section: a copy of its settings as a widget of `target.sec`, and, when it is moved, takes it out of where it was. A master that was automatic is saved as manual with the lights it had, so it still has them in the other section; the target's own lights are not touched. Returns the new master's settings. */
 function masterTransfer(scope, id, target, copy) {
-  var src = secById(scope, id),
-    host = masterHost(scope, id),
-    own = !host;
-  if (!src) return null;
-  var h = { id: masterNewId(target.scope), master: 1, mm: 1 };
+  var f = masterFind(scope, id);
+  if (!f) return null;
+  var src = f.view,
+    h = { mm: 1 };
   LM_KEYS.forEach(function (k) {
     if (src[k] !== undefined && src[k] !== null) h[k] = JSON.parse(JSON.stringify(src[k]));
   });
@@ -186,47 +179,36 @@ function masterTransfer(scope, id, target, copy) {
     h.msrc = h.msrc.filter(function (x) {
       return x.indexOf("sec:") !== 0 || !!secById(target.scope, x.slice(4));
     });
-  target.sec.masters = (target.sec.masters || []).concat([h]);
-  if (!copy) {
-    if (host)
-      host.masters = host.masters.filter(function (m) {
-        return m.id !== id;
-      });
-    else
-      LM_OWN.forEach(function (k) {
-        delete src[k];
-      });
-    if (host && !host.masters.length) delete host.masters;
-  }
+  var nd = masterDevice0(masterNewId(target.scope), h);
+  target.sec.devs = (target.sec.devs || []).concat([nd]);
+  if (!copy)
+    f.host.devs = f.host.devs.filter(function (d) {
+      return d !== f.widget;
+    });
   uiChanged();
-  return h;
+  return nd.wx;
 }
 
-/* A master a section holds becomes the section's own master: it takes the place of the section's own master settings (which are gone), and the section's own lights are as it was before: automatic masters can be chosen again. */
+/* A master a section holds becomes the section's own master: the section's own master is gone (its settings with it), and the section's own lights are as they were before: automatic masters can be chosen again. */
 function masterMakeOwn(host, id) {
-  var h = host.masters.filter(function (m) {
-    return m.id === id;
+  var w = masterWidgets(host).filter(function (d) {
+    return d.wid === id;
   })[0];
-  if (!h) return;
-  LM_OWN.forEach(function (k) {
-    delete host[k];
-  });
-  LM_OWN.forEach(function (k) {
-    if (h[k] !== undefined && h[k] !== null) host[k] = JSON.parse(JSON.stringify(h[k]));
-  });
-  host.master = 1;
-  host.masters = host.masters.filter(function (m) {
-    return m.id !== id;
-  });
-  if (!host.masters.length) delete host.masters;
+  if (!w) return;
+  var old = ownMasterWidget(host);
+  if (old)
+    host.devs = host.devs.filter(function (d) {
+      return d !== old;
+    });
+  w.wx.own = 1;
   uiChanged();
 }
 
 /* Where to move or copy a master: "page:master". */
 function masterMovePage(b, key) {
   var p = key.split(":"),
-    src = secById(p[0], p[1]),
-    host = masterHost(p[0], p[1]) || src;
+    src = masterById(p[0], p[1]),
+    host = (masterFind(p[0], p[1]) || {}).host;
   if (!src) return;
   var copy = false,
     box = mk("div");
@@ -246,7 +228,7 @@ function masterMovePage(b, key) {
       )
     );
     box.appendChild(hintRow(copy ? _T("lm_copy_hint") : _T("lm_move_hint")));
-    if (!src.mm && !masterHost(p[0], p[1])) box.appendChild(hintRow(_T("lm_auto_saved_hint")));
+    if (!src.mm) box.appendChild(hintRow(_T("lm_auto_saved_hint")));
     var page = null;
     masterTargets().forEach(function (t) {
       if (!copy && t.sec === host) return;
@@ -297,7 +279,7 @@ function masterGlanceRows(box, sec, redraw) {
 
 /* Moving, copying and (for one a section holds) making it the section's own master or deleting it. */
 function masterActionRows(box, sec, scope) {
-  var host = masterHost(scope, sec.id),
+  var host = masterHost(scope, sec.id), /* the section that holds it, unless it is the section's own master */
     acts = [],
     bad = [];
   function add(row, danger) {
@@ -332,48 +314,29 @@ function masterActionRows(box, sec, scope) {
         },
       })
     );
-  if (host)
-    add(
-      pill("trash", _T("lm_delete"), {
-        tap: function () {
-          confirmDlg(
-            _T("lm_delete_this_master"),
-            function () {
-              host.masters = host.masters.filter(function (m) {
-                return m.id !== sec.id;
+  add(
+    pill("trash", _T("lm_delete"), {
+      sub: function () {
+        return host ? "" : _T("lm_delete_own_sub");
+      },
+      tap: function () {
+        confirmDlg(
+          _T("lm_delete_this_master"),
+          function () {
+            var f = masterFind(scope, sec.id);
+            if (f)
+              f.host.devs = f.host.devs.filter(function (d) {
+                return d !== f.widget;
               });
-              if (!host.masters.length) delete host.masters;
-              uiChanged();
-              closeSheet();
-            },
-            _T("delete")
-          );
-        },
-      }),
-      true
-    );
-  if (!host)
-    add(
-      pill("trash", _T("lm_delete"), {
-        sub: function () {
-          return _T("lm_delete_own_sub");
-        },
-        tap: function () {
-          confirmDlg(
-            _T("lm_delete_this_master"),
-            function () {
-              LM_OWN.forEach(function (key) {
-                delete sec[key];
-              });
-              uiChanged();
-              closeSheet();
-            },
-            _T("delete")
-          );
-        },
-      }),
-      true
-    );
+            uiChanged();
+            closeSheet();
+          },
+          _T("delete")
+        );
+      },
+    }),
+    true
+  );
   stgActions(box, acts, bad);
 }
 

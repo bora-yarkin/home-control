@@ -270,8 +270,28 @@ var POPUP_DEFS = {
       },
     };
   },
+  "wcontent": function (id) {
+    var d = widgetOfSection(id.split(":")[0], id.split(":")[1], id.split(":")[2]);
+    return {
+      title: (d && d.name) || _T("widget"),
+      icon: (d && widgetDef(d.w) && widgetDef(d.w).icon) || "info",
+      build: function (b) {
+        widgetContentPage(b, id);
+      },
+    };
+  },
+  "wfolder": function (id) {
+    var d = widgetOfSection(id.split(":")[0], id.split(":")[1], id.split(":")[2]);
+    return {
+      title: (d && d.name) || _T("folder"),
+      icon: "plus",
+      build: function (b) {
+        folderPage(b, id);
+      },
+    };
+  },
   "lmaster-edit": function (id) {
-    var sec = secById(id.split(":")[0], id.split(":")[1]);
+    var sec = masterById(id.split(":")[0], id.split(":")[1]);
     return {
       title: (sec && sec.mn) || _T("lights_master"),
       icon: "lights",
@@ -283,7 +303,7 @@ var POPUP_DEFS = {
   "lmaster-part": function (id) {
     var part = id.split(":")[0],
       key = id.slice(part.length + 1),
-      sec = secById(key.split(":")[0], key.split(":")[1]);
+      sec = masterById(key.split(":")[0], key.split(":")[1]);
     return {
       title: ((sec && sec.mn) || _T("lights_master")) + " · " + _T("lm_part_" + part),
       icon: "lights",
@@ -456,6 +476,18 @@ var POPUP_DEFS = {
   },
   "scene-pick": function (id) {
     return { title: _T("add_device"), icon: "plus", build: scenePick };
+  },
+  "stg-share": function (id) {
+    return { title: _T("siri_and_homekit"), icon: "mic", build: sharePage };
+  },
+  "share-how": function (id) {
+    return {
+      title: _T("run_it_from_shortcuts"),
+      icon: "scene",
+      build: function (b) {
+        shareHowPage(b, id);
+      },
+    };
   },
   "stg-areas": function (id) {
     return { title: _T("areas"), icon: "target", build: stgAreas };

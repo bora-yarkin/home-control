@@ -29,6 +29,7 @@ function world(section = {}, extra = {}) {
     sceneHasTag: () => false,
     cleanTags: () => [],
     secById: (scope, sid) => (scope === "r1" && sid === "lights" ? e : sid === "sc" ? { id: "sc", k: "scenes", scn: ["c2"] } : null),
+    masterById: (scope, sid) => (scope === "r1" && sid === "lights" ? e : null),
     STORE: { scenes: stored },
     sceneById: (id) => stored.find((s) => s.id === id) || null,
     sceneAllowed: () => true,
@@ -36,6 +37,8 @@ function world(section = {}, extra = {}) {
     A: (id) => (states[id] || {}).attributes || {},
     UIROOM: { r1: { name: "Bora's Bedroom", area: "bora" } },
     sceneShortName: (name) => name.replace(/^Bathroom /, ""),
+    sceneGroupIds: (token) => (token === "group:zone:wardrobe" ? ["scene.ward_a", "scene.ward_b"] : []),
+    sceneNameSuffixes: (ids) => (ids.includes("scene.ward_a") && ids.includes("scene.bath_dim") ? { "scene.ward_a": " · Zone", "scene.bath_dim": " · Room" } : {}),
     secScenes: (s) => s.scn.map((id) => stored.find((x) => x.id === id)),
     lightingScenesExtra: () => () => [{ id: "scene.bath_dim", kind: {} }],
     uiChanged() {},
@@ -73,6 +76,22 @@ test("the sources the section chose add their scenes: the scenes made for the pa
   assert.deepEqual(keys(old.w.mscItems({ root: { key: "m:r1~lights" } })), [], "a scenes section is not a source any more");
 });
 
+test("a Hue room or zone chosen as a source adds the scenes of that group, with the ones of other sources, once each", () => {
+  const { w } = world({ msrc: ["group:zone:wardrobe", "hue:@lights"] });
+  const items = w.mscItems({ root: { key: "m:r1~lights" } });
+  assert.deepEqual(keys(items), ["scene.ward_a", "scene.ward_b", "scene.bath_dim"]);
+  assert.ok(items.every((x) => x.kind === "plugin"));
+  assert.deepEqual(keys(world({ msrc: ["group:room:nothing"] }).w.mscItems({ root: { key: "m:r1~lights" } })), [], "a group with no scenes brings none");
+});
+
+test("two scenes of one name in a room and in a zone of it say which is which, in the master's tiles", () => {
+  const { w } = world({ msrc: ["group:zone:wardrobe", "hue:@lights"] });
+  const names = plain(w.mscItems({ root: { key: "m:r1~lights" } }).map((x) => x.name));
+  assert.equal(names.find((n) => n.endsWith(" · Zone")) !== undefined, true);
+  assert.equal(names.find((n) => n.endsWith(" · Room")) !== undefined, true);
+  assert.equal(names.includes("Dim"), false, "the bare name is not left on a scene that has a namesake");
+});
+
 test("removing a scenes section does not remove a scene from the master that was made from its own +", () => {
   const { w } = world({ scn: ["c1"], msrc: ["sec:gone"] });
   assert.deepEqual(keys(w.mscItems({ root: { key: "m:r1~lights" } })), ["c1"]);
@@ -99,21 +118,20 @@ test("a folder that loses its last scene is gone, and a scene that no longer exi
   assert.equal(e.mf, undefined);
 });
 
-test("the section keeps its sources, folders and order through the layout clean-up, and drops what is not valid", () => {
+test("a master keeps its sources, folders and order through the layout clean-up, and drops what is not valid", () => {
+  const ctx = vm.createContext({ cleanTags: (l) => (Array.isArray(l) ? l.filter((x) => typeof x === "string" && x) : []), cleanDev: () => null, ENTRE: /^[a-z_]+\.[a-z0-9_]+$/ });
   const model = read("model.js");
-  const at = model.indexOf('if (k === "devs") {\n      /* The scenes page');
-  assert.ok(at > 0);
-  const body = model.slice(at, model.indexOf("if (ty.own) {", at));
-  const run = (s) => {
-    const o = {};
-    vm.runInNewContext(`(function(s,o,k){${body}})(s,o,k)`, { s, o, k: "devs", cleanTags: (l) => (Array.isArray(l) ? l.filter((x) => typeof x === "string" && x) : []) });
-    return plain(o);
-  };
-  assert.deepEqual(run({ msrc: ["hue", "page", "page:r2", "page:Bad Id", "hue:bath", "hue:Bad Area", "sec:a1", "tag:bath", "plugin"], mf: [{ id: "f1", n: "X", s: ["c1", "scene.a", "bad key!"] }, { id: "no id!", n: "Y", s: ["c1"] }, { id: "f2", n: "Z", s: [] }], mtop: ["c1", "f:f1", "x y"] }), {
-    msrc: ["hue:@lights", "page", "page:r2", "hue:bath", "tag:bath"],
-    mf: [{ id: "f1", n: "X", s: ["c1", "scene.a"] }],
-    mtop: ["c1", "f:f1"],
-  });
+  vm.runInContext(model.slice(model.indexOf("function cleanMaster("), model.indexOf("/* A section that has a master")), ctx);
+  const run = (s) => plain(ctx.cleanMaster(s, "lights"));
+  const out = run({ msrc: ["hue", "page", "page:r2", "page:Bad Id", "hue:bath", "hue:Bad Area", "sec:a1", "tag:bath", "plugin"], mf: [{ id: "f1", n: "X", s: ["c1", "scene.a", "bad key!"] }, { id: "no id!", n: "Y", s: ["c1"] }, { id: "f2", n: "Z", s: [] }], mtop: ["c1", "f:f1", "x y"] });
+  assert.deepEqual(
+    { msrc: out.msrc, mf: out.mf, mtop: out.mtop },
+    {
+      msrc: ["hue:@lights", "page", "page:r2", "hue:bath", "tag:bath"],
+      mf: [{ id: "f1", n: "X", s: ["c1", "scene.a"] }],
+      mtop: ["c1", "f:f1"],
+    }
+  );
 });
 
 test("the Effects page has no Scenes row any more, and the light popup has the Scenes tab after Effects only for a lights master", () => {

@@ -199,5 +199,19 @@ var remote={
  experimental:function(family){return !!ROLES[family]}
 };
 
+/* The key a TV's own remote has for Home, per native-style remote kind (the others have theirs in ROLES). */
+var HOME_KEYS={samsung:"KEY_HOME",android:"HOME",apple:"home"};
+
+/* The call of a TV's Home key, as [domain, service, data] for the caller to send (or keep): the key of the TV's remote, or the webOS button. null when the
+   TV's integration has no such key or there is no remote entity to send it to. */
+media.homeCall=function(platform,model,mediaId,remoteId){
+ var kind=media.kind(platform,model),fam=remote.family(platform),key="",how="key";
+ if(kind!=="generic")key=HOME_KEYS[kind]||"";
+ else if(fam){key=remote.role(fam,"home");how=remote.how(fam)}
+ if(!key)return null;
+ if(how==="webos")return["webostv","button",{entity_id:mediaId,button:key}];
+ return remoteId?["remote","send_command",{entity_id:remoteId,command:key}]:null;
+};
+
 window.Integrations={media:media,vacuum:vacuum,remote:remote};
 })();

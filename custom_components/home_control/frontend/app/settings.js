@@ -94,6 +94,7 @@ var CATS = [
   ["dev", _T("devices_2"), "stg-dev", "plug"],
   ["lgroups", _T("lgs_title"), "lgroups", "lights"],
   ["areas", _T("areas"), "stg-areas", "target"],
+  ["share", _T("siri_and_homekit"), "stg-share", "mic"],
   ["effects", _T("effects"), "stg-effects", "sparkle"],
   ["access", _T("users_and_access"), "stg-access", "lock"],
   ["notify", _T("notifications"), "stg-notify", "bell"],
@@ -104,7 +105,7 @@ var CATS = [
 /* The five groups Settings is in: what a category belongs to. A category a plugin adds is under Plugins. */
 var CAT_GROUPS = [
   ["display", "stg_group_display", ["appearance", "wall"]],
-  ["dashboard", "stg_group_dashboard", ["dev", "lgroups", "areas", "effects"]],
+  ["dashboard", "stg_group_dashboard", ["dev", "lgroups", "areas", "share", "effects"]],
   ["people", "stg_group_people", ["access", "notify"]],
   ["data", "stg_group_data", ["hist", "data"]],
   ["plugins", "stg_group_plugins", null],
@@ -126,6 +127,7 @@ function stgNavSub(id) {
   if (id === "dev") return _T("new_devices_and_devices_that_are_not");
   if (id === "lgroups") return _T("lgs_sub");
   if (id === "areas") return _T("where_the_lights_are_for_live_scenes");
+  if (id === "share") return _T("scenes_for_siri_homekit_and_shortcuts");
   if (id === "effects") return _T("the_effects_of_your_lights_and_files_to_ad");
   if (id === "access") return _T("who_can_do_what");
   if (id === "hist") return _T("recent_activity");

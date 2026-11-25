@@ -52,10 +52,12 @@ function pruneSceneRefs() {
         s.scn = s.scn.filter(function (id) {
           return ok[id];
         });
-      if (s.pins)
-        s.pins = s.pins.filter(function (p) {
-          return p.kind !== "cscene" || ok[p.sid];
-        });
+      (s.devs || []).forEach(function (d) {
+        if (d.kind === "widget" && d.wx && d.wx.pins)
+          d.wx.pins = d.wx.pins.filter(function (p) {
+            return p.kind !== "cscene" || ok[p.sid];
+          });
+      });
     });
   });
 }
@@ -496,7 +498,7 @@ function sceneRow(sc) {
 
 /* A scene put in a Section from the + : from a Section's new scene (the scene becomes a device of the Section) or from a lights master's scenes (it is one of the master's). */
 function sceneTargetAdd(target, id) {
-  var e = secById(target.scope, target.sid);
+  var e = target.into === "section" ? secById(target.scope, target.sid) : masterById(target.scope, target.sid);
   if (!e) return;
   if (target.into === "section") {
     e.devs = e.devs || [];
@@ -552,6 +554,12 @@ function sceneCollectionItems(d) {
     }),
     ents = [];
   tokens.forEach(function (x) {
+    if (x.indexOf("group:") === 0) {
+      sceneGroupIds(x).forEach(function (id) {
+        if (ents.indexOf(id) < 0) ents.push(id);
+      });
+      return;
+    }
     if (x.indexOf("hue:") !== 0) return;
     var found =
       x === "hue:@rooms"
@@ -590,9 +598,10 @@ function sceneCollectionRow(d) {
   it.stored.forEach(function (sc) {
     box.appendChild(sceneRow(sc));
   });
+  var words = sceneNameSuffixes(it.ents);
   it.ents.forEach(function (id) {
     var kind = pluginSceneKind(id),
-      nm = d.keepname ? A(id).friendly_name || id : sceneShortName(A(id).friendly_name || id, ctx, {});
+      nm = (d.keepname ? A(id).friendly_name || id : sceneShortName(A(id).friendly_name || id, ctx, {})) + (words[id] || "");
     box.appendChild(sceneEntRow(id, nm, kind ? kind.icon : "scene", null, ctx));
   });
   /* Taken now: the page and Section being drawn are not known any more when the button is tapped. */
@@ -633,6 +642,7 @@ function devRow(d) {
 
 function devRowRaw(d) {
   var pk;
+  if (d.kind === "widget") return widgetRow(d, false);
   if (d.kind === "scene") return sceneDeviceRow(d);
   if (d.kind === "cscene") return sceneMadeRow(d);
   if (d.kind === "scenes") return sceneCollectionRow(d);

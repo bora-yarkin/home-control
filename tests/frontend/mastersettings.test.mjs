@@ -24,7 +24,7 @@ function world(sec, extra = {}) {
     calls,
     H: () => ({ states }),
     modeOf: (id) => ({ mode: id === "light.c" ? "hide" : "" }),
-    secById: (scope, sid) => (scope === "r1" && sid === "lights" ? sec : null),
+    masterById: (scope, sid) => (scope === "r1" && sid === "lights" ? sec : null),
     pluginDeviceKind: (id) => (id === "switch.sync" ? { sync: true } : id === "switch.other" ? { sync: false } : null),
     LMASTER: { "r1~lights": ["light.a", "light.b"] },
     countOn: () => 0,
@@ -88,29 +88,26 @@ test("the power button switches the lights, or runs its scene when they are off 
   assert.deepEqual(plain(missing.calls), [["toggle", ["light.a", "light.b"]]], "a scene that is gone leaves the button switching the lights");
 });
 
-test("the section keeps its mode, chosen lights, power button and sync through the layout clean-up", () => {
-  const model = read("model.js");
-  const at = model.indexOf('if (k === "devs" && s.master) {\n      /* Manual');
-  assert.ok(at > 0);
-  const body = model.slice(at, model.indexOf("if (k === \"devs\" && s.master && Array.isArray(s.mo))", at));
+test("a master keeps its mode, chosen lights, power button and sync through the layout clean-up", () => {
   const run = (s) => {
-    const o = {};
     // cleanDev is the dashboard's own check of a device (model.js); here it only has to refuse what has no name or is not a light.
     const cleanDev = (d) => (d && typeof d.name === "string" && d.name && /^[a-z_]+\.[a-z0-9_]+$/.test(d.id) ? { id: d.id, name: d.name, icon: /^[a-z]+$/.test(d.icon || "") ? d.icon : "plug", kind: d.kind } : null);
-    vm.runInNewContext(`(function(s,o,k){${body}})(s,o,k)`, { s, o, k: "devs", cleanDev, ENTRE: /^[a-z_]+\.[a-z0-9_]+$/ });
-    return plain(o);
+    const ctx = vm.createContext({ cleanDev, cleanTags: () => [], ENTRE: /^[a-z_]+\.[a-z0-9_]+$/ });
+    vm.runInContext(fn(read("model.js"), "cleanMaster"), ctx);
+    return plain(ctx.cleanMaster(s, "m1"));
   };
   assert.deepEqual(
-    run({ master: 1, mm: 1, ml: [{ id: "light.a", name: "Desk", icon: "lamp", kind: "light" }, { id: "light.a", name: "Again", kind: "light" }, { id: "switch.x", name: "Plug", kind: "switch" }, { id: "light.b", name: "Bed", icon: "bed", kind: "light" }, { id: "light.c" }], mpw: "scene", mps: "scene.read", msync: 1, msyncid: "switch.sync", mhl: 1, mhs: 1, mgl: 1, mtab: "scenes" }),
-    { mm: 1, ml: [{ id: "light.a", name: "Desk", icon: "lamp", kind: "light" }, { id: "light.b", name: "Bed", icon: "bed", kind: "light" }, ], mgl: 1, mtab: "scenes", mhl: 1, mhs: 1, mpw: "scene", mps: "scene.read", msync: 1, msyncid: "switch.sync" }
+    run({ mm: 1, ml: [{ id: "light.a", name: "Desk", icon: "lamp", kind: "light" }, { id: "light.a", name: "Again", kind: "light" }, { id: "switch.x", name: "Plug", kind: "switch" }, { id: "light.b", name: "Bed", icon: "bed", kind: "light" }, { id: "light.c" }], mpw: "scene", mps: "scene.read", msync: 1, msyncid: "switch.sync", mhl: 1, mhs: 1, mgl: 1, mtab: "scenes" }),
+    { id: "m1", master: 1, mm: 1, ml: [{ id: "light.a", name: "Desk", icon: "lamp", kind: "light" }, { id: "light.b", name: "Bed", icon: "bed", kind: "light" }], mgl: 1, mtab: "scenes", mhl: 1, mhs: 1, mpw: "scene", mps: "scene.read", msync: 1, msyncid: "switch.sync" }
   );
-  assert.deepEqual(run({ master: 1, mpw: "other", mps: "scene.read", ml: [{ id: "light.a" }] }), {}, "automatic keeps no list, and an unknown power mode is the default");
+  assert.deepEqual(run({ mpw: "other", mps: "scene.read", ml: [{ id: "light.a" }] }), { id: "m1", master: 1 }, "automatic keeps no list, and an unknown power mode is the default");
+  assert.equal(run({ own: 1 }).own, 1, "the section's own master says so");
 });
 
 test("a section can leave out the master's lights or its sync, only in the section, and a light of a manual master is edited in the device popup", () => {
   const sections = read("sections.js");
   assert.match(sections, /!ed && k === "devs" && d\.id && masterLeavesOut\(s, d\)/, "everything is shown while the page is edited");
-  assert.match(sections, /if \(!rows\.length && !ed && !\(s\.master && mids\.length > 1\) && !extras\.length\) return null;/, "a master that has hidden every row of its section is still the section");
+  assert.match(sections, /if \(!rows\.length && !ed\) return null;/, "a master is a row of its section, so a master that has hidden every other row of it is still the section");
   assert.match(read("manage.js"), /rid\.split\("~"\)\[3\] === "ml"/);
   assert.match(src, /devEditor\(rid, d\)\(\)/);
   assert.doesNotMatch(src, /masterLightPage/);

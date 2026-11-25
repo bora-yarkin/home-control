@@ -26,6 +26,7 @@ var KINDS = [
   "scene",
   "cscene",
   "scenes",
+  "widget",
 ];
 
 /* The starting layout when nothing is saved yet: one room per Home Assistant area with its controllable devices,
@@ -121,7 +122,7 @@ function seedUI() {
       area: a.area_id,
     });
     devs[rid] = list;
-    layoutRooms[rid] = [{ id: "status", k: "status", hide: false }].concat(groupSections(list));
+    layoutRooms[rid] = [widgetSection("status", "status")].concat(groupSections(list));
     stat[rid] = [];
     if (t) {
       stat[rid].push({ l: _T("temperature"), id: t, u: TEMPU(), dp: 1 });
@@ -141,7 +142,7 @@ function seedUI() {
     chips: chips.slice(0, 4),
     stat: stat,
     bats: bats.slice(0, 30),
-    layout: { v: 5, home: seedSections("home"), rooms: layoutRooms, cols: {} },
+    layout: { v: 7, home: seedSections("home"), rooms: layoutRooms, cols: {} },
     meta: {
       homeTab: _T("home"),
       homeTitle: _T("app_title"),
@@ -373,12 +374,14 @@ function cleanDev(d) {
     return null;
   var id = typeof d.id === "string" ? d.id : "";
   if (id && !ENTRE.test(id)) return null;
-  if (!id && ["special", "remote", "appliance", "cscene", "scenes"].indexOf(d.kind) < 0) return null;
+  if (!id && ["special", "remote", "appliance", "cscene", "scenes", "widget"].indexOf(d.kind) < 0) return null;
   if (d.kind === "cscene" && !(typeof d.sid === "string" && /^[a-z0-9_-]{1,24}$/.test(d.sid))) return null;
   if (d.kind === "scene" && id.split(".")[0] !== "scene") return null;
   if (d.kind === "appliance" && !(typeof d.aid === "string" && /^[a-z0-9_-]{1,24}$/.test(d.aid))) return null;
   if (d.kind === "remote" && !(typeof d.rid === "string" && /^[a-z0-9_-]{1,24}$/.test(d.rid))) return null;
   var c = { id: id, name: d.name, icon: iconOk(d.icon) ? d.icon : "plug", kind: d.kind };
+  /* A widget's type, id and settings, and the size of a widget or of a device that can take one (decision D-25). */
+  if ((d.kind === "widget" || d.sz) && !(typeof cleanWidgetDev === "function" ? cleanWidgetDev(d, c) : d.kind !== "widget")) return null;
   if (typeof d.pop === "string" && POPRE.test(d.pop) && d.pop) c.pop = d.pop;
   if (d.sub) c.sub = 1;
   if (d.setup) c.setup = 1;
@@ -459,7 +462,7 @@ function cleanDev(d) {
         return typeof x === "string" && re.test(x) && a.indexOf(x) === i;
       }).slice(0, 40);
     };
-    var sp = idsOf(d.spage, /^(page:[a-z0-9_-]{1,24}|area:[a-z0-9_-]{1,60}|hue:(@page|@lights|@rooms|[a-z0-9_-]{1,60}))$/),
+    var sp = idsOf(d.spage, /^(page:[a-z0-9_-]{1,24}|area:[a-z0-9_-]{1,60}|hue:(@page|@lights|@rooms|[a-z0-9_-]{1,60})|group:(room|zone):[a-z0-9-]{1,60})$/),
       xt = cleanTags(d.xtag),
       st = cleanTags(d.stag);
     if (sp.length) c.spage = sp;
@@ -629,7 +632,7 @@ function cleanUI(u) {
   });
   var lv = u.layout && u.layout.v,
     cur = lv >= 4 ? { home: u.layout.home, rooms: u.layout.rooms || {} } : { home: null, rooms: {} };
-  o.layout.v = 6;
+  o.layout.v = 7;
   o.layout.home = cleanLayout(cur.home || seedSections("home"));
   Object.keys(ids).forEach(function (rid) {
     o.layout.rooms[rid] = cleanLayout(cur.rooms[rid] || seedSections("room:" + rid));
@@ -684,6 +687,250 @@ function scenesToDevices(s) {
   return c;
 }
 
+/* The tiles of At a glance (decision D-25: they are kept on the widget): which are hidden, their order, the ones made by hand and the lights masters shown as rows. Null when there is nothing to keep. */
+function cleanGlance(gl) {
+  if (!gl || typeof gl !== "object") return null;
+  var o;
+  var cs = [];
+  (Array.isArray(gl.c) ? gl.c : []).slice(0, 12).forEach(function (x) {
+    if (
+      x &&
+      typeof x.id === "string" &&
+      /^x[a-z0-9]{3,8}$/.test(x.id) &&
+      cs.every(function (y) {
+        return y.id !== x.id;
+      }) &&
+      typeof x.t === "string" &&
+      x.t &&
+      x.t.length <= 24 &&
+      GL_DOMS.indexOf(x.dom) >= 0
+    ) {
+      var c = { id: x.id, t: x.t, dom: x.dom };
+      if (iconOk(x.i)) c.i = x.i;
+      if (typeof x.dc === "string" && /^[a-z_]{1,30}$/.test(x.dc)) c.dc = x.dc;
+      cs.push(c);
+    }
+  });
+  var okIds = GL_IDS.concat(
+      cs.map(function (c) {
+        return c.id;
+      })
+    ),
+    pk = function (a) {
+      return (Array.isArray(a) ? a : []).filter(function (x, i, r) {
+        return okIds.indexOf(x) >= 0 && r.indexOf(x) === i;
+      });
+    };
+  o = { o: pk(gl.o), h: pk(gl.h), c: cs };
+  /* The lights masters the At a glance lights popup shows as rows ("page~master"); the lights of the others are listed one by one. */
+  var lm = (Array.isArray(gl.lm) ? gl.lm : [])
+    .filter(function (x, i, r) {
+      return typeof x === "string" && /^[a-z0-9_-]{1,24}~[a-z][a-z0-9_]{1,14}$/.test(x) && r.indexOf(x) === i;
+    })
+    .slice(0, 40);
+  if (lm.length) o.lm = lm;
+  return o;
+}
+
+/* The keys of a lights master's settings (decision D-25: a master is a widget of a Section, its settings are the widget's). They go with it when it is moved or copied; the two that hide the section's own lights and sync (mhl, mhs) are about the section it was in. */
+var LM_KEYS = ["mn", "mall", "mo", "mm", "ml", "mgl", "mtab", "lx", "mhide", "mxt", "mpw", "mps", "msync", "msyncid", "scn", "msrc", "mf", "mtop", "mgr"];
+var LM_OWN = LM_KEYS.concat(["mhl", "mhs", "master"]);
+
+/* The settings of a lights master as they are kept: its name, the lights chosen for it (manual) or none (the lights of its Section), its power button, scenes, folders and so on. `own` is a master made from its Section's lights (the one the Section's lights rows give way to). Unknown or invalid settings are dropped. */
+function cleanMaster(s, id) {
+  var o = { id: id, master: 1 };
+  if (s.own) o.own = 1;
+  if (typeof s.mn === "string" && s.mn.trim()) o.mn = s.mn.trim().slice(0, 40);
+  if (s.mall) o.mall = 1;
+  /* Manual: the lights chosen for the master, each with an optional name and icon. */
+  if (s.mm) {
+    o.mm = 1;
+    o.ml = (Array.isArray(s.ml) ? s.ml : [])
+      .slice(0, 100)
+      .map(cleanDev)
+      .filter(function (c, i, a) {
+        return c && c.kind === "light" && c.id && a.findIndex(function (x) { return x && x.id === c.id; }) === i;
+      });
+  }
+  /* Lights a master shows that no section or chosen list holds as a device (a group's own lights, for example): kept as devices so that their settings open from the master. */
+  var lx = (Array.isArray(s.lx) ? s.lx : [])
+    .slice(0, 100)
+    .map(cleanDev)
+    .filter(function (c, i, a) {
+      return c && c.kind === "light" && c.id && a.findIndex(function (x) { return x && x.id === c.id; }) === i;
+    });
+  if (lx.length) o.lx = lx;
+  if (s.mgl) o.mgl = 1;
+  if (s.mhide) o.mhide = 1;
+  if (["color", "white", "fx", "scenes", "sync"].indexOf(s.mtab) >= 0) o.mtab = s.mtab;
+  if (s.mhl) o.mhl = 1;
+  if (s.mhs) o.mhs = 1;
+  if (s.mpw === "scene") {
+    o.mpw = "scene";
+    if (typeof s.mps === "string" && /^[a-z0-9_.-]{1,80}$/.test(s.mps)) o.mps = s.mps;
+  }
+  if (s.msync) o.msync = 1;
+  if (typeof s.msyncid === "string" && ENTRE.test(s.msyncid)) o.msyncid = s.msyncid;
+  /* The room the At a glance lights popup lists it under: the room of the page it is on (not set), or the Home Assistant room of its lights. */
+  if (s.mgr === "ha") o.mgr = "ha";
+  if (Array.isArray(s.mo))
+    o.mo = s.mo
+      .filter(function (x, i, a) {
+        return typeof x === "string" && ENTRE.test(x) && a.indexOf(x) === i;
+      })
+      .slice(0, 100);
+  /* The scenes page of the lights master: where its scenes come from, the folders the owner made and the order of the tiles outside them. */
+  var key = function (x) {
+    return typeof x === "string" && /^[a-z0-9_.-]{1,80}$/.test(x);
+  };
+  if (Array.isArray(s.msrc) || (Array.isArray(s.mpa) && s.mpa.length))
+    o.msrc = (Array.isArray(s.msrc) ? s.msrc : ["hue"])
+      .map(function (x) {
+        /* the scenes of a plugin were one source (and areas for it, mpa); they are Hue rooms among the rooms now */
+        return x === "hue" || x === "plugin" ? "hue:@lights" : x === "page" ? "page" : x;
+      })
+      .filter(function (x, i, a) {
+        return (x === "page" || (typeof x === "string" && (/^(page:[a-z0-9_-]{1,24}|area:[a-z0-9_-]{1,60})$/.test(x) || /^hue:(@lights|@page|@rooms|[a-z0-9_-]{1,60})$/.test(x) || /^group:(room|zone):[a-z0-9-]{1,60}$/.test(x) || (/^tag:/.test(x) && cleanTags([x.slice(4)]).length)))) && a.indexOf(x) === i;
+      })
+      .slice(0, 40);
+  if (Array.isArray(s.mpa) && s.mpa.length) {
+    o.msrc = o.msrc.filter(function (x) {
+      return x !== "hue:@lights";
+    });
+    s.mpa.forEach(function (a) {
+      if (typeof a === "string" && /^[a-z0-9_-]{1,60}$/.test(a) && a !== "-" && o.msrc.indexOf("hue:" + a) < 0) o.msrc.push("hue:" + a);
+    });
+  }
+  /* Scenes tagged with any of these are left out of what the sources bring in (not of the scenes made from its own +). */
+  var xt = cleanTags(s.mxt);
+  if (xt.length) o.mxt = xt;
+
+  if (Array.isArray(s.mf)) {
+    var folders = s.mf
+      .filter(function (f) {
+        return f && typeof f.id === "string" && /^[a-z0-9]{1,12}$/.test(f.id) && typeof f.n === "string" && Array.isArray(f.s);
+      })
+      .slice(0, 30)
+      .map(function (f) {
+        return { id: f.id, n: f.n.slice(0, 40), s: f.s.filter(key).slice(0, 80) };
+      })
+      .filter(function (f) {
+        return f.s.length;
+      });
+    if (folders.length) o.mf = folders;
+  }
+  /* A folder's tile is "f:" and its id in the order. */
+  if (Array.isArray(s.mtop))
+    o.mtop = s.mtop
+      .filter(function (x) {
+        return key(x) || (typeof x === "string" && /^f:[a-z0-9]{1,12}$/.test(x));
+      })
+      .slice(0, 240);
+  if (Array.isArray(s.scn))
+    o.scn = s.scn
+      .filter(function (x, i, a) {
+        return typeof x === "string" && /^[a-z0-9_-]{1,24}$/.test(x) && a.indexOf(x) === i;
+      })
+      .slice(0, 40);
+  return o;
+}
+
+/* A section that has a master (its own settings on it, or the ones it holds in masters) has them as widgets of it now (Layout 7): the section's own as the widget named for the section, so its key stays "page~section", the held ones under the id they had. */
+function mastersToWidgets(s) {
+  if (!s.master && !(Array.isArray(s.masters) && s.masters.length)) return s;
+  var c = Object.assign({}, s),
+    list = [],
+    mk_ = function (id, x) {
+      return { kind: "widget", id: "", w: "lmaster", wid: id, name: _T("lights_master"), icon: "lights", wx: x };
+    };
+  if (s.master) {
+    var own = { own: 1 };
+    LM_OWN.concat(["mpa"]).forEach(function (k) {
+      if (s[k] !== undefined && s[k] !== null) own[k] = s[k];
+    });
+    list.push(mk_(s.id, own));
+  }
+  (Array.isArray(s.masters) ? s.masters : []).slice(0, 12).forEach(function (m) {
+    /* a held master was always manual: the lights are chosen for it */
+    if (m && typeof m.id === "string") list.push(mk_(m.id, Object.assign({}, m, { mm: 1 })));
+  });
+  LM_OWN.concat(["mpa", "masters"]).forEach(function (k) {
+    delete c[k];
+  });
+  c.devs = list.concat(Array.isArray(s.devs) ? s.devs : []);
+  return c;
+}
+
+/* Layout 7 (decision D-25): the sections that were not plain Sections become plain Sections whose devices and widgets carry what the type had. Note: a note widget. Readings: the devices as tiles. Chart: a chart
+   widget with its sensors and range. Camera: the cameras at size l. The section keeps its name and icon (the type's, when none was given). */
+function sectionToWidgets(s) {
+  var c = Object.assign({}, s),
+    devs = Array.isArray(s.devs) ? s.devs : [],
+    named = function (name, icon) {
+      if (!c.t) c.t = name;
+      if (!c.i) c.i = icon;
+    },
+    widget = function (w, name, icon, wx) {
+      return { kind: "widget", id: "", w: w, name: name, icon: icon, wx: wx };
+    };
+  if (s.k === "note") {
+    named(_T("note"), "info");
+    c.devs = devs.concat([widget("note", _T("note"), "info", { txt: s.txt })]);
+  } else if (s.k === "read") {
+    named(_T("readings"), "drop");
+    c.devs = devs.map(function (d) {
+      return d && d.id ? Object.assign({}, d, { sz: "s" }) : d;
+    });
+  } else if (s.k === "chart") {
+    named(_T("chart"), "thermo");
+    c.devs = [
+      widget("chart", _T("chart"), "thermo", {
+        ds: devs
+          .filter(function (d) {
+            return d && d.id && !d.hide;
+          })
+          .map(function (d) {
+            return { id: d.id, name: d.name };
+          }),
+        r: s.r,
+      }),
+    ];
+  } else if (s.k === "security") {
+    named(_T("security"), "lock");
+    c.devs = devs.concat([widget("security", _T("security"), "lock", {})]);
+  } else if (s.k === "cameras") {
+    named(_T("cameras"), "cam");
+    c.devs = devs.concat([widget("cameras", _T("cameras"), "cam", {})]);
+  } else if (s.k === "energy") {
+    named(_T("energy_and_usage"), "plug");
+    c.devs = devs.concat([widget("energy", _T("energy_and_usage"), "plug", { price: s.price, cur: s.cur })]);
+  } else if (s.k === "alerts" || s.k === "rooms" || s.k === "now" || s.k === "status" || s.k === "chips") {
+    var T = { alerts: ["attention", "alert"], rooms: ["rooms", "home"], now: ["on_now", "power"], status: ["status_tiles", "thermo"], chips: ["climate_overview", "thermo"] }[s.k];
+    named(_T(T[0]), T[1]);
+    c.devs = devs.concat([widget(s.k, _T(T[0]), T[1], {})]);
+  } else if (s.k === "glance") {
+    named(_T("at_a_glance"), "home");
+    c.devs = devs.concat([widget("glance", _T("at_a_glance"), "home", { gl: s.gl })]);
+  } else if (s.k === "pinned") {
+    named(_T("pinned"), "pin");
+    c.devs = devs.concat([widget("pinned", _T("pinned"), "pin", { pins: s.pins, lay: s.lay })]);
+    delete c.lay;
+  } else if (s.k === "link") {
+    named(_T("linked_section"), "swap");
+    c.devs = devs.concat([widget("link", _T("linked_section"), "swap", { ref: s.ref })]);
+  } else if (s.k === "camera") {
+    named(_T("camera"), "cam");
+    c.devs = devs.map(function (d) {
+      return d && d.kind === "camera" && d.id ? Object.assign({}, d, { sz: "l" }) : d;
+    });
+  }
+  ["txt", "r", "price", "cur", "gl", "pins", "ref"].forEach(function (k) {
+    delete c[k];
+  });
+  c.k = "devs";
+  return c;
+}
+
 function cleanLayout(a) {
   var out = [],
     seen = {};
@@ -694,6 +941,9 @@ function cleanLayout(a) {
     /* Layout 5: the sections that held devices (Lights, Media, Climate, Controls, Sensors, Other devices, Devices) are one kind, Section; each keeps the name and icon its type gave it. Quick actions are Scenes. */
     /* Layout 6: the scenes a Section showed (a scenes section's, or the ones kept on a Section) are devices of it now: each chosen scene, and one collection of scenes for the pages, tags and area it took in. */
     if (s.k === "scenes" || s.k === "quick" || s.scs) s = scenesToDevices(s);
+    /* Layout 7: the sections that were not plain Sections but held devices or text are plain Sections with widgets (see sectionToWidgets). */
+    if (["note", "read", "chart", "camera", "security", "cameras", "energy", "alerts", "rooms", "now", "status", "chips", "glance", "pinned", "link"].indexOf(s.k) >= 0) s = sectionToWidgets(s);
+    if (s.master || s.masters) s = mastersToWidgets(s);
     var old = LEGACY_SECTYPES[s.k],
       k = old ? (old[2] || "devs") : typeof s.k === "string" && SECTYPES[s.k] ? s.k : "devs",
       ty = SECTYPES[k],
@@ -702,46 +952,6 @@ function cleanLayout(a) {
     else if (old && old[0]) o.t = old[0];
     if (iconOk(s.i)) o.i = s.i;
     else if (old && old[1]) o.i = old[1];
-    if (k === "glance" && s.gl && typeof s.gl === "object") {
-      var cs = [];
-      (Array.isArray(s.gl.c) ? s.gl.c : []).slice(0, 12).forEach(function (x) {
-        if (
-          x &&
-          typeof x.id === "string" &&
-          /^x[a-z0-9]{3,8}$/.test(x.id) &&
-          cs.every(function (y) {
-            return y.id !== x.id;
-          }) &&
-          typeof x.t === "string" &&
-          x.t &&
-          x.t.length <= 24 &&
-          GL_DOMS.indexOf(x.dom) >= 0
-        ) {
-          var c = { id: x.id, t: x.t, dom: x.dom };
-          if (iconOk(x.i)) c.i = x.i;
-          if (typeof x.dc === "string" && /^[a-z_]{1,30}$/.test(x.dc)) c.dc = x.dc;
-          cs.push(c);
-        }
-      });
-      var okIds = GL_IDS.concat(
-          cs.map(function (c) {
-            return c.id;
-          })
-        ),
-        pk = function (a) {
-          return (Array.isArray(a) ? a : []).filter(function (x, i, r) {
-            return okIds.indexOf(x) >= 0 && r.indexOf(x) === i;
-          });
-        };
-      o.gl = { o: pk(s.gl.o), h: pk(s.gl.h), c: cs };
-      /* The lights masters the At a glance lights popup shows as rows ("page~master"); the lights of the others are listed one by one. */
-      var lm = (Array.isArray(s.gl.lm) ? s.gl.lm : [])
-        .filter(function (x, i, r) {
-          return typeof x === "string" && /^[a-z0-9_-]{1,24}~[a-z][a-z0-9_]{1,14}$/.test(x) && r.indexOf(x) === i;
-        })
-        .slice(0, 40);
-      if (lm.length) o.gl.lm = lm;
-    }
     var wh = s.when;
     if (
       wh &&
@@ -754,139 +964,24 @@ function cleanLayout(a) {
     )
       o.when = { id: wh.id, is: wh.is, not: !!wh.not };
     if (layCols(s.lay)) o.lay = s.lay;
-    if (k === "chart" && (s.r === "6h" || s.r === "24h" || s.r === "7d" || s.r === "30d"))
-      o.r = s.r;
-    if (k === "energy") {
-      var pr = Number(s.price);
-      if (isFinite(pr) && pr > 0 && pr <= 1000) o.price = pr;
-      if (typeof s.cur === "string" && s.cur.length <= 4) o.cur = s.cur;
-    }
-    if (k === "note" && typeof s.txt === "string") o.txt = s.txt.slice(0, 600);
     var an = (Array.isArray(s.and) ? s.and : []).slice(0, 4).map(cleanCond).filter(Boolean);
     if (an.length) o.and = an;
-    if (
-      k === "link" &&
-      typeof s.ref === "string" &&
-      /^[a-z0-9_-]{1,24}:[a-z][a-z0-9_]{1,14}$/.test(s.ref)
-    )
-      o.ref = s.ref;
-    if (k === "devs" && s.master) o.master = 1;
-    if (k === "devs" && s.master && typeof s.mn === "string" && s.mn.trim()) o.mn = s.mn.trim().slice(0, 40);
-    if (k === "devs" && s.master && s.mall) o.mall = 1;
-    if (k === "devs" && s.master) {
-      /* Manual: the lights chosen for the master, each with an optional name and icon. */
-      if (s.mm) {
-        o.mm = 1;
-        o.ml = (Array.isArray(s.ml) ? s.ml : [])
-          .slice(0, 100)
-          .map(cleanDev)
-          .filter(function (c, i, a) {
-            return c && c.kind === "light" && c.id && a.findIndex(function (x) { return x && x.id === c.id; }) === i;
-          });
-      }
-      /* Lights a master shows that no section or chosen list holds as a device (a group's own lights, for example): kept as devices so that their settings open from the master. */
-      var lx = (Array.isArray(s.lx) ? s.lx : [])
-        .slice(0, 100)
-        .map(cleanDev)
-        .filter(function (c, i, a) {
-          return c && c.kind === "light" && c.id && a.findIndex(function (x) { return x && x.id === c.id; }) === i;
-        });
-      if (lx.length) o.lx = lx;
-      if (s.mgl) o.mgl = 1;
-      if (s.mhide) o.mhide = 1;
-      if (["color", "white", "fx", "scenes", "sync"].indexOf(s.mtab) >= 0) o.mtab = s.mtab;
-      if (s.mhl) o.mhl = 1;
-      if (s.mhs) o.mhs = 1;
-      if (s.mpw === "scene") {
-        o.mpw = "scene";
-        if (typeof s.mps === "string" && /^[a-z0-9_.-]{1,80}$/.test(s.mps)) o.mps = s.mps;
-      }
-      if (s.msync) o.msync = 1;
-      if (typeof s.msyncid === "string" && ENTRE.test(s.msyncid)) o.msyncid = s.msyncid;
-      /* The room the At a glance lights popup lists it under: the room of the page it is on (not set), or the Home Assistant room of its lights. */
-      if (s.mgr === "ha") o.mgr = "ha";
-    }
-    /* More lights masters in the section, each a holder of the same settings under an id of its own (see app/lightsmasters.js). They are always manual: the lights are chosen for them. */
-    if (k === "devs" && Array.isArray(s.masters)) {
-      var held = [];
-      s.masters.slice(0, 12).forEach(function (h) {
-        if (!h || typeof h.id !== "string" || !/^[a-z][a-z0-9_]{1,14}$/.test(h.id) || seen[h.id]) return;
-        var c = cleanLayout([Object.assign({}, h, { k: "devs", master: 1, mm: 1, hide: false, masters: null })])[0];
-        if (!c) return;
-        seen[h.id] = 1;
-        ["k", "hide", "devs", "t", "i", "when", "and", "lay"].forEach(function (x) {
-          delete c[x];
-        });
-        held.push(c);
-      });
-      if (held.length) o.masters = held;
-    }
-    if (k === "devs" && s.master && Array.isArray(s.mo))
-      o.mo = s.mo
-        .filter(function (x, i, a) {
-          return typeof x === "string" && ENTRE.test(x) && a.indexOf(x) === i;
-        })
-        .slice(0, 100);
-    if (k === "pinned" && Array.isArray(s.pins)) o.pins = cleanPins(s.pins);
     if ((k === "scenes" || k === "devs") && Array.isArray(s.scn))
       o.scn = s.scn
         .filter(function (x, i, a) {
           return typeof x === "string" && /^[a-z0-9_-]{1,24}$/.test(x) && a.indexOf(x) === i;
         })
         .slice(0, 40);
-    if (k === "devs") {
-      /* The scenes page of the lights master: where its scenes come from, the folders the owner made and the order of the tiles outside them. */
-      var key = function (x) {
-        return typeof x === "string" && /^[a-z0-9_.-]{1,80}$/.test(x);
-      };
-      if (Array.isArray(s.msrc) || (Array.isArray(s.mpa) && s.mpa.length))
-        o.msrc = (Array.isArray(s.msrc) ? s.msrc : ["hue"])
-          .map(function (x) {
-            /* the scenes of a plugin were one source (and areas for it, mpa); they are Hue rooms among the rooms now */
-            return x === "hue" || x === "plugin" ? "hue:@lights" : x === "page" ? "page" : x;
-          })
-          .filter(function (x, i, a) {
-            return (x === "page" || (typeof x === "string" && (/^(page:[a-z0-9_-]{1,24}|area:[a-z0-9_-]{1,60})$/.test(x) || /^hue:(@lights|@page|@rooms|[a-z0-9_-]{1,60})$/.test(x) || (/^tag:/.test(x) && cleanTags([x.slice(4)]).length)))) && a.indexOf(x) === i;
-          })
-          .slice(0, 40);
-      if (Array.isArray(s.mpa) && s.mpa.length) {
-        o.msrc = o.msrc.filter(function (x) {
-          return x !== "hue:@lights";
-        });
-        s.mpa.forEach(function (a) {
-          if (typeof a === "string" && /^[a-z0-9_-]{1,60}$/.test(a) && a !== "-" && o.msrc.indexOf("hue:" + a) < 0) o.msrc.push("hue:" + a);
-        });
-      }
-      /* Scenes tagged with any of these are left out of what the sources bring in (not of the scenes made from its own +). */
-      var xt = cleanTags(s.mxt);
-      if (xt.length) o.mxt = xt;
-
-      if (Array.isArray(s.mf)) {
-        var folders = s.mf
-          .filter(function (f) {
-            return f && typeof f.id === "string" && /^[a-z0-9]{1,12}$/.test(f.id) && typeof f.n === "string" && Array.isArray(f.s);
-          })
-          .slice(0, 30)
-          .map(function (f) {
-            return { id: f.id, n: f.n.slice(0, 40), s: f.s.filter(key).slice(0, 80) };
-          })
-          .filter(function (f) {
-            return f.s.length;
-          });
-        if (folders.length) o.mf = folders;
-      }
-      /* A folder's tile is "f:" and its id in the order. */
-      if (Array.isArray(s.mtop))
-        o.mtop = s.mtop
-          .filter(function (x) {
-            return key(x) || (typeof x === "string" && /^f:[a-z0-9]{1,12}$/.test(x));
-          })
-          .slice(0, 240);
-    }
     if (ty.own) {
       o.devs = [];
+      /* A lights master is named by its id, which no other master of the page, and no section but its own, may have (the Section's own master has the Section's id). */
+      var mine = {};
       (Array.isArray(s.devs) ? s.devs : []).slice(0, 80).forEach(function (d) {
         var c = cleanDev(d);
+        if (c && c.kind === "widget" && c.w === "lmaster") {
+          if (mine[c.wid] || (c.wid !== s.id && seen[c.wid]) || c.wid.length > 15) c = null;
+          else mine[c.wid] = seen[c.wid] = 1;
+        }
         if (c) o.devs.push(c);
       });
     }
@@ -907,11 +1002,9 @@ function devIndex(o) {
         l.push(d);
       });
       /* The lights chosen for a lights master (its own, or one the section holds) are lights of the page too: room counts, the room's everything-off and conditions see them, also when no section lists them. */
-      (s.mm ? s.ml || [] : []).concat(
-        (s.masters || []).reduce(function (a, m) {
-          return a.concat(m.ml || []);
-        }, [])
-      ).forEach(function (d) {
+      (s.devs || []).reduce(function (a, m) {
+        return m.kind === "widget" && m.w === "lmaster" && m.wx ? a.concat(m.wx.mm ? m.wx.ml || [] : []) : a;
+      }, []).forEach(function (d) {
         if (d && d.id && !have[d.id] && !l.some(function (x) { return x.id === d.id; })) {
           have[d.id] = 1;
           l.push(d);

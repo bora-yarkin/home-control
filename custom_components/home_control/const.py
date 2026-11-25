@@ -3,6 +3,9 @@
 
 DOMAIN = "home_control"
 
+# Sent when a live scene is saved or deleted, so what depends on the saved scenes (the published ones) can follow.
+SIGNAL_LIBRARY_CHANGED = f"{DOMAIN}_library_changed"
+
 # Where the dashboard's files are served from, and the name of the element the panel file defines.
 URL_BASE = "/home_control_static"
 PANEL_ELEMENT = "dashboard-panel"

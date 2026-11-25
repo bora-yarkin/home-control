@@ -7,8 +7,9 @@ from typing import Any
 
 from homeassistant.core import HomeAssistant, ServiceCall, SupportsResponse
 from homeassistant.exceptions import HomeAssistantError, ServiceValidationError
+from homeassistant.helpers.dispatcher import async_dispatcher_send
 
-from ..const import DOMAIN
+from ..const import DOMAIN, SIGNAL_LIBRARY_CHANGED
 from ..service_support import schema_for
 from .actions import run_actions
 from .definitions import DefinitionError, parse_brightness, parse_definition, parse_range, parse_speed
@@ -79,12 +80,14 @@ async def scene_save(hass: HomeAssistant, call: ServiceCall) -> None:
     except DefinitionError as err:
         raise ServiceValidationError(str(err)) from err
     live.save_later()
+    async_dispatcher_send(hass, SIGNAL_LIBRARY_CHANGED)
 
 
 async def scene_delete(hass: HomeAssistant, call: ServiceCall) -> None:
     live = _live(hass)
     live.library.delete_scene(call.data["id"])
     live.save_later()
+    async_dispatcher_send(hass, SIGNAL_LIBRARY_CHANGED)
 
 
 async def area_save(hass: HomeAssistant, call: ServiceCall) -> None:

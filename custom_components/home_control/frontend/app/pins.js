@@ -89,8 +89,9 @@ function pinRow(p) {
   return null;
 }
 
-function pinsSection() {
-  var e = CURSEC,
+function pinsSection(wd) {
+  var e = wd.wx,
+    host = CURSEC,
     scope = secKey(),
     src = [],
     a = [];
@@ -131,7 +132,7 @@ function pinsSection() {
         toast(_T("pin_limit_reached_12"));
         return;
       }
-      showPopup("pick-pin:" + scope + ":" + e.id, true);
+      showPopup("pick-pin:" + scope + ":" + host.id + ":" + wd.wid, true);
     });
     ad.style.gridColumn = "1 / -1";
     g.appendChild(ad);
@@ -145,7 +146,8 @@ function seedQA() {
 
 function pinPick(b, key) {
   var q = key.split(":"),
-    e = secById(q[0], q[1]);
+    wd = widgetOfSection(q[0], q[1], q[2]),
+    e = wd && wd.wx;
   if (!e) return;
   var box = mk("div");
   b.appendChild(box);

@@ -22,6 +22,8 @@ function searchItems() {
   devsOf().forEach(function (d) {
     var rn = TITLES[d.room],
       i = d.icon || "plug";
+    /* a widget is not a thing to find: it has no popup of its own to open */
+    if (d.kind === "widget") return;
     if (!ISADMIN && modeOf(d.id, d.room).mode === "view") return;
     if (d.kind === "light" && LNAME[d.id]) it.push({ n: d.name, r: rn, i: i, k: "light", v: d.id });
     else if ((d.kind === "fan" || d.kind === "switch") && !d.pop)

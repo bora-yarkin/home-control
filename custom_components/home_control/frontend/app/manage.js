@@ -343,6 +343,7 @@ var KINDLAB = {
   scene: _T("scene_kind"),
   cscene: _T("scene_kind"),
   scenes: _T("scene_collection"),
+  widget: _T("widget"),
 };
 
 var ROOMICONS = [
@@ -410,6 +411,7 @@ var ADDDOMS = [
   [_T("all_entities"), ["*"]],
   [_T("remote"), ["__remote"]],
   [_T("ap_appliance"), ["__appliance"]],
+  [_T("widgets"), ["__widget"]],
 ];
 
 var DOMKIND = {
@@ -952,6 +954,7 @@ function devLookOptions(c) {
   if (d.kind === "vacuum" && d.id && vacMapEnt(d.id)) devVacuumMapOptions(c);
   if (d.kind === "media" && d.id) devMediaOptions(c);
   c.box = real;
+  sizeSettings(own, d, c.redraw);
   if (!own.children.length) return;
   real.appendChild(sep(_T("dp_how_it_looks"), "palette"));
   while (own.firstChild) real.appendChild(own.firstChild);
@@ -962,6 +965,7 @@ function devBehaviourTab(c) {
   var d = c.d,
     box = c.box;
   if (d.kind === "scenes") sceneCollectionSettings(box, d);
+  if (d.kind === "widget") widgetSettings(c);
   if (d.kind === "cscene") {
     var made = sceneById(d.sid);
     if (made)

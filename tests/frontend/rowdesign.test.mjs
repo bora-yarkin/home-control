@@ -136,11 +136,11 @@ test("a section of four or more plain rows lays them out in columns; fewer rows,
   assert.equal(sectionOf([...Array(3).fill("pill pane"), "glance"]).classList.contains("dense"), false);
 });
 
-test("On now is a kind of section that exists once, is offered in the Add section list under the overview, and is built by secNow", () => {
-  assert.match(sections, /now: \{ t: _T\("on_now"\)[^}]*one: 1/);
-  assert.match(sections, /"glance",\s*"now",\s*"rooms"/);
-  assert.match(sections, /if \(k === "now"\) return secNow\(\);/);
-  assert.match(readFileSync(new URL("app/editor.js", FRONTEND), "utf8"), /\["glance", "now", "rooms"/);
+test("On now is a widget (decision D-25): it is offered with the other widgets and is built by secNow", () => {
+  const kinds = readFileSync(new URL("app/widgetkinds.js", FRONTEND), "utf8");
+  assert.match(kinds, /overview\("now", _T\("on_now"\)/);
+  assert.match(kinds, /return secNow\(\);/);
+  assert.doesNotMatch(sections, /now: \{ t: _T\("on_now"\)/, "it is no longer a kind of section");
 });
 
 test("rows of blinds, appliances and vacuums take their kind from what the device is, not from the icon the owner picked", () => {

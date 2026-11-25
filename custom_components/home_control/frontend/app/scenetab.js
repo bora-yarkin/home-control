@@ -7,7 +7,7 @@ function mscSection(root) {
   var at = String((root && root.key) || "")
       .replace(/^m:/, "")
       .split("~"),
-    e = at.length === 2 ? secById(at[0], at[1]) : null;
+    e = at.length === 2 ? masterById(at[0], at[1]) : null;
   return e && e.k === "devs" ? { scope: at[0], e: e } : null;
 }
 
@@ -65,6 +65,11 @@ function mscItems(S) {
       ids.forEach(function (id) {
         add(id, "plugin", A(id).friendly_name || A(id).name || id);
       });
+    } else if (src.indexOf("group:") === 0) {
+      /* The scenes a plugin owns in one of its groups (Hue's rooms and zones). */
+      sceneGroupIds(src).forEach(function (id) {
+        add(id, "plugin", A(id).friendly_name || A(id).name || id);
+      });
     } else if (src === "page" || src.indexOf("page:") === 0) {
       /* The scenes made for a page: "page" is this page, as it was called before pages could be chosen. */
       var room = src === "page" ? ref.scope : src.slice(5);
@@ -78,6 +83,19 @@ function mscItems(S) {
         if (sceneHasTag(sc, [src.slice(4)]) && sceneAllowed(sc)) sourced(sc);
       });
     }
+  });
+  /* A room's scene and the scene of the same name in a zone of it say which is which. */
+  var words = sceneNameSuffixes(
+    out
+      .filter(function (it) {
+        return it.kind === "plugin";
+      })
+      .map(function (it) {
+        return it.id;
+      })
+  );
+  out.forEach(function (it) {
+    if (words[it.id]) it.name += words[it.id];
   });
   return out;
 }
@@ -810,12 +828,12 @@ function mscSourceRows(box, sec, scope, redraw) {
     {
       get: function () {
         return list().filter(function (x) {
-          return x.indexOf("page:") === 0 || x.indexOf("area:") === 0 || x.indexOf("hue:") === 0;
+          return x.indexOf("page:") === 0 || x.indexOf("area:") === 0 || x.indexOf("hue:") === 0 || x.indexOf("group:") === 0;
         });
       },
       set: function (tokens) {
         put(function (x) {
-          return x.indexOf("page:") !== 0 && x.indexOf("area:") !== 0 && x.indexOf("hue:") !== 0;
+          return x.indexOf("page:") !== 0 && x.indexOf("area:") !== 0 && x.indexOf("hue:") !== 0 && x.indexOf("group:") !== 0;
         }, tokens);
       },
     },

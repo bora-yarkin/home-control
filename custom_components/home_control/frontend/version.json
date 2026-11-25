@@ -1,5 +1,5 @@
 {
-  "version": 433,
+  "version": 466,
   "files": [
     "integrations.js",
     "app/strings.js",
@@ -25,6 +25,8 @@
     "app/batteries.js",
     "app/status.js",
     "app/sections.js",
+    "app/widgetkinds.js",
+    "app/homewidgets.js",
     "app/rules.js",
     "app/editor.js",
     "app/pages.js",
@@ -37,6 +39,8 @@
     "app/store.js",
     "app/scenes.js",
     "app/livescenes.js",
+    "app/sharing.js",
+    "app/homekit.js",
     "app/areas.js",
     "app/wall.js",
     "app/backups.js",

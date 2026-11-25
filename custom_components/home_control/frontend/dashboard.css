@@ -571,7 +571,7 @@ body.editing main{padding-top:calc(94px + env(safe-area-inset-top,0px))}
 .gridl.lp-pg>:last-child:nth-child(odd){grid-column:1/-1}
 .chartc{padding:12px 14px 12px}
 .chartc .rg{display:flex;justify-content:flex-end;gap:6px;margin-bottom:8px}
-.chartc .rg .rbtn{min-height:28px;padding:0 11px;border-radius:var(--r-s);font-size:var(--fs-s)}
+.chartc .rg .rbtn{min-height:28px;padding:0 11px;border-radius:var(--r-row);font-size:var(--fs-s)}
 .chartc .plw{position:relative}
 .chartc svg{width:100%;height:132px;display:block;overflow:visible;color:var(--ink)}
 .chartc .ax{position:absolute;left:2px;top:-2px;font-size:var(--fs-xs);color:var(--ink2)}
@@ -975,6 +975,7 @@ body.light [data-k=alert]{--kc:#c97a10}
 body.light [data-k=link]{--kc:#5a6fc4}
 .ic[data-k],.pill[data-k] .ic,.tile[data-k] .ic,.sel[data-k] .ic{color:color-mix(in srgb,var(--kc) 78%,var(--ink2))}
 .pill[data-k] .ic[data-k],.tile[data-k] .ic[data-k],.sel[data-k] .ic[data-k]{--kc:inherit}
+.opts[data-k] .opt .ic[data-k],.rooms[data-k] .room .ic[data-k]{--kc:inherit}
 .pill.on[data-k]:not(.lc):not(.lci),.tile.on[data-k]:not(.lc):not(.lci){background:color-mix(in srgb,var(--kc) 13%,var(--f-card))!important;border-color:color-mix(in srgb,var(--kc) 48%,var(--f-line))!important}
 .pill.on[data-k]:not(.lc):not(.lci) .ic,.tile.on[data-k]:not(.lc):not(.lci) .ic{background:color-mix(in srgb,var(--kc) 34%,var(--f-raise));border-color:color-mix(in srgb,var(--kc) 58%,var(--f-line2));color:var(--ink)}
 /* A row that is playing shows its artwork in the icon circle and a play and pause button at its end. */
@@ -1025,3 +1026,76 @@ body.rwall .hsky{display:none}
 .hdr .hstat .gb.off b::before{margin-right:5px}
 .hdr:has(.hsky.on) .hstat .gb{background:rgba(255,255,255,.09)!important;border-color:rgba(255,255,255,.3)!important;text-shadow:0 1px 2px rgba(0,0,0,.35),0 1px 10px rgba(0,0,0,.35)}
 .pill.danger .ic,.pill.danger .ic[data-k],.pill.danger[data-k] .ic{color:#ff6b62}
+/* Siri and HomeKit: the two switches under a scene's name. */
+.shr{display:flex;flex-wrap:wrap;gap:6px 18px;margin-top:8px}
+.shr-c{display:inline-flex;align-items:center;gap:2px;font-size:var(--fs-s);color:var(--ink2);cursor:pointer;-webkit-user-select:none;user-select:none}
+.shr-c .swt{margin-left:8px}
+.shr-c.dim{opacity:.5}
+.shr-c:focus-visible{outline-offset:3px}
+.hkqr{display:flex;justify-content:center;padding:14px;margin-bottom:var(--sp);border-radius:var(--r-row);background:#fff}
+.hkqr img{width:min(240px,70%);height:auto;display:block}
+
+/* Widgets and sized devices (decision D-25): a Section is a grid of four columns; xs is one column, s two, m and l all four. */
+.wgrid{display:grid;grid-template-columns:repeat(4,1fr);gap:var(--sp);margin-bottom:var(--sp)}
+.wgrid>*{grid-column:1/-1;margin-bottom:0;min-width:0}
+.wgrid>.w-xs{grid-column:span 1}
+.wgrid>.w-s{grid-column:span 2}
+.wgrid>.w-l{min-height:220px}
+
+/* Home screen widgets (decision D-25, app/homewidgets.js): the dashboard's own parts, and what they need on top. */
+.wgrid>.w-xs,.wgrid>.w-s{min-height:112px}
+.wgrid>.gb{display:flex;flex-direction:column;justify-content:center;align-items:center;padding:12px}
+.wgrid>.gb>span,.wgrid>.gb>b{max-width:100%;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.wgrid>.w-xs.gb>b,.wgrid>.w-xs .rg2 b{font-size:var(--fs-m)}
+.wt{gap:4px}
+.wt.clk>b{font-size:30px;letter-spacing:-.5px}
+.wt.ringw .rg2{position:relative;width:min(64px,100%);aspect-ratio:1}
+.wt.ringw .rg2 svg{width:100%;height:100%}
+.wt.ringw circle{fill:none;stroke-width:6}
+.wt.ringw .bg{stroke:var(--f-line)}
+.wt.ringw .fg{stroke:var(--acc);stroke-linecap:round;transition:stroke-dashoffset .4s}
+.wt.ringw .rg2 b{position:absolute;inset:0;display:flex;align-items:center;justify-content:center;font-size:var(--fs-s)}
+.wt.spark .pl{width:100%;height:30px;display:flex;align-items:center;justify-content:center;font-size:var(--fs-xs);color:var(--ink2)}
+.wt.spark svg{width:100%;height:100%;overflow:visible}
+.wt.spark path{fill:none;stroke:var(--acc);stroke-width:1.6;vector-effect:non-scaling-stroke}
+.wt.fold{cursor:pointer}
+.wt.fold .fg{display:grid;grid-template-columns:repeat(2,auto);gap:4px}
+.wt.fold .fg .ic{width:26px;height:26px}
+.wt.fold .fg .ic[data-k]{--kc:var(--acc)}
+.np{display:flex;align-items:center;gap:12px;padding:12px;border-radius:var(--r-row);cursor:pointer}
+.np .art{width:56px;height:56px;border-radius:var(--r-row);background:var(--f-raise) center/cover;flex:none}
+.np .tx{flex:1;min-width:0;display:flex;flex-direction:column;gap:2px}
+.np .tx b,.np .tx span{overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.np .tx span{font-size:var(--fs-xs);color:var(--ink2)}
+.np .ctl{display:flex;gap:var(--sp-s);flex:none}
+.snapw{aspect-ratio:16/9;margin-bottom:0}
+.snapw img{position:absolute;inset:0;width:100%;height:100%;object-fit:cover}
+.snapw span{position:absolute;left:12px;right:12px;bottom:10px;color:#fff;text-shadow:0 1px 3px #000a;font-size:var(--fs-s);overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.wl{margin-bottom:0}
+.stk .sb>*{margin-bottom:0}
+.stk .sd{display:flex;justify-content:center;gap:5px;margin-top:6px;cursor:pointer}
+.stk .sd i{width:6px;height:6px;border-radius:50%;background:var(--f-line2)}
+.stk .sd i.on{background:var(--acc)}
+.notec.tapedit{cursor:pointer}
+.asheet input{width:100%;box-sizing:border-box;border-radius:var(--r-m);padding:12px 14px;background:rgba(0,0,0,.3);border:1px solid rgba(255,255,255,.22);color:var(--ink);font:inherit;outline:none}
+
+/* A widget that is a card of its own (Agenda, To-do, Vacuum): a header, a small button, and compact lines. */
+.wcard{padding:12px 14px;border-radius:var(--r-row)}
+.wcard .wh{display:flex;align-items:center;gap:10px;min-height:36px}
+.wcard .wh .ic{width:32px;height:32px;flex:none}
+.wcard .wh b{flex:1;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;font-size:var(--fs-l);font-weight:600}
+.wcard .wh .wsub{font-size:var(--fs-xs);color:var(--ink2);white-space:nowrap}
+.wcard .wh .wadd,.wcard .wh .wpen{width:34px;height:34px;flex:none;cursor:pointer}
+.wcard .wb{margin-top:6px}
+.wcard .wr{display:flex;align-items:center;gap:12px;min-height:46px;padding:6px 0;border-top:1px solid var(--f-line)}
+.wcard .wr .nm{flex:1;min-width:0;font-weight:500}
+.wcard .wr .dd{display:flex;flex-direction:column;align-items:center;width:38px;flex:none;line-height:1.1}
+.wcard .wr .dd b{font-size:var(--fs-l)}
+.wcard .wr .dd span{font-size:var(--fs-xs);color:var(--ink2)}
+.wcard .wr .tx{display:flex;flex-direction:column;min-width:0}
+.wcard .wr .sb{font-size:var(--fs-xs);color:var(--ink2)}
+.wcard .wr .ck2{width:24px;height:24px;border-radius:50%;border:2px solid var(--ink2);flex:none;box-sizing:border-box;cursor:pointer}
+.wcard .wr.done .ck2{background:var(--acc);border-color:var(--acc)}
+.wcard .wr.done .nm{opacity:.5;text-decoration:line-through}
+.wcard .wbar{display:flex;gap:var(--sp);padding-top:4px}
+.wcard .wbar .rbtn{flex:1}

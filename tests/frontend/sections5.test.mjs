@@ -23,7 +23,7 @@ function world() {
     cleanCond: () => null,
   };
   vm.createContext(sandbox);
-  for (const f of ["model.js", "sections.js"]) vm.runInContext(read(f), sandbox, { filename: f });
+  for (const f of ["model.js", "sections.js", "widgetkinds.js"]) vm.runInContext(read(f), sandbox, { filename: f });
   sandbox.cleanCond = () => null;
   return sandbox;
 }
@@ -55,42 +55,47 @@ test("sections of layout 4 that held devices become one kind, Section, and keep 
 test("quick actions are scenes, and the kinds that are not devices stay as they are", () => {
   const w = world();
   const out = plain(w.cleanLayout([{ id: "quick", k: "quick", scn: ["a"] }, { id: "glance", k: "glance" }, { id: "rooms", k: "rooms" }, { id: "alerts", k: "alerts" }, { id: "nt", k: "note", txt: "hi" }]));
-  assert.deepEqual(out.map((s) => s.k), ["devs", "glance", "rooms", "alerts", "note"]);
+  assert.deepEqual(out.map((s) => s.k), ["devs", "devs", "devs", "devs", "devs"], "every section is a plain Section");
   assert.deepEqual(out[0].devs.map((d) => d.kind + ":" + d.sid), ["cscene:a"], "its scenes are devices of the Section");
-  assert.equal(out[4].txt, "hi");
+  assert.deepEqual(out.slice(1, 4).map((s) => s.devs[0].w), ["glance", "rooms", "alerts"], "the overviews are widgets");
+  assert.equal(out[4].devs[0].wx.txt, "hi", "a note section is a Section with a note widget");
 });
 
 test("a master of the section (its own, or held) is kept by a Section whatever it was called", () => {
   const w = world();
   const out = plain(w.cleanLayout([{ id: "lights", k: "lights", devs: [light("light.a"), light("light.b")], master: 1, mn: "All", masters: [{ id: "mrm", master: 1, mm: 1, ml: [light("light.a")], mn: "Two" }] }]));
   assert.equal(out[0].k, "devs");
-  assert.equal(out[0].master, 1);
-  assert.equal(out[0].mn, "All");
-  assert.equal(out[0].masters[0].mn, "Two");
+  const [own, held] = out[0].devs.filter((d) => d.kind === "widget" && d.w === "lmaster");
+  assert.equal(own.wx.own, 1);
+  assert.equal(own.wx.mn, "All");
+  assert.equal(held.wx.mn, "Two");
+  assert.equal(out[0].master, undefined, "the section keeps no master settings: they are the widgets'");
 });
 
 test("a new Home page starts with Attention, At a glance, Rooms and Scenes; a new room with its status tiles and one empty Section", () => {
   const w = world();
   const home = plain(w.seedSections("home"));
-  assert.deepEqual(home.map((s) => s.k), ["alerts", "glance", "rooms", "devs"]);
+  assert.deepEqual(home.map((s) => s.k), ["devs", "devs", "devs", "devs"]);
+  assert.deepEqual(home.slice(0, 3).map((s) => s.devs[0].w), ["alerts", "glance", "rooms"]);
   assert.equal(home[3].t, "scenes");
   assert.deepEqual(home[3].devs.map((d) => [d.kind, d.spage]), [["scenes", ["page:home"]]]);
   const room = plain(w.seedSections("room:r1"));
-  assert.deepEqual(room.map((s) => s.k), ["status", "devs"]);
+  assert.deepEqual(room.map((s) => s.k), ["devs", "devs"]);
+  assert.equal(room[0].devs[0].w, "status");
   assert.deepEqual(room[1].devs, []);
 });
 
-test("the Add section list has every kind, grouped, and a kind that exists once is listed too, as already on the page", () => {
+test("the Add section list has the plain Section and every widget type of the registry, and a section does not change type", () => {
   const editor = read("editor.js");
-  for (const k of ["devs", "glance", "rooms", "alerts", "chips", "status", "pinned", "chart", "read", "note", "security", "energy", "camera", "cameras", "link"]) assert.match(editor, new RegExp('"' + k + '"'), k);
-  assert.match(editor, /already_on_this_page/);
+  assert.match(editor, /Object\.keys\(WIDGETS\)/, "every widget type of the registry is offered");
+  assert.match(editor, /\["sec_group_section", "tune", \["devs"\]\]/);
   assert.doesNotMatch(editor, /secSetKind|secTypePage/, "a section does not change type");
 });
 
 test("lights a master shows that nothing else holds as a device are kept as devices (lx), only lights, once each, so their settings open from the master", () => {
   const w = world();
   const out = plain(w.cleanLayout([{ id: "mn", k: "devs", devs: [], master: 1, lx: [light("light.g1"), light("light.g1"), { id: "switch.x", name: "X", icon: "plug", kind: "switch" }, light("light.g2")] }]));
-  assert.deepEqual(out[0].lx.map((d) => d.id), ["light.g1", "light.g2"]);
+  assert.deepEqual(out[0].devs[0].wx.lx.map((d) => d.id), ["light.g1", "light.g2"]);
 });
 
 test("a device has one page; visibility, moving and removing are in Behaviour; the Advanced settings button of a device is in Behaviour", () => {
@@ -113,18 +118,18 @@ test("every object says whether it is shown with the same row, Visible, On or Of
 test("the lights chosen for a master are lights of the page: room counts, everything-off and conditions see them once, also when no section lists them", () => {
   const w = world();
   const o = { rooms: [{ id: "r" }], layout: { rooms: { r: [
-    { id: "a", k: "devs", devs: [light("light.a")], master: 1, mm: 1, ml: [light("light.a"), light("light.only")] },
-    { id: "b", k: "devs", devs: [], masters: [{ id: "mx", master: 1, mm: 1, ml: [light("light.held"), light("light.only")] }] },
+    { id: "a", k: "devs", devs: [light("light.a"), { kind: "widget", id: "", w: "lmaster", wid: "a", name: "M", icon: "lights", wx: { id: "a", master: 1, own: 1, mm: 1, ml: [light("light.a"), light("light.only")] } }] },
+    { id: "b", k: "devs", devs: [{ kind: "widget", id: "", w: "lmaster", wid: "mx", name: "M", icon: "lights", wx: { id: "mx", master: 1, mm: 1, ml: [light("light.held"), light("light.only")] } }] },
   ] } } };
   w.devIndex(o);
-  assert.deepEqual(plain(o.devs.r.map((d) => d.id)), ["light.a", "light.only", "light.held"]);
+  assert.deepEqual(plain(o.devs.r.map((d) => d.id).filter(Boolean)), ["light.a", "light.only", "light.held"], "(the master widgets themselves are devices of the page with no entity)");
 });
 
 test("a master can be hidden as a whole (mhide), and is then left out of the page, the At a glance popup and the search", () => {
   const w = world();
   const out = plain(w.cleanLayout([{ id: "mn", k: "devs", devs: [], master: 1, mhide: 1 }]));
-  assert.equal(out[0].mhide, 1);
-  assert.match(read("sections.js"), /\(ed \|\| !m\.mhide\)/);
+  assert.equal(out[0].devs[0].wx.mhide, 1);
+  assert.match(read("widgetkinds.js"), /\(!ed && x\.mhide\)/, "left out of the page, shown while it is edited");
   assert.match(read("search.js"), /if \(m\.sec\.mhide\) return;/);
   assert.match(read("lightsmasters.js"), /!m\.sec\.mhide/);
 });

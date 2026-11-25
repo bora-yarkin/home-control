@@ -12,6 +12,10 @@ const sleep = (ms) => new Promise((resolve) => setTimeout(resolve, ms));
 const ROUND = ".rnd,.ic,.chev,.ck,.dk,.wg-ck,.ap-sb,.rb-g,.sh-h .rnd";
 /* Boxes that carry the app's row radius (--r-row). */
 const ROWLIKE = ".pill,.sel,.sqw,.erow,.rbtn,.gb,.ap-step,.ap-list,.ap-bar,.notec,.chartc,.tile,.qa,.wg-t,.menu,.idd-row";
+/* Cards and controls that hold text: they need padding. */
+const PADDED = ".np,.wcard,.gb,.notec,.chartc,.rbtn,.sel,.sqw,.erow";
+/* Cards and controls that must not touch each other: a gap of at least 4px between neighbours. */
+const APART = ".rnd,.ck,.pill,.sel,.rbtn,.gb,.sqw,.erow,.np,.wcard,.notec,.chartc,.vidbox,.room,.opt,.hs";
 /* A row of controls whose members should be the same size. */
 const GRIDS = ".ap-grid,.grid2,.grid3,.glance,.rrow,.seg,.wg,.cbtns";
 
@@ -59,6 +63,43 @@ export function auditLayout(root, classes) {
       c.height[h] = (c.height[h] || 0) + 1;
     }
     if (radiusOf(el) !== "14px" && !el.matches(".menu,.idd-row,.room,.wg-t,.tile,.qa") && !String(radiusOf(el)).includes("%") && num(radiusOf(el)) < 999) tag("radius", el, `has ${radiusOf(el)}, not the row radius 14px`);
+  });
+
+  // A card has rounded corners: every .pane is one, so a square one is a fault (a card that forgot its radius), whatever it is called.
+  root.querySelectorAll(".pane").forEach((el) => {
+    if (!visible(el) || el instanceof SVGElement || el.matches(".sheet,.asheet")) return;
+    if (num(radiusOf(el)) === 0) tag("radius", el, "is a card with square corners");
+  });
+
+  // A card or control with text has room around its content: the text and icons are at least 6px from every edge (padding, or the centring of a flex box: what is measured is the room, not the property).
+  root.querySelectorAll(PADDED).forEach((el) => {
+    if (!visible(el) || el.matches(".snap,.stk") || !(el.innerText || "").trim()) return;
+    const r = el.getBoundingClientRect(),
+      parts = [];
+    const walker = document.createTreeWalker(el, NodeFilter.SHOW_TEXT);
+    for (let n = walker.nextNode(); n; n = walker.nextNode()) {
+      if (!n.nodeValue.trim() || !n.parentElement || getComputedStyle(n.parentElement).visibility === "hidden") continue;
+      /* text cut with an ellipsis on purpose is as wide as its box: the box is what is measured */
+      let box = null;
+      for (let p = n.parentElement; p && p !== el; p = p.parentElement) if (getComputedStyle(p).textOverflow === "ellipsis" && p.scrollWidth > p.clientWidth) box = p.getBoundingClientRect();
+      if (box) parts.push(box);
+      else {
+        const range = document.createRange();
+        range.selectNodeContents(n);
+        parts.push(...[...range.getClientRects()].filter((c) => c.width > 0 && c.height > 0));
+      }
+    }
+    el.querySelectorAll("svg,img,.ic").forEach((i) => {
+      const b = i.getBoundingClientRect();
+      if (b.width > 0 && b.height > 0) parts.push(b);
+    });
+    if (!parts.length) return;
+    const left = Math.min(...parts.map((c) => c.left)),
+      right = Math.max(...parts.map((c) => c.right)),
+      top = Math.min(...parts.map((c) => c.top)),
+      bottom = Math.max(...parts.map((c) => c.bottom)),
+      least = Math.round(Math.min(left - r.left, r.right - right, top - r.top, r.bottom - bottom));
+    if (least < 6) tag("padding", el, `has its content ${least}px from an edge (at least 6px is needed)`);
   });
 
   // Alignment: rows that span the container line up with each other, and with the container's edges.
@@ -139,6 +180,22 @@ export function auditLayout(root, classes) {
       }
     }
 
+  // Touching: two controls or cards side by side or one above the other with less than 4px between them (a missing margin or padding). Members of a segmented control touch by design.
+  const near = [...root.querySelectorAll(APART)].filter(visible).filter((e) => !e.closest(".menu,.asheet,.scrim,.seg,.edtb"));
+  for (let i = 0; i < near.length; i++)
+    for (let j = i + 1; j < near.length; j++) {
+      const a = near[i],
+        b = near[j];
+      if (a.contains(b) || b.contains(a)) continue;
+      const ra = a.getBoundingClientRect(),
+        rb = b.getBoundingClientRect(),
+        ox = Math.min(ra.right, rb.right) - Math.max(ra.left, rb.left),
+        oy = Math.min(ra.bottom, rb.bottom) - Math.max(ra.top, rb.top),
+        gx = Math.max(rb.left - ra.right, ra.left - rb.right),
+        gy = Math.max(rb.top - ra.bottom, ra.top - rb.bottom);
+      if ((oy > 4 && gx > -1 && gx < 4) || (ox > 4 && gy > -1 && gy < 4)) tag("touching", a, `touches ${name(b)} (${Math.round(Math.max(gx, gy))}px apart)`);
+    }
+
   // Inside a list of rows: the icon, the text and the trailing control start and end at the same place in every row, and the icon is centred in its row.
   const lists = [root, ...root.querySelectorAll("div")].filter((c) => visible(c));
   lists.forEach((c) => {
@@ -199,7 +256,7 @@ export async function auditSurfaces(list, wait = 1500) {
   const findings = {},
     classes = {};
   for (const s of list) {
-    const label = s.key || s.page || s.menu || s.label || "?";
+    const label = s.label || s.key || s.page || s.menu || "?";
     try {
       closeSheet();
       closeMenu(true);
@@ -226,7 +283,9 @@ export async function auditSurfaces(list, wait = 1500) {
           }
         }
       }
-      findings[label] = root ? auditLayout(root, classes) : ["no surface opened"];
+      /* `within` audits each element of the surface that matches it, and finding none is a failure (nothing was measured). */
+      const roots = root && s.within ? [...root.querySelectorAll(s.within)] : root ? [root] : [];
+      findings[label] = roots.length ? roots.flatMap((r) => auditLayout(r, classes)) : [s.within ? "nothing matched " + s.within : "no surface opened"];
     } catch (e) {
       findings[label] = ["error: " + (e && e.message)];
     }

@@ -149,6 +149,7 @@ function addList(f) {
   var kind = ADDDOMS[f.st.dom][1][0];
   if (kind === "__remote") return addRemoteEntry(f);
   if (kind === "__appliance") return addApplianceEntries(f);
+  if (kind === "__widget") return addWidgetEntries(f);
   addEntities(f);
 }
 
@@ -167,6 +168,26 @@ function addRemoteEntry(f) {
       },
     })
   );
+}
+
+/* A widget is not an entity either: each type of the registry is offered, and the new one opens its settings. */
+function addWidgetEntries(f) {
+  Object.keys(WIDGETS).forEach(function (w) {
+    var def = WIDGETS[w];
+    f.box.appendChild(
+      pill(def.icon, def.title, {
+        sub: function () {
+          return def.desc || "";
+        },
+        tap: function () {
+          var at = placeDevice(f.rid, newWidgetDev(w));
+          uiChanged();
+          POPGUARD = null;
+          showPopup("manage-dev:" + at.rid + ":" + at.i, false);
+        },
+      })
+    );
+  });
 }
 
 function addApplianceEntries(f) {

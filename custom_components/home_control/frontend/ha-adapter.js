@@ -503,6 +503,9 @@ window.HA={
  history:function(params){return withType("history/history_during_period",params)},
  logbook:function(params){return withType("logbook/get_events",params)},
  statistics:function(params){return withType("recorder/statistics_during_period",params)},
+ /* The events of a calendar between two times, and the items of a to-do list (the Agenda and To-do widgets). */
+ calendar:{events:function(entityId,startIso,endIso){return hass.callApi("GET","calendars/"+encodeURIComponent(entityId)+"?start="+encodeURIComponent(startIso)+"&end="+encodeURIComponent(endIso))}},
+ todo:{items:function(entityId){return ws({type:"todo/item/list",entity_id:entityId}).then(function(r){return(r&&r.items)||[]})}},
  users:function(){return ws({type:"config/auth/list"})},
  entityRegistry:function(){return ws({type:"config/entity_registry/list"}).then(function(rows){return loadReplaces().then(function(){return withoutReplaced(rows)})})},
  serviceResponse:serviceResponse,
@@ -511,6 +514,20 @@ window.HA={
   sources:function(){return ws({type:"home_control/effects"}).then(function(r){return r&&r.sources})},
   importFile:function(content){return ws({type:"home_control/effects_import",content:content})},
   removeFile:function(id){return ws({type:"home_control/effects_delete",file_id:id})}
+ },
+ /* Sharing scenes with Siri, HomeKit and the Shortcuts app (administrators): the live scenes Home Control publishes as entities, and the HomeKit Bridge's list. */
+ sharing:{
+  published:function(){return ws({type:"home_control/published"})},
+  publish:function(sceneId,on){return ws({type:"home_control/publish",scene_id:sceneId,publish:on})},
+  homekit:function(entityIds){return ws({type:"home_control/homekit",entity_ids:entityIds})},
+  expose:function(entryId,entityId,on,accessoryType){
+   var msg={type:"home_control/homekit_expose",entry_id:entryId,entity_id:entityId,expose:on};
+   if(accessoryType)msg.accessory_type=accessoryType;
+   return ws(msg);
+  },
+  createBridge:function(){return ws({type:"home_control/homekit_create"})},
+  tvHome:function(){return ws({type:"home_control/tv_home"})},
+  setTvHome:function(entityId,call){return ws({type:"home_control/tv_home_set",entity_id:entityId,call:call})}
  },
  /* The plus integrations that bring a script of their own: [{ id, name, menu, version }]. */
  plugins:function(){return ws({type:"home_control/plugins"}).then(function(r){return r&&r.plugins})},

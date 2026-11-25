@@ -77,8 +77,12 @@ export function makeHass(query, home = null) {
     state("button.door_answer", "unknown", { friendly_name: "Answer call" }),
     state("button.door_hang_up", "unknown", { friendly_name: "Hang up call" }),
     state("lock.door_front", "locked", { friendly_name: "Front door" }),
-    state("scene.living_room_arctic_aurora", "unknown", { friendly_name: "Living room Arctic aurora", name: "Arctic aurora", is_dynamic: true, group_name: "Living room", speed: 0.5, brightness: 200 }),
-    state("scene.living_room_reading", "unknown", { friendly_name: "Living room Reading", name: "Reading", is_dynamic: false, group_name: "Living room" }),
+    state("scene.living_room_arctic_aurora", "unknown", { friendly_name: "Living room Arctic aurora", name: "Arctic aurora", is_dynamic: true, group_name: "Living room", group_type: "room", speed: 0.5, brightness: 200 }),
+    state("scene.living_room_reading", "unknown", { friendly_name: "Living room Reading", name: "Reading", is_dynamic: false, group_name: "Living room", group_type: "room" }),
+    // A Hue zone of the same name as the room, and one more zone: their scenes are in the area of their device, as the room's are.
+    state("scene.living_room_zone_cosy", "unknown", { friendly_name: "Living room Cosy", name: "Cosy", is_dynamic: false, group_name: "Living room", group_type: "zone" }),
+    state("scene.living_room_zone_reading", "unknown", { friendly_name: "Living room Reading", name: "Reading", is_dynamic: false, group_name: "Living room", group_type: "zone" }),
+    state("scene.shelf_zone_bright", "unknown", { friendly_name: "Shelf Bright", name: "Bright", is_dynamic: false, group_name: "Shelf", group_type: "zone" }),
     state("select.living_room_scene", "Reading", { friendly_name: "Scene", options: ["Arctic aurora", "Reading"] }),
     // Home Control's own integration plays live scenes for every light; its sensor lists what is running.
     state("binary_sensor.desk_remote_reachable", "on", { friendly_name: "Desk Remote Reachable", device_class: "connectivity" }),
@@ -146,6 +150,9 @@ export function makeHass(query, home = null) {
     reg("lock.door_front", "test_intercom", "door-lock", "dev-door", { area_id: "living" }),
     reg("scene.living_room_arctic_aurora", "hue_plus", "scene-1", "dev-living-group", { area_id: "living" }),
     reg("scene.living_room_reading", "hue", "scene-2", "dev-living-group", { area_id: "living" }),
+    reg("scene.living_room_zone_cosy", "hue_plus", "scene-3z", "dev-living-group", {}),
+    reg("scene.living_room_zone_reading", "hue_plus", "scene-5z", "dev-living-group", {}),
+    reg("scene.shelf_zone_bright", "hue_plus", "scene-4z", "dev-living-group", {}),
     reg("select.living_room_scene", "hue_plus", "group-1_scene", "dev-living-group", { area_id: "living" }),
     ...(withSync
       ? [
@@ -200,6 +207,13 @@ export function makeHass(query, home = null) {
     for (const [key, value] of Object.entries(home.userData || {})) if (value !== null) stored.user[key] = value;
   }
   const calls = [];
+  let todoItems = [{ uid: "t1", summary: "Milk", status: "needs_action" }, { uid: "t2", summary: "Bread", status: "needs_action" }, { uid: "t3", summary: "Coffee beans", status: "needs_action" }, { uid: "t4", summary: "Already bought", status: "completed" }];
+  const dayAt = (days, h) => new Date(Date.now() + days * 86400000 + h * 3600000).toISOString();
+  const calendarEvents = [
+    { summary: "Dentist", start: { dateTime: dayAt(0, 3) }, end: { dateTime: dayAt(0, 4) } },
+    { summary: "Parents' visit", start: { date: dayAt(2, 0).slice(0, 10) }, end: { date: dayAt(3, 0).slice(0, 10) } },
+    { summary: "Bins out", start: { dateTime: dayAt(4, 1) }, end: { dateTime: dayAt(4, 2) } },
+  ];
   window.__calls = calls;
   const listeners = {};
   const resources = {
@@ -262,6 +276,9 @@ export function makeHass(query, home = null) {
     home_and_away: { configured: true, clients: [] },
   };
 
+  // What the Siri and HomeKit page changes: the entities on the pretend HomeKit Bridge's list, and the entities of published live scenes.
+  const sharing = { made: query.get("bridge") !== "none", published: {}, types: {}, tv: {}, exposed: new Set(Object.keys(states).filter((id) => id.startsWith("scene.")).slice(0, 2)) };
+
   const connection = {
     addEventListener(name, fn) { (listeners[name] ||= []).push(fn); },
     subscribeEvents() { return Promise.resolve(() => {}); },
@@ -289,10 +306,53 @@ export function makeHass(query, home = null) {
         case "frontend/set_system_data": stored.system[msg.key] = msg.value; return Promise.resolve();
         case "config/auth/list": return Promise.resolve([]);
         case "history/history_during_period": return Promise.resolve({});
+        case "todo/item/list": return Promise.resolve({ items: todoItems.map((i) => ({ ...i })) });
         case "logbook/get_events": return Promise.resolve([]);
         case "home_control/effects": return home && home.effects ? Promise.resolve(home.effects) : effectSources().then((sources) => ({ sources }));
         case "home_control/plugins": return home && home.plugins ? Promise.resolve(home.plugins) : Promise.resolve({ plugins: withSync ? [{ id: "hue_plus", name: "Hue Plus", menu: "/hue_plus_static/menu.js", version: "harness" }] : [] });
         case "home_control/effects_import": return importEffects(msg.content);
+        // Sharing scenes (the Siri and HomeKit page): a HomeKit Bridge whose list the page changes, and the entities of published live scenes.
+        case "home_control/published": return Promise.resolve({ scenes: { ...sharing.published } });
+        case "home_control/publish": {
+          if (!msg.publish) {
+            const gone = sharing.published[msg.scene_id];
+            delete sharing.published[msg.scene_id];
+            if (gone) { sharing.exposed.delete(gone); delete states[gone]; hass.states = { ...states }; }
+            return Promise.resolve({ entity_id: null });
+          }
+          const id = "scene." + msg.scene_id.replace(/[^a-z0-9_]/g, "_");
+          sharing.published[msg.scene_id] = id;
+          states[id] = { entity_id: id, state: "unknown", attributes: { friendly_name: msg.scene_id, scene_id: msg.scene_id, live: true }, last_changed: new Date().toISOString(), last_updated: new Date().toISOString(), context: { id: "pub" } };
+          hass.states = { ...states };
+          return Promise.resolve({ entity_id: id });
+        }
+        case "home_control/homekit":
+          return Promise.resolve({
+            bridges: sharing.made
+              ? [
+                  {
+                    entry_id: "hk1",
+                    title: "HASS Bridge",
+                    editable: true,
+                    exposed: Object.fromEntries(msg.entity_ids.map((id) => [id, sharing.exposed.has(id)])),
+                    types: { ...sharing.types },
+                    listed: [...sharing.exposed],
+                    carries_own_accessories: true,
+                    // ?bridge=new shows a bridge that is not paired yet, with a code and no picture (the real one gives a picture of Home Assistant's own).
+                    pairing: query.get("bridge") === "new" ? { running: true, paired: false, pin: "031-45-154", qr: null } : { running: true, paired: true, pin: null, qr: null },
+                  },
+                ]
+              : [],
+          });
+        case "home_control/homekit_create": sharing.made = true; sharing.exposed.clear(); return Promise.resolve({ entry_id: "hk1" });
+        case "home_control/tv_home": return Promise.resolve({ calls: { ...sharing.tv } });
+        case "home_control/tv_home_set": if (msg.call) sharing.tv[msg.entity_id] = msg.call; else delete sharing.tv[msg.entity_id]; return Promise.resolve({ calls: { ...sharing.tv } });
+        case "home_control/homekit_expose": {
+          if (!/^(alarm_control_panel|binary_sensor|climate|cover|fan|humidifier|input_boolean|light|lock|media_player|scene|script|sensor|switch|vacuum|valve|water_heater)\./.test(msg.entity_id)) return Promise.reject({ code: "not_supported", message: msg.entity_id + " cannot be shared with HomeKit from here" });
+          if (msg.expose) sharing.exposed.add(msg.entity_id); else sharing.exposed.delete(msg.entity_id);
+          if (msg.expose && msg.accessory_type) sharing.types[msg.entity_id] = msg.accessory_type; else delete sharing.types[msg.entity_id];
+          return Promise.resolve({ changed: true });
+        }
         case "home_control/effects_delete": imported = null; return Promise.resolve({ ok: true });
         case "call_service": {
           calls.push({ domain: msg.domain, service: msg.service, data: msg.service_data, response: true });
@@ -336,6 +396,11 @@ export function makeHass(query, home = null) {
     connection,
     callService(domain, service, data) {
       calls.push({ domain, service, data });
+      // The to-do list and the calendar of the Showcase page keep what is added, checked and removed.
+      if (domain === "todo" && service === "add_item") todoItems.push({ uid: "t" + (todoItems.length + 10), summary: data.item, status: "needs_action" });
+      if (domain === "todo" && service === "update_item") todoItems.forEach((i) => i.uid === data.item && (data.status && (i.status = data.status), data.rename && (i.summary = data.rename)));
+      if (domain === "todo" && service === "remove_item") todoItems = todoItems.filter((i) => ![].concat(data.item).includes(i.uid));
+      if (domain === "calendar" && service === "create_event") calendarEvents.push({ summary: data.summary, start: data.start_date ? { date: data.start_date } : { dateTime: new Date(data.start_date_time.replace(" ", "T")).toISOString() }, end: {} });
       if (domain === "hue_plus" && service === "set_motion_area" && data.enabled === true) {
         const area = resources.motion_areas.areas.filter((x) => x.id === data.area)[0];
         if (area) area.health = "healthy";
@@ -380,6 +445,7 @@ export function makeHass(query, home = null) {
     },
     // Home Assistant's "Group" helper of the type light: its configuration and options flows, enough to make, change and delete one.
     callApi(method, path, body) {
+      if (/^calendars\//.test(path)) return Promise.resolve(calendarEvents.slice().sort((a, b) => String(a.start.dateTime || a.start.date).localeCompare(String(b.start.dateTime || b.start.date))));
       const flowPath = /^config\/config_entries\/(flow|options\/flow)(?:\/(.+))?$/.exec(path);
       if (flowPath) {
         const options = flowPath[1] === "options/flow";
