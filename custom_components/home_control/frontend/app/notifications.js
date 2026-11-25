@@ -383,7 +383,7 @@ function notifyPayload(k) {
       });
     msg = NOTIFY_NAME + " is offline";
   } else {
-    ents = devsOf("vacuum").map(function (d) {
+    ents = vacuumList().map(function (d) {
       return d.id;
     });
     if (ents.length) trigs.push({ trigger: "state", entity_id: ents, to: "error" });

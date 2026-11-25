@@ -1081,7 +1081,7 @@ function secGlance() {
         showPopup("g-tvs", false);
       }
     );
-  var vacs = devsOf("vacuum");
+  var vacs = vacuumList();
   if (vacs.length)
     GT.robot = tile(
       "vac",
@@ -1092,7 +1092,7 @@ function secGlance() {
       },
       null,
       function () {
-        showPopup(devPop(vacs[0]), false);
+        showPopup(vacs[0].pop, false);
       }
     );
   glanceFill(glanceG, GT);

@@ -38,7 +38,7 @@ function advDevice(id) {
 function advLeftOut(id, eid) {
   var d = dom(eid);
   if (dom(id) === "vacuum") {
-    if (eid === RBM || eid === RBF || eid === RBW) return true;
+    if (eid === RBM || eid === RBF || eid === RBW || (typeof vacapDriven === "function" && vacapDriven(id).indexOf(eid) >= 0)) return true;
     return (
       d === "button" &&
       /(start|stop|pause|continue|resume|go_?charge|dock|return)/.test(eid) &&

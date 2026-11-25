@@ -308,6 +308,7 @@ function cleanAppliance(a) {
       position: ["sensor"],
       no_go: ["sensor"],
       walls: ["sensor"],
+      dock: ["button", "input_button", "script"],
     },
     extraDoms = ["select", "input_select", "number", "input_number", "switch", "input_boolean", "binary_sensor", "sensor", "button", "input_button", "script"],
     out = { type: "other", slots: {}, extra: [] };

@@ -60,3 +60,36 @@ test("a setting's choices keep the order given for them", () => {
   assert.deepEqual(Array.from(c.vacapOptions({ e: "select.x", o: ["Sweep Mop", "Sweep", "Gone"] })), ["Sweep Mop", "Sweep"]);
   assert.deepEqual(Array.from(c.vacapOptions({ e: "select.x", o: [] })), ["Sweep", "Mop", "Sweep Mop"]);
 });
+
+const APPDIR = new URL("../../custom_components/home_control/frontend/app/", import.meta.url);
+const app = (f) => readFileSync(new URL(f, APPDIR), "utf8");
+
+test("the rooms listed are used, else the map's own, by number", () => {
+  const c = vm.createContext({ vacapConf: (ap) => ap.vac, apHas: () => true, A: () => ({ rooms: { 5: { number: 5, name: "Kitchen" }, 3: { number: 3, name: "Living" }, x: { name: "bad key!" , number: "a b"} } }) });
+  vm.runInContext(src.slice(src.indexOf("function vacapRooms(ap)"), src.indexOf("/* The vacuum appliances of the home")), c);
+  const ap = { slots: { map: "image.m" }, vac: { rooms: [] } };
+  assert.deepEqual(JSON.parse(JSON.stringify(c.vacapRooms(ap))), [{ k: "3", l: "Living" }, { k: "5", l: "Kitchen" }]);
+  ap.vac.rooms = [{ k: "9", l: "Mine" }];
+  assert.deepEqual(JSON.parse(JSON.stringify(c.vacapRooms(ap))), [{ k: "9", l: "Mine" }]);
+});
+
+test("a home's vacuums are those on a page and those of its vacuum appliances, once each", () => {
+  const c = vm.createContext({
+    devsOf: (k) => (k === "vacuum" ? [{ id: "vacuum.a", name: "A", room: "r" }] : [{ aid: "x", name: "A again", ap: { type: "vacuum", slots: { vacuum: "vacuum.a" } } }, { aid: "y", name: "B", room: "r2", ap: { type: "vacuum", slots: { vacuum: "vacuum.b" } } }, { aid: "z", ap: { type: "oven", slots: {} } }]),
+    devPop: (d) => "vac:" + d.id,
+  });
+  vm.runInContext(src.slice(src.indexOf("/* The vacuum appliances of the home"), src.indexOf("/* The select entities an appliance's settings drive")), c);
+  assert.deepEqual(c.vacuumList().map((v) => [v.id, v.pop]), [["vacuum.a", "vac:vacuum.a"], ["vacuum.b", "appliance:y"]]);
+});
+
+test("whatever looks after vacuums looks after appliance ones too, and the appliance does what the vacuum card does", () => {
+  assert.match(app("status.js"), /vacuumList\(\)\.forEach/);
+  assert.match(app("notifications.js"), /vacuumList\(\)\.map/);
+  assert.match(app("sections.js"), /var vacs = vacuumList\(\);/);
+  assert.match(app("popups.js"), /gv0\.d\.kind === "appliance"\) vacapPage/);
+  assert.match(app("homewidgets.js"), /vacuumList\(\)\.filter/);
+  assert.match(app("homekit.js"), /d\.kind === "appliance" && d\.ap && d\.ap\.type === "vacuum" && dm === "vacuum"/);
+  assert.match(app("appliance.js"), /vacapToggle\(d\)/);
+  assert.match(app("manage.js"), /advOf = d\.id \|\|/);
+  for (const need of [/the_robot_is_already_cleaning/, /vacapHeld\(state, s\)/, /ap\.slots\.dock/, /showPopup\("adv:" \+ vacuum, true\)/, /set_fan_speed/, /vacapFillFrom\(d\)/, /vacWatch\(b, vacuum\)/]) assert.match(src, need);
+});

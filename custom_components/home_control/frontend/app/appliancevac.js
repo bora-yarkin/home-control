@@ -76,6 +76,80 @@ function vacapZones(ap, mapEnt) {
   ];
 }
 
+/* The rooms: those listed in the set-up, else the ones the map names (its `rooms` attribute: {number, name}), as a vacuum card reads them from the robot. */
+function vacapRooms(ap) {
+  var conf = vacapConf(ap);
+  if (conf.rooms.length) return conf.rooms;
+  var map = ap.slots && ap.slots.map,
+    rooms = map && apHas(map) ? A(map).rooms : null;
+  if (!rooms || typeof rooms !== "object") return [];
+  return Object.keys(rooms)
+    .map(function (k) {
+      var r = rooms[k] || {},
+        n = r.number !== undefined ? r.number : k;
+      return { k: String(n), l: String(r.name || n) };
+    })
+    .filter(function (r) {
+      return /^[A-Za-z0-9_-]{1,24}$/.test(r.k);
+    })
+    .sort(function (a, b) {
+      return Number(a.k) - Number(b.k) || a.k.localeCompare(b.k);
+    });
+}
+
+/* The vacuum appliances of the home, wherever they are on a page. */
+function vacapAll() {
+  return devsOf("appliance").filter(function (d) {
+    return d.ap && d.ap.type === "vacuum" && d.ap.slots && d.ap.slots.vacuum;
+  });
+}
+
+/* Every robot vacuum of the home, as the dashboard knows it: a vacuum put on a page, else a robot vacuum appliance for one. What looks after vacuums (Attention, At a glance, notifications,
+   the vacuum widget) takes them from here, so a home that uses only appliances is looked after too. */
+function vacuumList() {
+  var out = devsOf("vacuum").map(function (d) {
+      return { id: d.id, name: d.name, room: d.room, pop: devPop(d), d: d };
+    }),
+    seen = {};
+  out.forEach(function (v) {
+    seen[v.id] = 1;
+  });
+  vacapAll().forEach(function (d) {
+    var id = d.ap.slots.vacuum;
+    if (seen[id]) return;
+    seen[id] = 1;
+    out.push({ id: id, name: d.name, room: d.room, pop: "appliance:" + d.aid, d: d });
+  });
+  return out;
+}
+
+/* The select entities an appliance's settings drive: its Advanced settings do not repeat them. */
+function vacapDriven(vacuum) {
+  var out = [];
+  allSectionLists().forEach(function (secs) {
+    (secs || []).forEach(function (s) {
+      (s.devs || []).forEach(function (d) {
+        if (d.kind === "appliance" && d.ap && d.ap.slots && d.ap.slots.vacuum === vacuum)
+          ((d.ap.vac && d.ap.vac.sets) || []).forEach(function (x) {
+            if (x.e) out.push(x.e);
+          });
+      });
+    });
+  });
+  return out;
+}
+
+/* Start from the row's icon, or the robot sent home while it is out. */
+function vacapToggle(d) {
+  var id = d.ap.slots.vacuum;
+  if (!id || !apHas(id)) return;
+  gate([id], function () {
+    var out = ["cleaning", "returning"].indexOf(V_(id)) >= 0;
+    call("vacuum", out ? "return_to_base" : "start", { entity_id: id });
+    vacKick(id);
+  });
+}
+
 /* A value as the action wants it: a number written as digits is a number. */
 function vacapValue(v) {
   return typeof v === "string" && /^-?\d{1,6}$/.test(v) ? Number(v) : v;
@@ -126,7 +200,7 @@ function vacapWords(ap, vacuum, chosen, all, pref) {
   var conf = vacapConf(ap),
     rooms = chosen.length
       ? chosen
-      : conf.rooms.map(function (r) {
+      : vacapRooms(ap).map(function (r) {
           return r.k;
         }),
     settings = {},
@@ -167,7 +241,7 @@ function vacapStart(ap, vacuum, chosen, all, pref) {
     /* an action once per room gets that room's words as well */
     var times = r.each
       ? words.$rooms.map(function (k) {
-          var room = conf.rooms.filter(function (x) {
+          var room = vacapRooms(ap).filter(function (x) {
               return x.k === k;
             })[0] || { k: k, l: k },
             own = pref(k),
@@ -278,6 +352,14 @@ function vacapRoomPage(b, key) {
   });
 }
 
+/* After a start the robot takes a while to say it is cleaning: Start stays held until it has been out and is back (or 90 minutes, or Stop). */
+function vacapHeld(state, s) {
+  if (!state.held) return false;
+  var age = Date.now() - state.held;
+  if (age > 5400000 || (age > 30000 && (s === "docked" || s === "idle"))) state.held = 0;
+  return !!state.held;
+}
+
 /* The appliance's page: map, readings, rooms, settings, Start, and Pause, Resume and Stop while it works. */
 function vacapPage(b, d) {
   var ap = d.ap,
@@ -289,7 +371,8 @@ function vacapPage(b, d) {
     spots = [],
     tiles = mk("div", "rooms"),
     start = mk("div", "rb-start pane"),
-    ctl = mk("div", "rrow rbc");
+    ctl = mk("div", "rrow rbc"),
+    rooms = vacapRooms(ap);
 
   function flip(k) {
     var at = state.rooms.indexOf(k);
@@ -326,7 +409,7 @@ function vacapPage(b, d) {
         z.style.cssText = "left:" + h.x + "%;top:" + h.y + "%;width:" + h.w + "%;height:" + h.h + "%" + (h.r === "ellipse" ? ";border-radius:50%" : "");
         z._k = h.a.r;
         z.setAttribute("role", "button");
-        z.setAttribute("aria-label", (conf.rooms.filter(function (r) { return r.k === h.a.r; })[0] || {}).l || h.a.r);
+        z.setAttribute("aria-label", (rooms.filter(function (r) { return r.k === h.a.r; })[0] || {}).l || h.a.r);
         z.addEventListener("click", function () {
           flip(h.a.r);
         });
@@ -370,11 +453,11 @@ function vacapPage(b, d) {
     return;
   }
 
-  if (conf.rooms.length) {
+  if (rooms.length) {
     var head = mk("div", "rb-sec", "<span></span><span class='rb-chips'></span>");
     head.firstChild.textContent = _T("rooms_caps");
     [
-      ["all", function () { state.rooms = conf.rooms.map(function (r) { return r.k; }); }],
+      ["all", function () { state.rooms = rooms.map(function (r) { return r.k; }); }],
       ["clear", function () { state.rooms = []; }],
     ].forEach(function (c) {
       var s = mk("span", "rb-chip pane");
@@ -387,7 +470,7 @@ function vacapPage(b, d) {
       head.lastChild.appendChild(s);
     });
     tiles.setAttribute("data-k", "clean");
-    conf.rooms.forEach(function (r) {
+    rooms.forEach(function (r) {
       var t = mk("div", "room pane", ic("home") + "<span></span>");
       t.lastChild.textContent = r.l || r.k;
       t._k = r.k;
@@ -437,10 +520,17 @@ function vacapPage(b, d) {
     bStop = rbtn(
       "stop",
       function () {
-        vac("stop");
-        setTimeout(function () {
-          vac("return_to_base");
-        }, 1500);
+        state.held = 0;
+        var dock = ap.slots.dock && apHas(ap.slots.dock) ? ap.slots.dock : "";
+        if (dock) {
+          apRun(dock, true);
+          if (vacuum) vacKick(vacuum);
+        } else {
+          vac("stop");
+          setTimeout(function () {
+            vac("return_to_base");
+          }, 1500);
+        }
       },
       _T("stop_and_dock")
     );
@@ -457,7 +547,7 @@ function vacapPage(b, d) {
       z.classList.toggle("on", state.rooms.indexOf(z._k) >= 0);
     });
     var s = vacuum ? V_(vacuum) : "",
-      busy = state.running || s === "cleaning" || s === "returning",
+      busy = state.running || vacapHeld(state, s) || s === "cleaning" || s === "returning",
       working = s === "cleaning" || s === "paused" || s === "returning",
       html =
         svg("play") +
@@ -481,7 +571,7 @@ function vacapPage(b, d) {
 
   function run() {
     var s = vacuum ? V_(vacuum) : "";
-    if (state.running || s === "cleaning" || s === "returning" || s === "unavailable") return;
+    if (state.running || vacapHeld(state, s) || s === "cleaning" || s === "returning" || s === "unavailable") return;
     /* the gate runs what it is given, at once or after the person confirms */
     if (vacuum) gate([vacuum], go);
     else go();
@@ -490,16 +580,30 @@ function vacapPage(b, d) {
     if (state.running) return;
     state.running = true;
     paint();
-    var chosen = conf.rooms
+    var chosen = rooms
       .map(function (r) {
         return r.k;
       })
       .filter(function (k) {
         return state.rooms.indexOf(k) >= 0;
       });
-    vacapStart(ap, vacuum, chosen, state.all, function (r) {
-      return rbPref(vacapPrefKey(d.aid, r));
-    })
+    /* the shown state can be old: the robot is asked first, and is not started over a run it is on */
+    var asked = vacuum
+      ? Promise.resolve(H().callService("homeassistant", "update_entity", { entity_id: vacuum })).catch(function () {}).then(vacapPause)
+      : Promise.resolve();
+    asked
+      .then(function () {
+        var now = vacuum ? V_(vacuum) : "";
+        if (now === "cleaning" || now === "returning") {
+          toast(now === "cleaning" ? _T("the_robot_is_already_cleaning") : _T("the_robot_is_already_on_its_way_back"));
+          return;
+        }
+        return vacapStart(ap, vacuum, chosen, state.all, function (r) {
+          return rbPref(vacapPrefKey(d.aid, r));
+        }).then(function () {
+          state.held = Date.now();
+        });
+      })
       .catch(function (e) {
         toast(_T("couldn_t_start_the_robot") + ": " + String((e && e.message) || e).slice(0, 80));
       })
@@ -511,8 +615,36 @@ function vacapPage(b, d) {
   }
   start.setAttribute("role", "button");
   start.addEventListener("click", run);
+  var speeds = vacuum && A(vacuum).fan_speed_list;
+  if (!conf.sets.length && Array.isArray(speeds) && speeds.length)
+    b.appendChild(
+      selectTile(
+        _T("vac_fan_speed"),
+        function () {
+          return A(vacuum).fan_speed_list || [];
+        },
+        function () {
+          return A(vacuum).fan_speed;
+        },
+        function (v) {
+          call("vacuum", "set_fan_speed", { entity_id: vacuum, fan_speed: v });
+        },
+        "fan"
+      )
+    );
   b.appendChild(ctl);
   b.appendChild(start);
+  if (ISADMIN && vacuum && !d.noadv && advList(vacuum).length)
+    b.appendChild(
+      pill("tune", _T("advanced_settings"), {
+        sub: function () {
+          return cntS(advList(vacuum).length, _T("setting"), _T("settings_2"));
+        },
+        tap: function () {
+          showPopup("adv:" + vacuum, true);
+        },
+      })
+    );
   if (vacuum) vacWatch(b, vacuum);
   reg(paint);
   paint();
@@ -527,6 +659,49 @@ function vacShort(entity, vacuum) {
     dev = (dv && (dv.name_by_user || dv.name)) || (vacuum && A(vacuum).friendly_name) || "";
   if (dev && name.indexOf(dev + " ") === 0) name = name.slice(dev.length + 1);
   return cap(name.replace(/ life$/i, ""));
+}
+
+/* Fills what is empty from the entities of the vacuum's own Home Assistant device, as a vacuum card finds them by itself: the battery, the map (an image or camera that says where its rooms
+   are), the position beside it, and the selects for mode, suction, water and passes. Nothing chosen is changed. Returns how many were filled. */
+function vacapFillFrom(d) {
+  var ap = d.ap,
+    conf = vacapConf(ap),
+    h = H(),
+    vacuum = ap.slots.vacuum,
+    dev = (h.entities[vacuum] || {}).device_id,
+    mine = Object.keys(h.states).filter(function (id) {
+      return dev && (h.entities[id] || {}).device_id === dev && !h.entities[id].disabled_by;
+    }),
+    n = 0;
+  function slot(k, id) {
+    if (!ap.slots[k] && id) {
+      ap.slots[k] = id;
+      n++;
+    }
+  }
+  slot("battery", mine.filter(function (id) { return dom(id) === "sensor" && A(id).device_class === "battery"; })[0] || mine.filter(function (id) { return dom(id) === "sensor" && /_battery(_level)?$/.test(id); })[0]);
+  var maps = Object.keys(h.states).filter(function (id) { return /^(image|camera)\./.test(id) && A(id).calibration_points; });
+  var name = String(vacuum).split(".")[1].split("_")[0];
+  slot("map", maps.filter(function (id) { return id.indexOf(name) >= 0; })[0] || (maps.length === 1 ? maps[0] : ""));
+  if (ap.slots.map) {
+    var base = ap.slots.map.split(".")[1].replace(/_(live_)?map$/, "");
+    slot("position", Object.keys(h.states).filter(function (id) { return dom(id) === "sensor" && id.indexOf(base) >= 0 && /position$/.test(id) && typeof A(id).x === "number"; })[0]);
+  }
+  [
+    ["mode", _T("mode"), /(sweep_mop_type|mop_mode|cleaning_mode|clean_mode|_mode)$/],
+    ["suction", _T("suction"), /(suction|fan_speed|fan_level)/],
+    ["water", _T("water_output"), /(water|mop_water)/],
+  ].forEach(function (x) {
+    if (conf.sets.some(function (s) { return s.k === x[0]; }) || conf.sets.length >= 6) return;
+    var e = mine.filter(function (id) {
+      return dom(id) === "select" && x[2].test(id) && !conf.sets.some(function (s) { return s.e === id; });
+    })[0];
+    if (e) {
+      conf.sets.push({ k: x[0], l: x[1], o: [], e: e });
+      n++;
+    }
+  });
+  return n;
 }
 
 /* ---- the setup of a vacuum appliance (its part of the appliance's set-up page) ---- */
@@ -567,6 +742,20 @@ function vacapEditor(box, d, redraw) {
         })
       );
   }
+  if (ap.slots.vacuum)
+    box.appendChild(
+      pill("tune", _T("vacap_fill"), {
+        sub: function () {
+          return _T("vacap_fill_sub");
+        },
+        tap: function () {
+          toast(vacapFillFrom(d) ? _T("vacap_filled") : _T("vacap_nothing_to_fill"));
+          uiChanged();
+          redraw();
+        },
+      })
+    );
+  if (!conf.rooms.length && vacapRooms(ap).length) box.appendChild(hintRow(_T("vacap_rooms_from_map")));
   listRow(
     "r",
     conf.rooms,

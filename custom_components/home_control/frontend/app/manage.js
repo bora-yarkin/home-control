@@ -1208,7 +1208,9 @@ function devLightOptions(c) {
 function devPlaceRows(c) {
   var d = c.d,
     held = c.key.split(":")[0].split("~")[3] === "lx",
-    adv = d.id && advList(d.id).length;
+    /* a robot vacuum appliance's Advanced settings are its vacuum's */
+    advOf = d.id || (d.kind === "appliance" && d.ap && d.ap.type === "vacuum" && d.ap.slots.vacuum) || "",
+    adv = advOf && advList(advOf).length;
   if (!held || adv) c.box.appendChild(sep(_T("dp_in_the_section"), "home"));
   /* Showing and the Advanced button are two switches, side by side. */
   var sw = mk("div", "ap-grid");

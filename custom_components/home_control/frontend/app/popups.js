@@ -955,12 +955,14 @@ var POPUP_DEFS = {
     return { title: _T("media"), icon: "tv", build: mediaHub };
   },
   "g-robot": function (id) {
-    var gv0 = devsOf("vacuum")[0];
+    var gv0 = vacuumList()[0];
     return {
       title: _T("robot_vacuum"),
       icon: "vac",
       build: function (b) {
-        if (gv0) vacPopup(b, gv0.id);
+        if (!gv0) return;
+        if (gv0.d.kind === "appliance") vacapPage(b, gv0.d);
+        else vacPopup(b, gv0.id);
       },
     };
   },
