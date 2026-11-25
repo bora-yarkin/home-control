@@ -501,6 +501,8 @@ var EN = {
   "rm_linked_hint": "Listed in this device's Advanced settings, besides its own.",
   "rm_add_linked": "Add a linked entity",
   "rm_remove_device": "Remove from the master",
+  "rm_adv_off_page": "Off: switched off on the device's own page",
+  "rm_adv_off_master": "Off: switched off for the whole master",
   "rm_remove": "Remove",
   "rm_keep": "Remember the device I pick",
   "rm_keep_on": "The popup reopens on the device picked on this screen",

@@ -37,6 +37,7 @@ function cleanRmOpt(o) {
   });
   if (links.length) c.links = links.slice(0, 12);
   if (rmPlayerId(o.state)) c.state = o.state;
+  if (o.noadv) c.noadv = 1;
   var roles = {};
   RM_ROLES.forEach(function (r) {
     var act = o.roles && o.roles[r] && cleanRmAct(o.roles[r]);
@@ -77,6 +78,7 @@ function cleanRemoteMaster(x) {
   });
   if (Object.keys(opt).length) o.opt = opt;
   if (x.keep) o.keep = 1;
+  if (x.noadv) o.noadv = 1;
   return o;
 }
 
@@ -127,6 +129,16 @@ function rmIcon(x, k) {
     return (c && c.icon) || "media";
   }
   return x.spk.indexOf(k) >= 0 ? "media" : "tv";
+}
+
+/* A device switched off its Advanced settings button on its page. */
+function rmAdvOffOnPage(id) {
+  return !!(UIDEV[id] && UIDEV[id].noadv);
+}
+
+/* The Advanced settings button of a device in a master: not when it is switched off for the master, for this device in it, or on the device's own page. */
+function rmHasAdv(x, id) {
+  return ISADMIN && !rmIsCustom(id) && !x.noadv && !rmOpt(x, id).noadv && !rmAdvOffOnPage(id) && advList(id).length > 0;
 }
 
 /* Entities a master's settings link to a device: its Advanced settings list them, as those linked on a page. */
@@ -556,9 +568,8 @@ function rmBuild(area, d, sel) {
   } finally {
     RMNP = {};
   }
-  if (rmIsCustom(sel)) return;
-  var n = ISADMIN && !(UIDEV[sel] && UIDEV[sel].noadv) ? advList(sel).length : 0;
-  if (n)
+  if (rmHasAdv(x, sel)) {
+    var n = advList(sel).length;
     area.appendChild(
       pill("tune", _T("advanced_settings"), {
         sub: function () {
@@ -569,6 +580,7 @@ function rmBuild(area, d, sel) {
         },
       })
     );
+  }
 }
 
 /* Switching device changes what is in the popup, and never closes it: the old controls are taken out with their live updates, the new ones built in their place, and the popup eases to its new height. */
@@ -965,6 +977,28 @@ function rmMemberPage(b) {
           })
         );
       }
+      /* the same switch as the device's own settings have, for this device in the master */
+      if (!custom && advList(k).length) {
+        var offPage = rmAdvOffOnPage(k),
+          offAll = !!x.noadv;
+        box.appendChild(
+          pill("tune", _T("advanced_settings_button"), {
+            on: function () {
+              return !offAll && !offPage && !rmOpt(x, k).noadv;
+            },
+            sub: function () {
+              if (offPage) return _T("rm_adv_off_page");
+              if (offAll) return _T("rm_adv_off_master");
+              return rmOpt(x, k).noadv ? _T("off") : _T("on_cap");
+            },
+            tap: function () {
+              if (offPage || offAll) return toast(offPage ? _T("rm_adv_off_page") : _T("rm_adv_off_master"));
+              set("noadv", rmOpt(x, k).noadv ? "" : 1);
+              draw();
+            },
+          })
+        );
+      }
       var rm = pill("trash", _T("rm_remove_device"), {
         tap: function () {
           rmDrop(x, k);
@@ -1056,6 +1090,16 @@ function rmSettings(box, d) {
           });
         },
       })
+    );
+  if (
+    rmMembers(x).some(function (k) {
+      return !rmIsCustom(k) && advList(k).length;
+    })
+  )
+    box.appendChild(
+      flagPill("tune", _T("advanced_settings_button"), x, "noadv", function (on) {
+        return on ? _T("on_cap") : _T("off");
+      }, true)
     );
   box.appendChild(
     flagPill("edit", _T("rm_keep"), x, "keep", function (on) {

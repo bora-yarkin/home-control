@@ -4,6 +4,9 @@ Format: [Keep a Changelog](https://keepachangelog.com/). Versions follow [semant
 
 ## [Unreleased]
 
+### Added
+- The Remote master has the *Advanced settings button* switch: one for the whole master, and one on each device's page in it. A device whose button is switched off on its own page stays without it in the master, and the switch says why.
+
 ## [0.28.0] - 2026-11-26
 
 ### Added
