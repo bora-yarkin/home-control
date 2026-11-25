@@ -89,7 +89,7 @@ test("a stack holds at most five widgets of its own kind of content, never a sta
 test("every widget type has a name, an icon, a description and a default size among its sizes (the lights master is a row)", () => {
   const w = world();
   const names = Object.keys(w.WIDGETS);
-  for (const k of ["note", "chart", "security", "cameras", "energy", "alerts", "rooms", "now", "status", "chips", "glance", "pinned", "link", "lmaster", "clock", "nowplaying", "snapshot", "vacuum", "ring", "sparkline", "agenda", "todo", "folder", "stack"])
+  for (const k of ["note", "chart", "security", "cameras", "energy", "alerts", "rooms", "now", "chips", "glance", "pinned", "link", "lmaster", "clock", "nowplaying", "snapshot", "vacuum", "ring", "sparkline", "agenda", "todo", "folder", "stack"])
     assert.ok(names.includes(k), k + " is registered");
   for (const k of names) {
     const f = w.WIDGETS[k];

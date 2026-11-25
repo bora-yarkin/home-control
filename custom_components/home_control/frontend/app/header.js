@@ -67,6 +67,7 @@ function hdrItem(it) {
     var n = countOn(lightUnits(allLights()));
     return { i: "lights", t: n ? n + _T("lights_on") : _T("lights_off") };
   }
+  if (it.k === "alerts") return alertList().length ? { i: "alert", t: alertText() } : null;
   if (it.k === "entity") {
     if (!it.id || !S(it.id)) return null;
     return { i: sensorIcon(it.id), t: (it.l || entName(it.id)) + " " + readText(it.id) };
@@ -100,48 +101,107 @@ function hdrShown(it) {
   return it.show !== false;
 }
 
-/* The page's status tiles (a room's readings, or the Home page's climate tiles) as a row of the header, when the page's header settings say so and nothing is being edited. The row changes with the page, and a page with no status tiles keeps the short header. The page's own Status section is left out while they are here. */
+/* The status tiles of the open page (its own list, set in the header's settings: decision D-27) as a row of the header. The row changes with the page, and a page with no status tiles keeps the short header. It is independent of the page's own Status
+   section, whose tiles are devices. */
 var HSTF = [];
 
-function hdrStatusOn() {
-  return ((UI && UI.meta) || {}).hdrStatus === true && !editing();
+/* Builds the row for the open page; without force it keeps the row when the page and its tiles are the same. */
+/* The header's height slides whenever it changes, whatever the cause: the status row coming or going, a room name that fits on one line or needs two. A caller takes the height the header has (hdrBegin: any slide in progress is ended, so the next measure is the natural height), changes the header, then hdrGlide eases from the old height to the new one, clipped by the header, while the page below follows. */
+function hdrBegin(hd) {
+  hd = hd || document.querySelector(".hdr");
+  if (!hd) return 0;
+  var from = hd.getBoundingClientRect().height;
+  if (hd._hslide) {
+    hd._hslide.cancel();
+    hd._hslide = null;
+  }
+  return from;
 }
 
-/* Builds the row for the open page; without force it keeps the row when the page and its tiles are the same. */
-function hdrStatusSync(force) {
-  var hd = document.querySelector(".hdr");
+function hdrGlide(hd, from) {
+  hd = hd || document.querySelector(".hdr");
   if (!hd) return;
-  var on = hdrStatusOn(),
-    sig = on ? VIEW + "|" + JSON.stringify(VIEW === "home" ? UI.chips : UI.stat[VIEW] || []) : "";
-  if (!force && hd._hstSig === sig) return;
-  hd._hstSig = sig;
+  var closing = hd._hclose;
+  hd._hclose = null;
+  /* a status row that is going away stays in place while the header closes over it, but is not part of the height it closes to */
+  if (closing) closing.style.display = "none";
+  var to = hd.getBoundingClientRect().height;
+  if (closing) closing.style.display = "";
+  var drop = function () {
+    if (closing) hdrStatusDrop(closing);
+  };
+  if (!from || Math.abs(from - to) < 1 || !hd.animate || (window.matchMedia && matchMedia("(prefers-reduced-motion: reduce)").matches)) {
+    drop();
+    return;
+  }
+  var a = hd.animate([{ height: from + "px" }, { height: to + "px" }], { duration: 340, easing: "cubic-bezier(.2,.8,.2,1)" });
+  hd._hslide = a;
+  a.onfinish = a.oncancel = function () {
+    if (hd._hslide === a) hd._hslide = null;
+    drop();
+  };
+}
+
+/* The status row of a page: a row under the header's text, in the header, whose tiles are the page's own. */
+function hdrStatusDrop(box) {
   HSTF.forEach(function (f) {
     var i = LIVE.indexOf(f);
     if (i >= 0) LIVE.splice(i, 1);
   });
   HSTF = [];
-  var old = hd.querySelector("#hst");
-  if (old) old.remove();
-  if (!on) return;
+  if (box) box.remove();
+}
+
+/* Sets the status row for page `key` (the open page, or the one that is coming). With `from` (a height taken by hdrBegin) the caller glides afterwards; without it this does the whole thing, for a change in the tiles or the alerts alone. */
+function hdrStatusSync(force, key, from) {
+  var hd = document.querySelector(".hdr");
+  if (!hd) return;
+  key = key || (PG ? PG.key : VIEW);
+  var tiles = statShown(key),
+    on = tiles.length > 0,
+    sig = on ? key + "|" + JSON.stringify(tiles) : "";
+  if (!force && hd._hstSig === sig) return;
+  var alone = from === undefined,
+    first = hd._hstSig === undefined;
+  if (alone) from = first ? 0 : hdrBegin(hd);
+  hd._hstSig = sig;
+  var box = hd.querySelector("#hst");
+  if (!on) {
+    if (box) hd._hclose = box;
+    if (alone) hdrGlide(hd, from);
+    return;
+  }
   var mine = [],
     prev = CUR,
     g;
   CUR = mine;
   try {
-    g = VIEW === "home" ? chipGrid() : statGrid(VIEW);
+    g = statGrid(key);
   } finally {
     CUR = prev;
   }
   if (!g) return;
-  var box = mk("div", "hstat");
-  box.id = "hst";
-  box.appendChild(g);
-  hd.appendChild(box);
+  hd._hclose = null;
+  HSTF.forEach(function (f) {
+    var i = LIVE.indexOf(f);
+    if (i >= 0) LIVE.splice(i, 1);
+  });
+  HSTF = [];
+  if (!box) {
+    box = mk("div", "hstat");
+    box.id = "hst";
+    hd.appendChild(box);
+  }
+  box.innerHTML = "";
+  var inner = mk("div", "hstin");
+  inner.appendChild(g);
+  box.appendChild(inner);
   mine.forEach(function (f) {
     LIVE.push(f);
     HSTF.push(f);
     f();
   });
+  if (alone) hdrGlide(hd, from);
 }
 
 function hdrBuild() {
@@ -235,14 +295,85 @@ function hdrLive() {
   });
   var hc = document.getElementById("hch");
   if (hc) hc.style.display = any ? "" : "none";
+  hdrStatusSync(false);
 }
 
 var HLAB = {
   weather: _T("weather"),
   people: _T("people_at_home"),
   lights: _T("lights_on_2"),
+  alerts: _T("attention"),
   entity: _T("a_sensor_reading"),
 };
+
+/* The page whose status tiles the header settings list: the one that was open when they were. */
+var HSTPAGE = "";
+
+/* The status tiles of one page, as a row of the header (each its own tile, edited like the others); the page is chosen here, since each has its own. */
+function hdrStatusBlock(box, redraw) {
+  var pages = ["home"].concat(
+      UI.rooms.map(function (r) {
+        return r.id;
+      })
+    ),
+    pg = pages.indexOf(HSTPAGE) >= 0 ? HSTPAGE : pages.indexOf(VIEW) >= 0 ? VIEW : "home",
+    l = (UI.stat[pg] = UI.stat[pg] || []);
+  box.appendChild(sep(_T("status_tiles_in_the_header"), "thermo"));
+  box.appendChild(hintRow(_T("status_tiles_in_the_header_hint")));
+  box.appendChild(
+    dropRow(
+      _T("page"),
+      pages,
+      function () {
+        return pg;
+      },
+      function (v) {
+        HSTPAGE = v;
+        redraw();
+      },
+      "home",
+      function (v) {
+        return v === "home" ? UI.meta.homeTab || _T("home") : (roomById(v) || { name: v }).name;
+      }
+    )
+  );
+  var rows = [];
+  l.forEach(function (t, i) {
+    var p = pill(t.k === "alerts" ? "alert" : "thermo", t.l, {
+      sub: function () {
+        return t.k === "alerts" ? _T("only_while_something_needs_attention") : t.id;
+      },
+      tap: function () {
+        showPopup("manage-stat-tile:" + pg + ":" + i, true);
+      },
+    });
+    box.appendChild(p);
+    rows.push(p);
+  });
+  makeSortable(box, rows, function (f, to) {
+    l.splice(to, 0, l.splice(f, 1)[0]);
+    uiChanged();
+    redraw();
+  });
+  if (l.length < 6)
+    box.appendChild(
+      pill("plus", _T("add_status_tile"), {
+        tap: function () {
+          addStatTile(pg);
+        },
+      })
+    );
+  if (l.length < 6 && !l.some(function (t) { return t.k === "alerts"; }))
+    box.appendChild(
+      pill("plus", _T("add_attention"), {
+        tap: function () {
+          l.push({ k: "alerts", l: _T("attention") });
+          uiChanged();
+          redraw();
+        },
+      })
+    );
+}
 
 function hdrPage(box, m) {
   m.hdr = m.hdr || [];
@@ -281,21 +412,9 @@ function hdrPage(box, m) {
         },
       })
     );
-    box.appendChild(
-      pill("thermo", _T("status_in_the_header"), {
-        on: function () {
-          return m.hdrStatus === true;
-        },
-        sub: function () {
-          return m.hdrStatus === true ? _T("the_status_tiles_of_each_page_are_a_row_of_the_header") : _T("off");
-        },
-        tap: function () {
-          m.hdrStatus = !m.hdrStatus;
-          uiChanged();
-          redrawBox(box, draw);
-        },
-      })
-    );
+    hdrStatusBlock(box, function () {
+      redrawBox(box, draw);
+    });
     box.appendChild(sep(_T("header_items"), "home"));
     var rows = [];
     m.hdr.forEach(function (it, i) {
@@ -320,7 +439,7 @@ function hdrPage(box, m) {
       box.appendChild(hintRow(_T("nothing_here_yet_add_weather_who_is_")));
     }
     if (m.hdr.length < 4) {
-      ["weather", "people", "lights", "entity"].forEach(function (k) {
+      ["weather", "people", "lights", "alerts", "entity"].forEach(function (k) {
         if (
           k !== "entity" &&
           m.hdr.some(function (x) {

@@ -270,10 +270,12 @@ body.editing .dock .di{touch-action:none}
 :where(.pill,.erow,.sel.selrow,.seg,.grid2,.grid3,.gridl,.rrow,.ptz,.touch,.glance,.notec,.chartc,.subsec){margin-bottom:var(--sp)}
 .eyebrow{font-size:var(--fs-xs);letter-spacing:.2em;text-transform:uppercase;color:var(--ink2)}
 .sec-h:after{content:"";flex:1;height:1px;background:var(--f-line)}
-.hdr{display:flex;justify-content:space-between;align-items:center;gap:16px;padding:22px 28px;margin-bottom:22px;background:var(--f-card)!important;border-radius:20px}
+.hdr{padding:22px 28px;margin-bottom:22px;background:var(--f-card)!important;border-radius:20px}
+.hrow{display:flex;justify-content:space-between;align-items:center;gap:16px;position:relative;z-index:1}
 .hdr .rt{display:flex;align-items:center;gap:14px}
 .hb{display:flex;gap:10px}
-@media(max-width:480px){.hdr{padding:16px 18px;gap:10px}
+@media(max-width:480px){.hdr{padding:16px 18px}
+.hrow{gap:10px}
 .title{font-size:26px}
 #clk{font-size:32px}
 .hdr .rt{gap:4px;flex-direction:column;align-items:flex-end}
@@ -397,8 +399,9 @@ to{background-position:-200% 0}
 .rnd.sm{width:34px;height:34px}
 .rnd.sm svg{width:17px;height:17px}
 .hint{font-size:var(--fs-s);color:var(--ink2);margin:0 6px var(--sp)}
-@media(max-width:600px){.hdr{flex-wrap:wrap;padding:16px 18px 14px;gap:8px 12px}
-.hdr>div:first-child{flex:1 1 100%;min-width:0}
+@media(max-width:600px){.hdr{padding:16px 18px 14px}
+.hrow{flex-wrap:wrap;gap:8px 12px}
+.hrow>div:first-child{flex:1 1 100%;min-width:0}
 .title{font-size:28px;margin-top:2px;overflow-wrap:anywhere}
 .hdr .rt{flex:1 1 100%;flex-direction:row-reverse;justify-content:space-between;align-items:center;gap:8px}
 .clock{text-align:left}
@@ -1008,17 +1011,17 @@ body.light [data-k=link]{--kc:#5a6fc4}
 .hdr{position:relative;overflow:hidden}
 .hsky{position:absolute;inset:0;border-radius:inherit;overflow:hidden;pointer-events:none;z-index:0;opacity:0;transition:opacity 1.2s;--scrim:.3}
 .hsky.on{opacity:1}
-.hsky canvas{position:absolute;inset:0;width:100%;height:100%;display:block}
+.hsky canvas{position:absolute;inset:0 0 auto 0;width:100%;height:100%;display:block}
 .hsky::after{content:"";position:absolute;inset:0;background:linear-gradient(90deg,rgba(8,12,20,calc(var(--scrim) + .3)) 0,rgba(8,12,20,calc(var(--scrim) + .08)) 36%,rgba(8,12,20,var(--scrim)) 100%),linear-gradient(0deg,rgba(8,12,20,calc(var(--scrim) * .8)) 0,transparent 45%)}
 body.rwall .hsky{display:none}
 .hdr:has(.hsky.on){--ink:#f5f7fa;--ink2:rgba(245,247,250,.8);border-color:rgba(255,255,255,.14)!important}
 .hdr:has(.hsky.on) #clk,.hdr:has(.hsky.on) #dt,.hdr:has(.hsky.on) .title,.hdr:has(.hsky.on) .eyebrow,.hdr:has(.hsky.on) .hchip{text-shadow:0 1px 2px rgba(0,0,0,.35),0 1px 12px rgba(0,0,0,.4)}
 .hdr:has(.hsky.on) .rnd.pane,.hdr:has(.hsky.on) .hchip{background:rgba(255,255,255,.09)!important;border:1px solid rgba(255,255,255,.3)!important;color:var(--ink);box-shadow:none!important}
 .hdr:has(.hsky.on) .rnd.pane:hover,.hdr:has(.hsky.on) .rnd.pane:active{background:rgba(255,255,255,.2)!important}
-.hdr>.hskytop{position:absolute;inset:0;width:100%;height:100%;z-index:3;pointer-events:none;border-radius:inherit}
+.hdr>.hskytop{position:absolute;inset:0 0 auto 0;width:100%;height:100%;z-index:3;pointer-events:none;border-radius:inherit}
 /* The status of a page as a row of the header: a pill for each reading, the same pills as the weather and lights chips (label, then value). The header grows by the row. */
-.hdr:has(>.hstat){flex-wrap:wrap}
-.hdr>.hstat{flex:1 1 100%;order:5;margin-top:12px;min-width:0;position:relative;z-index:1}
+.hdr>.hstat{position:relative;z-index:1;overflow:hidden}
+.hdr .hstin{padding-top:12px}
 .hdr .hstat .glance{display:flex!important;flex-wrap:wrap;gap:8px;grid-template-columns:none!important;margin-bottom:0}
 .hdr .hstat .gb{display:flex;flex-direction:row-reverse;align-items:baseline;gap:7px;padding:5px 12px;border-radius:999px;text-align:left;font-size:var(--fs-s);white-space:nowrap;background:var(--f-raise)!important;border:1px solid var(--f-line2)!important;box-shadow:none!important}
 .hdr .hstat .gb b{display:inline;font-size:var(--fs-s);font-weight:600;letter-spacing:0}

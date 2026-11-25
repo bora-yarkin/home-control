@@ -381,10 +381,19 @@ function overview(w, title, icon, desc, build, extra) {
   );
 }
 
-overview("alerts", _T("attention"), "alert", _T("things_that_need_attention"), function () {
-  return alertsBox();
-}, {
+registerWidget("alerts", {
+  title: _T("attention"),
+  icon: "alert",
+  desc: _T("things_that_need_attention"),
   sizes: ["m"],
+  size: "m",
+  noStack: true,
+  clean: function () {
+    return {};
+  },
+  draw: function (d, wx, ed) {
+    return alertsDevice(ed);
+  },
   settings: function (box) {
     [
       ["battery", _T("low_batteries"), "battery"],
@@ -420,10 +429,6 @@ overview("rooms", _T("rooms"), "home", _T("links_to_every_page"), function () {
 overview("now", _T("on_now"), "power", _T("what_is_running_right_now_and_where"), function () {
   return secNow();
 }, { size: "s" });
-
-overview("status", _T("status_tiles"), "thermo", _T("readings_for_this_page_such_as_tempe"), function () {
-  return roomStatus(pageKey());
-}, { sizes: ["m"] });
 
 overview("chips", _T("climate_overview"), "thermo", _T("temperature_and_humidity_at_a_glance"), function () {
   return homeStatus();

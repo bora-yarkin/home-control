@@ -659,14 +659,21 @@ function skyDrawTop(ds) {
   });
 }
 
+/* The height the sky is drawn at, at least (px). */
+var SKYH_MIN = 320;
+
 function skyDraw() {
   var cv = SKYS.cv,
     sc = SKYS.scene;
   if (!cv || !sc) return;
   var dpr = Math.min(window.devicePixelRatio || 1, 2),
     w = cv.clientWidth,
-    h = cv.clientHeight;
-  if (!w || !h) return;
+    /* The sky is drawn at one height, taller than the header ever is (it only grows if the header does), and the header shows as much of it as it is tall. A header that opens or shuts, as its status row comes and goes, then reveals or hides sky instead of stretching it or making a new one. */
+    h = Math.max(SKYS.stage || 0, SKYH_MIN, cv.parentNode.clientHeight);
+  if (!w || !cv.parentNode.clientHeight) return;
+  SKYS.stage = h;
+  cv.style.height = h + "px";
+  if (SKYS.top) SKYS.top.style.height = h + "px";
   var p = sc.p;
   if (w !== SKYS.w || h !== SKYS.h || SKYS.key !== sc.key) {
     SKYS.w = w;
