@@ -893,6 +893,16 @@ var POPUP_DEFS = {
       },
     };
   },
+  "rm-pick": function () {
+    return { title: _T("rm_pick"), icon: "plus", build: rmPickPage };
+  },
+  "rm-member": function () {
+    var e = RMEDIT;
+    return { title: e ? rmName(e.d.wx, e.k) : _T("rm_title"), icon: e ? rmIcon(e.d.wx, e.k) : "tv", build: rmMemberPage };
+  },
+  rmaster: function (id) {
+    return remoteMasterPopup(id);
+  },
   "g-alerts": function (id) {
     return {
       title: _T("attention"),
@@ -1123,6 +1133,24 @@ function showPopup(key, push, layer) {
   if (def.kind) t.querySelector(".ic").dataset.k = def.kind;
   t.querySelector("span:last-child").textContent = def.title;
   h.appendChild(t);
+  /* A popup that can show one of several things (a remote master) names them in a dropdown of its title. */
+  if (def.titleMenu && def.titleMenu.options.length > 1) {
+    t.classList.add("menu-t");
+    t.setAttribute("role", "button");
+    t.setAttribute("tabindex", "0");
+    t.setAttribute("aria-haspopup", "true");
+    t.appendChild(mk("span", "chev", svg("chev")));
+    var openTitle = function () {
+      openMenu(t, def.titleMenu.options, def.titleMenu.current, def.titleMenu.pick, def.titleMenu.fmt);
+    };
+    t.addEventListener("click", openTitle);
+    t.addEventListener("keydown", function (ev) {
+      if (ev.key === "Enter" || ev.key === " ") {
+        ev.preventDefault();
+        openTitle();
+      }
+    });
+  }
   /* A popup with a power button has it in the place of the icon at the left of its title: every light of the master on or off. */
   if (def.power) {
     var pw = t.querySelector(".ic");

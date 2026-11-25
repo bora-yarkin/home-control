@@ -2,13 +2,13 @@
    the scene that plays has a pen and three dots beside it. Which scenes are in it is the section's own choice (`msrc`, with the scenes made from its + in `scn`), not the scenes sections': removing a scenes section changes nothing here.
    What the section keeps (app/model.js): scn (the scenes made here), msrc (where else they come from), mf (the folders: { id, n, s: [keys] }) and mtop (the order of the tiles that are outside folders). */
 
-/* The section a lights master popup is for: the page it is on and its settings. A master is named "page~section" (a page's Lights section can have the same id as another page's). */
+/* The master a lights master popup is for: the page it is on and its settings, a Section's own master and every other alike. A master is named "page~id" (a page's Lights section can have the same id as another page's). */
 function mscSection(root) {
   var at = String((root && root.key) || "")
       .replace(/^m:/, "")
       .split("~"),
     e = at.length === 2 ? masterById(at[0], at[1]) : null;
-  return e && e.k === "devs" ? { scope: at[0], e: e } : null;
+  return e ? { scope: at[0], e: e } : null;
 }
 
 /* Where the scenes of a section come from when it has not chosen: the Hue scenes of its lights' areas, as the Effects page used to list them. */

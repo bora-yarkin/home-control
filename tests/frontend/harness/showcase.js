@@ -16,6 +16,7 @@ const D = {
   roku: ["8a".repeat(16), "Showcase Roku TV"],
   lg: ["ba".repeat(16), "Showcase LG TV"],
   avr: ["7a".repeat(16), "Showcase receiver"],
+  tv: ["ca".repeat(16), "Showcase TV"],
 };
 
 export function showcaseStates() {
@@ -28,6 +29,10 @@ export function showcaseStates() {
     s("sensor.showcase_purifier_pm25", "12", { friendly_name: "Showcase air purifier PM2.5", unit_of_measurement: "µg/m³", device_class: "pm25" }),
     s("sensor.showcase_purifier_filter", "74", { friendly_name: "Showcase air purifier Filter life", unit_of_measurement: "%" }),
     s("switch.showcase_purifier_alarm", "on", { friendly_name: "Showcase air purifier Alarm" }),
+    // The default device of the Showcase remote master: a Samsung TV on the input the Apple TV is plugged into.
+    s("media_player.showcase_tv", "on", { friendly_name: "Showcase TV", source: "HDMI 1", source_list: ["TV", "HDMI 1", "HDMI 2", "Netflix"], volume_level: 0.2, supported_features: 24509 }),
+    s("remote.showcase_tv", "on", { friendly_name: "Showcase TV remote" }),
+    s("number.showcase_tv_backlight", "30", { friendly_name: "Showcase TV Backlight", min: 0, max: 50, step: 1 }),
     s("media_player.showcase_apple_tv", "playing", { friendly_name: "Showcase Apple TV", media_title: "Film night", media_artist: "", app_name: "Movies", source_list: ["Movies", "Music"], supported_features: 152463, volume_level: 0.3 }),
     s("remote.showcase_apple_tv", "on", { friendly_name: "Showcase Apple TV remote" }),
     s("media_player.showcase_speaker", "playing", { friendly_name: "Showcase speaker", media_title: "A song", media_artist: "An artist", entity_picture: "/tests/frontend/harness/audio-wave.svg", media_album_name: "An album", volume_level: 0.4, is_volume_muted: false, media_duration: 210, media_position: 70, media_position_updated_at: new Date().toISOString(), supported_features: 152461 }),
@@ -96,6 +101,7 @@ export function showcaseEntities(reg) {
   add("purifier", ["fan.showcase_purifier", "sensor.showcase_purifier_pm25", "sensor.showcase_purifier_filter", "switch.showcase_purifier_alarm"]);
   add("apple", ["media_player.showcase_apple_tv", "remote.showcase_apple_tv"], "apple_tv");
   add("speaker", ["media_player.showcase_speaker"]);
+  add("tv", ["media_player.showcase_tv", "remote.showcase_tv", "number.showcase_tv_backlight"], "samsungtv_smart");
   add("avr", ["media_player.showcase_receiver", "select.showcase_receiver_sound_mode", "remote.showcase_receiver_ir"]);
   add("roku", ["media_player.showcase_roku", "remote.showcase_roku"], "roku");
   add("lg", ["media_player.showcase_lg"], "webostv");
@@ -106,7 +112,7 @@ export function showcaseEntities(reg) {
   return rows;
 }
 
-export const showcaseDevices = [...Object.values(D), ["9a".repeat(16), "Showcase misc"]].map(([id, name]) => ({ id, name, area_id: null, manufacturer: "Invented", model: id === D.apple[0] ? "Apple TV 4K" : id === D.speaker[0] ? "HomePod mini" : "Test" }));
+export const showcaseDevices = [...Object.values(D), ["9a".repeat(16), "Showcase misc"]].map(([id, name]) => ({ id, name, area_id: null, manufacturer: "Invented", config_entries: id === D.apple[0] ? ["showcase-apple-tv"] : [], model: id === D.apple[0] ? "Apple TV 4K" : id === D.speaker[0] ? "HomePod mini" : "Test" }));
 
 
 const sleep = (ms) => new Promise((resolve) => setTimeout(resolve, ms));
@@ -157,6 +163,11 @@ export async function buildShowcase() {
   put("climate", ["climate.showcase_ac", "fan.showcase_ceiling", "fan.showcase_purifier"]);
   put("media", ["media_player.living_tv", "media_player.showcase_roku", "media_player.showcase_lg", "media_player.showcase_apple_tv", "media_player.showcase_receiver", "media_player.showcase_speaker"]);
   put("camera", ["camera.showcase_garden"]);
+  /* A remote master at the head of the Media section: the TV, the Apple TV on its HDMI 1, and the speaker. */
+  const master = w.newWidgetDev("rmaster");
+  master.name = "Showcase remote master";
+  master.wx = { def: "media_player.showcase_tv", subs: [{ id: "media_player.showcase_apple_tv", src: "HDMI 1" }], spk: ["media_player.showcase_speaker"] };
+  w.secById("showcase", "media").devs.unshift(master);
   put("cams", ["lock.showcase_front", "vacuum.hallway"]);
   put("controls", ["switch.showcase_plug", "cover.showcase_venetian", "cover.showcase_garage", "cover.showcase_blind", "sensor.showcase_temperature", "sensor.showcase_humidity", "binary_sensor.showcase_window", "number.showcase_volume", "select.showcase_mode", "button.showcase_reboot", "script.showcase_goodnight"]);
   const kit = w.secById("showcase", "kit");

@@ -4,6 +4,16 @@ Format: [Keep a Changelog](https://keepachangelog.com/). Versions follow [semant
 
 ## [Unreleased]
 
+## [0.26.0] - 2026-11-26
+
+### Added
+- **Remote master** (decision D-31; new, tried with demo devices and set up on one real home, its takeover not yet confirmed there; an older Home Control drops it from the dashboard), a widget like the lights master: one remote for a TV and what is plugged into it. In its settings you choose the default device, supplementary devices with the TV input each is on, and speakers. While the TV is on a device's input and the device is awake, the touchpad, back, home, settings, keyboard and play/pause go to that device, and power, volume, mute, channels and brightness stay with the TV. The popup's title is a dropdown of every device in it, each with its own remote. A speaker playing something else shows as a volume slider with its artwork and title. *Remember the device I pick* keeps the last device on that screen. Switching device changes the popup's content in place, each device with its *Advanced settings*, and the devices need not be on any page. A device can also be a **custom remote**: built in the master with the remote builder, or one already on a page. For takeover you mark which of its buttons are the arrows, OK, back, home, settings and play/pause (a five-way pad is used by itself). Each device has its own options in the master: name, icon, *Now playing* style, linked entities for its Advanced settings, and for a custom remote the player that gives its state.
+
+### Fixed
+- **Every lights master has its Scenes tab** (and the Sync tab when it is set). A master that was not a Section's own, such as one with lights chosen by hand, silently had no Scenes tab even with scenes made for it or sources chosen.
+- **No more silently lost scenes.** Only the first 60 stored scenes were loaded, and the next save made the loss permanent. Every stored scene is now loaded; up to 200 scenes can be made, and the 201st is refused with a message. A master, a Section and a master's folder hold up to 200 scenes too (they were 40 and 80, also cut silently). *Scenes already lost this way are not brought back: restore them from a backup or History.*
+- **No "Create" tile where a variant cannot be played.** The effects page offered a colour variant of every effect, also for lights whose colour and speed are never sent (effects imported from a file, for example). It is offered only where the selected lights can play it.
+
 ## [0.25.0] - 2026-11-25
 
 ### Changed

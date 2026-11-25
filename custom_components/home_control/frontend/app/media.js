@@ -53,15 +53,31 @@ function artCard(id, icon) {
 }
 
 /* The now-playing block of a remote popup, as the device's Now playing setting says: nothing (off), a row with the title (on), or the artwork card. */
+/* A remote master's combined view (app/remotemaster.js) may take a key for the player on the screen: true when it did. A remote on its own has no hooks. */
+function rmo(hooks, role, arg) {
+  return !!(hooks && hooks.ovr && hooks.ovr(role, arg));
+}
+
+function playingBlock(b, hooks, id, icon, onTap) {
+  if (hooks && hooks.np) hooks.np(b, id, icon, onTap);
+  else addNowPlaying(b, id, icon, onTap);
+}
+
 function addNowPlaying(b, id, icon, onTap) {
   var np = nowPlaying(id, icon, onTap);
   if (np) b.appendChild(np);
   return np;
 }
 
+/* A player's now playing style: "on" (a row), "off" or "art" (the artwork card); a remote master may say another than the page. */
+function npMode(id) {
+  var u = UIDEV[id] || {};
+  return (typeof RMNP === "object" && RMNP[id]) || (u.art ? "art" : u.nonp ? "off" : "on");
+}
+
 function nowPlaying(id, icon, onTap) {
-  if ((UIDEV[id] || {}).nonp) return null;
-  if ((UIDEV[id] || {}).art) return artCard(id, icon);
+  if (npMode(id) === "off") return null;
+  if (npMode(id) === "art") return artCard(id, icon);
   var p = pill(icon, _T("now_playing"), {
     tap: onTap
       ? function () {
@@ -190,18 +206,19 @@ function swipePad(t, fire, onTap, onDir, onHold) {
   });
 }
 
-function touchpad(remote, keys, onHold) {
+function touchpad(remote, keys, onHold, hooks) {
   var t = mk("div", "touch pane");
   swipePad(
     t,
     function (d) {
-      send(remote, keys[d]);
+      if (!rmo(hooks, "dir", d)) send(remote, keys[d]);
     },
     function () {
-      send(remote, keys.ok);
+      if (!rmo(hooks, "ok")) send(remote, keys.ok);
     },
     null,
     function () {
+      if (rmo(hooks, "hold")) return;
       if (onHold) onHold();
       else send(remote, keys.ok, 1);
     }
@@ -278,8 +295,7 @@ function tvPickSource(id, v) {
 
 /* Where the apps go depends on the Now playing setting of the TV: as the artwork or off, a dropdown beside Power; as the normal row, the row itself opens the dropdown and the cell beside Power stays empty. */
 function tvAppsInNowPlaying(id) {
-  var u = UIDEV[id] || {};
-  return !u.nonp && !u.art;
+  return npMode(id) === "on";
 }
 
 /* Tapping the now-playing card opens the TV's apps and inputs, when they are in the card instead of a row of their own. */
@@ -365,9 +381,9 @@ function tvBrightness(media) {
   return num ? numberButton(num, "tv:" + media) : mk("div", "tvbri");
 }
 
-function samsungRemote(b, remote, media) {
+function samsungRemote(b, remote, media, hooks) {
   var inRow = tvAppsInNowPlaying(media);
-  addNowPlaying(b, media, "tv", inRow ? tvSourceMenu(media) : undefined);
+  playingBlock(b, hooks, media, "tv", inRow ? tvSourceMenu(media) : undefined);
   var r1 = mk(
     "div",
     "rrow"
@@ -380,10 +396,11 @@ function samsungRemote(b, remote, media) {
   );
   if (!inRow) r1.appendChild(tvSources(media));
   b.appendChild(r1);
+  if (hooks) hooks.beside(b, r1);
   var r2 = mk("div", "rrow");
   r2.appendChild(
     rbtn("cog", function () {
-      send(remote, Integrations.media.samsungSettingsKey((H().entities[media] || {}).platform));
+      if (!rmo(hooks, "settings")) send(remote, Integrations.media.samsungSettingsKey((H().entities[media] || {}).platform));
     })
   );
   r2.appendChild(
@@ -395,7 +412,7 @@ function samsungRemote(b, remote, media) {
     r2.appendChild(
       rbtn("keyboard", function () {
         kbDlg(function (v) {
-          call.apply(null, Integrations.media.samsungText(media, v));
+          if (!rmo(hooks, "text", v)) call.apply(null, Integrations.media.samsungText(media, v));
         });
       })
     );
@@ -413,22 +430,22 @@ function samsungRemote(b, remote, media) {
         media_content_type: "send_key",
         media_content_id: "KEY_ENTER, 900",
       });
-    })
+    }, hooks)
   );
   var r3 = mk("div", "rrow");
   r3.appendChild(
     rbtn("back", function () {
-      send(remote, "KEY_RETURN");
+      if (!rmo(hooks, "back")) send(remote, "KEY_RETURN");
     })
   );
   r3.appendChild(
     rbtn("home", function () {
-      send(remote, "KEY_HOME");
+      if (!rmo(hooks, "home")) send(remote, "KEY_HOME");
     })
   );
   r3.appendChild(
     rbtn("playpause", function () {
-      call("media_player", "media_play_pause", { entity_id: media });
+      if (!rmo(hooks, "playpause")) call("media_player", "media_play_pause", { entity_id: media });
     })
   );
   b.appendChild(r3);
@@ -482,8 +499,8 @@ function samsungRemote(b, remote, media) {
   b.appendChild(r4);
 }
 
-function appleRemote(b, remote, media, tvRemote, entry) {
-  addNowPlaying(b, media, "apple");
+function appleRemote(b, remote, media, tvRemote, entry, hooks) {
+  playingBlock(b, hooks, media, "apple");
   var r1 = mk("div", "rrow");
   r1.appendChild(
     rbtn("power", function () {
@@ -491,10 +508,11 @@ function appleRemote(b, remote, media, tvRemote, entry) {
     })
   );
   b.appendChild(r1);
+  if (hooks) hooks.beside(b, r1);
   var r2 = mk("div", "rrow");
   r2.appendChild(
     rbtn("cog", function () {
-      send(remote, "control_center");
+      if (!rmo(hooks, "settings")) send(remote, "control_center");
     })
   );
   r2.appendChild(
@@ -510,28 +528,28 @@ function appleRemote(b, remote, media, tvRemote, entry) {
   r2.appendChild(
     rbtn("keyboard", function () {
       kbDlg(function (v) {
-        call.apply(null, Integrations.media.appleText(entry, v));
+        if (!rmo(hooks, "text", v)) call.apply(null, Integrations.media.appleText(entry, v));
       });
     })
   );
   b.appendChild(r2);
   b.appendChild(
-    touchpad(remote, { ok: "select", up: "up", down: "down", left: "left", right: "right" })
+    touchpad(remote, { ok: "select", up: "up", down: "down", left: "left", right: "right" }, undefined, hooks)
   );
   var r3 = mk("div", "rrow");
   r3.appendChild(
     rbtn("back", function () {
-      send(remote, "menu");
+      if (!rmo(hooks, "back")) send(remote, "menu");
     })
   );
   r3.appendChild(
     rbtn("home", function () {
-      send(remote, "home");
+      if (!rmo(hooks, "home")) send(remote, "home");
     })
   );
   r3.appendChild(
     rbtn("playpause", function () {
-      send(remote, "play_pause");
+      if (!rmo(hooks, "playpause")) send(remote, "play_pause");
     })
   );
   b.appendChild(r3);
@@ -818,7 +836,7 @@ function roomTvRemote(id) {
     : null;
 }
 
-function mediaPopup(b, id) {
+function mediaPopup(b, id, hooks) {
   var k = mediaKind(id),
     rem = sibBy(id, function (e) {
       return dom(e.entity_id) === "remote";
@@ -826,12 +844,12 @@ function mediaPopup(b, id) {
     h = H(),
     e = h.entities[id] || {},
     dv = e.device_id && h.devices[e.device_id];
-  if (k === "samsung" && rem) samsungRemote(b, rem, id);
+  if (k === "samsung" && rem) samsungRemote(b, rem, id, hooks);
   else if (k === "apple" && rem)
-    appleRemote(b, rem, id, roomTvRemote(id), dv && dv.config_entries && dv.config_entries[0]);
-  else if (k === "android" && rem) androidRemote(b, rem, id);
-  else if (Integrations.remote.experimental(tvFamily(id)) && (rem || tvFamily(id) === "webos")) familyRemote(b, id, rem, tvFamily(id));
-  else mediaGeneric(b, id, (UIDEV[id] || {}).icon);
+    appleRemote(b, rem, id, roomTvRemote(id), dv && dv.config_entries && dv.config_entries[0], hooks);
+  else if (k === "android" && rem) androidRemote(b, rem, id, hooks);
+  else if (Integrations.remote.experimental(tvFamily(id)) && (rem || tvFamily(id) === "webos")) familyRemote(b, id, rem, tvFamily(id), hooks);
+  else mediaGeneric(b, id, (UIDEV[id] || {}).icon, hooks);
 }
 
 /* The key family of a media player's integration (app/integrations.js): Roku, Sony Bravia, Philips, Vizio, Fire TV and LG webOS have a remote built from what their integrations document. */
@@ -840,7 +858,7 @@ function tvFamily(id) {
 }
 
 /* A remote for a TV the dashboard has no native remote for: the same layout as the others, with the keys its integration documents, and the media player's own services where it lists none. It says it is experimental. */
-function familyRemote(b, media, remote, fam) {
+function familyRemote(b, media, remote, fam, hooks) {
   var how = Integrations.remote.how(fam);
   function key(role) {
     return Integrations.remote.role(fam, role);
@@ -858,9 +876,14 @@ function familyRemote(b, media, remote, fam) {
       if (!press(role) && svc) call("media_player", svc, Object.assign({ entity_id: media }, data || {}));
     };
   }
+  function taken(role, fn) {
+    return function () {
+      if (!rmo(hooks, role)) fn();
+    };
+  }
   b.appendChild(hintRow(_T("tv_remote_experimental")));
   var inRow = tvAppsInNowPlaying(media);
-  addNowPlaying(b, media, "tv", inRow ? tvSourceMenu(media) : undefined);
+  playingBlock(b, hooks, media, "tv", inRow ? tvSourceMenu(media) : undefined);
   var r1 = mk("div", "rrow");
   r1.appendChild(
     rbtn("power", function () {
@@ -870,11 +893,12 @@ function familyRemote(b, media, remote, fam) {
   );
   if (!inRow) r1.appendChild(tvSources(media));
   b.appendChild(r1);
+  if (hooks) hooks.beside(b, r1);
   var r2 = mk("div", "rrow");
   if (key("menu"))
     r2.appendChild(
       rbtn("cog", function () {
-        press("menu");
+        if (!rmo(hooks, "settings")) press("menu");
       })
     );
   r2.appendChild(rbtn("mute", act("mute", "volume_mute", { is_volume_muted: !A(media).is_volume_muted })));
@@ -882,7 +906,7 @@ function familyRemote(b, media, remote, fam) {
     r2.appendChild(
       rbtn("keyboard", function () {
         kbDlg(function (v) {
-          send(remote, Integrations.remote.text(fam, v));
+          if (!rmo(hooks, "text", v)) send(remote, Integrations.remote.text(fam, v));
         });
       })
     );
@@ -891,21 +915,21 @@ function familyRemote(b, media, remote, fam) {
   swipePad(
     t,
     function (d) {
-      press(d);
+      if (!rmo(hooks, "dir", d)) press(d);
     },
     function () {
-      press("ok");
+      if (!rmo(hooks, "ok")) press("ok");
     },
     null,
     function () {
-      press("ok", 1);
+      if (!rmo(hooks, "hold")) press("ok", 1);
     }
   );
   b.appendChild(t);
   var r3 = mk("div", "rrow");
-  r3.appendChild(rbtn("back", act("back", "")));
-  r3.appendChild(rbtn("home", act("home", "")));
-  r3.appendChild(rbtn("playpause", act("playpause", "media_play_pause")));
+  r3.appendChild(rbtn("back", taken("back", act("back", ""))));
+  r3.appendChild(rbtn("home", taken("home", act("home", ""))));
+  r3.appendChild(rbtn("playpause", taken("playpause", act("playpause", "media_play_pause"))));
   b.appendChild(r3);
   var r4 = mk("div", "rrow"),
     l = mk("div", "rstack"),
@@ -922,8 +946,8 @@ function familyRemote(b, media, remote, fam) {
   b.appendChild(r4);
 }
 
-function androidRemote(b, remote, media) {
-  addNowPlaying(b, media, "tv");
+function androidRemote(b, remote, media, hooks) {
+  playingBlock(b, hooks, media, "tv");
   var r1 = mk("div", "rrow");
   r1.appendChild(
     rbtn("power", function () {
@@ -931,10 +955,11 @@ function androidRemote(b, remote, media) {
     })
   );
   b.appendChild(r1);
+  if (hooks) hooks.beside(b, r1);
   var r2 = mk("div", "rrow");
   r2.appendChild(
     rbtn("cog", function () {
-      send(remote, "SETTINGS");
+      if (!rmo(hooks, "settings")) send(remote, "SETTINGS");
     })
   );
   r2.appendChild(
@@ -945,7 +970,7 @@ function androidRemote(b, remote, media) {
   r2.appendChild(
     rbtn("keyboard", function () {
       kbDlg(function (v) {
-        send(remote, "text:" + v);
+        if (!rmo(hooks, "text", v)) send(remote, "text:" + v);
       });
     })
   );
@@ -957,22 +982,22 @@ function androidRemote(b, remote, media) {
       down: "DPAD_DOWN",
       left: "DPAD_LEFT",
       right: "DPAD_RIGHT",
-    })
+    }, undefined, hooks)
   );
   var r3 = mk("div", "rrow");
   r3.appendChild(
     rbtn("back", function () {
-      send(remote, "BACK");
+      if (!rmo(hooks, "back")) send(remote, "BACK");
     })
   );
   r3.appendChild(
     rbtn("home", function () {
-      send(remote, "HOME");
+      if (!rmo(hooks, "home")) send(remote, "HOME");
     })
   );
   r3.appendChild(
     rbtn("playpause", function () {
-      send(remote, "MEDIA_PLAY_PAUSE");
+      if (!rmo(hooks, "playpause")) send(remote, "MEDIA_PLAY_PAUSE");
     })
   );
   b.appendChild(r3);
@@ -1025,7 +1050,7 @@ function androidRemote(b, remote, media) {
   b.appendChild(r4);
 }
 
-function mediaGeneric(b, id, icon) {
+function mediaGeneric(b, id, icon, hooks) {
   b.appendChild(
     pill("power", _T("power"), {
       on: function () {
@@ -1036,7 +1061,8 @@ function mediaGeneric(b, id, icon) {
       },
     })
   );
-  addNowPlaying(b, id, icon || "media");
+  playingBlock(b, hooks, id, icon || "media");
+  if (hooks) hooks.beside(b, b);
   var tr = mk("div", "rrow");
   tr.appendChild(
     rbtn("prev", function () {
@@ -1045,7 +1071,7 @@ function mediaGeneric(b, id, icon) {
   );
   tr.appendChild(
     rbtn("playpause", function () {
-      call("media_player", "media_play_pause", { entity_id: id });
+      if (!rmo(hooks, "playpause")) call("media_player", "media_play_pause", { entity_id: id });
     })
   );
   tr.appendChild(

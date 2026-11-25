@@ -425,6 +425,11 @@ export function makeHass(query, home = null) {
       }
       kitReact(states, domain, service, id, (e, v, a = {}) => (states[e] = { ...states[e], state: String(v), attributes: { ...states[e].attributes, ...a } }));
       if (target && domain === "media_player" && service === "select_source") target.attributes = { ...target.attributes, source: data.source };
+      if (target && domain === "media_player" && service === "volume_set") target.attributes = { ...target.attributes, volume_level: data.volume_level };
+      // On the Showcase, a command to a remote says where it went, so a remote master's keys can be followed by eye.
+      const sent = [].concat(id || data?.config_entry_id || []).join(" ");
+      if (/showcase/.test(sent) && ((domain === "remote" && service === "send_command") || domain === "apple_tv" || (domain === "media_player" && /play|volume_mute|turn_/.test(service))))
+        window.toast && window.toast(sent.replace(/^(remote|media_player)\./, "") + " ← " + (data.command || data.media_content_id || data.text || service));
       // `?lag=300` makes each light answer a light command 300 ms after the one before it, the way separate integrations do.
       const lag = Number(new URLSearchParams(location.search).get("lag"));
       if (domain === "light" && (service === "turn_on" || service === "turn_off")) {

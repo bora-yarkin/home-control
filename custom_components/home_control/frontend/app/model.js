@@ -670,7 +670,7 @@ function cleanUI(u) {
         .filter(function (id, i, a) {
           return typeof id === "string" && /^scene\.[a-z0-9_]+$/.test(id) && a.indexOf(id) === i;
         })
-        .slice(0, 80);
+        .slice(0, 400);
       if (hiddenScenes.length) room.hscn = hiddenScenes;
     }
     o.rooms.push(room);
@@ -892,7 +892,7 @@ function cleanMaster(s, id) {
       })
       .slice(0, 30)
       .map(function (f) {
-        return { id: f.id, n: f.n.slice(0, 40), s: f.s.filter(key).slice(0, 80) };
+        return { id: f.id, n: f.n.slice(0, 40), s: f.s.filter(key).slice(0, 200) };
       })
       .filter(function (f) {
         return f.s.length;
@@ -905,13 +905,13 @@ function cleanMaster(s, id) {
       .filter(function (x) {
         return key(x) || (typeof x === "string" && /^f:[a-z0-9]{1,12}$/.test(x));
       })
-      .slice(0, 240);
+      .slice(0, 600);
   if (Array.isArray(s.scn))
     o.scn = s.scn
       .filter(function (x, i, a) {
         return typeof x === "string" && /^[a-z0-9_-]{1,24}$/.test(x) && a.indexOf(x) === i;
       })
-      .slice(0, 40);
+      .slice(0, 200);
   return o;
 }
 
@@ -1052,12 +1052,12 @@ function cleanLayout(a) {
         .filter(function (x, i, a) {
           return typeof x === "string" && /^[a-z0-9_-]{1,24}$/.test(x) && a.indexOf(x) === i;
         })
-        .slice(0, 40);
+        .slice(0, 200);
     if (ty.own) {
       o.devs = [];
       /* A lights master is named by its id, which no other master of the page, and no section but its own, may have (the Section's own master has the Section's id). */
       var mine = {};
-      (Array.isArray(s.devs) ? s.devs : []).slice(0, 80).forEach(function (d) {
+      (Array.isArray(s.devs) ? s.devs : []).slice(0, 200).forEach(function (d) {
         var c = cleanDev(d);
         if (c && c.kind === "widget" && c.w === "lmaster") {
           if (mine[c.wid] || (c.wid !== s.id && seen[c.wid]) || c.wid.length > 15) c = null;

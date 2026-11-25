@@ -191,6 +191,7 @@ function autoSceneSave(leave) {
     toast(_T("couldn_t_save_this_scene"));
     return false;
   }
+  if (!sceneFits(sc.id)) return false;
   STORE.scenes = STORE.scenes.filter(function (x) {
     return x.id !== sc.id;
   });

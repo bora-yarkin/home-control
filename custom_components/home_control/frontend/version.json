@@ -1,5 +1,5 @@
 {
-  "version": 481,
+  "version": 490,
   "files": [
     "integrations.js",
     "app/strings.js",
@@ -27,6 +27,7 @@
     "app/sections.js",
     "app/widgetkinds.js",
     "app/homewidgets.js",
+    "app/remotemaster.js",
     "app/rules.js",
     "app/editor.js",
     "app/pages.js",
