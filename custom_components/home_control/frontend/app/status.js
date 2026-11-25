@@ -11,14 +11,24 @@ function statValue(s) {
 }
 
 /* The status tiles of a page that the header shows (decision D-27: its own list, set in the header's settings): one tile per reading, or nothing when it has none. */
+/* The tiles of a page's header row that show now: an Attention tile only while there is something to say. */
+function statShown(key) {
+  var any = alertList().length > 0;
+  return (UI.stat[key] || []).filter(function (s) {
+    return s.k !== "alerts" || any;
+  });
+}
+
 function statGrid(key) {
-  var it = (UI.stat[key] || []).map(function (s) {
-    return [
-      s.l,
-      function () {
-        return statValue(s);
-      },
-    ];
+  var it = statShown(key).map(function (s) {
+    return s.k === "alerts"
+      ? [s.l, alertText]
+      : [
+          s.l,
+          function () {
+            return statValue(s);
+          },
+        ];
   });
   return it.length ? glance(it, it.length) : null;
 }
@@ -180,7 +190,8 @@ function alertList() {
   return out;
 }
 
-function alertsBox() {
+/* Attention is a device (a widget): the alerts as rows of its Section. Nothing to report, it draws nothing and a Section that holds only it is not shown either; while the page is edited it stays, saying so, to be found and changed. */
+function alertsDevice(ed) {
   var box = mk("div", "alerts"),
     key = null;
   function build() {
@@ -192,16 +203,15 @@ function alertsBox() {
           })
           .join("||") +
         "|" +
-        editing();
+        ed;
+    var sec = box.closest ? box.closest(".sec") : null;
+    if (sec && !ed) sec.style.display = list.length ? "" : "none";
     if (k === key) return;
     key = k;
     box.innerHTML = "";
-    var ed = editing();
     box.style.display = list.length || ed ? "" : "none";
-    if (!list.length && !ed) return;
-    var sec = section(secT("alerts", _T("attention")), secI("alerts", "alert"), []);
-    if (!list.length)
-      sec.appendChild(
+    if (!list.length && ed)
+      box.appendChild(
         pill("info", _T("no_alerts_right_now"), {
           sub: function () {
             return _T("lights_fans_and_media_left_on_and_pr");
@@ -218,14 +228,18 @@ function alertsBox() {
         tap: a[2],
       });
       p.classList.add("warn");
-      sec.appendChild(p);
+      box.appendChild(p);
     });
-    box.appendChild(sec);
-    if (box._attach) box._attach();
   }
   reg(build);
   build();
   return box;
+}
+
+/* The text of an Attention tile or chip: the one thing that needs attention, or how many. */
+function alertText() {
+  var list = alertList();
+  return list.length === 1 ? list[0][0] : list.length + " " + _T("nt_alerts").toLowerCase();
 }
 
 /* Thresholds shown on the dashboard come from settings, not from the code. */
@@ -258,6 +272,34 @@ function statTile(b, key) {
     l = UI.stat[rid] || [],
     s = l[i];
   if (!s) return;
+  if (s.k === "alerts") {
+    stgIdentity(
+      b,
+      textRow(
+        "edit",
+        _T("label"),
+        s.l,
+        function (v) {
+          if (v) {
+            s.l = v.slice(0, 30);
+            uiChanged();
+          }
+        },
+        30
+      )
+    );
+    var rmAlert = pill("trash", _T("remove_tile"), {
+      tap: function () {
+        l.splice(i, 1);
+        uiChanged();
+        popBack();
+      },
+    });
+    var abox = mk("div");
+    b.appendChild(abox);
+    stgActions(abox, [rmAlert], [rmAlert]);
+    return;
+  }
   stgIdentity(
     b,
     textRow(

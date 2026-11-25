@@ -381,10 +381,19 @@ function overview(w, title, icon, desc, build, extra) {
   );
 }
 
-overview("alerts", _T("attention"), "alert", _T("things_that_need_attention"), function () {
-  return alertsBox();
-}, {
+registerWidget("alerts", {
+  title: _T("attention"),
+  icon: "alert",
+  desc: _T("things_that_need_attention"),
   sizes: ["m"],
+  size: "m",
+  noStack: true,
+  clean: function () {
+    return {};
+  },
+  draw: function (d, wx, ed) {
+    return alertsDevice(ed);
+  },
   settings: function (box) {
     [
       ["battery", _T("low_batteries"), "battery"],

@@ -175,7 +175,7 @@ function cleanMeta(m) {
 function cleanHdr(a) {
   var out = [];
   (Array.isArray(a) ? a : []).slice(0, 4).forEach(function (x) {
-    if (!x || ["weather", "people", "lights", "entity"].indexOf(x.k) < 0) return;
+    if (!x || ["weather", "people", "lights", "alerts", "entity"].indexOf(x.k) < 0) return;
     var o = { k: x.k };
     if (typeof x.id === "string" && ENTRE.test(x.id)) o.id = x.id;
     if (typeof x.l === "string" && x.l && x.l.length <= 24) o.l = x.l;
@@ -690,6 +690,11 @@ function cleanUI(u) {
     if ((!ids[rid] && rid !== "home") || !Array.isArray(u.stat[rid])) return;
     var out = [];
     u.stat[rid].slice(0, 6).forEach(function (s) {
+      /* an Attention tile has no entity: it shows the alerts, and only while there are some */
+      if (s && s.k === "alerts") {
+        if (!out.some(function (x) { return x.k === "alerts"; })) out.push({ k: "alerts", l: ok(s.l, 30) ? s.l : _T("attention") });
+        return;
+      }
       if (!s || !ok(s.l, 30) || typeof s.id !== "string" || !ENTRE.test(s.id)) return;
       var c = { l: s.l, id: s.id };
       /* a tile of two readings, as the Home page's climate tiles are (a temperature and a humidity) */

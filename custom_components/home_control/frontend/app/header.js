@@ -67,6 +67,7 @@ function hdrItem(it) {
     var n = countOn(lightUnits(allLights()));
     return { i: "lights", t: n ? n + _T("lights_on") : _T("lights_off") };
   }
+  if (it.k === "alerts") return alertList().length ? { i: "alert", t: alertText() } : null;
   if (it.k === "entity") {
     if (!it.id || !S(it.id)) return null;
     return { i: sensorIcon(it.id), t: (it.l || entName(it.id)) + " " + readText(it.id) };
@@ -119,7 +120,7 @@ function hdrStatusSync(force, key) {
   var hd = document.querySelector(".hdr");
   if (!hd) return;
   key = key || (PG ? PG.key : VIEW);
-  var tiles = UI.stat[key] || [],
+  var tiles = statShown(key),
     on = tiles.length > 0,
     sig = on ? key + "|" + JSON.stringify(tiles) : "";
   if (!force && hd._hstSig === sig) return;
@@ -290,12 +291,14 @@ function hdrLive() {
   });
   var hc = document.getElementById("hch");
   if (hc) hc.style.display = any ? "" : "none";
+  hdrStatusSync(false);
 }
 
 var HLAB = {
   weather: _T("weather"),
   people: _T("people_at_home"),
   lights: _T("lights_on_2"),
+  alerts: _T("attention"),
   entity: _T("a_sensor_reading"),
 };
 
@@ -332,9 +335,9 @@ function hdrStatusBlock(box, redraw) {
   );
   var rows = [];
   l.forEach(function (t, i) {
-    var p = pill("thermo", t.l, {
+    var p = pill(t.k === "alerts" ? "alert" : "thermo", t.l, {
       sub: function () {
-        return t.id;
+        return t.k === "alerts" ? _T("only_while_something_needs_attention") : t.id;
       },
       tap: function () {
         showPopup("manage-stat-tile:" + pg + ":" + i, true);
@@ -353,6 +356,16 @@ function hdrStatusBlock(box, redraw) {
       pill("plus", _T("add_status_tile"), {
         tap: function () {
           addStatTile(pg);
+        },
+      })
+    );
+  if (l.length < 6 && !l.some(function (t) { return t.k === "alerts"; }))
+    box.appendChild(
+      pill("plus", _T("add_attention"), {
+        tap: function () {
+          l.push({ k: "alerts", l: _T("attention") });
+          uiChanged();
+          redraw();
         },
       })
     );
@@ -422,7 +435,7 @@ function hdrPage(box, m) {
       box.appendChild(hintRow(_T("nothing_here_yet_add_weather_who_is_")));
     }
     if (m.hdr.length < 4) {
-      ["weather", "people", "lights", "entity"].forEach(function (k) {
+      ["weather", "people", "lights", "alerts", "entity"].forEach(function (k) {
         if (
           k !== "entity" &&
           m.hdr.some(function (x) {

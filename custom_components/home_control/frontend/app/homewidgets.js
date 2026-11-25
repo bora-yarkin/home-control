@@ -830,7 +830,7 @@ function folderPage(b, key) {
 /* The widgets a stack can hold: a widget that is not an overview (those are sections of their own), not the lights master, and not a stack. */
 function stackable(w) {
   var f = widgetDef(w);
-  return !!f && !f.section && w !== "stack" && w !== "lmaster";
+  return !!f && !f.section && !f.noStack && w !== "stack" && w !== "lmaster";
 }
 
 registerWidget("stack", {

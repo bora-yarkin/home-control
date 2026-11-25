@@ -667,8 +667,24 @@ function skyDraw() {
     w = cv.clientWidth,
     h = cv.clientHeight;
   if (!w || !h) return;
+  /* While the header slides open or shut the sky keeps the size it had and is stretched with the header; sizing it on every frame would make a new picture, with new stars and clouds, sixty times a second. It takes its new size once, when the slide ends. */
+  if (SKYS.w && SKYS.hd && SKYS.hd._hslide && w === SKYS.w) {
+    w = SKYS.w;
+    h = SKYS.h;
+  }
   var p = sc.p;
-  if (w !== SKYS.w || h !== SKYS.h || SKYS.key !== sc.key) {
+  if (SKYS.w && w === SKYS.w && h !== SKYS.h && SKYS.key === sc.key) {
+    /* Only the height changed (the header's status row came or went): the same stars, clouds and drops are kept, moved to their place in the new height, and only the picture is given its new size. */
+    var kh = h / SKYS.h;
+    [SKYS.stars, SKYS.parts, SKYS.motes].forEach(function (l) {
+      (l || []).forEach(function (o) {
+        o.y *= kh;
+      });
+    });
+    SKYS.h = h;
+    cv.width = Math.round(w * dpr);
+    cv.height = Math.round(h * dpr);
+  } else if (w !== SKYS.w || h !== SKYS.h || SKYS.key !== sc.key) {
     SKYS.w = w;
     SKYS.h = h;
     SKYS.key = sc.key;

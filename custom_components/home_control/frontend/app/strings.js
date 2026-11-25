@@ -433,6 +433,8 @@ var EN = {
   "location": "Location",
   "depth": "Depth",
   "width": "Width",
+  "add_attention": "Add attention",
+  "only_while_something_needs_attention": "Only while something needs attention",
   "one_column": "1 column",
   "a_section_is_one_column_on_a_narrow_scre": "A section is one column wide on a narrow screen, and never wider than the page has columns.",
   "drag_a_light_across_the_floor": "Drag a light across the floor. Tap a card to add a light.",
