@@ -1,6 +1,7 @@
 /* Text shown to the user: the English strings and the lookup function _T(). */
 
 var EN = {
+  "no_history_yet": "No history yet",
   "clock_and_weather": "Clock and weather",
   "the_time_and_date_and_the_weather": "The time, the date and the weather",
   "artwork_title_and_play_pause_of_a_player": "Artwork, title and play and pause of a player",

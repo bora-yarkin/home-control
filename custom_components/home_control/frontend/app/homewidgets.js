@@ -36,6 +36,13 @@ function wxCard(cls, open) {
   return c;
 }
 
+/* The name of a widget over its body, for the wide ones that would otherwise not say what they are. */
+function wxHead(c, d) {
+  var h = mk("div", "wh");
+  h.textContent = d.name;
+  c.appendChild(h);
+}
+
 /* Keeps something on a widget up to date as long as the widget is on the page. */
 function wxEvery(el, ms, fn) {
   var t = setInterval(function () {
@@ -297,7 +304,10 @@ registerWidget("sparkline", {
     reg(up);
     chartLoad([id], x.r || "24h", function (data) {
       var pts = (data && data[id]) || [];
-      if (pts.length < 2) return;
+      if (pts.length < 2) {
+        pl.textContent = _T("no_history_yet");
+        return;
+      }
       var lo = Math.min.apply(null, pts.map(function (p) { return p[1]; })),
         hi = Math.max.apply(null, pts.map(function (p) { return p[1]; })),
         t0 = pts[0][0],
@@ -345,6 +355,7 @@ registerWidget("agenda", {
     if (!x.id || !wxVisible(x.id)) return ed && !x.id ? pill("clock", _T("choose_a_calendar"), {}) : null;
     var c = wxCard("agenda", null),
       list = mk("div");
+    wxHead(c, d);
     c.appendChild(list);
     function load() {
       var from = new Date(),
@@ -394,6 +405,7 @@ registerWidget("todo", {
     if (!x.id || !wxVisible(x.id)) return ed && !x.id ? pill("check", _T("choose_a_list"), {}) : null;
     var c = wxCard("todow", null),
       list = mk("div");
+    wxHead(c, d);
     c.appendChild(list);
     function load() {
       HA.todo.items(x.id).then(

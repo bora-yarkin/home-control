@@ -1078,3 +1078,10 @@ body.rwall .hsky{display:none}
 .wc.stk .sd{display:flex;justify-content:center;gap:5px;margin-top:6px;cursor:pointer}
 .wc.stk .sd i{width:6px;height:6px;border-radius:50%;background:var(--f-line2)}
 .wc.stk .sd i.on{background:var(--acc)}
+
+/* One height for the tiles of a row (decision D-25): a widget tile and a sensor tile are the same size at the same width. */
+.wgrid>.w-xs,.wgrid>.w-s{min-height:112px}
+.wgrid>.gb{display:flex;flex-direction:column;justify-content:center;align-items:center}
+.wc.fold .fg .ic[data-k]{--kc:var(--acc)}
+.wc .wh{font-size:var(--fs-xs);color:var(--ink2);text-transform:uppercase;letter-spacing:.06em;margin-bottom:4px}
+.wc.spark .pl{display:flex;align-items:center;font-size:var(--fs-xs);color:var(--ink2)}
