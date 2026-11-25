@@ -1,5 +1,5 @@
 {
-  "version": 490,
+  "version": 492,
   "files": [
     "integrations.js",
     "app/strings.js",
@@ -16,6 +16,7 @@
     "app/media.js",
     "app/climate.js",
     "app/vacuum.js",
+    "app/vacrooms.js",
     "app/camera.js",
     "app/advanced.js",
     "app/kinds.js",

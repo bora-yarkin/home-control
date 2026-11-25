@@ -241,6 +241,10 @@ svg.open .key{opacity:0}
 .rb-sec{display:flex;justify-content:space-between;align-items:center;gap:10px;font-size:var(--fs-s);letter-spacing:.06em;color:var(--ink2);margin:var(--sp-head)}
 .rb-sec b{font-size:var(--fs-s);color:var(--ink);letter-spacing:0;font-weight:500}
 .rb-chips{display:flex;gap:8px}
+.vrc>.rb-map.pane{max-height:none;overflow:hidden}
+.vrc-spots{position:absolute;inset:0}
+.vrc-spot{position:absolute;cursor:pointer;border-radius:6px}
+.vrc-spot.on{background:color-mix(in srgb,var(--acc) 38%,transparent);outline:2px solid var(--acc);outline-offset:-2px}
 .rb-chip{padding:6px 14px;border-radius:999px;font-size:var(--fs-s);cursor:pointer;color:var(--ink);transition:opacity .2s}
 .rooms{display:grid;grid-template-columns:repeat(4,1fr);gap:var(--sp-s);margin-bottom:var(--sp-s)}
 .room{display:flex;flex-direction:column;align-items:center;gap:6px;padding:10px 4px;border-radius:var(--r-m);font-size:var(--fs-s);cursor:pointer;user-select:none;text-align:center}

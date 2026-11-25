@@ -406,9 +406,23 @@ function cleanDev(d) {
       })
       .slice(0, 40)
       .map(function (x) {
-        return { e: x.e, l: typeof x.l === "string" ? x.l.slice(0, 24) : "" };
+        var o = { e: x.e, l: typeof x.l === "string" ? x.l.slice(0, 24) : "" };
+        /* its shapes on the map (rectangles in percent) and the settings of its own */
+        var s = (Array.isArray(x.s) ? x.s : []).slice(0, 8).filter(function (r) {
+          return Array.isArray(r) && r.length === 4 && r.every(function (n) {
+            return typeof n === "number" && isFinite(n) && n >= 0 && n <= 100;
+          });
+        });
+        if (s.length) o.s = s;
+        var so = (Array.isArray(x.o) ? x.o : []).filter(function (y, i, a) {
+          return ent(y, ["select", "input_select"]) && a.indexOf(y) === i;
+        }).slice(0, 8);
+        if (so.length) o.o = so;
+        return o;
       });
     if (rooms.length) vx.rooms = rooms;
+    /* a map drawn for the dashboard (an uploaded picture), used instead of the vacuum's map entity */
+    if (typeof d.vx.pic === "string" && /^\/home_control_remotes\/[a-f0-9]{12}\.(png|jpg|webp)$/.test(d.vx.pic)) vx.pic = d.vx.pic;
     [["modes", ["select", "input_select", "number", "input_number", "switch", "input_boolean"]], ["care", ["sensor", "binary_sensor", "number", "input_number"]]].forEach(function (g) {
       var l = (Array.isArray(d.vx[g[0]]) ? d.vx[g[0]] : [])
         .filter(function (e, i, a) {
