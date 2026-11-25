@@ -77,7 +77,7 @@ test("auto scenes and tags are wired: the new scene page offers Auto scene, the 
   assert.match(read("livemaker.js"), /sceneTagsRow\(LMK\)/);
   assert.match(read("scenetab.js"), /sceneSourceTiles\(\s*box,/);
   assert.match(read("manage.js"), /sceneCollectionSettings\(box, d\)/);
-  assert.match(read("scenes.js"), /if \(sc\.auto\) return autoScenePlay/);
+  assert.match(read("scenes.js"), /return autoScenePlay\(sc, autoPageLights\(at\)\);/);
   assert.ok(JSON.parse(readFileSync(new URL("../../custom_components/home_control/frontend/version.json", import.meta.url), "utf8")).files.includes("app/autoscenes.js"));
 });
 
@@ -92,4 +92,45 @@ test("a master takes in the scenes made for any pages it names (page:<id>), and 
   assert.match(model, /page:\[a-z0-9_-\]\{1,24\}/);
   assert.match(model, /if \(sp\.length\) c\.spage = sp;/);
   assert.match(read("autoscenes.js"), /function sceneCollectionSettings[\s\S]*sceneSourceTiles/);
+});
+
+test("the colours of an auto scene go to the colour wheel and come back the same, colours and whites, each with its brightness", () => {
+  const ctx = vm.createContext({ liveXyHs: () => [12, 34] });
+  vm.runInContext(piece("autoscenes.js", "/* The scene's colours as the colour lights", "/* What the editor holds now"), ctx);
+  const colors = [{ h: 10, s: 80, b: 50 }, { k: 2700, b: 100 }];
+  assert.deepEqual(plain(ctx.autoPalette(colors)), [{ hs: [10, 80], b: 50 }, { k: 2700, b: 100 }]);
+  assert.deepEqual(plain(ctx.autoColours(ctx.autoPalette(colors))), colors);
+  assert.deepEqual(plain(ctx.autoColours([{ xy: [0.4, 0.4] }])), [{ h: 12, s: 34, b: 100 }]);
+});
+
+test("the editor is the light popup's colour wheel on the dashboard's own colour lights, with no ready-made swatches", () => {
+  const src = read("autoscenes.js");
+  assert.match(src, /lightPanel\(b, root, \{\s*maker: true,\s*still: true,/);
+  assert.match(src, /liveMakerColours\(stepper, root, colorNode, AUTOED\)/, "colours are added and removed as in the live scene maker");
+  assert.match(src, /separate = true/, "the colours stand apart, no blend line");
+  assert.doesNotMatch(src, /AUTO_HUES|AUTO_WHITES|swatch\(/);
+  assert.match(read("lightpanel.js"), /if \(S\.maker && !S\.still\) return lpMakerBrightness\(S\);/, "the brightness button sets the chosen colour's brightness");
+  assert.match(read("vlights.js"), /separate: separate/, "removing a colour keeps them apart");
+});
+
+test("an auto scene is tagged \"auto scene\" when made, belongs to no room, and changes only the lights of the page it is played from", () => {
+  assert.match(read("autoscenes.js"), /tags: \[AUTO_TAG\]/);
+  assert.match(read("autoscenes.js"), /var AUTO_TAG = "auto scene";/);
+  const played = [];
+  const ctx = vm.createContext({
+    VIEW: "master",
+    sceneAllowed: (sc) => sc.room !== "guest",
+    autoPageLights: (page) => [page],
+    autoScenePlay: (sc, ids) => played.push(ids[0]),
+    toast: () => played.push("refused"),
+    _T: (k) => k,
+  });
+  vm.runInContext(piece("scenes.js", "function runScene(sc, page)", "  if (!sceneAllowed(sc)) {\n    toast") + "}", ctx);
+  const sc = { auto: { colors: [] }, room: "bora" };
+  ctx.runScene(sc, "living");
+  ctx.runScene(sc);
+  ctx.runScene(sc, "guest");
+  assert.deepEqual(played, ["living", "master", "refused"], "the page it is played from, else the one open; never the room it was made in");
+  assert.match(read("scenes.js"), /var page = secKey\(\);[\s\S]*runScene\(sc, page\)/);
+  assert.match(read("access.js"), /!ACCESS_ME \|\| sc\.auto \|\| sc\.room === "home"/);
 });

@@ -1,13 +1,12 @@
 /* Auto scenes and scene tags.
-   An auto scene is up to ten colours, each with a brightness, and nothing else. Played on the lights of a lights master (or of a page), it gives every light one of the colours at random, and playing it again gives them out again.
+   An auto scene is up to ten static colours, each with a brightness, and nothing else: no lights of its own and no room of its own. Played from a lights master or a page, it gives every light there one of the colours at random, and playing it again gives them out again. The same scene can be put in any number of rooms and masters, and changes only the lights of the one it is played from. It is made with the colour wheel of the light popups, and is tagged "auto scene" when it is made.
    A tag is a lower case word on a scene. Tags are for the administrator: a lights master or a scenes section takes in the scenes that have a tag, or leaves them out. The tags of the home are the tags the scenes have; a tag no scene has is gone. */
 
-/* The colours an auto scene is made from: [label key, colour or white] for the swatches. */
-var AUTO_HUES = [0, 15, 30, 45, 60, 90, 120, 150, 170, 190, 210, 230, 250, 270, 290, 310, 330, 345];
-var AUTO_WHITES = [2200, 2700, 3500, 4500, 6000];
+var AUTO_TAG = "auto scene";
 
-function autoCss(c) {
-  return c.k ? cssRgb(kelvinRgb(c.k)) : cssRgb(hsv2rgb(c.h, c.s));
+/* The lights an auto scene played from a page takes: that page's, and the whole home's from Home. */
+function autoPageLights(page) {
+  return lightUnits(page === "home" || !page ? allLights() : ROOMLIGHTS[page] || []);
 }
 
 /* Gives each light one colour of the scene at random: the lights in a random order, the colours handed out in turn, so every colour is used when there are lights enough. Lights that cannot show a colour keep to the brightness. */
@@ -58,9 +57,15 @@ function autoScenePlay(sc, ids) {
 
 var AUTOED = null;
 
+/* A new auto scene starts with two colours. */
+var AUTO_START = [
+  { h: 0, s: 100, b: 100 },
+  { h: 240, s: 100, b: 100 },
+];
+
 /* Opens the editor of an auto scene: a new one for a page (and put in a scenes section or master), or an existing one. */
 function autoSceneNew(scope, target) {
-  AUTOED = { room: scope, target: target || null, isNew: true, draft: { id: "", name: "", icon: "scene", colors: [], tags: [] } };
+  AUTOED = { room: scope, target: target || null, isNew: true, draft: { id: "", name: "", icon: "scene", colors: JSON.parse(JSON.stringify(AUTO_START)), tags: [AUTO_TAG] } };
   showPopup("scene-auto", true);
 }
 
@@ -69,9 +74,37 @@ function autoSceneEdit(sc) {
   showPopup("scene-auto", true);
 }
 
+/* The scene's colours as the colour lights of the dashboard take them, and back. */
+function autoPalette(colors) {
+  return colors.map(function (c) {
+    return c.k ? { k: c.k, b: c.b } : { hs: [c.h, c.s], b: c.b };
+  });
+}
+
+function autoColours(palette) {
+  return palette.map(function (c) {
+    var b = c.b || 100;
+    if (c.k) return { k: c.k, b: b };
+    var hs = c.hs || liveXyHs(c.xy[0], c.xy[1]);
+    return { h: Math.round(hs[0]), s: Math.round(hs[1]), b: b };
+  });
+}
+
+/* What the editor holds now, to tell whether leaving it would lose something. */
+function autoSig() {
+  var d = AUTOED.draft;
+  return JSON.stringify([d.name, d.icon, (d.tags || []).slice().sort(), autoColours(vcolPalette())]);
+}
+
+/* The light popup's own colour wheel and white temperature, on lights that exist only here: one for each colour of the scene, each with its own brightness. Nothing is sent to a real light while editing. */
 function autoSceneEditor(b) {
-  var d = AUTOED.draft,
-    box = mk("div");
+  var d = AUTOED.draft;
+  /* The colour lights are made once for an editor: coming back from the tags keeps what was chosen. */
+  if (!AUTOED.loaded) {
+    vcolLoad(autoPalette(d.colors));
+    VLIGHT[VCOL_GROUP].attributes.separate = true;
+    AUTOED.loaded = true;
+  }
   var w = mk("div", "sqw pane", svg("scene")),
     inp = mk("input", "sq");
   inp.type = "text";
@@ -88,106 +121,76 @@ function autoSceneEditor(b) {
       d.icon = n;
     })
   );
-  b.appendChild(box);
-  function draw() {
-    box.innerHTML = "";
-    box.appendChild(sep(_T("auto_colours") + " · " + d.colors.length + " / 10", "palette"));
-    box.appendChild(hintRow(_T("auto_hint")));
-    d.colors.forEach(function (c, i) {
-      var row = pill("palette", _T("auto_colour") + " " + (i + 1), {
-        sub: function () {
-          return c.b + "%";
-        },
-      });
-      tintIcon(row, null);
-      row.querySelector(".ic").style.background = autoCss(c);
-      var step = seg(
-        [20, 40, 60, 80, 100].map(function (v) {
-          return [String(v), v + "%"];
-        }),
-        String([20, 40, 60, 80, 100].reduce(function (a, v) {
-          return Math.abs(v - c.b) < Math.abs(a - c.b) ? v : a;
-        }, 100)),
-        function (v) {
-          c.b = +v;
-          draw();
-        }
-      );
-      box.appendChild(row);
-      box.appendChild(step);
-      row.appendChild(
-        (function () {
-          var x = mk("div", "rnd pane sm", svg("trash"));
-          x.setAttribute("role", "button");
-          x.addEventListener("click", function (e) {
-            e.stopPropagation();
-            d.colors.splice(i, 1);
-            draw();
-          });
-          return x;
-        })()
-      );
-    });
-    if (d.colors.length < 10) {
-      box.appendChild(sep(_T("auto_add_colour"), "plus"));
-      var grid = mk("div", "pre pgrid autogrid");
-      grid.style.gridTemplateColumns = "repeat(6,1fr)";
-      function add(c) {
-        if (d.colors.length >= 10) return;
-        d.colors.push(Object.assign({ b: 100 }, c));
-        draw();
-      }
-      AUTO_HUES.forEach(function (h) {
-        grid.appendChild(swatch({ h: h, s: 100 }, { tap: function () { add({ h: h, s: 100 }); } }));
-      });
-      AUTO_HUES.slice(0, 12).forEach(function (h) {
-        grid.appendChild(swatch({ h: h, s: 45 }, { tap: function () { add({ h: h, s: 45 }); } }));
-      });
-      AUTO_WHITES.forEach(function (k) {
-        grid.appendChild(swatch({ k: k }, { tap: function () { add({ k: k }); } }));
-      });
-      box.appendChild(grid);
-    }
-    box.appendChild(sep(_T("auto_tags"), "tune"));
-    box.appendChild(sceneTagsRow(d));
-    box.appendChild(
-      pill("check", _T("auto_save"), {
+  b.appendChild(sceneTagsRow(d));
+  b.appendChild(sep(_T("auto_colours"), "palette"));
+  b.appendChild(hintRow(_T("auto_hint")));
+  var root = lpMasterNode("auto", [VCOL_GROUP]),
+    colorNode = lpFind(root, VCOL_GROUP),
+    stepper = mk("div");
+  AUTOED.S = null;
+  lightPanel(b, root, {
+    maker: true,
+    still: true,
+    ready: function (S) {
+      AUTOED.S = S;
+      S.ex[root.key] = true;
+      S.ex[colorNode.key] = true;
+      S.sel = colorNode.key;
+    },
+  });
+  b.appendChild(stepper);
+  liveMakerColours(stepper, root, colorNode, AUTOED);
+  b.appendChild(
+    pill("check", _T("auto_save"), {
+      tap: function () {
+        autoSceneSave(closeSheet);
+      },
+    })
+  );
+  if (!AUTOED.isNew)
+    b.appendChild(
+      pill("trash", _T("auto_delete"), {
         tap: function () {
-          autoSceneSave();
+          confirmDlg(_T("delete") + d.name + "”?", function () {
+            var sc = sceneById(d.id);
+            if (sc) sceneDeleteEverywhere(sc);
+            POPGUARD = null;
+            closeSheet();
+          }, _T("delete"));
         },
       })
     );
-    if (!AUTOED.isNew)
-      box.appendChild(
-        pill("trash", _T("auto_delete"), {
-          tap: function () {
-            confirmDlg(_T("delete") + d.name + "”?", function () {
-              var sc = sceneById(d.id);
-              if (sc) sceneDeleteEverywhere(sc);
-              closeSheet();
-            }, _T("delete"));
-          },
-        })
-      );
-  }
-  draw();
+  if (AUTOED.saved === undefined) AUTOED.saved = autoSig();
+  guardUnsaved({
+    dirty: function () {
+      return autoSig() !== AUTOED.saved;
+    },
+    save: autoSceneSave,
+    discard: function () {},
+    done: closeSheet,
+  });
 }
 
-function autoSceneSave() {
+function autoSceneSave(leave) {
   var d = AUTOED.draft,
     name = String(d.name || "").trim();
-  if (!name) return toast(_T("give_the_scene_a_name"));
-  if (!d.colors.length) return toast(_T("auto_choose_a_colour"));
+  if (!name) {
+    toast(_T("give_the_scene_a_name"));
+    return false;
+  }
   var sc = cleanScene({
     id: d.id || "s" + Date.now().toString(36),
     name: name,
     room: AUTOED.room,
     icon: d.icon,
     acts: [],
-    auto: { colors: d.colors },
+    auto: { colors: autoColours(vcolPalette()) },
     tags: d.tags,
   });
-  if (!sc) return toast(_T("couldn_t_save_this_scene"));
+  if (!sc) {
+    toast(_T("couldn_t_save_this_scene"));
+    return false;
+  }
   STORE.scenes = STORE.scenes.filter(function (x) {
     return x.id !== sc.id;
   });
@@ -197,7 +200,10 @@ function autoSceneSave() {
   }
   uiChanged();
   toast(_T("scene_saved"));
-  closeSheet();
+  AUTOED.saved = autoSig();
+  POPGUARD = null;
+  leave();
+  return true;
 }
 
 /* ---- tags ---- */

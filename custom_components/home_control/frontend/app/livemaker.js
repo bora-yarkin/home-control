@@ -354,7 +354,7 @@ function liveMakerBuild(b) {
 }
 
 /* How many colours the scene has, and a way to add and take away. */
-function liveMakerColours(box, root, colorNode) {
+function liveMakerColours(box, root, colorNode, owner) {
   function draw() {
     box.innerHTML = "";
     var n = vcolIds().length,
@@ -371,7 +371,7 @@ function liveMakerColours(box, root, colorNode) {
     less.classList.toggle("dis", n <= 1);
     more.classList.toggle("dis", n >= VCOL_MAX);
     less.addEventListener("click", function () {
-      var sel = LMK.S && LMK.S.sel,
+      var sel = (owner || LMK).S && (owner || LMK).S.sel,
         gone = vlightIs(sel) && sel !== VCOL_GROUP ? sel : vcolIds()[n - 1];
       if (vcolRemove(gone)) rebuild();
     });
@@ -384,7 +384,7 @@ function liveMakerColours(box, root, colorNode) {
   }
   /* The tree of the panel is rebuilt for the colours there are, and the panel draws it again. */
   function rebuild() {
-    var S = LMK.S,
+    var S = (owner || LMK).S,
       keep = S && S.sel;
     colorNode.cmd = [VCOL_GROUP];
     colorNode.kids = vcolIds().map(function (id, i) {

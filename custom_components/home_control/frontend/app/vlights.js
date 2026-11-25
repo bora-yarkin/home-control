@@ -97,6 +97,8 @@ function vcolRemove(id) {
   var left = ids.filter(function (x) {
     return x !== id;
   });
+  /* whether the colours stand apart (an auto scene) is kept through the renumbering */
+  var separate = VLIGHT[VCOL_GROUP].attributes.separate;
   /* The colours keep their numbers in order. */
   var kept = left.map(function (x) {
     return VLIGHT[x];
@@ -110,7 +112,7 @@ function vcolRemove(id) {
     VLIGHT[nid] = st;
     out.push(nid);
   });
-  VLIGHT[VCOL_GROUP] = vcolState(VCOL_GROUP, { friendly_name: _T("colours"), entity_id: out, zone_colors: out, zone_label: _T("colour") });
+  VLIGHT[VCOL_GROUP] = vcolState(VCOL_GROUP, { friendly_name: _T("colours"), entity_id: out, zone_colors: out, zone_label: _T("colour"), separate: separate });
   vcolSync();
   return true;
 }
