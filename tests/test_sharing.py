@@ -116,7 +116,9 @@ async def test_only_what_homekit_has_an_accessory_for_and_that_exists_can_be_put
 
 
 async def test_an_entity_that_no_longer_exists_can_still_be_taken_off_the_list(hass):
-    entry = bridge(hass, {"include_domains": [], "include_entities": ["fan.renamed_away", "fan.kept"], "exclude_domains": [], "exclude_entities": []})
+    entry = bridge(
+        hass, {"include_domains": [], "include_entities": ["fan.renamed_away", "fan.kept"], "exclude_domains": [], "exclude_entities": []}
+    )
     make_exist(hass, "fan.kept")
     assert homekit.set_exposed(hass, None, "fan.renamed_away", False) is True
     assert lists(entry)["include_entities"] == ["fan.kept"]
