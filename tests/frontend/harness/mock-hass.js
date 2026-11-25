@@ -79,7 +79,7 @@ export function makeHass(query, home = null) {
     state("lock.door_front", "locked", { friendly_name: "Front door" }),
     state("scene.living_room_arctic_aurora", "unknown", { friendly_name: "Living room Arctic aurora", name: "Arctic aurora", is_dynamic: true, group_name: "Living room", group_type: "room", speed: 0.5, brightness: 200 }),
     state("scene.living_room_reading", "unknown", { friendly_name: "Living room Reading", name: "Reading", is_dynamic: false, group_name: "Living room", group_type: "room" }),
-    // A Hue zone of the same name as the room, and one more zone: their scenes have no area of Home Assistant.
+    // A Hue zone of the same name as the room, and one more zone: their scenes are in the area of their device, as the room's are.
     state("scene.living_room_zone_cosy", "unknown", { friendly_name: "Living room Cosy", name: "Cosy", is_dynamic: false, group_name: "Living room", group_type: "zone" }),
     state("scene.shelf_zone_bright", "unknown", { friendly_name: "Shelf Bright", name: "Bright", is_dynamic: false, group_name: "Shelf", group_type: "zone" }),
     state("select.living_room_scene", "Reading", { friendly_name: "Scene", options: ["Arctic aurora", "Reading"] }),

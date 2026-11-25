@@ -240,6 +240,24 @@ function sceneSourceTiles(box, rooms, tags) {
       return (!ticked.length || ticked.indexOf(p.token) >= 0) && sceneRoomHueIds(p.token).length;
     });
   }
+  /* The groups worth offering: those with scenes in the rooms ticked (all of them when none is), and the ones already ticked. */
+  function groupOptions() {
+    var ticked = roomTokens(),
+      near = null;
+    if (ticked.length)
+      near = ticked.reduce(function (acc, t) {
+        return acc.concat(sceneRoomHueIds(t));
+      }, []);
+    return sceneGroups().filter(function (g) {
+      return (
+        !near ||
+        groupTokens().indexOf(g.token) >= 0 ||
+        g.ids.some(function (id) {
+          return near.indexOf(id) >= 0;
+        })
+      );
+    });
+  }
   /* The tags worth offering: those of the scenes of the rooms ticked; all of them when none is ticked; and the ones already chosen. */
   function tagOptions() {
     var ids = pageIds(),
@@ -296,7 +314,7 @@ function sceneSourceTiles(box, rooms, tags) {
       function () {
         var o = [["-", _T("none")]];
         if (hueOffered()) o.push(["@hue", _T("src_hue")]);
-        sceneGroups().forEach(function (g) {
+        groupOptions().forEach(function (g) {
           o.push(["@" + g.token, g.label + " · " + g.ids.length]);
         });
         return o.concat(
@@ -313,7 +331,18 @@ function sceneSourceTiles(box, rooms, tags) {
           var all = rooms.get(),
             g = v.slice(1),
             at = all.indexOf(g);
-          rooms.set(at >= 0 ? all.filter(function (t) { return t !== g; }) : all.concat([g]));
+          /* a group is narrower than Hue as a whole (all the scenes of the rooms): choosing one stops taking in all of them, or the choice would filter nothing */
+          rooms.set(
+            at >= 0
+              ? all.filter(function (t) {
+                  return t !== g;
+                })
+              : all
+                  .filter(function (t) {
+                    return t !== "hue:@lights" && t !== "hue:@rooms" && t !== "hue:@page";
+                  })
+                  .concat([g])
+          );
           return;
         }
         if (v === "@hue") {
@@ -353,7 +382,7 @@ function sceneSourceTiles(box, rooms, tags) {
               return g.label;
             }),
           n = (hueTokens().length ? [_T("src_hue")] : []).concat(picked, inc, exc.map(function (t) { return "– " + t; }));
-        if (!n.length) return sceneTags().length || hueOffered() || sceneGroups().length ? _T("none") : _T("src_no_tags");
+        if (!n.length) return sceneTags().length || hueOffered() || groupOptions().length ? _T("none") : _T("src_no_tags");
         return n.join(", ");
       },
       function (v) {

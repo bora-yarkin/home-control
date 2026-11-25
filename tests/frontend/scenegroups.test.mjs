@@ -85,3 +85,57 @@ test("the Tags dropdown offers each group, ticks it by its token, and the master
   assert.match(read("scenetab.js"), /src\.indexOf\("group:"\) === 0[\s\S]*sceneGroupIds\(src\)/);
   assert.match(read("scenes.js"), /x\.indexOf\("group:"\) === 0[\s\S]*sceneGroupIds\(x\)/);
 });
+
+/* The two dropdowns of the scene sources, built with stand-ins for the dashboard's own parts, so what they offer and what a tap does can be read. */
+function tiles({ rooms: roomTokens = [], tags = [], near = {} } = {}) {
+  const sandbox = {
+    A: (id) => (states[id] || {}).attributes || {},
+    H: () => ({ states }),
+    _T: (k) => ({ src_hue: "Hue", src_group_room: "Room", src_group_zone: "Zone", src_pages: "Rooms", src_tags: "Tags", none: "None" }[k] || k),
+    PLUGIN_SCENE_KINDS: [{}],
+    pluginSceneKind: (id) => (id.startsWith("scene.hp_") ? {} : null),
+    STORE: { scenes: [] },
+    sceneTags: () => [],
+    scenePages: () => [{ token: "page:bora", name: "Bora", count: 1 }],
+    sceneRoomHueIds: (t) => near[t] || [],
+    mk: () => ({ appendChild() {} }),
+    hintRow: () => ({}),
+    multiTile: (...a) => (sandbox.__tiles = (sandbox.__tiles || []).concat([a])),
+  };
+  vm.createContext(sandbox);
+  vm.runInContext(piece, sandbox);
+  vm.runInContext(auto.slice(auto.indexOf("function sceneSourceTiles("), auto.indexOf("\n}\n", auto.indexOf("function sceneSourceTiles(")) + 3), sandbox);
+  let tokens = roomTokens.slice();
+  sandbox.sceneSourceTiles({ appendChild() {} }, { get: () => tokens, set: (t) => (tokens = t) }, { inc: () => tags, exc: () => [], set() {} });
+  const tagsTile = sandbox.__tiles[1];
+  return { offered: () => plain(tagsTile[1]()).map((o) => o[0]), labels: () => plain(tagsTile[1]()).map((o) => o[1]), tap: (v) => tagsTile[3](v), tokens: () => tokens, summary: () => tagsTile[5]() };
+}
+
+test("with no room ticked every group is offered, labelled with its kind, name and number of scenes", () => {
+  const t = tiles({ near: { "page:bora": ["scene.hp_bed_read"] } });
+  assert.deepEqual(t.offered(), ["-", "@hue", "@group:room:bathroom", "@group:room:bora-s-bedroom", "@group:zone:bora-s-bedroom", "@group:zone:wardrobe"]);
+  assert.ok(t.labels().includes("Hue · Zone · Bora’s Bedroom · 1"));
+});
+
+test("with a room ticked only the groups that have scenes in it are offered, and a group already ticked stays", () => {
+  const near = { "page:bora": ["scene.hp_bed_read", "scene.hp_zone_all", "scene.hp_ward"] };
+  assert.deepEqual(tiles({ rooms: ["page:bora"], near }).offered().slice(2), ["@group:room:bora-s-bedroom", "@group:zone:bora-s-bedroom", "@group:zone:wardrobe"], "not the Bathroom, whose scenes are elsewhere");
+  assert.ok(tiles({ rooms: ["page:bora", "group:room:bathroom"], near }).offered().includes("@group:room:bathroom"), "unless it is ticked already");
+});
+
+test("ticking a group stops Hue as a whole from taking in everything, so the choice filters; ticking it again takes it off", () => {
+  const t = tiles({ rooms: ["hue:@lights"] });
+  t.tap("@group:zone:wardrobe");
+  assert.deepEqual(t.tokens(), ["group:zone:wardrobe"], "the blanket Hue is gone");
+  t.tap("@group:room:bora-s-bedroom");
+  assert.deepEqual(t.tokens(), ["group:zone:wardrobe", "group:room:bora-s-bedroom"], "groups add up");
+  t.tap("@group:zone:wardrobe");
+  assert.deepEqual(t.tokens(), ["group:room:bora-s-bedroom"]);
+  const keep = tiles({ rooms: ["page:bora", "hue:bathroom", "hue:@rooms"] });
+  keep.tap("@group:zone:wardrobe");
+  assert.deepEqual(keep.tokens(), ["page:bora", "hue:bathroom", "group:zone:wardrobe"], "rooms and a Hue area chosen by name are kept; only the blanket choices go");
+});
+
+test("the Tags dropdown says which groups are ticked", () => {
+  assert.equal(tiles({ rooms: ["group:zone:wardrobe", "group:room:bathroom"] }).summary(), "Hue · Room · Bathroom, Hue · Zone · Wardrobe");
+});
