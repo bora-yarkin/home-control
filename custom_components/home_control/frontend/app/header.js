@@ -111,18 +111,17 @@ function hdrBegin(hd) {
   hd = hd || document.querySelector(".hdr");
   if (!hd) return 0;
   var from = hd.getBoundingClientRect().height;
-  if (hd._hslide) {
-    hd._hslide.cancel();
-    hd._hslide = null;
-  }
+  /* ended now, not when the browser gets round to saying so: what follows must find the row that was going already gone */
+  if (hd._hdone) hd._hdone();
   return from;
 }
 
 function hdrGlide(hd, from) {
   hd = hd || document.querySelector(".hdr");
   if (!hd) return;
-  var closing = hd._hclose;
-  hd._hclose = null;
+  var closing = hd._hclose,
+    opening = hd._hopen;
+  hd._hclose = hd._hopen = null;
   /* a status row that is going away stays in place while the header closes over it, but is not part of the height it closes to */
   if (closing) closing.style.display = "none";
   var to = hd.getBoundingClientRect().height;
@@ -134,12 +133,22 @@ function hdrGlide(hd, from) {
     drop();
     return;
   }
-  var a = hd.animate([{ height: from + "px" }, { height: to + "px" }], { duration: 340, easing: "cubic-bezier(.2,.8,.2,1)" });
+  /* The end state is held (fill) until the row that went is removed: without that the header would be drawn once at its old height again, showing the top of the row for a moment. The row fades with the slide, in as the header opens and out as it closes. */
+  var opt = { duration: 340, easing: "cubic-bezier(.2,.8,.2,1)", fill: "forwards" },
+    a = hd.animate([{ height: from + "px" }, { height: to + "px" }], opt),
+    row = closing || opening,
+    fade = row && row.animate ? row.animate([{ opacity: closing ? 1 : 0 }, { opacity: closing ? 0 : 1 }], opt) : null;
   hd._hslide = a;
-  a.onfinish = a.oncancel = function () {
+  var done = function () {
+    a.onfinish = a.oncancel = null;
+    if (hd._hdone === done) hd._hdone = null;
     if (hd._hslide === a) hd._hslide = null;
     drop();
+    a.cancel();
+    if (fade) fade.cancel();
   };
+  hd._hdone = done;
+  a.onfinish = a.oncancel = done;
 }
 
 /* The status row of a page: a row under the header's text, in the header, whose tiles are the page's own. */
@@ -191,6 +200,7 @@ function hdrStatusSync(force, key, from) {
     box = mk("div", "hstat");
     box.id = "hst";
     hd.appendChild(box);
+    hd._hopen = box;
   }
   box.innerHTML = "";
   var inner = mk("div", "hstin");
@@ -215,6 +225,7 @@ function hdrBuild() {
   (mt.hdr || []).forEach(function (it) {
     var el = mk("div", "hchip", "<span></span><span></span>");
     box.appendChild(el);
+    if (it.k === "alerts") alertsTap(el);
     HDRC.push({ it: it, el: el, ic: "", txt: "" });
   });
   hdrLive();

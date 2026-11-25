@@ -433,6 +433,7 @@ var EN = {
   "location": "Location",
   "depth": "Depth",
   "width": "Width",
+  "lock_offline": "Lock offline",
   "add_attention": "Add attention",
   "only_while_something_needs_attention": "Only while something needs attention",
   "one_column": "1 column",

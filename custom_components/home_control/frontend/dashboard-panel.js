@@ -3,7 +3,7 @@
 const BASE = new URL(".", import.meta.url);
 
 const MARKUP = `<main><div class="wrap">
- <div class="hdr pane"><div class="hrow"><div><div class="eyebrow">Dashboard</div><div class="trow"><div class="title" id="tt"></div></div><div class="hchips" id="hch"></div></div><div class="rt"><div class="hb"><div class="rnd pane" id="sbtn" role="button" aria-label="Search"></div><div class="rnd pane" id="gbtn" role="button" aria-label="Settings and appearance" style="display:none"></div></div><div class="clock"><div id="clk"></div><div id="dt"></div></div></div></div></div>
+ <div class="hdr pane"><div class="hdrow"><div><div class="eyebrow">Dashboard</div><div class="trow"><div class="title" id="tt"></div></div><div class="hchips" id="hch"></div></div><div class="rt"><div class="hb"><div class="rnd pane" id="sbtn" role="button" aria-label="Search"></div><div class="rnd pane" id="gbtn" role="button" aria-label="Settings and appearance" style="display:none"></div></div><div class="clock"><div id="clk"></div><div id="dt"></div></div></div></div></div>
  <div id="body"><div class="skl"><i></i><i></i><i></i></div></div>
 </div></main>
 <nav class="dock pane" id="dock"></nav>`;

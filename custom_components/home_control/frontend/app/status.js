@@ -30,7 +30,30 @@ function statGrid(key) {
           },
         ];
   });
-  return it.length ? glance(it, it.length) : null;
+  if (!it.length) return null;
+  var g = glance(it, it.length);
+  statShown(key).forEach(function (s, i) {
+    if (s.k === "alerts") alertsTap(g.children[i]);
+  });
+  return g;
+}
+
+/* An Attention chip or tile of the header opens the details. While a page is edited the header's own tap (its settings) is left to it. */
+function alertsTap(el) {
+  if (!el) return;
+  el.classList.add("tap");
+  el.setAttribute("role", "button");
+  el.setAttribute("tabindex", "0");
+  function open(ev) {
+    if (editing()) return;
+    ev.preventDefault();
+    ev.stopPropagation();
+    showPopup("g-alerts", false);
+  }
+  el.addEventListener("click", open);
+  el.addEventListener("keydown", function (ev) {
+    if (ev.key === "Enter" || ev.key === " ") open(ev);
+  });
 }
 
 function addStatTile(rid) {
@@ -157,10 +180,27 @@ function alertList() {
         d.name + _T("is_offline"),
         "",
         function () {
-          go(d.room);
+          alertGo(d.room);
         },
       ]);
   });
+  /* Every lock of the home, as the Security overview lists them, whether or not it is on a page; one that is on a page is named as there. */
+  if (alertOn("lock") && H())
+    secEnts().lock.forEach(function (id) {
+      if (V_(id) !== "unavailable") return;
+      var d = devsOf("lock").filter(function (x) {
+        return x.id === id;
+      })[0];
+      out.push([
+        (d ? d.name : entName(id)) + _T("is_offline"),
+        "",
+        d
+          ? function () {
+              alertGo(d.room);
+            }
+          : null,
+      ]);
+    });
   var acs = devsOf("climate").filter(function (d) {
     return V_(d.id) === "unavailable";
   });
@@ -182,12 +222,18 @@ function alertList() {
   if (alertOn("lights") && ls.length)
     out.push([
       ls.length + (ls.length === 1 ? _T("light_is") : _T("lights_are")) + " unavailable",
-      "",
+      ls.map(entName).join(" · "),
       function () {
         showPopup("g-lights", false);
       },
     ]);
   return out;
+}
+
+/* To the page an alert is about, from a row of a page or of the Attention popup. */
+function alertGo(room) {
+  if (SHEET) closeSheet();
+  go(room);
 }
 
 /* Attention is a device (a widget): the alerts as rows of its Section. Nothing to report, it draws nothing and a Section that holds only it is not shown either; while the page is edited it stays, saying so, to be found and changed. */
@@ -251,7 +297,7 @@ function partsLow() {
   return (STORE.cfg && STORE.cfg.partsLow) || 15;
 }
 
-var ALERT_KEYS = ["battery", "vacuum", "camera", "climate", "lights"];
+var ALERT_KEYS = ["battery", "vacuum", "camera", "lock", "climate", "lights"];
 
 function alertOn(k) {
   return ((STORE.cfg && STORE.cfg.alertOff) || []).indexOf(k) < 0;

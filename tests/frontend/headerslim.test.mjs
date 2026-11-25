@@ -58,6 +58,14 @@ test("the header's height slides whenever it changes (a status row, a room name 
   assert.match(pages, /hdrStatusSync\(true, undefined, hf\);\n  hdrGlide\(null, hf\)/, "and on any other redraw");
   const css = read("dashboard.css");
   assert.doesNotMatch(css, /\.hdr:has\(>\.hstat\)\{flex-wrap/, "adding the row must not re-wrap the title and buttons");
-  assert.match(css, /\.hrow\{display:flex/);
-  assert.match(read("dashboard-panel.js"), /<div class="hdr pane"><div class="hrow">/);
+  assert.match(css, /\.hdrow\{display:flex/);
+  assert.match(read("dashboard-panel.js"), /<div class="hdr pane"><div class="hdrow">/);
+});
+
+test("a status row that goes is removed before the header is drawn without the slide, and fades with it", () => {
+  const header = read("app/header.js");
+  assert.match(header, /fill: "forwards"/, "the end state is held until the row is gone, so it is never shown again for a frame");
+  assert.match(header, /drop\(\);\n    a\.cancel\(\);/, "the row is removed first, then the slide let go");
+  assert.match(header, /row\.animate\(\[\{ opacity: closing \? 1 : 0 \}, \{ opacity: closing \? 0 : 1 \}\], opt\)/);
+  assert.match(header, /if \(hd\._hdone\) hd\._hdone\(\);/, "a new page change ends the running slide at once");
 });

@@ -10,7 +10,7 @@ const read = (name) => readFileSync(new URL(name, APP), "utf8");
 const status = read("status.js");
 
 function sandbox(list) {
-  const ctx = vm.createContext({ alertList: () => list, _T: (k) => ({ nt_alerts: "Alerts" })[k] || k, UI: { stat: {} }, glance: (it) => it });
+  const ctx = vm.createContext({ alertList: () => list, _T: (k) => ({ nt_alerts: "Alerts" })[k] || k, UI: { stat: {} }, glance: (it) => Object.assign(it, { children: [] }) });
   const from = status.indexOf("function alertText()");
   vm.runInContext(status.slice(from, status.indexOf("/* Thresholds shown")), ctx);
   const g = status.indexOf("/* The tiles of a page's header row");
@@ -100,4 +100,44 @@ test("the Attention chip and the Attention tile use the same icon in the header'
   const header = read("header.js");
   assert.match(header, /pill\(t\.k === "alerts" \? "alert" : "thermo"/);
   assert.match(header, /i: it\.k === "alerts" \? "alert" : "info"/);
+});
+
+test("an offline lock needs attention, whether or not it is on a page, and the kind can be switched off", () => {
+  const from = status.indexOf("function alertList()");
+  const body = status.slice(from, status.indexOf("/* To the page an alert is about"));
+  const run = (off) => {
+    const ctx = vm.createContext({
+      BATLIST: [],
+      batIndex: () => ({}),
+      alertOn: (k) => !off.includes(k),
+      devsOf: (kind) => (kind === "lock" ? [{ id: "lock.front", name: "Front door", room: "door" }] : []),
+      allLights: () => [],
+      H: () => ({}),
+      secEnts: () => ({ lock: ["lock.front", "lock.shed", "lock.ok"] }),
+      V_: (id) => (id === "lock.ok" ? "locked" : "unavailable"),
+      entName: (id) => "Shed lock",
+      _T: (k) => ({ is_offline: " is offline" })[k] || k,
+      alertGo() {},
+    });
+    vm.runInContext(body, ctx);
+    return Array.from(ctx.alertList()).map((a) => [a[0], typeof a[2]]);
+  };
+  assert.deepEqual(run([]).map((a) => Array.from(a)), [["Front door is offline", "function"], ["Shed lock is offline", "object"]]);
+  assert.equal(run(["lock"]).length, 0);
+  assert.match(status, /ALERT_KEYS = \["battery", "vacuum", "camera", "lock", "climate", "lights"\]/);
+});
+
+test("the Attention chip and tile of the header open a popup of the details", () => {
+  assert.match(read("popups.js"), /"g-alerts": function[\s\S]*?alertsDevice\(true\)/);
+  assert.match(read("header.js"), /if \(it\.k === "alerts"\) alertsTap\(el\)/);
+  assert.match(status, /if \(s\.k === "alerts"\) alertsTap\(g\.children\[i\]\)/);
+  assert.match(status, /showPopup\("g-alerts", false\)/);
+});
+
+test("the header's row has a class of its own: no other part of the dashboard is styled by it, and it takes none of another's", () => {
+  const css = readFileSync(new URL("../dashboard.css", APP), "utf8");
+  assert.match(readFileSync(new URL("../dashboard-panel.js", APP), "utf8"), /<div class="hdr pane"><div class="hdrow">/);
+  assert.match(read("history.js"), /"hrow pane"/, "history rows keep .hrow");
+  assert.equal((css.match(/^\.hrow\{/gm) || []).length, 1, "one rule for .hrow, the history row's");
+  assert.doesNotMatch(css, /^\.hrow>div:first-child/m);
 });

@@ -399,6 +399,7 @@ registerWidget("alerts", {
       ["battery", _T("low_batteries"), "battery"],
       ["vacuum", _T("robot_vacuum_needs_attention"), "vac"],
       ["camera", _T("camera_offline"), "cam"],
+      ["lock", _T("lock_offline"), "lock"],
       ["climate", _T("air_conditioner_offline"), "ac"],
       ["lights", _T("light_unavailable"), "lights"],
     ].forEach(function (a) {
