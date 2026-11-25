@@ -1458,6 +1458,19 @@ function lpFxRunning(S, effect) {
   });
 }
 
+/* Whether a colour or speed variant of an effect can be played on what is selected: one of its lights has the effect and a plus integration that is given colour and speed with it. Home Assistant's light entity takes neither. */
+function lpFxCanVary(S, effect) {
+  var src = (lpFxCat(effect) || {}).src;
+  return !!(
+    src &&
+    src.set_effect &&
+    lightIndividuals(S.target().cmd.map(lpFxLight)).some(function (e) {
+      var list = A(e).effect_list;
+      return Array.isArray(list) && list.indexOf(effect) >= 0 && fxMatches(src, e);
+    })
+  );
+}
+
 /* Starts a variant (or "off") on what is selected, in its colour and speed when it has them (the bridge takes both for an effect, Home Assistant's light entity does not). `draft` is a look being edited, run in place of the saved one. */
 function lpFxRun(S, id, draft) {
   var name = lpFxEffectOf(id),
@@ -1571,7 +1584,8 @@ function lpMakerFxPane(S, pane, fx) {
 function lpFxPane(S, pane, fx) {
   FX.lights = S.target().cmd.map(lpFxLight);
   var box = mk("div", "lp-fx"),
-    tiles = [];
+    tiles = [],
+    adds = [];
   pane.appendChild(box);
   /* The page is drawn again (a tile was added or removed in the settings above it) where it was scrolled to. */
   function rebuild() {
@@ -1659,6 +1673,7 @@ function lpFxPane(S, pane, fx) {
       showPopup("lfxs:" + effect + ":" + n, false, rebuild);
     });
     row.appendChild(add);
+    adds.push({ el: add, effect: effect });
     return row;
   }
   var names = fx.effects.filter(function (x) {
@@ -1672,6 +1687,10 @@ function lpFxPane(S, pane, fx) {
     });
   });
   function paint() {
+    /* the Create tile only where what it makes could be played; the selection can change */
+    adds.forEach(function (a) {
+      a.el.style.display = lpFxCanVary(S, a.effect) ? "" : "none";
+    });
     tiles.forEach(function (t) {
       var on = !!t.active();
       t.el.classList.toggle("picked", on);

@@ -1609,7 +1609,8 @@ var EN = {
   "choose_the_section_it_moves_to": "Choose the section it moves to.",
   "moved_to_2": "Moved to",
   "all_entities": "All entities",
-  "a_section_holds_up_to_40_scenes": "A section holds up to 40 scenes",
+  "a_section_holds_up_to_200_scenes": "A section holds up to 200 scenes",
+  "scenes_full": "There are 200 scenes, the most that can be made. Delete one first.",
   "tap_to_pin_or_unpin_you_can_pick_sev": "Tap to pin or unpin. You can pick several.",
   "pinned_items": "Pinned items",
   "connection_to_home_assistant_lost_co":

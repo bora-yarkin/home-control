@@ -306,6 +306,22 @@ function sceneTags() {
   return out.sort();
 }
 
+/* The most scenes that can be made (the integration keeps as many live scenes). */
+var SCENE_MAX = 200;
+
+/* Whether a scene can be saved: one that is already there always, a new one while there is room; else the person is told. */
+function sceneFits(id) {
+  if (
+    STORE.scenes.length < SCENE_MAX ||
+    STORE.scenes.some(function (x) {
+      return x.id === id;
+    })
+  )
+    return true;
+  toast(_T("scenes_full"));
+  return false;
+}
+
 function cleanStore(v) {
   var o = {
     v: 1,
@@ -350,8 +366,9 @@ function cleanStore(v) {
         });
         if (list.length) o.saved[room] = list;
       });
+  /* Every scene that is stored is loaded: cutting the list here would lose the rest for good at the next save. The limit is on making new ones (sceneFits). */
   if (v && Array.isArray(v.scenes))
-    v.scenes.slice(0, 60).forEach(function (s) {
+    v.scenes.forEach(function (s) {
       var c = cleanScene(s);
       if (c) o.scenes.push(c);
     });

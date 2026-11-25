@@ -33,8 +33,8 @@ function scnToggle(e, id) {
     a.splice(i, 1);
     return true;
   }
-  if (a.length >= 40) {
-    toast(_T("a_section_holds_up_to_40_scenes"));
+  if (a.length >= SCENE_MAX) {
+    toast(_T("a_section_holds_up_to_200_scenes"));
     return false;
   }
   a.push(id);
@@ -392,7 +392,8 @@ function sceneEntSetHidden(room, id, hide) {
   var scenes = sceneEntHiddenList(room).filter(function (x) {
     return x !== id;
   });
-  if (hide && scenes.length < 80) scenes.push(id);
+  if (hide && scenes.length >= 400) return toast(_T("a_section_holds_up_to_200_scenes"));
+  if (hide) scenes.push(id);
   if (room.sec) room.sec.hscn = scenes;
   else if (scenes.length) room.hscn = scenes;
   else delete room.hscn;
@@ -512,6 +513,7 @@ function sceneTargetAdd(target, id) {
   if (!e) return;
   if (target.into === "section") {
     e.devs = e.devs || [];
+    if (e.devs.length >= SCENE_MAX) return toast(_T("a_section_holds_up_to_200_scenes"));
     if (
       !e.devs.some(function (d) {
         return d.kind === "cscene" && d.sid === id;
