@@ -77,6 +77,8 @@ test("a pen in the top right corner of a widget with content opens a popup for t
     await sleep(1500);
     const text = await ev(`document.querySelector(".sheet.in").innerText`);
     assert.match(text, /Milk/, "the items are in it");
+    const icons = await ev(`(() => { const norm = (h) => { const d = document.createElement("div"); d.innerHTML = "<svg viewBox='0 0 24 24'>" + h + "</svg>"; return d.querySelector("svg").innerHTML; }; const names = {}; Object.keys(IC).forEach((k) => (names[norm(IC[k])] = k)); return [...document.querySelectorAll(".sheet.in .pill")].filter((p) => p.querySelector(".nm").textContent !== "Add item").map((p) => names[p.querySelector(".ic svg").innerHTML] || "unknown"); })()`);
+    assert.ok(icons.length > 0 && icons.every((n) => n === "check"), "an item has a check mark as its icon, not whatever icon happens to exist (" + icons.join(", ") + ")");
     assert.match(text, /Add item/, "and a way to add one");
     assert.doesNotMatch(text, /Size|Remove from the section|Move to another section|How it looks|Visible/i, "none of the widget's own settings is (" + text.replace(/\s+/g, " ").slice(0, 200) + ")");
   });
