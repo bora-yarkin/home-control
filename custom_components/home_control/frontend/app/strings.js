@@ -134,7 +134,7 @@ var EN = {
   "ap_set_up": "Set up this appliance",
   "ap_choose_what_it_is_made_of": "Then choose what each part is made of",
   "ap_nothing_is_bound_yet": "Nothing is set up for this appliance yet",
-  "ap_nothing_is_bound_yet_choose_set_up": "Nothing is set up yet. Choose Set up this appliance, then pick an entity for each part",
+  "ap_nothing_is_bound_yet_choose_set_up": "Nothing is set up yet. Edit the page, tap this appliance and choose Set up this device",
   "ap_start_is_not_available_now": "Start is not available right now",
   "ap_remote_start_is_off_on_the_appliance": "Remote start is off on the appliance",
   "ap_remote_start_cannot_be_read": "Remote start cannot be read right now",

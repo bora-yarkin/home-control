@@ -168,3 +168,11 @@ test("a duration is set five minutes at a time and written in hours and minutes"
   assert.equal(tile.o.fmt(1800), "30 min");
   assert.deepEqual(plain(log.tiles), ["ap_duration"]);
 });
+
+test("an appliance is set up from the page editor only: no popup of one has a set-up button", () => {
+  const appliance = readFileSync(new URL("../../custom_components/home_control/frontend/app/appliance.js", import.meta.url), "utf8");
+  assert.doesNotMatch(appliance, /pill\("tune", _T\("ap_set_up"\)/);
+  assert.doesNotMatch(appliance, /showPopup\("ap-edit:/);
+  const manage = readFileSync(new URL("../../custom_components/home_control/frontend/app/manage.js", import.meta.url), "utf8");
+  assert.match(manage, /_T\("set_up_this_device"\)[\s\S]{0,220}showPopup\("ap-edit:" \+ d\.aid, true\)/, "the device's settings in the page editor keep it");
+});

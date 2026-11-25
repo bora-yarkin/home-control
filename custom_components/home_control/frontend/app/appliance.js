@@ -449,7 +449,6 @@ function apPage(b, aid) {
       b.appendChild(sep(_T("rm_buttons"), "play"));
       remotePage(b, aid);
     }
-    if (ISADMIN) b.appendChild(pill("tune", _T("ap_set_up"), { tap: function () { showPopup("ap-edit:" + aid, true); } }));
     return;
   }
   if (!bound.length && !ap.extra.length) {
@@ -523,7 +522,6 @@ function apPage(b, aid) {
     b.appendChild(sep(_T("rm_buttons"), "play"));
     remotePage(b, aid);
   }
-  if (ISADMIN) b.appendChild(pill("tune", _T("ap_set_up"), { tap: function () { showPopup("ap-edit:" + aid, true); } }));
 }
 
 /* The entities already chosen for an appliance: a new choice is looked for among the entities of the same devices first. */
