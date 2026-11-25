@@ -12,8 +12,9 @@ function dockState() {
 function masonSpans(its, n) {
   /* A section the person gave a width takes that many columns (never more than the page has, so it shrinks with the screen and is one column on a phone); a full-width one takes them all. Of the rest, one standing alone in a run takes the whole row. */
   var sp = its.map(function (it) {
-    if (n === 1 || it.wide) return n;
-    return it.span > 0 ? Math.min(it.span, n) : 1;
+    if (n === 1) return 1;
+    if (it.span > 0) return Math.min(it.span, n);
+    return it.wide ? n : 1;
   });
   for (var a = 0; a < sp.length;) {
     if (sp[a] >= n) {

@@ -4,6 +4,12 @@ Format: [Keep a Changelog](https://keepachangelog.com/). Versions follow [semant
 
 ## [Unreleased]
 
+## [0.24.2] - 2026-11-25
+
+### Fixed
+- A Section's *Width* is kept when it holds something wide (the Cameras, Security or Energy Sections, a camera shown live): it was forced to the full width of the page. A width of one column up to the page's columns now applies to every Section.
+- A Section's *Columns* now reaches the Sections that build their own tiles: *At a glance*, *Rooms*, *Climate overview*, *Cameras* and *Security* show the number of columns chosen (one column on a narrow screen), as the rows of a plain Section do.
+
 ## [0.24.1] - 2026-11-25
 
 ### Fixed
