@@ -110,3 +110,11 @@ test("the new widgets are in the Add lists by being in the registry, and their f
   assert.match(read("popups.js"), /"wfolder": function \(id\)/);
   assert.match(readFileSync(new URL("../ha-adapter.js", APP), "utf8"), /calendar:\{events:/);
 });
+
+test("a widget does not show an entity that the dashboard's access settings hide from the person, and a tap goes through call(), which keeps the other settings", () => {
+  const src = read("homewidgets.js");
+  assert.match(src, /function wxVisible\(id\) \{\s*return ISADMIN \|\| modeOf\(id\)\.mode !== "hide";/);
+  for (const w of ["nowplaying", "snapshot", "vacuum", "ring", "sparkline", "agenda", "todo"]) assert.ok(new RegExp('registerWidget\\("' + w + '"[\\s\\S]*?wxVisible\\(x\\.id\\)').test(src), w + " checks it");
+  assert.match(src, /x\.ids\.filter\(wxVisible\)/, "a folder leaves out what is hidden");
+  assert.doesNotMatch(src, /callRaw\(/, "no widget calls a service around the access gate");
+});

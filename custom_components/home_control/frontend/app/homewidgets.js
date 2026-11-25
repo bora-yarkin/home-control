@@ -7,6 +7,11 @@ function wxEntity(x, doms) {
   return typeof x.id === "string" && ENTRE.test(x.id) && doms.indexOf(x.id.split(".")[0]) >= 0 ? x.id : "";
 }
 
+/* Whether the person may see an entity at all (the dashboard's access settings): administrators always; the others not when it is hidden from them. Taps go through call(), which keeps the rest of those settings (view only, ask). */
+function wxVisible(id) {
+  return ISADMIN || modeOf(id).mode !== "hide";
+}
+
 /* A settings row that names the entity of a widget and picks another. */
 function wxPick(box, d, label, icon, doms, save) {
   box.appendChild(
@@ -69,6 +74,7 @@ registerWidget("clock", {
       dt.textContent = n.toLocaleDateString([], { weekday: "long", day: "numeric", month: "long" });
       var w = weatherId(),
         t = w && A(w).temperature;
+      if (w && !wxVisible(w)) w = "";
       wx.textContent = w && S(w) ? (typeof t === "number" ? Math.round(t) + "° · " : "") + cap(String(V_(w)).replace(/-/g, " ")) : "";
     }
     up();
@@ -93,7 +99,7 @@ registerWidget("nowplaying", {
     return id ? { id: id } : {};
   },
   draw: function (d, x, ed) {
-    if (!x.id) return ed ? pill("media", _T("choose_a_player"), {}) : null;
+    if (!x.id || !wxVisible(x.id)) return ed && !x.id ? pill("media", _T("choose_a_player"), {}) : null;
     var id = x.id,
       c = wxCard("np", function () {
         showPopup(devPop({ kind: "media", id: id, name: entName(id), icon: "media" }), true);
@@ -137,7 +143,7 @@ registerWidget("snapshot", {
     return id ? { id: id } : {};
   },
   draw: function (d, x, ed) {
-    if (!x.id) return ed ? pill("cam", _T("choose_a_camera"), {}) : null;
+    if (!x.id || !wxVisible(x.id)) return ed && !x.id ? pill("cam", _T("choose_a_camera"), {}) : null;
     var id = x.id,
       c = wxCard("snap", function () {
         showPopup(devPop({ kind: "camera", id: id, name: entName(id), icon: "cam" }), true);
@@ -173,7 +179,7 @@ registerWidget("vacuum", {
     return id ? { id: id } : {};
   },
   draw: function (d, x, ed) {
-    if (!x.id) return ed ? pill("vac", _T("choose_a_vacuum"), {}) : null;
+    if (!x.id || !wxVisible(x.id)) return ed && !x.id ? pill("vac", _T("choose_a_vacuum"), {}) : null;
     var id = x.id,
       c = wxCard("vacw", function () {
         showPopup(devPop({ kind: "vacuum", id: id, name: entName(id), icon: "vac" }), true);
@@ -219,7 +225,7 @@ registerWidget("ring", {
     return o;
   },
   draw: function (d, x, ed) {
-    if (!x.id) return ed ? pill("plug", _T("choose_a_sensor"), {}) : null;
+    if (!x.id || !wxVisible(x.id)) return ed && !x.id ? pill("plug", _T("choose_a_sensor"), {}) : null;
     var id = x.id,
       c = wxCard("ringw", null),
       R = 26,
@@ -274,7 +280,7 @@ registerWidget("sparkline", {
     return o;
   },
   draw: function (d, x, ed) {
-    if (!x.id) return ed ? pill("thermo", _T("choose_a_sensor"), {}) : null;
+    if (!x.id || !wxVisible(x.id)) return ed && !x.id ? pill("thermo", _T("choose_a_sensor"), {}) : null;
     var id = x.id,
       c = wxCard("spark", null),
       v = mk("b"),
@@ -334,7 +340,7 @@ registerWidget("agenda", {
     return id ? { id: id } : {};
   },
   draw: function (d, x, ed) {
-    if (!x.id) return ed ? pill("clock", _T("choose_a_calendar"), {}) : null;
+    if (!x.id || !wxVisible(x.id)) return ed && !x.id ? pill("clock", _T("choose_a_calendar"), {}) : null;
     var c = wxCard("agenda", null),
       list = mk("div");
     c.appendChild(list);
@@ -383,7 +389,7 @@ registerWidget("todo", {
     return id ? { id: id } : {};
   },
   draw: function (d, x, ed) {
-    if (!x.id) return ed ? pill("check", _T("choose_a_list"), {}) : null;
+    if (!x.id || !wxVisible(x.id)) return ed && !x.id ? pill("check", _T("choose_a_list"), {}) : null;
     var c = wxCard("todow", null),
       list = mk("div");
     c.appendChild(list);
@@ -413,7 +419,12 @@ registerWidget("todo", {
       );
     }
     load();
+    /* a list's state is how many items are open: it is read again only when that changes, not on every update of the house */
+    var last = V_(x.id);
     reg(function () {
+      var now = V_(x.id);
+      if (now === last) return;
+      last = now;
       load();
     });
     return c;
@@ -449,12 +460,13 @@ registerWidget("folder", {
     return { ids: ids };
   },
   draw: function (d, x, ed) {
-    if (!x.ids.length && !ed) return null;
+    var ids = x.ids.filter(wxVisible);
+    if (!ids.length && !ed) return null;
     var c = wxCard("fold", function () {
         showPopup("wfolder:" + secKey() + ":" + CURSEC.id + ":" + d.wid, true);
       }),
       g = mk("div", "fg");
-    x.ids.slice(0, 4).forEach(function (id) {
+    ids.slice(0, 4).forEach(function (id) {
       g.insertAdjacentHTML("beforeend", ic(dom(id) === "scene" ? "scene" : dom(id) === "light" ? "lights" : "plug"));
     });
     c.appendChild(g);
@@ -495,7 +507,7 @@ function folderPage(b, key) {
     d = widgetOfSection(q[0], q[1], q[2]);
   if (!d) return;
   d.wx.ids.forEach(function (id) {
-    if (!S(id)) return;
+    if (!S(id) || !wxVisible(id)) return;
     b.appendChild(
       pill(dom(id) === "scene" ? "scene" : dom(id) === "light" ? "lights" : "plug", entName(id), {
         on: function () {
