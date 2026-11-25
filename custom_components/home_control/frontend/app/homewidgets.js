@@ -65,13 +65,23 @@ function wxLive(box, build) {
   };
 }
 
-/* A list widget: its name as a heading and its rows under it. */
-function wxList(d, icon) {
-  var box = mk("div", "wl"),
-    rows = mk("div");
-  box.appendChild(sep(d.name, icon));
-  box.appendChild(rows);
-  return { box: box, rows: rows };
+/* A widget that is a card of its own: one `.pane` with a header (the icon, the name, and a small button when the widget can add something) over its content, as on a phone's home screen. Returns the card, its body, and the header's button. */
+function wxCard(d, icon, addLabel, add) {
+  var card = mk("div", "wcard pane"),
+    head = mk("div", "wh", ic(icon) + "<b></b>"),
+    body = mk("div", "wb"),
+    btn = null;
+  head.querySelector("b").textContent = d.name;
+  if (add) {
+    btn = mk("div", "rnd pane wadd", svg("plus"));
+    btn.setAttribute("role", "button");
+    btn.setAttribute("aria-label", addLabel);
+    btn.addEventListener("click", add);
+    head.appendChild(btn);
+  }
+  card.appendChild(head);
+  card.appendChild(body);
+  return { card: card, body: body, btn: btn };
 }
 
 /* ---- Clock and weather ---- */
@@ -221,19 +231,13 @@ registerWidget("vacuum", {
   draw: function (d, x, ed) {
     if (!x.id || !wxVisible(x.id)) return ed && !x.id ? pill("vac", _T("choose_a_vacuum"), {}) : null;
     var id = x.id,
-      box = mk("div", "wl"),
-      row = pill("vac", entName(id), {
-        kind: "clean",
-        sub: function () {
-          var b = A(id).battery_level;
-          return cap(String(V_(id) || "").replace(/_/g, " ")) + (typeof b === "number" ? " · " + Math.round(b) + "%" : "");
-        },
-        tap: function () {
-          showPopup(devPop({ kind: "vacuum", id: id, name: entName(id), icon: "vac" }), true);
-        },
-      }),
-      bar = mk("div", "rrow");
-    box.appendChild(row);
+      w = wxCard({ name: entName(id) }, "vac"),
+      st = mk("span", "wsub"),
+      bar = mk("div", "wbar");
+    w.card.querySelector(".wh b").after(st);
+    w.card.addEventListener("click", function (e) {
+      if (!e.target.closest(".rbtn")) showPopup(devPop({ kind: "vacuum", id: id, name: entName(id), icon: "vac" }), true);
+    });
     [
       ["play", "start", _T("start")],
       ["pause", "pause", _T("pause")],
@@ -249,8 +253,14 @@ registerWidget("vacuum", {
         )
       );
     });
-    box.appendChild(bar);
-    return box;
+    w.body.appendChild(bar);
+    function up() {
+      var b = A(id).battery_level;
+      st.textContent = cap(String(V_(id) || "").replace(/_/g, " ")) + (typeof b === "number" ? " · " + Math.round(b) + "%" : "");
+    }
+    up();
+    reg(up);
+    return w.card;
   },
   settings: function (box, d, save) {
     wxPick(box, d, _T("vacuum"), "vac", ["vacuum"], save);
@@ -462,32 +472,27 @@ registerWidget("agenda", {
   },
   draw: function (d, x, ed) {
     if (!x.id || !wxVisible(x.id)) return ed && !x.id ? pill("clock", _T("choose_a_calendar"), {}) : null;
-    var l = wxList(d, "clock"),
+    var w = wxCard(d, "clock", _T("add_event"), function () {
+        eventDlg(x.id, load);
+      }),
       events = null,
       failed = false,
-      build = wxLive(l.rows, function (box) {
+      build = wxLive(w.body, function (box) {
         if (failed) box.appendChild(hintRow(_T("couldn_t_load_the_calendar")));
-        else if (events) {
-          events.slice(0, d.sz === "l" ? 8 : 4).forEach(function (e) {
+        else if (events && !events.length) box.appendChild(hintRow(_T("nothing_coming_up")));
+        else
+          (events || []).slice(0, d.sz === "l" ? 8 : 4).forEach(function (e) {
             var when = e.start && (e.start.dateTime || e.start.date),
-              day = when ? new Date(when) : null;
-            box.appendChild(
-              pill("clock", String(e.summary || "").slice(0, 80), {
-                sub: function () {
-                  return day ? day.toLocaleDateString([], { weekday: "short", day: "numeric", month: "short" }) + (e.start.dateTime ? " · " + day.toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" }) : "") : "";
-                },
-              })
-            );
+              day = when ? new Date(when) : null,
+              row = mk("div", "wr", "<span class='dd'><b></b><span></span></span><span class='tx'><span class='nm'></span><span class='sb'></span></span>");
+            if (day) {
+              row.querySelector(".dd b").textContent = day.getDate();
+              row.querySelector(".dd span").textContent = day.toLocaleDateString([], { weekday: "short" });
+            }
+            row.querySelector(".nm").textContent = String(e.summary || "").slice(0, 80);
+            row.querySelector(".sb").textContent = e.start && e.start.dateTime ? day.toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" }) : _T("all_day");
+            box.appendChild(row);
           });
-          if (!events.length) box.appendChild(hintRow(_T("nothing_coming_up")));
-        }
-        box.appendChild(
-          pill("plus", _T("add_event"), {
-            tap: function () {
-              eventDlg(x.id, load);
-            },
-          })
-        );
       });
     function load() {
       var from = new Date(),
@@ -506,8 +511,8 @@ registerWidget("agenda", {
     }
     build();
     load();
-    wxEvery(l.box, 600000, load);
-    return l.box;
+    wxEvery(w.card, 600000, load);
+    return w.card;
   },
   settings: function (box, d, save) {
     wxPick(box, d, _T("calendar"), "clock", ["calendar"], save);
@@ -515,6 +520,35 @@ registerWidget("agenda", {
 });
 
 /* ---- To-do ---- */
+/* An item of the list: its words to change, and a way to take it off the list that is not on show until the item is opened. */
+function itemDlg(value, save, remove) {
+  var ta = mk("textarea");
+  ta.rows = 3;
+  ta.value = value;
+  bottomSheet(function (box, close) {
+    var wrap = mk("div", "as-t");
+    wrap.appendChild(ta);
+    box.appendChild(wrap);
+    function button(label, cls, fn) {
+      var b = mk("div", "as-b" + (cls ? " " + cls : ""));
+      b.setAttribute("role", "button");
+      b.textContent = label;
+      b.addEventListener("click", fn);
+      box.appendChild(b);
+    }
+    button(_T("save"), "", function () {
+      if (!ta.value.trim()) return ta.focus();
+      close();
+      save(ta.value.trim().slice(0, 120));
+    });
+    button(_T("remove_item"), "danger", function () {
+      close();
+      remove();
+    });
+    button(_T("cancel"), "cancel", close);
+  });
+}
+
 registerWidget("todo", {
   title: _T("to_do"),
   icon: "check",
@@ -527,59 +561,58 @@ registerWidget("todo", {
   },
   draw: function (d, x, ed) {
     if (!x.id || !wxVisible(x.id)) return ed && !x.id ? pill("check", _T("choose_a_list"), {}) : null;
-    var l = wxList(d, "check"),
+    var w = wxCard(d, "check", _T("add_item"), function () {
+        textDlg(_T("new_item"), "", _T("add_item"), function (v) {
+          call("todo", "add_item", { entity_id: x.id, item: v.trim().slice(0, 120) });
+          setTimeout(load, 600);
+        });
+      }),
       items = null,
       failed = false,
-      build = wxLive(l.rows, function (box) {
-        if (failed) box.appendChild(hintRow(_T("couldn_t_load_the_list")));
-        else if (items) {
-          var open = items.filter(function (i) { return i.status !== "completed"; }),
-            done = items.filter(function (i) { return i.status === "completed"; });
-          open.slice(0, d.sz === "l" ? 12 : 6).forEach(function (i) {
-            box.appendChild(row(i, false));
-          });
-          if (!open.length) box.appendChild(hintRow(_T("nothing_to_do")));
-          done.slice(0, 3).forEach(function (i) {
-            box.appendChild(row(i, true));
-          });
-        }
-        box.appendChild(
-          pill("plus", _T("add_item"), {
-            tap: function () {
-              textDlg(_T("new_item"), "", _T("add_item"), function (v) {
-                call("todo", "add_item", { entity_id: x.id, item: v.trim().slice(0, 120) });
-                setTimeout(load, 600);
-              });
-            },
-          })
-        );
+      build = wxLive(w.body, function (box) {
+        if (failed) return box.appendChild(hintRow(_T("couldn_t_load_the_list")));
+        if (!items) return;
+        var open = items.filter(function (i) { return i.status !== "completed"; }),
+          done = items.filter(function (i) { return i.status === "completed"; });
+        open.slice(0, d.sz === "l" ? 12 : 6).forEach(function (i) {
+          box.appendChild(row(i, false));
+        });
+        if (!open.length) box.appendChild(hintRow(_T("nothing_to_do")));
+        done.slice(0, 3).forEach(function (i) {
+          box.appendChild(row(i, true));
+        });
       });
-    /* an item is checked off with a tap, and put back with a tap when it is done; the trash takes it off the list */
+    /* a tap on the circle checks an item off, or puts it back; the pen opens it, to change its words or to take it off the list */
     function row(i, finished) {
-      var ticked = finished;
-      return pill("note", String(i.summary || "").slice(0, 120), {
-        check: function () {
-          return ticked;
-        },
-        action: {
-          label: _T("remove_item"),
-          icon: function () {
-            return "trash";
-          },
-          show: function () {
-            return true;
-          },
-          fn: function () {
-            call("todo", "remove_item", { entity_id: x.id, item: [i.uid] });
+      var r = mk("div", "wr" + (finished ? " done" : ""), "<span class='ck2'></span><span class='nm'></span>"),
+        pen = mk("div", "rnd pane wedit", svg("edit")),
+        ticked = finished;
+      pen.setAttribute("role", "button");
+      pen.setAttribute("aria-label", _T("edit_item"));
+      r.appendChild(pen);
+      r.querySelector(".nm").textContent = String(i.summary || "").slice(0, 120);
+      r.querySelector(".ck2").setAttribute("role", "checkbox");
+      r.querySelector(".ck2").setAttribute("aria-checked", finished ? "true" : "false");
+      r.querySelector(".ck2").addEventListener("click", function () {
+        ticked = !ticked;
+        r.classList.toggle("done", ticked);
+        call("todo", "update_item", { entity_id: x.id, item: i.uid, status: ticked ? "completed" : "needs_action" });
+        setTimeout(load, 600);
+      });
+      pen.addEventListener("click", function () {
+        itemDlg(
+          String(i.summary || ""),
+          function (v) {
+            call("todo", "update_item", { entity_id: x.id, item: i.uid, rename: v });
             setTimeout(load, 600);
           },
-        },
-        tap: function () {
-          ticked = !ticked;
-          call("todo", "update_item", { entity_id: x.id, item: i.uid, status: ticked ? "completed" : "needs_action" });
-          setTimeout(load, 600);
-        },
+          function () {
+            call("todo", "remove_item", { entity_id: x.id, item: [i.uid] });
+            setTimeout(load, 600);
+          }
+        );
       });
+      return r;
     }
     function load() {
       HA.todo.items(x.id).then(
@@ -604,7 +637,7 @@ registerWidget("todo", {
       last = now;
       load();
     });
-    return l.box;
+    return w.card;
   },
   settings: function (box, d, save) {
     wxPick(box, d, _T("to_do_list"), "check", ["todo"], save);

@@ -1078,3 +1078,26 @@ body.rwall .hsky{display:none}
 .stk .sd i.on{background:var(--acc)}
 .notec.tapedit{cursor:pointer}
 .asheet input{width:100%;box-sizing:border-box;border-radius:var(--r-m);padding:12px 14px;background:rgba(0,0,0,.3);border:1px solid rgba(255,255,255,.22);color:var(--ink);font:inherit;outline:none}
+
+/* A widget that is a card of its own (Agenda, To-do, Vacuum): a header, a small button, and compact lines. */
+.wcard{padding:12px 14px;border-radius:var(--r-row)}
+.wcard .wh{display:flex;align-items:center;gap:10px;min-height:36px}
+.wcard .wh .ic{width:32px;height:32px;flex:none}
+.wcard .wh b{flex:1;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;font-size:var(--fs-l);font-weight:600}
+.wcard .wh .wsub{font-size:var(--fs-xs);color:var(--ink2);white-space:nowrap}
+.wcard .wh .wadd{width:34px;height:34px;flex:none;cursor:pointer}
+.wcard .wb{margin-top:6px}
+.wcard .wr{display:flex;align-items:center;gap:12px;min-height:46px;padding:6px 0;border-top:1px solid var(--f-line)}
+.wcard .wr .nm{flex:1;min-width:0;font-weight:500}
+.wcard .wr .dd{display:flex;flex-direction:column;align-items:center;width:38px;flex:none;line-height:1.1}
+.wcard .wr .dd b{font-size:var(--fs-l)}
+.wcard .wr .dd span{font-size:var(--fs-xs);color:var(--ink2)}
+.wcard .wr .tx{display:flex;flex-direction:column;min-width:0}
+.wcard .wr .sb{font-size:var(--fs-xs);color:var(--ink2)}
+.wcard .wr .wedit{width:32px;height:32px;flex:none;cursor:pointer}
+.wcard .wr .wedit svg{width:16px;height:16px}
+.wcard .wr .ck2{width:24px;height:24px;border-radius:50%;border:2px solid var(--ink2);flex:none;box-sizing:border-box;cursor:pointer}
+.wcard .wr.done .ck2{background:var(--acc);border-color:var(--acc)}
+.wcard .wr.done .nm{opacity:.5;text-decoration:line-through}
+.wcard .wbar{display:flex;gap:var(--sp);padding-top:4px}
+.wcard .wbar .rbtn{flex:1}

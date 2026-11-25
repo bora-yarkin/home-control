@@ -391,7 +391,7 @@ export function makeHass(query, home = null) {
       calls.push({ domain, service, data });
       // The to-do list and the calendar of the Showcase page keep what is added, checked and removed.
       if (domain === "todo" && service === "add_item") todoItems.push({ uid: "t" + (todoItems.length + 10), summary: data.item, status: "needs_action" });
-      if (domain === "todo" && service === "update_item") todoItems.forEach((i) => i.uid === data.item && (i.status = data.status));
+      if (domain === "todo" && service === "update_item") todoItems.forEach((i) => i.uid === data.item && (data.status && (i.status = data.status), data.rename && (i.summary = data.rename)));
       if (domain === "todo" && service === "remove_item") todoItems = todoItems.filter((i) => ![].concat(data.item).includes(i.uid));
       if (domain === "calendar" && service === "create_event") calendarEvents.push({ summary: data.summary, start: data.start_date ? { date: data.start_date } : { dateTime: new Date(data.start_date_time.replace(" ", "T")).toISOString() }, end: {} });
       if (domain === "hue_plus" && service === "set_motion_area" && data.enabled === true) {

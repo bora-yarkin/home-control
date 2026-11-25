@@ -13,9 +13,9 @@ const ROUND = ".rnd,.ic,.chev,.ck,.dk,.wg-ck,.ap-sb,.rb-g,.sh-h .rnd";
 /* Boxes that carry the app's row radius (--r-row). */
 const ROWLIKE = ".pill,.sel,.sqw,.erow,.rbtn,.gb,.ap-step,.ap-list,.ap-bar,.notec,.chartc,.tile,.qa,.wg-t,.menu,.idd-row";
 /* Cards and controls that hold text: they need padding. */
-const PADDED = ".np,.gb,.notec,.chartc,.rbtn,.sel,.sqw,.erow";
+const PADDED = ".np,.wcard,.gb,.notec,.chartc,.rbtn,.sel,.sqw,.erow";
 /* Cards and controls that must not touch each other: a gap of at least 4px between neighbours. */
-const APART = ".rnd,.ck,.pill,.sel,.rbtn,.gb,.sqw,.erow,.np,.notec,.chartc,.vidbox,.room,.opt,.hs";
+const APART = ".rnd,.ck,.pill,.sel,.rbtn,.gb,.sqw,.erow,.np,.wcard,.notec,.chartc,.vidbox,.room,.opt,.hs";
 /* A row of controls whose members should be the same size. */
 const GRIDS = ".ap-grid,.grid2,.grid3,.glance,.rrow,.seg,.wg,.cbtns";
 

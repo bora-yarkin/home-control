@@ -8,8 +8,8 @@ import { findChrome, launch, open, serve, sleep } from "./helpers/browser.mjs";
 const chrome = findChrome();
 const skip = !chrome && !process.env.CI ? "no Chrome found (set CHROME_PATH)" : false;
 
-/* Finds a widget of the Showcase page by the name it was given there and returns code for what is in it. */
-const IN = (widget) => `(() => { const sec = [...document.querySelectorAll(".wl, .notec")].find((e) => (e.querySelector(".sep") || e).textContent.trim().toLowerCase().replace("-", "").startsWith(${JSON.stringify(widget)})); return sec; })()`;
+/* A widget that is a card of the Showcase page, found by the name in its header. */
+const CARD = (widget) => `[...document.querySelectorAll(".wcard")].find((c) => c.querySelector(".wh b").textContent.trim().toLowerCase().replace("-", "").startsWith(${JSON.stringify(widget)}))`;
 
 async function session(run) {
   const server = await serve();
@@ -18,14 +18,17 @@ async function session(run) {
     await open(browser, `http://127.0.0.1:${server.address().port}`, 420, 1000);
     const ev = (code) => browser.evaluate(code);
     await ev(`go("showcase")`);
-    for (let i = 0; i < 100 && !(await ev(`!!document.querySelector(".wl .pill")`)); i++) await sleep(200);
-    /* the text of the rows of a list widget */
-    const rows = (widget) => ev(`[...(${IN(widget)}).querySelectorAll(".pill")].map((p) => ({ name: p.querySelector(".nm").textContent, checked: p.classList.contains("checked") }))`);
-    const click = (widget, name) => ev(`[...(${IN(widget)}).querySelectorAll(".pill")].find((p) => p.querySelector(".nm").textContent === ${JSON.stringify(name)}).click()`);
-    /* types into the sheet that is open and presses its first button */
+    for (let i = 0; i < 100 && !(await ev(`!!document.querySelector(".wcard .wr")`)); i++) await sleep(200);
+    /* the lines of a card: their words, and whether they are done */
+    const rows = (widget) => ev(`[...(${CARD(widget)}).querySelectorAll(".wr")].map((r) => ({ name: r.querySelector(".nm").textContent, done: r.classList.contains("done") }))`);
+    const line = (widget, name) => `[...(${CARD(widget)}).querySelectorAll(".wr")].find((r) => r.querySelector(".nm").textContent === ${JSON.stringify(name)})`;
+    const check = (widget, name) => ev(`${line(widget, name)}.querySelector(".ck2").click()`);
+    const pen = (widget, name) => ev(`${line(widget, name)}.querySelector(".wedit").click()`);
+    const add = (widget) => ev(`(${CARD(widget)}).querySelector(".wadd").click()`);
+    /* types into the sheet that is open and presses one of its buttons */
     const submit = (fields, button = 0) =>
       ev(`(async () => { const sheet = document.querySelector(".asheet.in"); for (const [sel, v] of ${JSON.stringify(fields)}) { const i = sheet.querySelector(sel); i.value = v; i.dispatchEvent(new Event("input", { bubbles: true })); } sheet.querySelectorAll(".as-b")[${button}].click(); })()`);
-    await run({ ev, rows, click, submit, sleep });
+    await run({ ev, rows, check, pen, add, submit, sleep });
   } finally {
     browser.close();
     server.closeAllConnections();
@@ -33,47 +36,59 @@ async function session(run) {
   }
 }
 
-test("the to-do list adds an item, checks one off and puts it back, and removes one", { timeout: 120000, skip }, async () => {
+test("the to-do list adds an item, checks one off and puts it back, changes the words of one, and removes one from its edit sheet", { timeout: 120000, skip }, async () => {
   assert.ok(chrome, "CI needs Chrome or Chromium");
-  await session(async ({ rows, click, submit, ev }) => {
+  await session(async ({ rows, check, pen, add, submit, ev }) => {
     await sleep(1500);
     let list = await rows("todo");
-    assert.ok(list.some((r) => r.name === "Milk" && !r.checked), "the open items are listed");
-    assert.ok(list.some((r) => r.name === "Add item"), "and there is a row to add one");
+    assert.ok(list.some((r) => r.name === "Milk" && !r.done), "the open items are listed");
+    assert.equal(await ev(`(${CARD("todo")}).querySelectorAll(".pact, .wr [data-i=trash]").length`), 0, "no trash button sits on the rows");
+    assert.equal(await ev(`(${CARD("todo")}).querySelectorAll(".wr .wedit").length`), list.length, "each row has its pen");
 
-    await click("todo", "Add item");
+    await add("todo");
     await sleep(700);
     await submit([["textarea", "Eggs"]]);
     await sleep(1500);
     list = await rows("todo");
-    assert.ok(list.some((r) => r.name === "Eggs" && !r.checked), "the new item is on the list");
+    assert.ok(list.some((r) => r.name === "Eggs" && !r.done), "the new item is on the list");
 
-    await click("todo", "Milk");
+    await check("todo", "Milk");
     await sleep(1500);
     list = await rows("todo");
-    assert.ok(list.some((r) => r.name === "Milk" && r.checked), "a checked item stays, struck as done");
+    assert.ok(list.some((r) => r.name === "Milk" && r.done), "a checked item stays, struck as done");
     assert.ok(list.findIndex((r) => r.name === "Milk") > list.findIndex((r) => r.name === "Eggs"), "after the open ones");
-
-    await click("todo", "Milk");
+    await check("todo", "Milk");
     await sleep(1500);
     list = await rows("todo");
-    assert.ok(list.some((r) => r.name === "Milk" && !r.checked), "tapping it again puts it back");
+    assert.ok(list.some((r) => r.name === "Milk" && !r.done), "tapping the circle again puts it back");
 
-    await ev(`[...(${IN("todo")}).querySelectorAll(".pill")].find((p) => p.querySelector(".nm").textContent === "Bread").querySelector(".pact").click()`);
+    await pen("todo", "Coffee beans");
+    await sleep(700);
+    assert.equal(await ev(`document.querySelector(".asheet.in textarea").value`), "Coffee beans", "the sheet has the words of the item");
+    await submit([["textarea", "Coffee"]], 0);
     await sleep(1500);
     list = await rows("todo");
-    assert.equal(list.some((r) => r.name === "Bread"), false, "the trash takes an item off the list");
+    assert.ok(list.some((r) => r.name === "Coffee") && !list.some((r) => r.name === "Coffee beans"), "the words are changed");
+
+    await pen("todo", "Bread");
+    await sleep(700);
+    assert.ok(await ev(`!!document.querySelector(".asheet.in .as-b.danger")`), "taking it off the list is in the sheet, in red");
+    await ev(`document.querySelector(".asheet.in .as-b.danger").click()`);
+    await sleep(1500);
+    list = await rows("todo");
+    assert.equal(list.some((r) => r.name === "Bread"), false, "the item is off the list");
   });
 });
 
 test("the agenda adds an event with a title and a day, and an empty title adds nothing", { timeout: 120000, skip }, async () => {
   assert.ok(chrome, "CI needs Chrome or Chromium");
-  await session(async ({ rows, click, submit, ev }) => {
+  await session(async ({ rows, add, submit, ev }) => {
     await sleep(1500);
     const before = (await rows("agenda")).map((r) => r.name);
-    assert.ok(before.includes("Dentist") && before.includes("Add event"));
+    assert.ok(before.includes("Dentist"));
+    assert.equal(await ev(`(${CARD("agenda")}).querySelectorAll(".wr .wedit, .wr .pact").length`), 0, "events cannot be changed from here, so no button says they can");
 
-    await click("agenda", "Add event");
+    await add("agenda");
     await sleep(700);
     await submit([["input[type=date]", "2031-03-04"]], 1);
     await sleep(600);
