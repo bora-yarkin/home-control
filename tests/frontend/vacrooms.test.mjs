@@ -64,3 +64,24 @@ test("the vacuum popup uses it for every vacuum with rooms that has no rooms car
   assert.ok(files.includes("app/vacrooms.js"));
   assert.match(readFileSync(new URL("../ha-adapter.js", APP), "utf8"), /config\/entity_registry\/get/);
 });
+
+test("a vacuum's battery comes from its attribute, else from the battery sensor on its device", () => {
+  const devices = read("devices.js");
+  const body = devices.slice(devices.indexOf("function vacBattery(id)"), devices.indexOf("function sibsOf(id)"));
+  const attrs = { "vacuum.old": { battery_level: 81 }, "sensor.pil": { device_class: "battery" }, "sensor.temp": { device_class: "temperature" } };
+  const states = { "sensor.pil": "96.4", "sensor.temp": "21" };
+  const ctx = vm.createContext({
+    A: (id) => attrs[id] || {},
+    V_: (id) => states[id] ?? "",
+    dom: (id) => id.split(".")[0],
+    sibsOf: (id) => (id === "vacuum.dyson" ? [{ entity_id: "sensor.temp" }, { entity_id: "sensor.pil" }] : []),
+  });
+  vm.runInContext(body, ctx);
+  assert.equal(ctx.vacBattery("vacuum.old"), 81);
+  assert.equal(ctx.vacBattery("vacuum.dyson"), 96);
+  assert.equal(ctx.vacBattery("vacuum.none"), undefined);
+  states["sensor.pil"] = "unavailable";
+  assert.equal(ctx.vacBattery("vacuum.dyson"), undefined);
+  assert.match(read("vacuum.js"), /var l = vacBattery\(id\);/);
+  assert.match(read("homewidgets.js"), /var b = vacBattery\(id\);/);
+});

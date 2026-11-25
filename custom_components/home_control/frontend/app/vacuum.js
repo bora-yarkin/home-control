@@ -548,7 +548,7 @@ function vacSummary(b, id) {
       [
         _T("battery"),
         function () {
-          var l = A(id).battery_level;
+          var l = vacBattery(id);
           return l !== undefined ? l + "%" : "–";
         },
       ],

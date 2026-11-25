@@ -4,6 +4,11 @@ Format: [Keep a Changelog](https://keepachangelog.com/). Versions follow [semant
 
 ## [Unreleased]
 
+## [0.27.1] - 2026-11-26
+
+### Fixed
+- A robot vacuum's battery showed "–" (and was missing from the vacuum widget) when the vacuum reports it as a separate battery sensor instead of the `battery_level` attribute (Dyson, and Home Assistant's way now).
+
 ## [0.27.0] - 2026-11-26
 
 ### Added

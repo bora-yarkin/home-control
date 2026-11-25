@@ -277,8 +277,8 @@ registerWidget("vacuum", {
     });
     w.body.appendChild(bar);
     function up() {
-      var b = A(id).battery_level;
-      st.textContent = cap(String(V_(id) || "").replace(/_/g, " ")) + (typeof b === "number" ? " · " + Math.round(b) + "%" : "");
+      var b = vacBattery(id);
+      st.textContent = cap(String(V_(id) || "").replace(/_/g, " ")) + (b !== undefined ? " · " + b + "%" : "");
     }
     up();
     reg(up);
