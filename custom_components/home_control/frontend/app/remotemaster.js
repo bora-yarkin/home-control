@@ -243,6 +243,12 @@ function rmHooks(x) {
   function nothingShown() {
     return !rmShows(screen());
   }
+  /* the speaker is in now playing's place */
+  function speakerHasRow() {
+    return nothingShown() && !!rmSpeaker(x, screen());
+  }
+  /* whether the default's input list is opened from now playing: then it goes with that row and must be offered elsewhere */
+  var inCard = false;
   return {
     ovr: function (role, arg) {
       var sub = rmOnScreen(x);
@@ -253,6 +259,7 @@ function rmHooks(x) {
       return true;
     },
     np: function (b, media, icon, onTap) {
+      inCard = !!onTap;
       var wrap = mk("div", "rm-np"),
         cards = {};
       [media]
@@ -276,9 +283,9 @@ function rmHooks(x) {
       );
       function up() {
         var on = screen(),
-          speakerHasRow = nothingShown() && !!rmSpeaker(x, on);
+          taken = speakerHasRow();
         Object.keys(cards).forEach(function (id) {
-          cards[id].style.display = !speakerHasRow && id === (cards[on] ? on : media) ? "" : "none";
+          cards[id].style.display = !taken && id === (cards[on] ? on : media) ? "" : "none";
         });
       }
       up();
@@ -293,6 +300,16 @@ function rmHooks(x) {
         });
       if (free) row.appendChild(slot);
       else b.appendChild(slot);
+      /* now playing gave its row to the speaker, and the inputs with it: they are offered beside power meanwhile */
+      if (free && inCard) {
+        var inputs = tvSources(x.def),
+          up = function () {
+            inputs.style.display = speakerHasRow() ? "" : "none";
+          };
+        up();
+        reg(up);
+        row.appendChild(inputs);
+      }
     },
   };
 }

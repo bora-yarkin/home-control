@@ -131,3 +131,10 @@ test("it is a widget, every TV remote lets it take its keys, and the popup's tit
   const files = JSON.parse(readFileSync(new URL("../version.json", APP), "utf8")).files;
   assert.ok(files.indexOf("app/remotemaster.js") > files.indexOf("app/widgetkinds.js"), "loaded after the widget registry");
 });
+
+test("when the speaker takes now playing's row, the default's inputs stay within reach beside power", () => {
+  const src = read("remotemaster.js");
+  assert.match(src, /inCard = !!onTap;/, "known from whether now playing opens the input list");
+  assert.match(src, /if \(free && inCard\) \{\s*var inputs = tvSources\(x\.def\)/);
+  assert.match(src, /inputs\.style\.display = speakerHasRow\(\) \? "" : "none";/, "only while that row is the speaker's");
+});
