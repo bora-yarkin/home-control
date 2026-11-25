@@ -985,12 +985,20 @@ function vacPopup(b, id) {
     RBM = RBF = RBW = RBS = null;
   }
   vacWatch(b, id);
-  vacMap(b, id);
-  vacSummary(b, id);
-  if (rbRooms().length) robotCard(b);
-  else vacGeneric(b, id);
+  /* A vacuum with its own rooms and room settings (Xiaomi) keeps its card; any other with rooms gets the universal one, map first. */
+  var universal = !rbRooms().length && vacRoomsFor(id);
+  if (!universal) vacMap(b, id);
+  if (universal)
+    vacRooms(b, id, function () {
+      vacSummary(b, id);
+    });
+  else {
+    vacSummary(b, id);
+    if (rbRooms().length) robotCard(b);
+    else vacGeneric(b, id);
+  }
   readingsBlock(b, id, { battery: true, noNums: true, noCare: true });
-  vacProfile(b, id);
+  vacProfile(b, id, universal);
 }
 
 function vacGeneric(b, id) {

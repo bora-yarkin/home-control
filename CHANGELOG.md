@@ -4,6 +4,12 @@ Format: [Keep a Changelog](https://keepachangelog.com/). Versions follow [semant
 
 ## [Unreleased]
 
+## [0.27.0] - 2026-11-26
+
+### Added
+- **Rooms for any robot vacuum** (decision D-32): a vacuum with room buttons bound to it, or one Home Assistant can clean by area, gets the card the Xiaomi vacuum has: the map first (tap a room on it), room tiles, the vacuum's modes as choices, *Start* (the chosen rooms, or all), Pause, Resume and Dock. Choosing a room starts nothing. Bound rooms are cleaned one at a time (a press of its button); areas use `vacuum.clean_area`, several at once. A bound room can have shapes on the map and settings of its own, and a drawn map picture can be used (`vx.rooms[].s`, `.o`, `vx.pic`; there is no editor for the shapes yet).
+- Bound room buttons are no longer started by a single tap in the vacuum's popup.
+
 ## [0.26.0] - 2026-11-26
 
 ### Added

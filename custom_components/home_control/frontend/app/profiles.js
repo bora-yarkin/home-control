@@ -142,10 +142,11 @@ function dlistPage(b, key) {
 }
 
 /* The vacuum's own extras under its normal popup: the map picture (nothing is drawn over it), the room buttons, the modes and the upkeep values. */
-function vacProfile(b, id) {
+function vacProfile(b, id, universal) {
   var d = UIDEV[id],
     vx = (d && d.vx) || {},
-    map = vacuumMapOf(id);
+    /* the universal room card has shown the map, the rooms and the choices among the modes already */
+    map = universal ? null : vacuumMapOf(id);
   var me = map && H().states[map] ? map : null;
   if (me) {
     var box = mk("div", "rb-map pane"),
@@ -166,7 +167,7 @@ function vacProfile(b, id) {
     paint();
     reg(paint);
   }
-  var rooms = (vx.rooms || []).filter(function (x) {
+  var rooms = universal ? [] : (vx.rooms || []).filter(function (x) {
     return H().states[x.e];
   });
   if (rooms.length) {
@@ -190,7 +191,7 @@ function vacProfile(b, id) {
   /* Modes and options: what can be set is a grid of tiles; care values and history are readings, one line each. */
   [["modes", "tune"], ["care", "wrench"]].forEach(function (g) {
     var ids = (vx[g[0]] || []).filter(function (e) {
-      return H().states[e];
+      return H().states[e] && !(universal && g[0] === "modes" && (dom(e) === "select" || dom(e) === "input_select"));
     });
     if (!ids.length) return;
     b.appendChild(sep(_T(DSLOT_LABEL["vx." + g[0]]), g[1]));
