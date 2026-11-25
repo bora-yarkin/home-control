@@ -4,6 +4,9 @@ Format: [Keep a Changelog](https://keepachangelog.com/). Versions follow [semant
 
 ## [Unreleased]
 
+### Added
+- **Remote master** (decision D-31), a widget like the lights master: one remote for a TV and what is plugged into it. In its settings you choose the default device, supplementary devices with the TV input each is on, and speakers. While the TV is on a device's input and the device is awake, the touchpad, back, home, settings, keyboard and play/pause go to that device, and power, volume, mute, channels and brightness stay with the TV. The popup's title is a dropdown of every device in it, each with its own remote. A speaker playing something else shows as a volume slider with its artwork and title. *Remember the device I pick* keeps the last device on that screen.
+
 ## [0.25.0] - 2026-11-25
 
 ### Changed
