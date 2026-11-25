@@ -4,6 +4,14 @@ Format: [Keep a Changelog](https://keepachangelog.com/). Versions follow [semant
 
 ## [Unreleased]
 
+## [0.28.2] - 2026-11-26
+
+### Added
+- **Robot vacuum appliance:** a word can stand inside a text of a Start action, for vacuums that take their rooms as one text, such as `{"room":$rooms}` (Xiaomi's room cleaning).
+
+### Changed
+- A room's own settings (the gear on a room tile) are offered only when a Start action sends them (`$room_settings`); before, they could be chosen and were then ignored.
+
 ## [0.28.1] - 2026-11-26
 
 ### Added

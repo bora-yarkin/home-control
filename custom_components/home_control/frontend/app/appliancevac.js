@@ -37,15 +37,32 @@ function vacapValue(v) {
   return typeof v === "string" && /^-?\d{1,6}$/.test(v) ? Number(v) : v;
 }
 
-/* The words of an action's data, filled in. Returns undefined when a word has nothing behind it, so that the action is skipped. */
+function vacapSendsRoomSettings(conf) {
+  return JSON.stringify(conf.run).indexOf("$room_settings") >= 0;
+}
+
+/* The words of an action's data, filled in. A string that is only a word becomes its value; a word inside a longer string is written into it (a list or an object as JSON, a number
+   written as digits as a number: {"room":$rooms} gives {"room":[3,4]}, which some vacuums take as one text). Returns undefined when a word has nothing behind it, so that the action is
+   skipped. */
 function vacapFill(data, words) {
   var missing = false;
+  function value(name) {
+    var w = Object.prototype.hasOwnProperty.call(words, name) ? words[name] : undefined;
+    if (w === undefined || w === "" || (w && typeof w === "object" && !Object.keys(w).length)) missing = true;
+    return w;
+  }
+  function written(w) {
+    if (Array.isArray(w)) return JSON.stringify(w.map(vacapValue));
+    return w && typeof w === "object" ? JSON.stringify(w) : String(w);
+  }
+  var WORD = /\$(set\.[A-Za-z0-9_]+|room_settings|rooms|vacuum_device|vacuum)/g;
   function walk(x) {
-    if (typeof x === "string" && x.charAt(0) === "$") {
-      var w = Object.prototype.hasOwnProperty.call(words, x) ? words[x] : undefined;
-      if (w === undefined || w === "" || (w && typeof w === "object" && !Object.keys(w).length)) missing = true;
-      return w;
-    }
+    if (typeof x === "string" && x.charAt(0) === "$" && (Object.prototype.hasOwnProperty.call(words, x) || !/[^$A-Za-z0-9_.]/.test(x))) return value(x);
+    if (typeof x === "string" && x.indexOf("$") >= 0)
+      return x.replace(WORD, function (name) {
+        var w = value(name);
+        return w === undefined ? name : written(w);
+      });
     if (Array.isArray(x)) return x.map(walk);
     if (x && typeof x === "object") {
       var o = {};
@@ -311,7 +328,8 @@ function vacapPage(b, d) {
       t.lastChild.textContent = r.l || r.k;
       t._k = r.k;
       t.setAttribute("role", "button");
-      if (ISADMIN && conf.sets.length) {
+      /* a room's own settings are offered only when Start sends them */
+      if (ISADMIN && conf.sets.length && vacapSendsRoomSettings(conf)) {
         var gear = mk("span", "rb-g", svg("tune"));
         gear.title = _T("room_preferences");
         gear.addEventListener("click", function (e) {
