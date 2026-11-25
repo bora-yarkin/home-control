@@ -503,6 +503,9 @@ window.HA={
  history:function(params){return withType("history/history_during_period",params)},
  logbook:function(params){return withType("logbook/get_events",params)},
  statistics:function(params){return withType("recorder/statistics_during_period",params)},
+ /* The events of a calendar between two times, and the items of a to-do list (the Agenda and To-do widgets). */
+ calendar:{events:function(entityId,startIso,endIso){return hass.callApi("GET","calendars/"+encodeURIComponent(entityId)+"?start="+encodeURIComponent(startIso)+"&end="+encodeURIComponent(endIso))}},
+ todo:{items:function(entityId){return ws({type:"todo/item/list",entity_id:entityId}).then(function(r){return(r&&r.items)||[]})}},
  users:function(){return ws({type:"config/auth/list"})},
  entityRegistry:function(){return ws({type:"config/entity_registry/list"}).then(function(rows){return loadReplaces().then(function(){return withoutReplaced(rows)})})},
  serviceResponse:serviceResponse,

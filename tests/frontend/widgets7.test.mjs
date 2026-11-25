@@ -141,6 +141,32 @@ test("a widget's size is the one saved when its type has it, else its own; a dev
   assert.equal(w.secIsWide({ devs: [{ kind: "widget", w: "chart" }] }), true);
 });
 
+test("resizing a widget saves the size, and going back to the type's own size saves nothing", () => {
+  const w = world();
+  let pick;
+  const box = { appendChild() {} };
+  w.dropRow = (label, opts, cur, set) => {
+    pick = { opts, cur, set };
+    return {};
+  };
+  const d = { kind: "widget", w: "chart", id: "", name: "Chart", icon: "thermo", wx: { ds: [] } };
+  let redraws = 0;
+  w.sizeSettings(box, d, () => redraws++);
+  assert.deepEqual(plain(pick.opts), ["m", "l"], "only the sizes the type has");
+  pick.set("l");
+  assert.equal(d.sz, "l");
+  assert.equal(redraws, 1);
+  pick.set("m");
+  assert.equal("sz" in d, false, "the type's own size is not saved");
+  const light = { kind: "sensor", id: "sensor.a", name: "A", icon: "thermo" };
+  w.sizeSettings(box, light, () => {});
+  assert.deepEqual(plain(pick.opts), ["row", "xs", "s"], "a sensor is a row or a tile");
+  const plainLight = { kind: "light", id: "light.a", name: "L", icon: "light" };
+  pick = null;
+  w.sizeSettings(box, plainLight, () => {});
+  assert.equal(pick, null, "a light has no other size, so none is offered");
+});
+
 test("the Add lists offer every widget type, and a widget's settings and drawing are the type's own", () => {
   assert.match(read("addpopup.js"), /Object\.keys\(WIDGETS\)/);
   assert.match(read("manage.js"), /widgetSettings\(c\)/);

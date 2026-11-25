@@ -11,6 +11,9 @@ Format: [Keep a Changelog](https://keepachangelog.com/). Versions follow [semant
 ### Changed
 - **Widgets and sizes** (decision D-25): every section is now the plain Section. Note, Chart, Readings, Camera, Cameras, Security, Energy, Attention, On now, At a glance, Pinned, Rooms, Linked section, Status tiles and Climate overview are widgets or sizes of devices inside one and the lights master (a widget of its Section, with the same settings). A note and a chart are *widgets* (added from the new Widgets list in *Add section* and *Add device*), a sensor can be a tile (small or two columns wide) and a camera can be shown live (size *Large*); a Section is a grid of four columns. Existing dashboards are converted when they open (layout 7); nothing is lost.
 
+### Added
+- **Widgets for a home screen** (decision D-25): *Clock and weather*, *Now playing*, *Camera snapshot*, *Vacuum*, *Power ring*, *Sensor sparkline*, *Agenda*, *To-do*, *Folder* (up to twelve devices and scenes in a tile) and *Stack* (up to five widgets, swipe to change), from the *Widgets* list in *Add section* and *Add device*, each at the sizes it can take (*Size* in its settings).
+
 ### Fixed
 - The robot vacuum's mode, suction, water output and room buttons had a different colour each (every icon took the colour of what its picture meant). They now share one colour; the selected one stays in the accent colour.
 - A renamed or deleted entity can be taken off the HomeKit Bridge's list (it could not be, because it no longer exists).

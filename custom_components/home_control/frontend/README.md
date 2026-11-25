@@ -44,6 +44,7 @@ Popups are made of a few shared pieces. A popup that needs one of these uses it 
 | `guardUnsaved` (`scenenew.js`) | The one rule for a form that saves: the checkmark, and Save / Discard when it is closed with changes. |
 | `redrawBox`, `swapContent` (`manage.js`) | Draw a popup's content again, with or without the slide. |
 | `iconPick` (`icons.js`), `textRow` (`manage.js`), `dropRow` (`appearance.js`), `entRow` (`devices.js`), `pickEntity` (`widgets.js`) | The icon list, the name field, a dropdown row, a read-only line, the entity picker. |
+| `registerWidget`, `widgetDef`, `sizeOf`, `widgetRow` (`widgetkinds.js`), `homewidgets.js` | A widget is a device of kind `widget` with a type and settings (`wx`); the type, registered here, says what it is, its sizes, how its settings are checked, drawn and edited. A Section is a grid of four columns (`xs` 1, `s` 2, `m` and `l` 4). The overviews, the lights master and the home screen widgets are types. |
 | `devManage` and the `dev*Tab` functions (`manage.js`) | A device's settings: one function for each tab (Look, Options, Placement, More) and one for each kind's options. A new kind's options are one more function called from `devOptionsTab`. |
 
 The light popup (`lightpanel.js`) is a design of its own (the `lp-*` rules) and is changed on its own.

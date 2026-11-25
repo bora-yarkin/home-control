@@ -270,6 +270,16 @@ var POPUP_DEFS = {
       },
     };
   },
+  "wfolder": function (id) {
+    var d = widgetOfSection(id.split(":")[0], id.split(":")[1], id.split(":")[2]);
+    return {
+      title: (d && d.name) || _T("folder"),
+      icon: "plus",
+      build: function (b) {
+        folderPage(b, id);
+      },
+    };
+  },
   "lmaster-edit": function (id) {
     var sec = masterById(id.split(":")[0], id.split(":")[1]);
     return {

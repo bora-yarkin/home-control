@@ -1,5 +1,5 @@
 {
-  "version": 441,
+  "version": 443,
   "files": [
     "integrations.js",
     "app/strings.js",
@@ -26,6 +26,7 @@
     "app/status.js",
     "app/sections.js",
     "app/widgetkinds.js",
+    "app/homewidgets.js",
     "app/rules.js",
     "app/editor.js",
     "app/pages.js",
