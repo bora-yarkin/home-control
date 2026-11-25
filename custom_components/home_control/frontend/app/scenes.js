@@ -633,6 +633,7 @@ function devRow(d) {
 
 function devRowRaw(d) {
   var pk;
+  if (d.kind === "widget") return widgetRow(d, false);
   if (d.kind === "scene") return sceneDeviceRow(d);
   if (d.kind === "cscene") return sceneMadeRow(d);
   if (d.kind === "scenes") return sceneCollectionRow(d);

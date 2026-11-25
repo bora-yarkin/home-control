@@ -461,7 +461,6 @@ function secAdd(sc, k) {
     hide: false,
   };
   if (ty.own) e.devs = [];
-  if (k === "chart") e.r = "24h";
   arr.push(e);
   setSecOrder(sc, arr);
   uiChanged();
@@ -473,8 +472,8 @@ var SEC_GROUPS = [
   ["sec_group_section", "tune", ["devs"]],
   ["sec_group_overview", "home", ["glance", "now", "rooms", "alerts", "chips", "status"]],
   ["sec_group_scenes", "scene", ["pinned"]],
-  ["sec_group_information", "info", ["chart", "read", "note", "security", "energy"]],
-  ["sec_group_cameras", "cam", ["camera", "cameras"]],
+  ["sec_group_information", "info", ["security", "energy"]],
+  ["sec_group_cameras", "cam", ["cameras"]],
   ["sec_group_tools", "swap", ["link"]],
 ];
 
@@ -482,6 +481,23 @@ function secTypesPage(b, scopeId) {
   var sc = scopeKey(scopeId),
     have = secOrder(sc);
   b.appendChild(mkHint(_T("choose_what_the_new_section_shows_yo")));
+  b.appendChild(sep(_T("widgets"), "tune"));
+  Object.keys(WIDGETS).forEach(function (w) {
+    var f = WIDGETS[w];
+    b.appendChild(
+      pill(f.icon, f.title, {
+        sub: function () {
+          return f.desc || "";
+        },
+        tap: function () {
+          var e = secAddWidget(sc, w);
+          STACK.pop();
+          CURRENT = null;
+          showPopup("manage-sec:" + scopeId + ":" + e.id, true);
+        },
+      })
+    );
+  });
   SEC_GROUPS.forEach(function (g) {
     b.appendChild(sep(_T(g[0]), g[1]));
     g[2].forEach(function (k) {
@@ -515,6 +531,17 @@ function secTypesPage(b, scopeId) {
       );
     });
   });
+}
+
+/* A new plain Section holding one new widget, named and iconned as the widget is. */
+function secAddWidget(sc, w) {
+  var arr = secOrder(sc),
+    f = widgetDef(w),
+    e = { id: newSecId(arr), k: "devs", hide: false, t: f.title.slice(0, 40), i: f.icon, devs: [newWidgetDev(w)] };
+  arr.push(e);
+  setSecOrder(sc, arr);
+  uiChanged();
+  return e;
 }
 
 /* Back to the popup that opened this one, or closed if it was opened directly. */
@@ -1001,38 +1028,6 @@ function secEditor(b, key) {
         )
       );
     }
-    if (k === "chart")
-      (box.appendChild(sep(_T("time_range"), "clock")),
-        box.appendChild(
-          seg(
-            [
-              ["6h", _T("6_hours")],
-              ["24h", _T("24_hours")],
-              ["7d", _T("7_days")],
-              ["30d", _T("30_days")],
-            ],
-            e.r || "24h",
-            function (v) {
-              e.r = v;
-              delete CHR[sid];
-              save();
-              redrawBox(box, draw);
-            }
-          )
-        ));
-    if (k === "note")
-      (box.appendChild(sep(_T("text"), "edit")),
-        box.appendChild(
-          areaRow(
-            _T("write_a_note"),
-            e.txt || "",
-            function (v) {
-              e.txt = v.slice(0, 600);
-              save();
-            },
-            600
-          )
-        ));
     if (k === "pinned")
       box.appendChild(
         pill("pin", _T("pinned_items"), {

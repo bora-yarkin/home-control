@@ -1,5 +1,5 @@
 {
-  "version": 436,
+  "version": 437,
   "files": [
     "integrations.js",
     "app/strings.js",
@@ -25,6 +25,7 @@
     "app/batteries.js",
     "app/status.js",
     "app/sections.js",
+    "app/widgetkinds.js",
     "app/rules.js",
     "app/editor.js",
     "app/pages.js",

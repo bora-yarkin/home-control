@@ -1,6 +1,17 @@
 /* Text shown to the user: the English strings and the lookup function _T(). */
 
 var EN = {
+  "widgets": "Widgets",
+  "widget": "Widget",
+  "size": "Size",
+  "size_row": "Row",
+  "size_xs": "Small tile",
+  "size_s": "Tile",
+  "size_m": "Wide",
+  "size_l": "Large",
+  "tap_to_remove": "tap to remove",
+  "add_a_sensor": "Add a sensor",
+  "empty_note_open_this_widget_s_setti": "Empty note: open this widget's settings to write it",
   "nw_alerts_for_any_entity": "Alerts for any entity",
   "nw_add_an_alert": "Add an alert",
   "nw_add_an_alert_sub": "When an entity reaches a state: a washer finishes, a door stays open, a call comes in",

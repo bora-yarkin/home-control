@@ -23,7 +23,7 @@ function world() {
     cleanCond: () => null,
   };
   vm.createContext(sandbox);
-  for (const f of ["model.js", "sections.js"]) vm.runInContext(read(f), sandbox, { filename: f });
+  for (const f of ["model.js", "sections.js", "widgetkinds.js"]) vm.runInContext(read(f), sandbox, { filename: f });
   sandbox.cleanCond = () => null;
   return sandbox;
 }
@@ -55,9 +55,9 @@ test("sections of layout 4 that held devices become one kind, Section, and keep 
 test("quick actions are scenes, and the kinds that are not devices stay as they are", () => {
   const w = world();
   const out = plain(w.cleanLayout([{ id: "quick", k: "quick", scn: ["a"] }, { id: "glance", k: "glance" }, { id: "rooms", k: "rooms" }, { id: "alerts", k: "alerts" }, { id: "nt", k: "note", txt: "hi" }]));
-  assert.deepEqual(out.map((s) => s.k), ["devs", "glance", "rooms", "alerts", "note"]);
+  assert.deepEqual(out.map((s) => s.k), ["devs", "glance", "rooms", "alerts", "devs"]);
   assert.deepEqual(out[0].devs.map((d) => d.kind + ":" + d.sid), ["cscene:a"], "its scenes are devices of the Section");
-  assert.equal(out[4].txt, "hi");
+  assert.equal(out[4].devs[0].wx.txt, "hi", "a note section is a Section with a note widget");
 });
 
 test("a master of the section (its own, or held) is kept by a Section whatever it was called", () => {
@@ -82,7 +82,8 @@ test("a new Home page starts with Attention, At a glance, Rooms and Scenes; a ne
 
 test("the Add section list has every kind, grouped, and a kind that exists once is listed too, as already on the page", () => {
   const editor = read("editor.js");
-  for (const k of ["devs", "glance", "rooms", "alerts", "chips", "status", "pinned", "chart", "read", "note", "security", "energy", "camera", "cameras", "link"]) assert.match(editor, new RegExp('"' + k + '"'), k);
+  for (const k of ["devs", "glance", "rooms", "alerts", "chips", "status", "pinned", "security", "energy", "cameras", "link"]) assert.match(editor, new RegExp('"' + k + '"'), k);
+  assert.match(editor, /Object\.keys\(WIDGETS\)/, "every widget type of the registry is offered");
   assert.match(editor, /already_on_this_page/);
   assert.doesNotMatch(editor, /secSetKind|secTypePage/, "a section does not change type");
 });

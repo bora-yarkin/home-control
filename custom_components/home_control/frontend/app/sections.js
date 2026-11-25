@@ -26,32 +26,6 @@ var SECTYPES = {
       noun: _T("device_2"),
       add: "devices",
     },
-    camera: {
-      t: _T("camera"),
-      i: "cam",
-      d: _T("live_view_with_controls"),
-      own: 1,
-      wide: 1,
-      noun: _T("camera_2"),
-      add: "camera",
-    },
-    read: {
-      t: _T("readings"),
-      i: "drop",
-      d: _T("tiles_with_the_current_value_of_sens"),
-      own: 1,
-      noun: _T("reading"),
-      add: "sensors",
-    },
-    chart: {
-      t: _T("chart"),
-      i: "thermo",
-      d: _T("history_of_up_to_four_sensors"),
-      own: 1,
-      noun: _T("sensor"),
-      add: "sensors",
-    },
-    note: { t: _T("note"), i: "info", d: _T("free_text") },
     security: { t: _T("security"), i: "lock", d: _T("locks_alarms_doors_and_windows") },
     energy: { t: _T("energy_and_usage"), i: "plug", d: _T("power_now_and_usage_over_the_week") },
     cameras: { t: _T("cameras"), i: "cam", d: _T("all_cameras_in_one_grid") },
@@ -108,12 +82,8 @@ var SECTYPES = {
     "chips",
     "status",
     "pinned",
-    "chart",
-    "read",
-    "note",
     "security",
     "energy",
-    "camera",
     "cameras",
     "link",
   ],
@@ -359,6 +329,7 @@ function liveOf(el) {
 
 function secList(scope) {
   var list = [];
+  CAMN = 0;
   RULESIG[scope] = ruleSig(scope);
   secOrder(scope).forEach(function (s) {
     if (s.hide && !editing()) return;
@@ -381,7 +352,7 @@ function secList(scope) {
     outer.push(liveOf(el));
     if (!ok) ruleMark(el);
     if (s.hide) hideMark(el);
-    list.push({ el: el, wide: !!(SECTYPES[secKindOf(s)] || {}).wide, id: s.id });
+    list.push({ el: el, wide: !!(SECTYPES[secKindOf(s)] || {}).wide || secIsWide(s), id: s.id });
   });
   return list;
 }
@@ -425,7 +396,7 @@ function readText(id) {
 }
 
 function readTile(d) {
-  var t = mk("div", "gb pane", "<b></b><span></span>"),
+  var t = mk("div", "gb pane wgt w-" + sizeOf(d), "<b></b><span></span>"),
     b = t.firstChild;
   t.lastChild.textContent = d.name || d.id;
   function up() {
@@ -434,6 +405,15 @@ function readTile(d) {
   up();
   reg(up);
   return t;
+}
+
+/* What a device is on a page: a widget by its type, a camera at size l by its live picture (a row while the page is edited), a sized sensor a tile, any other a row. */
+function deviceItem(d, ed) {
+  var z = sizeOf(d);
+  if (d.kind === "widget") return widgetRow(d, ed);
+  if (d.kind === "camera" && z === "l" && d.id) return ed ? null : cameraLive(d);
+  if (z !== "row" && d.id) return readTile(d);
+  return devRow(d);
 }
 
 function secKey() {
@@ -452,12 +432,9 @@ function widgetAdd(lk, k) {
 
 function customSection(s) {
   var k = s.k || "devs";
-  if (k === "note") return noteSection(s);
   if (k === "security") return cardSection(s, securityList(), _T("security"), "lock");
   if (k === "energy") return cardSection(s, energyList(s), _T("energy_and_usage"), "plug");
   if (k === "cameras") return cardSection(s, cameraList(), _T("cameras"), "cam");
-  if (k === "chart") return chartSection(s);
-  if (k === "camera") return cameraSection(s);
   var ed = editing(),
     lk = "~" + secKey() + "~" + s.id,
     src = [],
@@ -469,8 +446,8 @@ function customSection(s) {
     if (!ed && (d.hide || (d.id && modeOf(d.id).mode === "hide"))) return;
     /* A lights master can leave its lights and the sync out of the section; it keeps them itself. */
     if (!ed && k === "devs" && d.id && masterLeavesOut(s, d)) return;
-    var r = k === "read" ? (d.id ? readTile(d) : null) : devRow(d);
-    if (!r && ed) r = k === "read" ? readTile(d) : pill(d.icon || "plug", d.name, {});
+    var r = deviceItem(d, ed);
+    if (!r && ed) r = pill(d.icon || "plug", d.name, {});
     if (!r) return;
     rows.push(
       edMark(r, devEditor(lk, d), !!d.hide)
@@ -516,13 +493,17 @@ function customSection(s) {
   });
   rows = masterRows.concat(rows);
   var body = rows;
-  if (k === "read") {
-    var g = mk("div", "glance");
-    g.style.gridTemplateColumns = "repeat(auto-fill,minmax(124px,1fr))";
+  if (
+    rows.some(function (r) {
+      return r.classList.contains("wgt");
+    })
+  ) {
+    /* Widgets and sized devices: the Section is a grid of four columns; a row takes all four. */
+    var wg = mk("div", "wgrid");
     rows.forEach(function (r) {
-      g.appendChild(r);
+      wg.appendChild(r);
     });
-    body = [g];
+    body = [wg];
   } else if (layCols(s.lay) > 1) {
     var gl = mk("div", "gridl g" + layCols(s.lay));
     rows.forEach(function (r) {
@@ -535,68 +516,21 @@ function customSection(s) {
   return sx;
 }
 
-/* Camera: a live view of each camera with its controls on the picture. */
-function cameraSection(s) {
-  var ed = editing(),
-    lk = "~" + secKey() + "~" + s.id,
-    cams = (s.devs || []).filter(function (d) {
-      return d.id && (ed || (!d.hide && modeOf(d.id).mode !== "hide"));
-    });
-  if (!cams.length && !ed) return null;
-  var items = [],
-    rows = [];
-  cams.forEach(function (d, i) {
-    var box = mk("div", "vidbox"),
-      owner = i ? "page" + i : "page";
-    function startPage() {
-      box.innerHTML = "";
-      stream(box, d.id, owner, false);
-      camControls(box, d.id);
-    }
-    box.dataset.cam = d.id;
-    box._start = startPage;
-    if (!PATCH_BUILD) startPage();
-    if (i === 0) CAMPAGE = { box: box, start: startPage };
-    items.push(box);
-    if (ed) {
-      var r = edMark(pill("axis", d.name, { tap: function () {} }), devEditor(lk, d), !!d.hide);
-      rows.push(r);
-      items.push(r);
-    }
-  });
-  if (ed) {
-    edSort(rows, function (f, t) {
-      edReorder(s.devs, cams, f, t);
-      uiChanged();
-    });
-    items.push(
-      edAdd(
-        widgetAddLabel("camera"),
-        function () {
-          widgetAdd(lk, "camera");
-        },
-        null,
-        cams.length > 0
-      )
-    );
-  }
-  return section(secName(s), secIcon(s), items);
-}
+/* A camera at size l: its live picture with the controls on it. The first of a page is the one the page starts and stops with the page (owner "page"). */
+var CAMN = 0;
 
-function noteSection(s) {
-  var ed = editing(),
-    txt = (s.txt || "").trim();
-  if (!txt && !ed) return null;
-  var c = mk("div", "notec pane");
-  if (txt) c.textContent = s.txt;
-  else {
-    c.textContent = _T("empty_note_open_this_section_s_setti");
-    c.classList.add("dim");
+function cameraLive(d) {
+  var box = mk("div", "vidbox"),
+    owner = CAMN++ ? "page" + CAMN : "page";
+  function startPage() {
+    box.innerHTML = "";
+    stream(box, d.id, owner, false);
+    camControls(box, d.id);
   }
-  edMark(c, function () {
-    showPopup("manage-sec:" + secKey() + ":" + s.id, false);
-  });
-  return section(s.t || _T("note"), s.i && iconOk(s.i) ? s.i : "info", [c]);
+  box.dataset.cam = d.id;
+  box._start = startPage;
+  if (!PATCH_BUILD) startPage();
+  return box;
 }
 
 /* Chart: history of up to four sensors, drawn from Home Assistant's recorder. */
@@ -805,48 +739,21 @@ function chartDraw(box, ds, data, rng, sid) {
   box.appendChild(tl);
 }
 
-function chartSection(s) {
-  var ed = editing(),
-    lk = "~" + secKey() + "~" + s.id,
-    ttl = s.t || _T("chart"),
-    ico = s.i && iconOk(s.i) ? s.i : "thermo",
-    ds = (s.devs || [])
-      .filter(function (d) {
-        return d.id && !d.hide;
-      })
-      .slice(0, 4);
-  if (!ds.length) {
-    if (!ed) return null;
-    return section(ttl, ico, [
-      pill("info", _T("no_sensors_yet"), {
-        sub: function () {
-          return _T("add_one_or_more_sensors_to_draw_a_ch");
-        },
-      }),
-      edAdd(
-        _T("add_device"),
-        function () {
-          ADDPRE = "sensors";
-          showPopup("manage-add:" + lk, true);
-        },
-        null
-      ),
-    ]);
-  }
+function chartCard(sid, ds, r0) {
   var card = mk("div", "chartc pane"),
     rg = mk("div", "rg"),
     plot = mk("div", "pl"),
     lg = mk("div", "lg"),
     legs = [];
   function rng() {
-    return CHR[s.id] || s.r || "24h";
+    return CHR[sid] || r0 || "24h";
   }
   ["6h", "24h", "7d", "30d"].forEach(function (r) {
     var b = mk("div", "rbtn pane" + (r === rng() ? " act" : ""));
     b.textContent = r;
     b.addEventListener("click", function (e) {
       e.stopPropagation();
-      CHR[s.id] = r;
+      CHR[sid] = r;
       [].forEach.call(rg.children, function (c) {
         c.classList.toggle("act", c === b);
       });
@@ -884,7 +791,7 @@ function chartSection(s) {
           plot.appendChild(hintRow(_T("couldn_t_load_the_history_2")));
           return;
         }
-        chartDraw(plot, ds, data, r, s.id);
+        chartDraw(plot, ds, data, r, sid);
       }
     );
   }
@@ -892,10 +799,7 @@ function chartSection(s) {
   card.appendChild(rg);
   card.appendChild(plot);
   card.appendChild(lg);
-  edMark(card, function () {
-    showPopup("manage-sec:" + secKey() + ":" + s.id, false);
-  });
-  return section(ttl, ico, [card]);
+  return card;
 }
 
 function roomFloors(keys) {

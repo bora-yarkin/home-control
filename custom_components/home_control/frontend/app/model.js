@@ -26,6 +26,7 @@ var KINDS = [
   "scene",
   "cscene",
   "scenes",
+  "widget",
 ];
 
 /* The starting layout when nothing is saved yet: one room per Home Assistant area with its controllable devices,
@@ -373,12 +374,14 @@ function cleanDev(d) {
     return null;
   var id = typeof d.id === "string" ? d.id : "";
   if (id && !ENTRE.test(id)) return null;
-  if (!id && ["special", "remote", "appliance", "cscene", "scenes"].indexOf(d.kind) < 0) return null;
+  if (!id && ["special", "remote", "appliance", "cscene", "scenes", "widget"].indexOf(d.kind) < 0) return null;
   if (d.kind === "cscene" && !(typeof d.sid === "string" && /^[a-z0-9_-]{1,24}$/.test(d.sid))) return null;
   if (d.kind === "scene" && id.split(".")[0] !== "scene") return null;
   if (d.kind === "appliance" && !(typeof d.aid === "string" && /^[a-z0-9_-]{1,24}$/.test(d.aid))) return null;
   if (d.kind === "remote" && !(typeof d.rid === "string" && /^[a-z0-9_-]{1,24}$/.test(d.rid))) return null;
   var c = { id: id, name: d.name, icon: iconOk(d.icon) ? d.icon : "plug", kind: d.kind };
+  /* A widget's type, id and settings, and the size of a widget or of a device that can take one (decision D-25). */
+  if ((d.kind === "widget" || d.sz) && !(typeof cleanWidgetDev === "function" ? cleanWidgetDev(d, c) : d.kind !== "widget")) return null;
   if (typeof d.pop === "string" && POPRE.test(d.pop) && d.pop) c.pop = d.pop;
   if (d.sub) c.sub = 1;
   if (d.setup) c.setup = 1;
@@ -629,7 +632,7 @@ function cleanUI(u) {
   });
   var lv = u.layout && u.layout.v,
     cur = lv >= 4 ? { home: u.layout.home, rooms: u.layout.rooms || {} } : { home: null, rooms: {} };
-  o.layout.v = 6;
+  o.layout.v = 7;
   o.layout.home = cleanLayout(cur.home || seedSections("home"));
   Object.keys(ids).forEach(function (rid) {
     o.layout.rooms[rid] = cleanLayout(cur.rooms[rid] || seedSections("room:" + rid));
@@ -684,6 +687,53 @@ function scenesToDevices(s) {
   return c;
 }
 
+/* Layout 7 (decision D-25): the sections that were not plain Sections become plain Sections whose devices and widgets carry what the type had. Note: a note widget. Readings: the devices as tiles. Chart: a chart
+   widget with its sensors and range. Camera: the cameras at size l. The section keeps its name and icon (the type's, when none was given). */
+function sectionToWidgets(s) {
+  var c = Object.assign({}, s),
+    devs = Array.isArray(s.devs) ? s.devs : [],
+    named = function (name, icon) {
+      if (!c.t) c.t = name;
+      if (!c.i) c.i = icon;
+    },
+    widget = function (w, name, icon, wx) {
+      return { kind: "widget", id: "", w: w, name: name, icon: icon, wx: wx };
+    };
+  if (s.k === "note") {
+    named(_T("note"), "info");
+    c.devs = devs.concat([widget("note", _T("note"), "info", { txt: s.txt })]);
+  } else if (s.k === "read") {
+    named(_T("readings"), "drop");
+    c.devs = devs.map(function (d) {
+      return d && d.id ? Object.assign({}, d, { sz: "s" }) : d;
+    });
+  } else if (s.k === "chart") {
+    named(_T("chart"), "thermo");
+    c.devs = [
+      widget("chart", _T("chart"), "thermo", {
+        ds: devs
+          .filter(function (d) {
+            return d && d.id && !d.hide;
+          })
+          .map(function (d) {
+            return { id: d.id, name: d.name };
+          }),
+        r: s.r,
+      }),
+    ];
+  } else if (s.k === "camera") {
+    named(_T("camera"), "cam");
+    c.devs = devs.map(function (d) {
+      return d && d.kind === "camera" && d.id ? Object.assign({}, d, { sz: "l" }) : d;
+    });
+  }
+  ["txt", "r"].forEach(function (k) {
+    delete c[k];
+  });
+  c.k = "devs";
+  return c;
+}
+
 function cleanLayout(a) {
   var out = [],
     seen = {};
@@ -694,6 +744,8 @@ function cleanLayout(a) {
     /* Layout 5: the sections that held devices (Lights, Media, Climate, Controls, Sensors, Other devices, Devices) are one kind, Section; each keeps the name and icon its type gave it. Quick actions are Scenes. */
     /* Layout 6: the scenes a Section showed (a scenes section's, or the ones kept on a Section) are devices of it now: each chosen scene, and one collection of scenes for the pages, tags and area it took in. */
     if (s.k === "scenes" || s.k === "quick" || s.scs) s = scenesToDevices(s);
+    /* Layout 7: the sections that were not plain Sections but held devices or text are plain Sections with widgets (see sectionToWidgets). */
+    if (["note", "read", "chart", "camera"].indexOf(s.k) >= 0) s = sectionToWidgets(s);
     var old = LEGACY_SECTYPES[s.k],
       k = old ? (old[2] || "devs") : typeof s.k === "string" && SECTYPES[s.k] ? s.k : "devs",
       ty = SECTYPES[k],
@@ -754,14 +806,11 @@ function cleanLayout(a) {
     )
       o.when = { id: wh.id, is: wh.is, not: !!wh.not };
     if (layCols(s.lay)) o.lay = s.lay;
-    if (k === "chart" && (s.r === "6h" || s.r === "24h" || s.r === "7d" || s.r === "30d"))
-      o.r = s.r;
     if (k === "energy") {
       var pr = Number(s.price);
       if (isFinite(pr) && pr > 0 && pr <= 1000) o.price = pr;
       if (typeof s.cur === "string" && s.cur.length <= 4) o.cur = s.cur;
     }
-    if (k === "note" && typeof s.txt === "string") o.txt = s.txt.slice(0, 600);
     var an = (Array.isArray(s.and) ? s.and : []).slice(0, 4).map(cleanCond).filter(Boolean);
     if (an.length) o.and = an;
     if (

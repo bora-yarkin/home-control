@@ -1034,3 +1034,10 @@ body.rwall .hsky{display:none}
 .shr-c:focus-visible{outline-offset:3px}
 .hkqr{display:flex;justify-content:center;padding:14px;margin-bottom:var(--sp);border-radius:var(--r-row);background:#fff}
 .hkqr img{width:min(240px,70%);height:auto;display:block}
+
+/* Widgets and sized devices (decision D-25): a Section is a grid of four columns; xs is one column, s two, m and l all four. */
+.wgrid{display:grid;grid-template-columns:repeat(4,1fr);gap:var(--sp);margin-bottom:var(--sp)}
+.wgrid>*{grid-column:1/-1;margin-bottom:0;min-width:0}
+.wgrid>.w-xs{grid-column:span 1}
+.wgrid>.w-s{grid-column:span 2}
+.wgrid>.w-l{min-height:220px}
