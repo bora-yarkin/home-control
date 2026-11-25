@@ -4,6 +4,8 @@ Format: [Keep a Changelog](https://keepachangelog.com/). Versions follow [semant
 
 ## [Unreleased]
 
+## [0.24.3] - 2026-11-25
+
 ### Added
 - *Attention* reports a lock that is offline (every lock of the home, also one that is on no page; *Lock offline* can be switched off in the Attention settings). The unavailable lights are named.
 - The *Attention* chip and tile in the header open a popup with the details.
