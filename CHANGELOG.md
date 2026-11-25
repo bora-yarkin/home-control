@@ -4,6 +4,8 @@ Format: [Keep a Changelog](https://keepachangelog.com/). Versions follow [semant
 
 ## [Unreleased]
 
+## [0.24.0] - 2026-11-25
+
 ### Added
 - **Attention is a device** (decision D-29): it can be added to the header as a chip (the row of weather, people and lights) and as a tile of a page's own row (*Add attention* in the header's settings). It shows the one thing that needs attention, or how many, and is not shown when there is nothing; in a Section it hides itself, and the Section with it, in the same way.
 - **Section width** (decision D-28): in a Section's settings, *Width* takes it one to four columns wide (up to the page's columns; the last is full width). It shrinks with the screen and is one column on a phone.
