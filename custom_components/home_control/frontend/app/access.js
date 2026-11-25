@@ -438,7 +438,8 @@ function roomAccessList(b, rid) {
 }
 
 function sceneAllowed(sc) {
-  if (ISADMIN || !ACCESS_ME || sc.room === "home") return true;
+  /* an auto scene belongs to no room; where it may be played is asked when it is */
+  if (ISADMIN || !ACCESS_ME || sc.auto || sc.room === "home") return true;
   var m = modeOf("", sc.room).mode;
   return m !== "view" && m !== "hide";
 }

@@ -323,7 +323,17 @@ function execActs(acts) {
   });
 }
 
-function runScene(sc) {
+/* `page`: the page a scene is played from (the one open when not said). Only an auto scene needs it. */
+function runScene(sc, page) {
+  /* An auto scene has no room of its own: it gives the lights of the page it is played from its colours at random (a lights master plays it on its own lights), and that page is what must be allowed. */
+  if (sc.auto) {
+    var at = page || VIEW;
+    if (!sceneAllowed({ room: at })) {
+      toast(_T("this_is_view_only_for_you"));
+      return;
+    }
+    return autoScenePlay(sc, autoPageLights(at));
+  }
   if (!sceneAllowed(sc)) {
     toast(_T("this_is_view_only_for_you"));
     return;
@@ -332,8 +342,6 @@ function runScene(sc) {
     liveToggle(sc);
     return;
   }
-  /* An auto scene gives the lights of its page its colours at random; a lights master plays it on its own lights. */
-  if (sc.auto) return autoScenePlay(sc, lightUnits(sc.room === "home" ? allLights() : ROOMLIGHTS[sc.room] || []));
   var f = filterActs(compileScene(sc)),
     ids = actionIds(f.acts);
   if (!ids.length && !f.acts.some(function (a) { return a.live; })) {
@@ -456,6 +464,8 @@ function sceneActive(sc) {
 
 function sceneRow(sc) {
   if (sc.live) return liveRow(sc);
+  /* the page the row is built on: where an auto scene plays from it */
+  var page = secKey();
   if (sc.auto)
     return edMark(
       pill(sc.icon || "scene", sc.name, {
@@ -463,9 +473,9 @@ function sceneRow(sc) {
           return _T("auto_scene") + " · " + sc.auto.colors.length + " " + _T("auto_colours").toLowerCase();
         },
         tap: function () {
-          runScene(sc);
+          runScene(sc, page);
         },
-        pin: { kind: "cscene", sid: sc.id, name: sc.name, icon: sc.icon || "scene", room: TITLES[sc.room] },
+        pin: { kind: "cscene", sid: sc.id, name: sc.name, icon: sc.icon || "scene", room: "" },
       }),
       function () {
         autoSceneEdit(sc);

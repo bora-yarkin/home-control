@@ -4,6 +4,12 @@ Format: [Keep a Changelog](https://keepachangelog.com/). Versions follow [semant
 
 ## [Unreleased]
 
+## [0.25.0] - 2026-11-25
+
+### Changed
+- **Auto scenes** (decision D-30) are made with the colour wheel of the light popups instead of ready-made swatches: the wheel and white temperature, up to ten colours added and removed with + and −, and each colour's own brightness. A new auto scene is tagged *auto scene*.
+- An auto scene belongs to no room: it can be put in any number of rooms and lights masters, and changes only the lights of the one it is played from. It was run on the lights of the room it was made in.
+
 ## [0.24.3] - 2026-11-25
 
 ### Added

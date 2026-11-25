@@ -392,7 +392,8 @@ function lpFinger(circ, mode, krange, count, e) {
 
 /* Whether the zones of a light made of zones are blended into a line: a light with no style of its own is; one a plugin gives styles to says (Hue's Scattered and Segmented give every zone a colour of its own). */
 function lpSmooth(n) {
-  if (vlightIs(n.cmd[0])) return !LMK || LMK.live.mode !== "segmented"; /* the colours of a live scene blend unless it is segmented */
+  /* the colours of an auto scene are separate ones; those of a live scene blend unless it is segmented */
+  if (vlightIs(n.cmd[0])) return !VLIGHT[VCOL_GROUP].attributes.separate && (!LMK || LMK.live.mode !== "segmented");
   var style = pluginStyle(n.cmd[0]);
   return !style || !style.blends || !!style.blends(n.cmd[0]);
 }
@@ -2563,7 +2564,7 @@ function lpMakerBrightness(S) {
 }
 
 function lpBrightness(S) {
-  if (S.maker) return lpMakerBrightness(S);
+  if (S.maker && !S.still) return lpMakerBrightness(S);
   var ids = function () {
     return S.target().cmd;
   };
@@ -2686,12 +2687,14 @@ function lpStage(S, host) {
     style.style.display = z ? "" : "none";
     if (z) style.innerHTML = pluginStyle(z.cmd[0]).icon(z.cmd[0]);
   }
-  S.subs.push({ build: paintStyle, sel: paintStyle });
-  reg(function () {
-    if (style.isConnected) paintStyle();
-  });
-  paintStyle();
-  right.appendChild(style);
+  if (!S.still) {
+    S.subs.push({ build: paintStyle, sel: paintStyle });
+    reg(function () {
+      if (style.isConnected) paintStyle();
+    });
+    paintStyle();
+    right.appendChild(style);
+  }
   right.appendChild(S.bsl);
   bar.appendChild(right);
   st.appendChild(view);
@@ -2764,6 +2767,8 @@ function lightPanel(b, root, o) {
     any = colorOk || whiteOk,
     S = lpState(root, colorOk && whiteOk, !!o.groups);
   S.maker = !!o.maker;
+  /* colours that only stand still (an auto scene): their own brightness, no way of playing to choose */
+  S.still = !!o.still;
   S.members = o.members || null;
   S.groupTiles = !!o.groups;
   S.mode = lpFirstMode(root, colorOk, whiteOk);
