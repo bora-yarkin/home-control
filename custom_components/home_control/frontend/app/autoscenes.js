@@ -226,6 +226,12 @@ function sceneSourceTiles(box, rooms, tags) {
       return t.indexOf("hue:") === 0;
     });
   }
+  /* The groups (Hue's rooms and zones) ticked. */
+  function groupTokens() {
+    return rooms.get().filter(function (t) {
+      return t.indexOf("group:") === 0;
+    });
+  }
   /* Hue is offered when a room ticked (any room, when none is) has plugin scenes in its area, and while it is ticked. */
   function hueOffered() {
     if (hueTokens().length) return true;
@@ -290,6 +296,9 @@ function sceneSourceTiles(box, rooms, tags) {
       function () {
         var o = [["-", _T("none")]];
         if (hueOffered()) o.push(["@hue", _T("src_hue")]);
+        sceneGroups().forEach(function (g) {
+          o.push(["@" + g.token, g.label + " · " + g.ids.length]);
+        });
         return o.concat(
           tagOptions().map(function (t) {
             return [t, t];
@@ -300,6 +309,13 @@ function sceneSourceTiles(box, rooms, tags) {
         return false;
       },
       function (v) {
+        if (v.indexOf("@group:") === 0) {
+          var all = rooms.get(),
+            g = v.slice(1),
+            at = all.indexOf(g);
+          rooms.set(at >= 0 ? all.filter(function (t) { return t !== g; }) : all.concat([g]));
+          return;
+        }
         if (v === "@hue") {
           rooms.set(
             rooms.get().filter(function (t) {
@@ -315,7 +331,7 @@ function sceneSourceTiles(box, rooms, tags) {
           exc = [];
           rooms.set(
             rooms.get().filter(function (t) {
-              return t.indexOf("hue:") !== 0;
+              return t.indexOf("hue:") !== 0 && t.indexOf("group:") !== 0;
             })
           );
         } else if (inc.indexOf(v) >= 0) {
@@ -329,13 +345,21 @@ function sceneSourceTiles(box, rooms, tags) {
       function () {
         var inc = tags.inc(),
           exc = tags.exc(),
-          n = (hueTokens().length ? [_T("src_hue")] : []).concat(inc, exc.map(function (t) { return "– " + t; }));
-        if (!n.length) return sceneTags().length || hueOffered() ? _T("none") : _T("src_no_tags");
+          picked = sceneGroups()
+            .filter(function (g) {
+              return groupTokens().indexOf(g.token) >= 0;
+            })
+            .map(function (g) {
+              return g.label;
+            }),
+          n = (hueTokens().length ? [_T("src_hue")] : []).concat(picked, inc, exc.map(function (t) { return "– " + t; }));
+        if (!n.length) return sceneTags().length || hueOffered() || sceneGroups().length ? _T("none") : _T("src_no_tags");
         return n.join(", ");
       },
       function (v) {
         if (v === "@hue") return hueTokens().length ? 1 : 0;
-        if (v === "-") return tags.inc().length || tags.exc().length || hueTokens().length ? 0 : 1;
+        if (v.indexOf("@group:") === 0) return groupTokens().indexOf(v.slice(1)) >= 0 ? 1 : 0;
+        if (v === "-") return tags.inc().length || tags.exc().length || hueTokens().length || groupTokens().length ? 0 : 1;
         return tags.inc().indexOf(v) >= 0 ? 1 : tags.exc().indexOf(v) >= 0 ? 2 : 0;
       }
     )
@@ -355,6 +379,58 @@ function sceneRoomHueIds(token) {
     .filter(function (id) {
       return !!pluginSceneKind(id);
     });
+}
+
+/* The group a scene a plugin owns is in, as { type: "room" | "zone", name, token }, or null: the plugin's scene entities say it in their `group_type` and `group_name` attributes (Hue's rooms and zones; see docs/plugin-api.md).
+   The token, "group:<type>:<name as lower case words joined by hyphens>", is how a master or a collection of scenes says it takes in the scenes of that group. */
+function groupSlug(name) {
+  return (
+    String(name)
+      .normalize("NFKD")
+      .replace(/[\u0300-\u036f]/g, "")
+      .toLowerCase()
+      .replace(/[^a-z0-9]+/g, "-")
+      .replace(/^-+|-+$/g, "")
+      .slice(0, 60)
+      .replace(/-+$/, "") || "group"
+  );
+}
+
+function sceneGroupOf(id) {
+  var a = A(id),
+    name = typeof a.group_name === "string" ? a.group_name.trim() : "";
+  if (!name || (a.group_type !== "room" && a.group_type !== "zone") || !pluginSceneKind(id)) return null;
+  return { type: a.group_type, name: name, token: "group:" + a.group_type + ":" + groupSlug(name) };
+}
+
+/* Every group the scenes of plugins are in, rooms before zones and each by name: [{ token, type, name, label ("Hue · Zone · Bed Storage"), ids }]. */
+function sceneGroups() {
+  var by = {};
+  if (!PLUGIN_SCENE_KINDS.length) return [];
+  Object.keys(H().states).forEach(function (id) {
+    if (id.indexOf("scene.") !== 0) return;
+    var g = sceneGroupOf(id);
+    if (!g) return;
+    (by[g.token] = by[g.token] || { token: g.token, type: g.type, name: g.name, label: _T("src_hue") + " · " + _T(g.type === "zone" ? "src_group_zone" : "src_group_room") + " · " + g.name, ids: [] }).ids.push(id);
+  });
+  return Object.keys(by)
+    .map(function (k) {
+      return by[k];
+    })
+    .sort(function (a, b) {
+      return (a.type === b.type ? 0 : a.type === "room" ? -1 : 1) || a.name.localeCompare(b.name);
+    });
+}
+
+/* The scenes of plugins in the group a token names. */
+function sceneGroupIds(token) {
+  return sceneGroups()
+    .filter(function (g) {
+      return g.token === token;
+    })
+    .reduce(function (acc, g) {
+      return acc.concat(g.ids);
+    }, []);
 }
 
 /* The pages of the dashboard that have scenes made for them, with how many: Home first, then the rooms. */

@@ -37,6 +37,7 @@ function world(section = {}, extra = {}) {
     A: (id) => (states[id] || {}).attributes || {},
     UIROOM: { r1: { name: "Bora's Bedroom", area: "bora" } },
     sceneShortName: (name) => name.replace(/^Bathroom /, ""),
+    sceneGroupIds: (token) => (token === "group:zone:wardrobe" ? ["scene.ward_a", "scene.ward_b"] : []),
     secScenes: (s) => s.scn.map((id) => stored.find((x) => x.id === id)),
     lightingScenesExtra: () => () => [{ id: "scene.bath_dim", kind: {} }],
     uiChanged() {},
@@ -72,6 +73,14 @@ test("the sources the section chose add their scenes: the scenes made for the pa
   assert.deepEqual(keys(other.w.mscItems({ root: { key: "m:r1~lights" } })), ["c2"], "the scenes made for another page");
   const old = world({ msrc: ["sec:sc"] });
   assert.deepEqual(keys(old.w.mscItems({ root: { key: "m:r1~lights" } })), [], "a scenes section is not a source any more");
+});
+
+test("a Hue room or zone chosen as a source adds the scenes of that group, with the ones of other sources, once each", () => {
+  const { w } = world({ msrc: ["group:zone:wardrobe", "hue:@lights"] });
+  const items = w.mscItems({ root: { key: "m:r1~lights" } });
+  assert.deepEqual(keys(items), ["scene.ward_a", "scene.ward_b", "scene.bath_dim"]);
+  assert.ok(items.every((x) => x.kind === "plugin"));
+  assert.deepEqual(keys(world({ msrc: ["group:room:nothing"] }).w.mscItems({ root: { key: "m:r1~lights" } })), [], "a group with no scenes brings none");
 });
 
 test("removing a scenes section does not remove a scene from the master that was made from its own +", () => {

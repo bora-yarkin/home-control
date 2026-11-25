@@ -65,6 +65,11 @@ function mscItems(S) {
       ids.forEach(function (id) {
         add(id, "plugin", A(id).friendly_name || A(id).name || id);
       });
+    } else if (src.indexOf("group:") === 0) {
+      /* The scenes a plugin owns in one of its groups (Hue's rooms and zones). */
+      sceneGroupIds(src).forEach(function (id) {
+        add(id, "plugin", A(id).friendly_name || A(id).name || id);
+      });
     } else if (src === "page" || src.indexOf("page:") === 0) {
       /* The scenes made for a page: "page" is this page, as it was called before pages could be chosen. */
       var room = src === "page" ? ref.scope : src.slice(5);
@@ -810,12 +815,12 @@ function mscSourceRows(box, sec, scope, redraw) {
     {
       get: function () {
         return list().filter(function (x) {
-          return x.indexOf("page:") === 0 || x.indexOf("area:") === 0 || x.indexOf("hue:") === 0;
+          return x.indexOf("page:") === 0 || x.indexOf("area:") === 0 || x.indexOf("hue:") === 0 || x.indexOf("group:") === 0;
         });
       },
       set: function (tokens) {
         put(function (x) {
-          return x.indexOf("page:") !== 0 && x.indexOf("area:") !== 0 && x.indexOf("hue:") !== 0;
+          return x.indexOf("page:") !== 0 && x.indexOf("area:") !== 0 && x.indexOf("hue:") !== 0 && x.indexOf("group:") !== 0;
         }, tokens);
       },
     },

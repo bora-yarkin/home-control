@@ -77,8 +77,11 @@ export function makeHass(query, home = null) {
     state("button.door_answer", "unknown", { friendly_name: "Answer call" }),
     state("button.door_hang_up", "unknown", { friendly_name: "Hang up call" }),
     state("lock.door_front", "locked", { friendly_name: "Front door" }),
-    state("scene.living_room_arctic_aurora", "unknown", { friendly_name: "Living room Arctic aurora", name: "Arctic aurora", is_dynamic: true, group_name: "Living room", speed: 0.5, brightness: 200 }),
-    state("scene.living_room_reading", "unknown", { friendly_name: "Living room Reading", name: "Reading", is_dynamic: false, group_name: "Living room" }),
+    state("scene.living_room_arctic_aurora", "unknown", { friendly_name: "Living room Arctic aurora", name: "Arctic aurora", is_dynamic: true, group_name: "Living room", group_type: "room", speed: 0.5, brightness: 200 }),
+    state("scene.living_room_reading", "unknown", { friendly_name: "Living room Reading", name: "Reading", is_dynamic: false, group_name: "Living room", group_type: "room" }),
+    // A Hue zone of the same name as the room, and one more zone: their scenes have no area of Home Assistant.
+    state("scene.living_room_zone_cosy", "unknown", { friendly_name: "Living room Cosy", name: "Cosy", is_dynamic: false, group_name: "Living room", group_type: "zone" }),
+    state("scene.shelf_zone_bright", "unknown", { friendly_name: "Shelf Bright", name: "Bright", is_dynamic: false, group_name: "Shelf", group_type: "zone" }),
     state("select.living_room_scene", "Reading", { friendly_name: "Scene", options: ["Arctic aurora", "Reading"] }),
     // Home Control's own integration plays live scenes for every light; its sensor lists what is running.
     state("binary_sensor.desk_remote_reachable", "on", { friendly_name: "Desk Remote Reachable", device_class: "connectivity" }),
@@ -146,6 +149,8 @@ export function makeHass(query, home = null) {
     reg("lock.door_front", "test_intercom", "door-lock", "dev-door", { area_id: "living" }),
     reg("scene.living_room_arctic_aurora", "hue_plus", "scene-1", "dev-living-group", { area_id: "living" }),
     reg("scene.living_room_reading", "hue", "scene-2", "dev-living-group", { area_id: "living" }),
+    reg("scene.living_room_zone_cosy", "hue_plus", "scene-3z", "dev-living-group", {}),
+    reg("scene.shelf_zone_bright", "hue_plus", "scene-4z", "dev-living-group", {}),
     reg("select.living_room_scene", "hue_plus", "group-1_scene", "dev-living-group", { area_id: "living" }),
     ...(withSync
       ? [

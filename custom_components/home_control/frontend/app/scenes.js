@@ -554,6 +554,12 @@ function sceneCollectionItems(d) {
     }),
     ents = [];
   tokens.forEach(function (x) {
+    if (x.indexOf("group:") === 0) {
+      sceneGroupIds(x).forEach(function (id) {
+        if (ents.indexOf(id) < 0) ents.push(id);
+      });
+      return;
+    }
     if (x.indexOf("hue:") !== 0) return;
     var found =
       x === "hue:@rooms"

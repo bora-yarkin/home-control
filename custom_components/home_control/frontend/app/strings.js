@@ -1,6 +1,8 @@
 /* Text shown to the user: the English strings and the lookup function _T(). */
 
 var EN = {
+  "src_group_room": "Room",
+  "src_group_zone": "Zone",
   "to_do_items": "Items",
   "to_do_item": "Item",
   "edit_content": "Edit",
