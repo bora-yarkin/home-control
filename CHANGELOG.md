@@ -4,6 +4,14 @@ Format: [Keep a Changelog](https://keepachangelog.com/). Versions follow [semant
 
 ## [Unreleased]
 
+## [0.28.1] - 2026-11-26
+
+### Added
+- The Remote master has the *Advanced settings button* switch: one for the whole master, and one on each device's page in it. A device whose button is switched off on its own page stays without it in the master, and the switch says why.
+
+### Changed
+- Appliance popups (the robot vacuum's too) no longer have a *Set up this appliance* button. An appliance is set up from the page editor: edit the page, tap the appliance, *Set up this device*.
+
 ## [0.28.0] - 2026-11-26
 
 ### Added

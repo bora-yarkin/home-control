@@ -204,3 +204,21 @@ test("the master keeps what the standalone remotes have: the builder reaches its
   assert.match(read("access.js"), /rm-\(pick\|member\)\|/, "the settings pages are an administrator's");
   assert.match(read("remotemaster.js"), /showPopup\("remote-build:" \+ rid, true\)/);
 });
+
+test("a device's Advanced settings are hidden when switched off for the master, for the device in it, or on its page", () => {
+  const states = { "media_player.tv": st("on") };
+  const UIDEV = {};
+  const { ctx } = withRemotes(states, { ISADMIN: true, UIDEV, advList: (id) => (id === "media_player.tv" ? [1] : []) });
+  const x = { def: "media_player.tv", subs: [], spk: [] };
+  assert.equal(ctx.rmHasAdv(x, "media_player.tv"), true);
+  assert.equal(ctx.rmHasAdv({ ...x, noadv: 1 }, "media_player.tv"), false, "the master's switch");
+  assert.equal(ctx.rmHasAdv({ ...x, opt: { "media_player.tv": { noadv: 1 } } }, "media_player.tv"), false, "the device's switch in the master");
+  UIDEV["media_player.tv"] = { noadv: 1 };
+  assert.equal(ctx.rmHasAdv(x, "media_player.tv"), false, "the device's own page");
+  delete UIDEV["media_player.tv"];
+  assert.equal(ctx.rmHasAdv(x, "media_player.other"), false, "nothing to show");
+  const kept = plain(ctx.cleanRemoteMaster({ ...x, noadv: true, opt: { "media_player.tv": { noadv: true } } }));
+  assert.equal(kept.noadv, 1);
+  assert.equal(kept.opt["media_player.tv"].noadv, 1);
+  assert.match(read("remotemaster.js"), /flagPill\("tune", _T\("advanced_settings_button"\), x, "noadv"/, "the same switch as a device's settings");
+});
