@@ -22,7 +22,7 @@ A **lights master** is one row that controls several lights, with their popup to
 | **Auto** | Up to ten colours with a brightness each, given to the lights at random wherever it is played (a room or a master); tap again to shuffle. | *New scene → Auto scene*, colour wheel. |
 | **Live** | Colours and effects that move across the lights of an **area**, run by Home Control's integration. | *New scene → Live scene*, after making an area. |
 
-Home Assistant's own `scene.` entities (and those of integrations) can be used too.
+Home Assistant's own `scene.` entities (and those of integrations) can be used too, in sections and in a lights master (its sources: *Home Assistant scenes*).
 
 ## Where scenes can live: three ways
 

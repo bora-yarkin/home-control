@@ -62,6 +62,7 @@ function boot() {
   buildDock();
   initSearchBtn();
   roomOffInit();
+  if (ISADMIN && UI.meta && UI.meta.setup) setupOpen();
   fxLoad();
   offlineInit();
   setInterval(function () {

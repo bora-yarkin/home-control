@@ -300,7 +300,15 @@ function sceneSourceTiles(box, rooms, tags) {
         if (v === "-") cur = [];
         else if (at >= 0) cur.splice(at, 1);
         else cur.push(v);
-        rooms.set(hueTokens().concat(cur));
+        rooms.set(
+          hueTokens()
+            .concat(cur)
+            .concat(
+              rooms.get().filter(function (t) {
+                return t === "ha:@page";
+              })
+            )
+        );
       },
       "scene",
       function () {
@@ -321,6 +329,8 @@ function sceneSourceTiles(box, rooms, tags) {
       function () {
         var o = [["-", _T("none")]];
         if (hueOffered()) o.push(["@hue", _T("src_hue")]);
+        /* offered only where Home Assistant has a scene of its own */
+        if (rooms.get().indexOf("ha:@page") >= 0 || Object.keys(H().states || {}).some(function (id) { return id.indexOf("scene.") === 0 && !pluginSceneKind(id); })) o.push(["@ha", _T("src_ha")]);
         groupOptions().forEach(function (g) {
           o.push(["@" + g.token, g.label + " · " + g.ids.length]);
         });
@@ -352,6 +362,17 @@ function sceneSourceTiles(box, rooms, tags) {
           );
           return;
         }
+        if (v === "@ha") {
+          var now = rooms.get();
+          rooms.set(
+            now.indexOf("ha:@page") >= 0
+              ? now.filter(function (t) {
+                  return t !== "ha:@page";
+                })
+              : now.concat(["ha:@page"])
+          );
+          return;
+        }
         if (v === "@hue") {
           rooms.set(
             rooms.get().filter(function (t) {
@@ -367,7 +388,7 @@ function sceneSourceTiles(box, rooms, tags) {
           exc = [];
           rooms.set(
             rooms.get().filter(function (t) {
-              return t.indexOf("hue:") !== 0 && t.indexOf("group:") !== 0;
+              return t.indexOf("hue:") !== 0 && t.indexOf("group:") !== 0 && t !== "ha:@page";
             })
           );
         } else if (inc.indexOf(v) >= 0) {
@@ -388,14 +409,15 @@ function sceneSourceTiles(box, rooms, tags) {
             .map(function (g) {
               return g.label;
             }),
-          n = (hueTokens().length ? [_T("src_hue")] : []).concat(picked, inc, exc.map(function (t) { return "– " + t; }));
+          n = (hueTokens().length ? [_T("src_hue")] : []).concat(rooms.get().indexOf("ha:@page") >= 0 ? [_T("src_ha")] : [], picked, inc, exc.map(function (t) { return "– " + t; }));
         if (!n.length) return sceneTags().length || hueOffered() || groupOptions().length ? _T("none") : _T("src_no_tags");
         return n.join(", ");
       },
       function (v) {
         if (v === "@hue") return hueTokens().length ? 1 : 0;
+        if (v === "@ha") return rooms.get().indexOf("ha:@page") >= 0 ? 1 : 0;
         if (v.indexOf("@group:") === 0) return groupTokens().indexOf(v.slice(1)) >= 0 ? 1 : 0;
-        if (v === "-") return tags.inc().length || tags.exc().length || hueTokens().length || groupTokens().length ? 0 : 1;
+        if (v === "-") return tags.inc().length || tags.exc().length || hueTokens().length || groupTokens().length || rooms.get().indexOf("ha:@page") >= 0 ? 0 : 1;
         return tags.inc().indexOf(v) >= 0 ? 1 : tags.exc().indexOf(v) >= 0 ? 2 : 0;
       }
     )

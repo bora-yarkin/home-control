@@ -120,7 +120,7 @@ Every device has `kind`, `id` (the entity, or `""`), `name`, `icon`.
 
 **Lights master** (`w: "lmaster"`): for the lights of its own section, give it `wid` equal to the section's `id` and `wx: {"own": 1, "mn": "All lights"}`. For lights
 chosen by hand: any other `wid` and `wx: {"mm": 1, "mn": "Evening", "ml": [light devices]}`. `msrc` chooses the scenes of its Scenes tab: `"page"`,
-`"page:<room id>"`, `"area:<id>"`, `"tag:<tag>"`.
+`"page:<room id>"`, `"area:<id>"`, `"tag:<tag>"`, `"ha:@page"` (Home Assistant's own scenes of the page's area).
 
 **Remote master** (`rmaster`): `def` is the TV; each of `subs` is a device plugged into it with `src`, the TV's source name for it, exactly as the TV reports it in
 `source_list`.

@@ -29,8 +29,6 @@ var KINDS = [
   "widget",
 ];
 
-/* The starting layout when nothing is saved yet: one room per Home Assistant area with its controllable devices,
- temperature and humidity tiles, and every battery sensor tracked. Built from Home Assistant, so it fits any home. */
 /* The lights that are the zones of another light (a gradient tube is one light with a light for each of its colour zones). They are not put on a page by themselves: the main light controls its zones, and one can still be added by hand. */
 function zoneLightIds(states, entities) {
   var out = {};
@@ -83,76 +81,6 @@ function areaDevices(areaId) {
   return out;
 }
 
-function seedUI() {
-  var h = H(),
-    rooms = [],
-    devs = {},
-    stat = {},
-    layoutRooms = {},
-    chips = [],
-    bats = [],
-    all = Object.keys(h.states),
-    zones = zoneLightIds(h.states, h.entities),
-    ids = all.filter(function (id) {
-      var e = h.entities[id];
-      return !zones[id] && !(e && (e.entity_category || e.hidden || e.disabled_by));
-    });
-  function inArea(a, id) {
-    return areaIdOf(id) === a;
-  }
-  function byClass(a, c) {
-    return ids.filter(function (id) {
-      return inArea(a, id) && dom(id) === "sensor" && A(id).device_class === c;
-    })[0];
-  }
-  Object.values(h.areas || {}).forEach(function (a) {
-    var rid = ("r_" + a.area_id).replace(/[^a-z0-9_-]/g, "").slice(0, 24),
-      list = [],
-      t = byClass(a.area_id, "temperature"),
-      hu = byClass(a.area_id, "humidity");
-    ids.forEach(function (id) {
-      var d = areaDevice(a.area_id, id);
-      if (d) list.push(d);
-    });
-    rooms.push({
-      id: rid,
-      name: a.name,
-      short: a.name.split(" ")[0].slice(0, 16),
-      icon: "home",
-      area: a.area_id,
-    });
-    devs[rid] = list;
-    var tiles = [];
-    stat[rid] = [];
-    if (t) {
-      tiles.push(statusDevice({ l: _T("temperature"), id: t }));
-      var c = { l: a.name, t: t };
-      if (hu) c.h = hu;
-      chips.push(c);
-    }
-    if (hu) tiles.push(statusDevice({ l: _T("humidity"), id: hu }));
-    layoutRooms[rid] = [statusSection(tiles)].concat(groupSections(list));
-  });
-  all.forEach(function (id) {
-    if ((dom(id) === "sensor" || dom(id) === "binary_sensor") && A(id).device_class === "battery")
-      bats.push([(A(id).friendly_name || id).replace(/\s*battery\s*$/i, "").slice(0, 40), id]);
-  });
-  return {
-    rooms: rooms,
-    devs: devs,
-    chips: chips.slice(0, 4),
-    stat: stat,
-    bats: bats.slice(0, 30),
-    layout: { v: 8, home: seedSections("home"), rooms: layoutRooms, cols: {} },
-    meta: {
-      homeTab: _T("home"),
-      homeTitle: _T("app_title"),
-      eyebrow: _T("app_title"),
-      clock: true,
-    },
-  };
-}
-
 var ENTRE = /^[a-z_]+\.[a-z0-9_]+$/,
   POPRE = /^[a-z0-9_:.-]{0,60}$/;
 
@@ -172,6 +100,8 @@ function cleanMeta(m) {
   };
   /* no Advanced settings button anywhere on the dashboard (app/advanced.js) */
   if (m.noadv) out.noadv = 1;
+  /* a new dashboard that has not been set up yet (app/setup.js) */
+  if (m.setup) out.setup = true;
   return out;
 }
 
@@ -950,7 +880,7 @@ function cleanMaster(s, id) {
         return x === "hue" || x === "plugin" ? "hue:@lights" : x === "page" ? "page" : x;
       })
       .filter(function (x, i, a) {
-        return (x === "page" || (typeof x === "string" && (/^(page:[a-z0-9_-]{1,24}|area:[a-z0-9_-]{1,60})$/.test(x) || /^hue:(@lights|@page|@rooms|[a-z0-9_-]{1,60})$/.test(x) || /^group:(room|zone):[a-z0-9-]{1,60}$/.test(x) || (/^tag:/.test(x) && cleanTags([x.slice(4)]).length)))) && a.indexOf(x) === i;
+        return (x === "page" || (typeof x === "string" && (/^(page:[a-z0-9_-]{1,24}|area:[a-z0-9_-]{1,60})$/.test(x) || x === "ha:@page" || /^hue:(@lights|@page|@rooms|[a-z0-9_-]{1,60})$/.test(x) || /^group:(room|zone):[a-z0-9-]{1,60}$/.test(x) || (/^tag:/.test(x) && cleanTags([x.slice(4)]).length)))) && a.indexOf(x) === i;
       })
       .slice(0, 40);
   if (Array.isArray(s.mpa) && s.mpa.length) {

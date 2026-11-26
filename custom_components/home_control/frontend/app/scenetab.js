@@ -43,7 +43,12 @@ function mscItems(S) {
     })
     .forEach(stored);
   (e.msrc || MSC_DEFAULT_SRC).forEach(function (src) {
-    if (src.indexOf("hue:") === 0) {
+    if (src === "ha:@page") {
+      /* Home Assistant's own scenes of the page's area (a plugin's are its source above) */
+      haSceneIds(page.area).forEach(function (id) {
+        add(id, "entity", sceneShortName(A(id).friendly_name || id, { name: page.name, area: page.area }, e));
+      });
+    } else if (src.indexOf("hue:") === 0) {
       /* The scenes a plugin owns in a room (an area of Home Assistant): of the lights' areas, of the page's area, or of the area named. */
       var picked = (e.msrc || MSC_DEFAULT_SRC).filter(function (x) {
           return x.indexOf("page:") === 0 || x.indexOf("area:") === 0;
@@ -100,7 +105,20 @@ function mscItems(S) {
   return out;
 }
 
+/* The `scene.*` entities of an area that no plugin owns. */
+function haSceneIds(area) {
+  if (!area) return [];
+  return sceneIds(area)
+    .map(function (x) {
+      return x[0];
+    })
+    .filter(function (id) {
+      return !pluginSceneKind(id);
+    });
+}
+
 function mscKindLabel(it) {
+  if (it.kind === "entity") return _T("scene_kind_ha");
   return it.kind === "plugin" ? _T("scene_kind_plugin") || _T("scene_source_fallback") : it.kind === "auto" ? _T("auto_scene") : it.kind === "live" ? _T("live_scene") : _T("classic_scene");
 }
 
@@ -116,6 +134,8 @@ function mscColours(it, cb) {
     if (kind && kind.palette) kind.palette(it.id, cb);
     return;
   }
+  /* Home Assistant does not say what colours its scene sets: its tile is in the dashboard's accent */
+  if (it.kind === "entity") return cb([flatAccent()]);
   var list = it.kind === "auto" ? it.sc.auto.colors : it.kind === "live" ? (it.sc.live && it.sc.live.palette) || [] : (it.sc.acts || []).map(function (a) {
       return a.col;
     });
@@ -134,7 +154,7 @@ function mscActive(it) {
     var kind = pluginSceneKind(it.id);
     return !!(kind && kind.active(it.id));
   }
-  if (it.kind === "auto") return false;
+  if (it.kind === "auto" || it.kind === "entity") return false;
   return it.kind === "live" ? !!liveRun(it.sc) : sceneActive(it.sc);
 }
 
@@ -144,6 +164,10 @@ function mscDynamic(it) {
 
 /* Starts it (or stops it, when it plays and can be stopped), on the lights of the master. A still scene that is on is switched off by tapping it again: it has nothing to stop, so the lights go off. */
 function mscPlay(S, it) {
+  if (it.kind === "entity") {
+    liveStopOn(S.root.cmd);
+    return call("scene", "turn_on", { entity_id: it.id });
+  }
   if (it.kind === "auto") return autoScenePlay(it.sc, S.root.cmd);
   if (it.kind === "live") return liveToggle(it.sc);
   if (!mscDynamic(it) && mscActive(it)) return call("light", "turn_off", { entity_id: S.root.cmd });
@@ -160,6 +184,7 @@ function mscPlay(S, it) {
 
 /* Opens the page that edits it, over the panel: the panel comes back when it is left, on this page. */
 function mscEdit(S, it) {
+  if (it.kind === "entity") return toast(_T("scene_edit_in_ha"));
   LPBACK = { root: S.root.key, mode: S.mode, sel: S.sel };
   if (it.kind === "auto") autoSceneEdit(it.sc);
   else if (it.kind === "live") liveMakerEdit(it.sc);
@@ -199,7 +224,7 @@ function mscMore(S, it, ref, redraw) {
         redraw();
       },
     });
-  if (it.kind === "plugin" ? kind && kind.remove : true)
+  if (it.kind === "plugin" ? kind && kind.remove : it.kind !== "entity")
     list.push({
       label: _T("delete_scene"),
       danger: true,

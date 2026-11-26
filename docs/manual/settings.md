@@ -7,6 +7,7 @@ Open with the gear in the header. The search box finds a setting.
 | Display | Appearance | Light, dark or automatic theme; accent colour; larger display; start page; weather sky; time format. Per person. |
 | | Wall mode | For a tablet on the wall: a clock or photos after a while without touch, dimmed at night. |
 | Dashboard | Editor | Edit the current page. |
+| | Guided setup | Build the pages step by step ([the first run](getting-started.md#the-first-run-guided-setup)). |
 | | Devices | New devices, devices not on the dashboard, and the Advanced settings buttons of the whole dashboard. |
 | | Light groups | Make and change Home Assistant light groups. |
 | | Areas | Where lights are, for live scenes. |

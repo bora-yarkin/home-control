@@ -7,12 +7,24 @@ Home Assistant Marketplace (2026.11 and later; HACS on older versions). Home Con
 *Settings → Devices & services → Add integration → Home Control*. A panel appears in the sidebar. Its address, title, icon and whether only administrators may open
 it are the integration's options.
 
-## The first run
+## The first run: guided setup
 
-The first layout is made from your Home Assistant: a room page for each **area**, with that area's lights, media players, climate, fans, switches, vacuums and
-cameras in sections, and its temperature and humidity as status tiles. So give your devices areas in Home Assistant first; it saves work. Everything can be changed.
+Give your devices **areas** in Home Assistant first: the setup is built from them. Then open the dashboard as an **administrator** (only administrators can save).
 
-Open it as an **administrator** the first time: only administrators can save the dashboard.
+A new dashboard is empty and opens the **guided setup**. Nothing appears on it that you did not choose. Each step comes with a suggestion you can change:
+
+1. **Rooms:** which areas get a page.
+2. **Lights:** which lights. A light group is suggested rather than each light in it.
+3. **Lights master:** whether rooms get one, from how many lights (2 to 6), and which lights also have a row of their own.
+4. **Scenes:** in the room's lights master, in a Scenes section, both, or none. A master shows all of its room's scenes; for a section you pick them. A room without a master has them in a section.
+5. **Media players:** which TVs and speakers. A second entry for the same box (a cast player) is not suggested.
+6. **Other devices:** climate, fans, blinds, locks, vacuums, cameras, and switches (none suggested).
+7. **Temperature and humidity:** shown in each room's header.
+8. **Home page:** Attention, At a glance, Rooms, Scenes, and what the header shows.
+9. **Check and create.**
+
+*Not now* leaves the dashboard empty; the setup stays under *Settings → Guided setup*. Running it again later replaces your pages (a backup is downloaded first);
+rooms keep their names and icons, and scenes, notifications and access rules stay.
 
 ## Finding your way
 

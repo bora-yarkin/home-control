@@ -83,13 +83,14 @@ test("converting twice changes nothing, and tiles added afterwards in either pla
   assert.equal(both.stat.bora.length, 1, "and the header its own: one setting no longer decides between them");
 });
 
-test("a new room has an empty Status Section (a plain Section), and the first layout of a home puts the temperature and humidity of a room in it as tiles", () => {
+test("a new room has an empty Status Section (a plain Section), and the guided setup puts the temperature and humidity of a room in its header", () => {
   const w = world();
   const room = plain(w.seedSections("room:r1"));
   assert.deepEqual(room.map((s) => [s.id, s.k]), [["status", "devs"], ["main", "devs"]]);
   assert.match(read("widgetkinds.js"), /overview\("chips"/);
   assert.doesNotMatch(read("widgetkinds.js"), /overview\("status"/, "there is no Status widget: it is a Section");
-  assert.match(read("model.js"), /layoutRooms\[rid\] = \[statusSection\(tiles\)\]/);
+  /* the guided setup puts the chosen temperature and humidity in the room's header (app/setup.js, tests/frontend/setup.test.mjs) */
+  assert.match(read("setup.js"), /ui\.stat\[rid\] = temp/);
 });
 
 test("the header's settings list the tiles of the page chosen there, to add, edit and reorder", () => {

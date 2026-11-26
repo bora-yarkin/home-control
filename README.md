@@ -1,7 +1,7 @@
 # Home Control
 
 A dashboard for Home Assistant that shows and controls the home: rooms, lights and scenes, climate, media, vacuums,
-cameras, a wall display, and a first-run editor to arrange it. It runs in the browser as a panel in the sidebar and uses
+cameras, a wall display, a guided first setup and an editor to arrange it. It runs in the browser as a panel in the sidebar and uses
 the connection Home Assistant gives every panel; it does not replace Home Assistant and keeps no data of its own on the
 server. Layouts and settings are stored by Home Assistant for each user.
 

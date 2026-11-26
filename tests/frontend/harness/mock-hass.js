@@ -301,9 +301,9 @@ export function makeHass(query, home = null) {
         case "config/area_registry/list": return Promise.resolve([{ area_id: "living", name: "Living room", floor_id: null }, ...((home && home.areas) || [])]);
         case "config/floor_registry/list": return Promise.resolve((home && home.floors) || []);
         case "frontend/get_user_data": return Promise.resolve({ value: stored.user[msg.key] ?? null });
-        case "frontend/get_system_data": return Promise.resolve({ value: stored.system[msg.key] ?? null });
+        case "frontend/get_system_data": return Promise.resolve({ value: query.has("fresh") && msg.key === "dashboard" && !stored.saved ? null : stored.system[msg.key] ?? null });
         case "frontend/set_user_data": stored.user[msg.key] = msg.value; return Promise.resolve();
-        case "frontend/set_system_data": stored.system[msg.key] = msg.value; return Promise.resolve();
+        case "frontend/set_system_data": stored.system[msg.key] = msg.value; if (msg.key === "dashboard") stored.saved = true; return Promise.resolve();
         case "config/auth/list": return Promise.resolve([]);
         case "history/history_during_period": return Promise.resolve({});
         case "todo/item/list": return Promise.resolve({ items: todoItems.map((i) => ({ ...i })) });

@@ -174,8 +174,8 @@ test("the first layout of a home leaves a vacuum's map camera out of the rooms a
   };
   vm.createContext(sandbox);
   vm.runInContext(read("model.js"), sandbox);
-  vm.runInContext(read("widgetkinds.js"), sandbox);
+  vm.runInContext(read("setup.js"), sandbox);
   vm.runInContext("UIDEV = {}", sandbox);
-  const seeded = plain(sandbox.seedUI());
-  assert.deepEqual(seeded.devs.r_a.map((d) => d.id).sort(), ["camera.door", "light.l", "vacuum.hall"]);
+  const items = plain(sandbox.setupSource()).areas[0].items;
+  assert.deepEqual(Object.values(items).flat().map((d) => d.id).sort(), ["camera.door", "light.l", "vacuum.hall"]);
 });
