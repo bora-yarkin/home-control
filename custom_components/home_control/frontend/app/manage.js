@@ -1266,7 +1266,8 @@ function devPlaceRows(c) {
     held = c.key.split(":")[0].split("~")[3] === "lx",
     /* a robot vacuum appliance's Advanced settings are its vacuum's */
     advOf = d.id || (d.kind === "appliance" && d.ap && d.ap.type === "vacuum" && d.ap.slots.vacuum) || "",
-    adv = advOf && advList(advOf).length;
+    /* also the devices whose popup ends with "More in Home Assistant": the same switch hides it */
+    adv = advOf && (advList(advOf).length || (d.id && String(devPop(d)).indexOf("dev:") === 0) || (d.kind === "media" && A(d.id).supported_features & 131072));
   if (!held || adv) c.box.appendChild(sep(_T("dp_in_the_section"), "home"));
   /* Showing and the Advanced button are two switches, side by side. */
   var sw = mk("div", "ap-grid");

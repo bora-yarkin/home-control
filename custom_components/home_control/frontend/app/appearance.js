@@ -103,13 +103,20 @@ function startViewApply() {
   if (VIEW === "home" && want && ORDER.indexOf(want) >= 0) VIEW = want;
 }
 
+/* The panel runs in a frame Home Assistant writes itself, which cannot be reloaded on its own (it would come back empty): the page around it is. */
+function pageReload() {
+  try {
+    window.parent.location.reload();
+  } catch (e) {
+    window.location.reload();
+  }
+}
+
 /* The dashboard's language for this account ("" follows Home Assistant); it starts again to use it. */
 function setLanguage(code) {
   window.HA.data
     .set("user", "home_control_language", code)
-    .then(function () {
-      window.location.reload();
-    })
+    .then(pageReload)
     .catch(function () {
       toast(_T("couldn_t_save_your_appearance_choice"));
     });

@@ -366,10 +366,10 @@ var POPUP_DEFS = {
   },
   "ac": function (id) {
     return {
-      title: (UIDEV[id] || {}).name || A(id).friendly_name || _T("climate"),
+      title: (UIDEV[id] || {}).name || _T("air_conditioner"),
       icon: "ac",
       build: function (b) {
-        b.appendChild(climateTarget(id, _T("target_temperature"), !!(UIDEV[id] || {}).dial));
+        b.appendChild(climateTarget(id, _T("air_conditioner"), !!(UIDEV[id] || {}).dial));
         acSelects(b, id);
       },
     };

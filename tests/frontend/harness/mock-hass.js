@@ -202,6 +202,9 @@ export function makeHass(query, home = null) {
   }
   const groups = {};
   const stored = { user: {}, system: {} };
+  /* the chosen language outlives the reload that applies it, as an account's would */
+  const kept = sessionStorage.getItem("harness_language");
+  if (kept !== null) stored.user.home_control_language = kept;
   if (home) {
     for (const [key, value] of Object.entries(home.system || {})) if (value !== null) stored.system[key] = value;
     for (const [key, value] of Object.entries(home.userData || {})) if (value !== null) stored.user[key] = value;
@@ -302,7 +305,10 @@ export function makeHass(query, home = null) {
         case "config/floor_registry/list": return Promise.resolve((home && home.floors) || []);
         case "frontend/get_user_data": return Promise.resolve({ value: stored.user[msg.key] ?? null });
         case "frontend/get_system_data": return Promise.resolve({ value: query.has("fresh") && msg.key === "dashboard" && !stored.saved ? null : stored.system[msg.key] ?? null });
-        case "frontend/set_user_data": stored.user[msg.key] = msg.value; return Promise.resolve();
+        case "frontend/set_user_data":
+          stored.user[msg.key] = msg.value;
+          if (msg.key === "home_control_language") sessionStorage.setItem("harness_language", msg.value);
+          return Promise.resolve();
         case "frontend/set_system_data": stored.system[msg.key] = msg.value; if (msg.key === "dashboard") stored.saved = true; return Promise.resolve();
         case "config/auth/list": return Promise.resolve([]);
         case "history/history_during_period": return Promise.resolve({});

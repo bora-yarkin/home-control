@@ -4,6 +4,8 @@ Format: [Keep a Changelog](https://keepachangelog.com/). Versions follow [semant
 
 ## [Unreleased]
 
+## [0.33.0] - 2026-11-26
+
 ### Added
 
 - Controls for humidifiers, water heaters, alarm panels, valves, lawn mowers, sirens, updates, automations, texts, dates and times, notify, weather, events, people, groups and remotes; *More in Home Assistant* for anything else.
@@ -22,6 +24,7 @@ Format: [Keep a Changelog](https://keepachangelog.com/). Versions follow [semant
 ### Fixed
 
 - A thermostat that keeps two temperatures can set them; climate popups show only the modes the unit has.
+- *More in Home Assistant* follows the Advanced settings switches: off for the dashboard or for a device, it is hidden there too.
 
 ## [0.32.0] - 2026-11-26
 

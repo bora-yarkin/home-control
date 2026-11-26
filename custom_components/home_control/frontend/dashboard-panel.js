@@ -66,7 +66,7 @@ function loaderText(key) {
 /* The language: the one chosen for this account in the dashboard's settings, else Home Assistant's. */
 async function chosenLanguage(hass) {
   try {
-    const res = await hass.callWS({ type: "frontend/get_user_data", key: "home_control_language" });
+    const res = await hass.connection.sendMessagePromise({ type: "frontend/get_user_data", key: "home_control_language" });
     if (res && res.value && /^[a-z]{2}(-[A-Za-z]{2,4})?$/.test(res.value)) return { chosen: res.value, use: res.value };
   } catch (e) {
     console.warn("[dashboard] no saved language", e);

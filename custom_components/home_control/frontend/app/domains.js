@@ -474,10 +474,11 @@ function domRow(d) {
   });
 }
 
-/* Home Assistant's own dialog for any entity, offered where nothing restricts the viewer. */
+/* Home Assistant's own dialog for any entity, offered where nothing restricts the viewer. It is an advanced button (decision D-38): the dashboard's switch and the device's own
+   hide it. */
 function haMorePill(id) {
   var mode = ISADMIN ? "" : modeOf(id).mode;
-  if (!id || mode === "view" || mode === "confirm" || mode === "hide") return null;
+  if (!id || mode === "view" || mode === "confirm" || mode === "hide" || advAllOff() || advDevOff(id)) return null;
   return pill("info", _T("more_in_home_assistant"), {
     tap: function () {
       if (!window.HA.moreInfo(id)) toast(_T("cannot_open_ha_dialog"));
