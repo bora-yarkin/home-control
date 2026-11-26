@@ -53,6 +53,9 @@ function load({ devices, bats = [], rules, live = {}, getError = {}, rings = [],
   };
   vm.createContext(sandbox);
   vm.runInContext(BATTERIES, sandbox);
+  sandbox.window = sandbox.window || {};
+  vm.runInContext(readFileSync(new URL("../../custom_components/home_control/frontend/integrations.js", import.meta.url), "utf8"), sandbox);
+  sandbox.Integrations = sandbox.window.Integrations;
   vm.runInContext(SOURCE, sandbox);
   return { sandbox, saved };
 }

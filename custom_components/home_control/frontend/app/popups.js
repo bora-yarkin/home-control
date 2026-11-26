@@ -915,6 +915,12 @@ var POPUP_DEFS = {
   "vacap-a": function (id) {
     return { title: _T("vacap_start_actions"), icon: "play", build: function (b) { vacapItemPage(b, id, "run"); } };
   },
+  "vacap-zones": function (id) {
+    return { title: _T("vacap_zones"), icon: "target", build: function (b) { vacapZonePage(b, id); } };
+  },
+  "vacap-text": function (id) {
+    return { title: _T("vacap_text"), icon: "edit", build: function (b) { vacapTextPage(b, id); } };
+  },
   "vacap-pick": function () {
     return {
       title: _T("vacap_pick_room"),
@@ -955,12 +961,14 @@ var POPUP_DEFS = {
     return { title: _T("media"), icon: "tv", build: mediaHub };
   },
   "g-robot": function (id) {
-    var gv0 = devsOf("vacuum")[0];
+    var gv0 = vacuumList()[0];
     return {
       title: _T("robot_vacuum"),
       icon: "vac",
       build: function (b) {
-        if (gv0) vacPopup(b, gv0.id);
+        if (!gv0) return;
+        if (gv0.d.kind === "appliance") vacapPage(b, gv0.d);
+        else vacPopup(b, gv0.id);
       },
     };
   },

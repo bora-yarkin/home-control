@@ -4,6 +4,24 @@ Format: [Keep a Changelog](https://keepachangelog.com/). Versions follow [semant
 
 ## [Unreleased]
 
+## [0.29.0] - 2026-11-26
+
+### Added
+- **User manual** (`docs/manual/`), opened from *Settings → User manual*, and an **AI setup guide** (`docs/ai-setup.md`): an assistant can build a whole dashboard from your Home Assistant as a file you restore.
+- **Backups hold everything** (decision D-36): also your appearance, this device's dashboard settings, image-remote pictures, published scenes, TV Home keys and imported effect files.
+- **Robot vacuum appliance, for any robot** (decision D-35, format in `docs/vacuum-appliance.md`): *No-go zones source* asks the vacuum for its zones with any action that answers (a script works for any robot); *Settings per room* can be switched off; an action can name what its answer must be, for integrations that report a refusal only there; `$room_numbers` sends the chosen rooms as numbers; and *Set-up file* saves and loads the whole set-up as readable JSON, to edit or have an AI write.
+- **Everything the vacuum card does, for any robot, in the vacuum appliance:** the map's rooms are used when none are listed; *Fill from the vacuum* finds its battery, map, position and settings; the robot is asked its state before *Start* and not started over a run, and *Start* stays held until it is back; a *Stop and dock* button can be chosen; the fan speed is offered when there are no settings; *Advanced settings* (with the button switch) and start or dock from the row's icon. Appliance vacuums also count in *Attention*, *At a glance*, the robot popup, the vacuum widget, vacuum notifications and Siri and HomeKit.
+- **The robot vacuum appliance looks and works like the vacuum card** (decision D-34), from entities you choose, with no integration of its own: the map scrolls and opens on the robot (*Robot position*), is drawn in your style (minimal colouring, room names, trail, no-go zones and walls), and the *Map* settings are in its set-up. A setting can be *only for single rooms*, give the numbers the vacuum knows its values by and a default; an action can run *once per room* with that room's words (`$room`, `$room_name`, `$room.<setting>`), as a Xiaomi saves each room's settings before cleaning. Choices keep the order you list. The status tile can be switched off.
+
+### Changed
+- **Restore** checks the file before replacing and says what it holds and would not accept, refuses files that are not a dashboard or come from a newer version, downloads what you have first, changes nothing if it cannot save, brings notification automations, live scenes, published scenes, TV Home keys and effect files into line, and reloads.
+
+### Fixed
+- A restore left the notification automations of rules that were gone running, and the live scenes it brought back unchanged in the integration.
+- In the page editor, a scene's row stopped its section from updating.
+- A name field beside an icon or type choice was shorter than it.
+- A robot vacuum appliance's map was shown at its full height and could not be scrolled.
+
 ## [0.28.2] - 2026-11-26
 
 ### Added

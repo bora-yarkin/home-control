@@ -1057,6 +1057,7 @@ function devBehaviourTab(c) {
 
 /* How a vacuum's map is drawn. The choices are kept in d.map and the key is dropped when it is back to its default. */
 function devVacuumMapOptions(c) {
+  /* also a robot vacuum appliance's map: its `d` keeps the same settings */
   var d = c.d,
     box = c.box,
     mp = (d.map = d.map || {});
@@ -1207,7 +1208,9 @@ function devLightOptions(c) {
 function devPlaceRows(c) {
   var d = c.d,
     held = c.key.split(":")[0].split("~")[3] === "lx",
-    adv = d.id && advList(d.id).length;
+    /* a robot vacuum appliance's Advanced settings are its vacuum's */
+    advOf = d.id || (d.kind === "appliance" && d.ap && d.ap.type === "vacuum" && d.ap.slots.vacuum) || "",
+    adv = advOf && advList(advOf).length;
   if (!held || adv) c.box.appendChild(sep(_T("dp_in_the_section"), "home"));
   /* Showing and the Advanced button are two switches, side by side. */
   var sw = mk("div", "ap-grid");

@@ -513,7 +513,9 @@ window.HA={
  effects:{
   sources:function(){return ws({type:"home_control/effects"}).then(function(r){return r&&r.sources})},
   importFile:function(content){return ws({type:"home_control/effects_import",content:content})},
-  removeFile:function(id){return ws({type:"home_control/effects_delete",file_id:id})}
+  removeFile:function(id){return ws({type:"home_control/effects_delete",file_id:id})},
+  /* The imported files as they were given, for a backup (administrators). */
+  exportFiles:function(){return ws({type:"home_control/effects_export"}).then(function(r){return(r&&r.files)||[]})}
  },
  /* Sharing scenes with Siri, HomeKit and the Shortcuts app (administrators): the live scenes Home Control publishes as entities, and the HomeKit Bridge's list. */
  sharing:{

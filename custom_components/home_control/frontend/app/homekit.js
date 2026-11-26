@@ -24,7 +24,8 @@ var HK_PICK = ["light", "switch", "fan", "climate", "media_player", "cover", "lo
 /* A device of the dashboard as the Home app will have it, or null when HomeKit has nothing for it. group: where the page lists it; type: the bridge's accessory type, for those that can be more than one;
    what: the words for what it will be. */
 function hkClassify(d) {
-  var id = d.id,
+  /* a robot vacuum appliance is shared as its vacuum */
+  var id = d.id || (d.kind === "appliance" && d.ap && d.ap.type === "vacuum" && d.ap.slots.vacuum) || "",
     dm = id && dom(id),
     base = { key: id, entity: id, name: d.name || (A(id).friendly_name || id), icon: d.icon || "plug" };
   function item(group, what, type, tv) {
@@ -40,6 +41,7 @@ function hkClassify(d) {
   if (d.kind === "lock" && dm === "lock") return item("locks", "hk_what_lock");
   if (d.kind === "switch" && (dm === "switch" || dm === "input_boolean")) return item("switches", "hk_what_switch");
   if (d.kind === "vacuum" && dm === "vacuum") return item("switches", "hk_what_switch");
+  if (d.kind === "appliance" && d.ap && d.ap.type === "vacuum" && dm === "vacuum") return item("switches", "hk_what_switch");
   if (d.kind === "sensor" && dm === "sensor" && HK_SENSORS.indexOf(A(id).device_class) >= 0) return item("sensors", "hk_what_sensor");
   return null;
 }
@@ -49,9 +51,9 @@ function hkDevices() {
   var seen = {},
     out = [];
   devsOf().forEach(function (d) {
-    var it = d.id && !seen[d.id] ? hkClassify(d) : null;
-    if (it) {
-      seen[d.id] = 1;
+    var it = hkClassify(d);
+    if (it && !seen[it.entity]) {
+      seen[it.entity] = 1;
       out.push(it);
     }
   });

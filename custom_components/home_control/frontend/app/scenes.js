@@ -542,7 +542,12 @@ function sceneDeviceRow(d) {
 function sceneMadeRow(d) {
   var sc = sceneById(d.sid);
   if (!sc || !sceneAllowed(sc)) return null;
-  if (editing()) return pill(sc.icon || "scene", sc.name, { sub: mscKindLabel({ kind: sc.auto ? "auto" : sc.live ? "live" : "classic" }) });
+  if (editing())
+    return pill(sc.icon || "scene", sc.name, {
+      sub: function () {
+        return mscKindLabel({ kind: sc.auto ? "auto" : sc.live ? "live" : "classic" });
+      },
+    });
   return sceneRow(sc);
 }
 

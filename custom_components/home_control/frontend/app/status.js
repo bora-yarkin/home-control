@@ -164,13 +164,13 @@ function alertList() {
         showPopup("g-batteries", false);
       },
     ]);
-  devsOf("vacuum").forEach(function (d) {
+  vacuumList().forEach(function (d) {
     if (alertOn("vacuum") && V_(d.id) === "error")
       out.push([
         d.name + _T("needs_attention"),
         "",
         function () {
-          showPopup(devPop(d), false);
+          showPopup(d.pop, false);
         },
       ]);
   });

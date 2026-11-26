@@ -866,7 +866,7 @@ function familyRemote(b, media, remote, fam, hooks) {
   function press(role, hold) {
     var k = key(role);
     if (!k) return false;
-    if (how === "webos") call("webostv", "button", { entity_id: media, button: k });
+    if (how === "webos") call.apply(null, Integrations.remote.button(media, k));
     else send(remote, k, hold);
     return true;
   }

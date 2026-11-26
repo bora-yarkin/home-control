@@ -1,5 +1,5 @@
 {
-  "version": 497,
+  "version": 501,
   "files": [
     "integrations.js",
     "app/strings.js",
@@ -64,6 +64,7 @@
     "app/appliance.js",
     "app/appliancedial.js",
     "app/appliancevac.js",
+    "app/vacsetup.js",
     "app/lightgroups.js",
     "app/addpopup.js",
     "app/profiles.js",

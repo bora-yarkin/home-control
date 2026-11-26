@@ -55,6 +55,18 @@ async def effects_import(hass: HomeAssistant, connection: websocket_api.ActiveCo
     connection.send_result(msg["id"], {"ok": True, "id": identity, "name": catalogue.name, "effects": len(catalogue.effects)})
 
 
+@websocket_api.websocket_command({vol.Required("type"): f"{DOMAIN}/effects_export"})
+@websocket_api.require_admin
+@websocket_api.async_response
+async def effects_export(hass: HomeAssistant, connection: websocket_api.ActiveConnection, msg: dict[str, Any]) -> None:
+    """The imported files as they were given, for a backup."""
+    store = _store(hass)
+    if store is None:
+        connection.send_error(msg["id"], "not_found", "Home Control is not set up")
+        return
+    connection.send_result(msg["id"], {"files": list(store.files.values())})
+
+
 @websocket_api.websocket_command({vol.Required("type"): f"{DOMAIN}/effects_delete", vol.Required("file_id"): str})
 @websocket_api.require_admin
 @websocket_api.async_response
@@ -75,5 +87,5 @@ async def plugins(hass: HomeAssistant, connection: websocket_api.ActiveConnectio
 
 
 def async_register(hass: HomeAssistant) -> None:
-    for command in (effects, effects_import, effects_delete, plugins):
+    for command in (effects, effects_import, effects_export, effects_delete, plugins):
         websocket_api.async_register_command(hass, command)

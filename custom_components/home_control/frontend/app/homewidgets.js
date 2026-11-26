@@ -258,7 +258,12 @@ registerWidget("vacuum", {
       bar = mk("div", "wbar");
     w.card.querySelector(".wh b").after(st);
     w.card.addEventListener("click", function (e) {
-      if (!e.target.closest(".rbtn")) showPopup(devPop({ kind: "vacuum", id: id, name: entName(id), icon: "vac" }), true);
+      if (e.target.closest(".rbtn")) return;
+      /* a vacuum the dashboard has as an appliance opens that, else the vacuum's own popup */
+      var known = vacuumList().filter(function (v) {
+        return v.id === id;
+      })[0];
+      showPopup(known ? known.pop : devPop({ kind: "vacuum", id: id, name: entName(id), icon: "vac" }), true);
     });
     [
       ["play", "start", _T("start")],

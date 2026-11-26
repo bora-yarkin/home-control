@@ -623,16 +623,40 @@ function vacMapEnt(id) {
   return Integrations.vacuum.mapImage(H(), id);
 }
 
+/* The map of the vacuum card: what the vacuum popup of a device draws, and what a robot vacuum appliance draws from the entities chosen for it.
+   `cfg`: { id (the vacuum entity, for its state and history), me (the map: an image or camera entity), ps (the entity whose attributes give the robot's x and y, if any),
+   opts() (the map settings), zones() (a promise of [{ wall, items }], if any) }. */
 function vacMap(b, id) {
   var me = vacMapEnt(id);
   if (!me) return;
+  vacMapView(b, {
+    id: id,
+    me: me,
+    ps: Integrations.vacuum.positionSensor(me),
+    opts: function () {
+      return (UIDEV[id] || {}).map || {};
+    },
+    zones: function () {
+      return Integrations.vacuum.zones(id);
+    },
+  });
+}
+
+function vacMapView(b, cfg) {
+  var id = cfg.id || "",
+    me = cfg.me,
+    key = id || me;
+  /* where the robot is: the position entity, else the map's own `vacuum_position` */
+  function robot() {
+    return cfg.ps ? A(cfg.ps) : A(me).vacuum_position || {};
+  }
   var box = mk("div", "rb-map pane"),
     wrap = mk("div", "rb-mapw"),
     img = mk("img"),
     last = "",
     lbl = mk("div", "rb-mls");
   img.alt = _T("map_of_the_robot_vacuum");
-  lbl.style.fontSize = (((UIDEV[id] || {}).map || {}).ls || 13.5) + "px";
+  lbl.style.fontSize = (cfg.opts().ls || 13.5) + "px";
   wrap.appendChild(img);
   wrap.appendChild(lbl);
   box.appendChild(wrap);
@@ -768,7 +792,7 @@ function vacMap(b, id) {
   function paint() {
     var pic = A(me).entity_picture;
     if (!pic) return;
-    var mp = (UIDEV[id] || {}).map || {},
+    var mp = cfg.opts(),
       o = !!mp.m,
       k = pic + "|" + V_(me) + "|" + JSON.stringify(mp);
     if (k === last) return;
@@ -781,7 +805,7 @@ function vacMap(b, id) {
     else img.src = u;
   }
   /* The map opens centred, top to bottom, on the robot and keeps following it until the map is scrolled by hand. */
-  var ps = Integrations.vacuum.positionSensor(me),
+  var ps = cfg.ps || "",
     touched = false,
     at = "";
   ["wheel", "touchstart", "pointerdown"].forEach(function (ev) {
@@ -795,7 +819,7 @@ function vacMap(b, id) {
   });
   function center() {
     if (touched || !img.naturalWidth) return;
-    var a = A(ps),
+    var a = robot(),
       f = toPx();
     if (!f || typeof a.x !== "number" || typeof a.y !== "number") return;
     var p = f(a.x, a.y),
@@ -806,7 +830,7 @@ function vacMap(b, id) {
     box.scrollTop = Math.max(0, Math.min(box.scrollHeight - box.clientHeight, t));
   }
   /* Drawn above the map: the trail of the current or last cleaning run, and the no-go zones. The trail is read from the robot's position history when the map opens, so a run nobody watched is still there, and then extended live. */
-  var mt = (UIDEV[id] || {}).map || {},
+  var mt = cfg.opts(),
     trail = null,
     pl = null,
     tr = null,
@@ -830,7 +854,7 @@ function vacMap(b, id) {
     tr.appendChild(zg);
   }
   if (mt.tr) {
-    trail = RBTRAIL[id] = RBTRAIL[id] || { pts: [], st: "", loaded: false };
+    trail = RBTRAIL[key] = RBTRAIL[key] || { pts: [], st: "", loaded: false };
     pl = el("polyline", {
       fill: "none",
       "stroke-linecap": "round",
@@ -880,14 +904,14 @@ function vacMap(b, id) {
   }
   function track() {
     if (!trail) return;
-    var st = V_(id),
-      a = A(ps);
+    var st = id ? V_(id) : "",
+      a = robot();
     if (st === "cleaning" && trail.st && RUN.indexOf(trail.st) < 0) trail.pts = [];
     trail.st = st;
     if (RUN.indexOf(st) >= 0 && typeof a.x === "number" && typeof a.y === "number") push(a.x, a.y);
   }
   function load() {
-    if (!trail || trail.loaded) return;
+    if (!trail || trail.loaded || !id || !ps) return;
     trail.loaded = true;
     var since = new Date(Date.now() - 864e5).toISOString();
     HA.history({
@@ -929,9 +953,9 @@ function vacMap(b, id) {
   }
   /* The robot keeps its forbidden areas and virtual walls as text; they are asked for each time the map opens. */
   function loadZones() {
-    if (!zg) return;
-    Integrations.vacuum
-      .zones(id)
+    if (!zg || !cfg.zones) return;
+    cfg
+      .zones()
       .then(function (groups) {
         var out = [];
         groups.forEach(function (g) {

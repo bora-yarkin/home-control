@@ -115,7 +115,7 @@ function rmCall(a) {
     return ["media_player", RM_MEDIA_SVC[a.m], data];
   }
   if (a.t === "src") return ["media_player", "select_source", { entity_id: a.e, source: a.v }];
-  if (a.t === "webos") return ["webostv", "button", { entity_id: a.e, button: a.b }];
+  if (a.t === "webos") return Integrations.remote.button(a.e, a.b);
   var e = REMOTE_ACT[dom(a.e)];
   return e ? [e[0], e[1], { entity_id: a.e }] : null;
 }
@@ -200,7 +200,7 @@ function remoteRow(d) {
   });
 }
 
-/* Text typed for a TV: how it is sent depends on the integration (Samsung Smart, Apple TV, Android TV Remote, Roku); one that cannot say so. */
+/* Text typed for a TV: how it is sent depends on the integration (integrations.js); one that cannot say so. */
 function rmSendText(media, text) {
   var e = (H().entities || {})[media] || {},
     p = e.platform;
@@ -209,18 +209,11 @@ function rmSendText(media, text) {
       return dom(x.entity_id) === "remote";
     });
   }
-  if (p === "samsungtv_smart") {
-    var t = Integrations.media.samsungText(media, text);
-    return call(t[0], t[1], t[2]);
-  }
-  if (p === "apple_tv") {
-    var dv = e.device_id && H().devices[e.device_id],
-      a = Integrations.media.appleText(dv && dv.config_entries && dv.config_entries[0], text);
-    return call(a[0], a[1], a[2]);
-  }
-  if (p === "androidtv_remote" && remoteOf()) return send(remoteOf(), "text:" + text);
-  var fam = Integrations.remote.family(p);
-  if (remoteOf() && Integrations.remote.text(fam, text) !== null) return send(remoteOf(), Integrations.remote.text(fam, text));
+  var dv = e.device_id && H().devices[e.device_id],
+    own = Integrations.media.textCall(p, media, dv && dv.config_entries && dv.config_entries[0], text);
+  if (own) return call(own[0], own[1], own[2]);
+  var key = remoteOf() ? Integrations.media.textKey(p, text) : null;
+  if (key !== null) return send(remoteOf(), key);
   toast(_T("rm_text_unsupported"));
 }
 

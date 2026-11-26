@@ -166,12 +166,15 @@ function kTier(d) {
     }),
     e = H().entities[d.id],
     plat = e ? e.platform : "";
-  /* The core Samsung integration offers little; the HACS one offers the apps, sources and keys. */
-  var better = plat === "samsungtv" && !Object.keys(H().entities).some(function (k) {
-    return H().entities[k].platform === "samsungtv_smart";
-  });
+  /* some integrations offer little where another one for the same TV offers the apps, sources and keys */
+  var better = Integrations.media.better(
+    plat,
+    Object.keys(H().entities).map(function (k) {
+      return H().entities[k].platform;
+    })
+  );
   var full = missing.indexOf("source") < 0 && missing.indexOf("volume") < 0 && missing.indexOf("power_off") < 0;
-  return { tier: full || remote ? "full" : "basic", missing: missing, remote: !!remote, suggest: better ? "samsungtv_smart" : null };
+  return { tier: full || remote ? "full" : "basic", missing: missing, remote: !!remote, suggest: better };
 }
 
 /* ---- the setup page of a device ---- */
