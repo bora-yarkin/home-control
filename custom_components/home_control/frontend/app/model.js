@@ -150,6 +150,25 @@ function cleanRmAct(a) {
   return null;
 }
 
+/* A ready-made remote's own button settings (app/remotebuttons.js): hidden, an action of the remote builder, or an entity that fills it. Null when nothing is left. */
+function cleanRbx(o) {
+  var out = {};
+  if (!o || typeof o !== "object") return null;
+  ["power", "settings", "mute", "back", "home", "playpause", "volup", "voldown", "chup", "chdown", "keyboard", "brightness", "apps"].forEach(function (role) {
+    var c = o[role],
+      doms = { keyboard: ["remote", "media_player", "text", "input_text", "script"], brightness: ["number", "input_number"], apps: ["media_player", "select", "input_select"] }[role];
+    if (!c || typeof c !== "object") return;
+    if (c.off) out[role] = { off: 1 };
+    else if (doms) {
+      if (typeof c.e === "string" && ENTRE.test(c.e) && doms.indexOf(c.e.split(".")[0]) >= 0) out[role] = { e: c.e };
+    } else {
+      var a = cleanRmAct(c.a);
+      if (a && a.t !== "room") out[role] = { a: a };
+    }
+  });
+  return Object.keys(out).length ? out : null;
+}
+
 /* The remote of a device: a grid of buttons (width and height in cells, gaps, five-way pads) or a picture with touch areas over it. */
 function cleanRemote(r) {
   var cols = r && typeof r.cols === "number" ? Math.max(2, Math.min(12, Math.round(r.cols))) : 3,
@@ -582,6 +601,7 @@ function cleanUI(u) {
     bats: [],
     layout: { home: [], rooms: {}, cols: {} },
     caps: {},
+    rbx: {},
     on: {},
     newSince: typeof u.newSince === "number" && u.newSince > 0 ? u.newSince : 0,
     ignored: Array.isArray(u.ignored)
@@ -641,6 +661,13 @@ function cleanUI(u) {
           if (Object.keys(sv).length) x.c = sv;
         }
         if (Object.keys(x).length) o.on[id] = x;
+      });
+  if (u.rbx && typeof u.rbx === "object")
+    Object.keys(u.rbx)
+      .slice(0, 80)
+      .forEach(function (id) {
+        var x = /^media_player\.[a-z0-9_]+$/.test(id) && cleanRbx(u.rbx[id]);
+        if (x) o.rbx[id] = x;
       });
   if (u.caps && typeof u.caps === "object")
     Object.keys(u.caps)
@@ -1057,6 +1084,8 @@ function cleanLayout(a) {
     if (s.span === 1 || s.span === 2 || s.span === 3 || s.span === 4) o.span = s.span;
     var an = (Array.isArray(s.and) ? s.and : []).slice(0, 4).map(cleanCond).filter(Boolean);
     if (an.length) o.and = an;
+    /* the contents of a Popup widget (app/popupwidget.js) */
+    if (k === "devs" && typeof s.of === "string" && WIDRE.test(s.of)) o.of = s.of;
     if ((k === "scenes" || k === "devs") && Array.isArray(s.scn))
       o.scn = s.scn
         .filter(function (x, i, a) {
@@ -1078,18 +1107,35 @@ function cleanLayout(a) {
     }
     out.push(o);
   });
-  return out;
+  return dropOrphanPopups(out);
+}
+
+/* A popup's contents go with its widget: a Section `of` a widget that is no longer on the page is dropped (and then those of popups that were inside it). */
+function dropOrphanPopups(list) {
+  var owners = {};
+  list.forEach(function (s) {
+    (s.devs || []).forEach(function (d) {
+      if (d.kind === "widget" && d.w === "popup") owners[d.wid] = 1;
+    });
+  });
+  var kept = list.filter(function (s) {
+    return !s.of || owners[s.of];
+  });
+  return kept.length < list.length ? dropOrphanPopups(kept) : kept;
 }
 
 /* The devices of a page are whatever its sections hold. UI.devs is rebuilt from them; it is saved with the layout for the code that looks a page's devices up by room. */
 function devIndex(o) {
   var idx = {};
   o.rooms.forEach(function (r) {
-    var l = [];
-    ((o.layout.rooms || {})[r.id] || []).forEach(function (s) {
+    var l = [],
+      secs = (o.layout.rooms || {})[r.id] || [];
+    /* the page's own Sections first: what is also in a popup is listed once */
+    secs.filter(function (s) { return !s.of; }).concat(secs.filter(function (s) { return s.of; })).forEach(function (s) {
       var have = {};
       (s.devs || []).forEach(function (d) {
         if (d.id) have[d.id] = 1;
+        if (s.of && d.id && l.some(function (x) { return x.id === d.id; })) return;
         l.push(d);
       });
       /* The lights chosen for a lights master (its own, or one the section holds) are lights of the page too: room counts, the room's everything-off and conditions see them, also when no section lists them. */

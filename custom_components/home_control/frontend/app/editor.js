@@ -420,7 +420,8 @@ function resetPage(sc) {
     })[0];
     if (t) t.scn = x.scn;
   });
-  setSecOrder(sc, fresh);
+  /* what is in the popups stays with their widgets */
+  setSecOrder(sc, fresh.concat(old.filter(function (x) { return x.of; })));
   uiChanged();
 }
 
@@ -580,7 +581,9 @@ function secOrderPage(b, key) {
   }
   function draw() {
     box.innerHTML = "";
-    var o = secOrder(sc),
+    var o = secOrder(sc).filter(function (s) {
+        return !s.of;
+      }),
       cm = colMap(),
       hint = mk("div", "hint"),
       rows = [];
@@ -596,10 +599,13 @@ function secOrderPage(b, key) {
       box.appendChild(r);
     });
     makeSortable(box, rows, function (from, to) {
-      var a = secOrder(sc),
+      var all = secOrder(sc),
+        a = all.filter(function (s) {
+          return !s.of;
+        }),
         x = a.splice(from, 1)[0];
       a.splice(to, 0, x);
-      setSecOrder(sc, a);
+      setSecOrder(sc, a.concat(all.filter(function (s) { return s.of; })));
       uiChanged();
       setTimeout(draw, 250);
     });
@@ -753,7 +759,7 @@ var ADDPRE = null,
 /* The section of a page a device goes into when no section was chosen: one that already holds a device of its kind, else the first Section, else a new one. */
 function secForDevice(arr, d) {
   var secs = arr.filter(function (x) {
-    return x.k === "devs";
+    return x.k === "devs" && !x.of;
   });
   var same = secs.filter(function (x) {
     return (x.devs || []).some(function (y) {
@@ -788,7 +794,9 @@ function pageDevIds(rid) {
   var scope = rid.charAt(0) === "~" ? rid.split("~")[1] : rid,
     sc = scope === "home" ? "home" : "room:" + scope,
     out = {};
-  secOrder(sc).forEach(function (s) {
+  /* Adding into a popup: only what is in that popup is taken. Adding to a page: what is only in a popup is still offered. */
+  var own = rid.charAt(0) === "~" ? secById(scope, rid.split("~")[2]) : null;
+  (own && own.of ? [own] : secOrder(sc).filter(function (s) { return !s.of; })).forEach(function (s) {
     (s.devs || []).forEach(function (d) {
       if (d.id) out[d.id] = 1;
     });
@@ -1010,6 +1018,18 @@ function secEditor(b, key) {
               if (x.kind !== "widget") return;
               x.wid = x.w === "lmaster" ? masterNewId(sk === "home" ? "home" : sk.slice(5)) : widgetNewId();
               if (x.wx && x.w === "lmaster") x.wx.id = x.wid;
+            });
+            /* a copied Popup widget gets a copy of what is in it */
+            (c.devs || []).forEach(function (x, i) {
+              if (x.w !== "popup") return;
+              var inside = order.filter(function (y) {
+                return y.of === e.devs[i].wid;
+              })[0];
+              if (!inside) return;
+              var copy = JSON.parse(JSON.stringify(inside));
+              copy.of = x.wid;
+              copy.id = newSecId(order.concat(c));
+              order.push(copy);
             });
             order.splice(order.indexOf(e) + 1, 0, c);
             setSecOrder(sk, order);

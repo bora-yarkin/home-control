@@ -20,6 +20,18 @@ In the editor, *Add item → Remote*:
 - **Remote master:** one remote for a TV and what is plugged into it (below).
 - **Build your own:** an empty remote for the builder.
 
+## Buttons of the ready-made remotes
+
+A button of a Samsung, Apple TV, Android TV or experimental remote shows only when the TV's integration can do it (a TV that says it cannot mute while it is on loses Mute; a TV whose integration cannot type has no keyboard).
+
+*Edit the page → the TV → Remote buttons* (or, in a Remote master, the player's settings) changes any button:
+
+- **Automatic**: as above.
+- **Hidden**.
+- **Use something else**, from any integration. A button takes a script, button, scene or switch, a key of a remote entity, or a media player's control. *Keyboard* takes a text field, a script (it gets `text`), or a remote or media player that can type. *Screen brightness* takes a number. *Apps and inputs* takes a media player's source list or a select.
+
+What the integrations document for typing: Samsung only through `samsungtv_smart`; Apple TV (the keyboard must be open on the TV); Android TV Remote (turn on *Enable IME* in its options); Roku; Vizio. Sony Bravia, Philips, Fire TV (adb) and LG webOS document none, so their keyboard shows only when you give it a source. No integration documents setting screen brightness: the remote uses a `Backlight` number of the TV when there is one, else the number you choose.
+
 ## The remote builder
 
 *Add item → Remote → Build your own* (or on an appliance, *Buttons*).

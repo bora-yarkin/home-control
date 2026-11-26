@@ -1,5 +1,5 @@
 {
-  "version": 512,
+  "version": 513,
   "files": [
     "integrations.js",
     "app/strings.js",
@@ -14,6 +14,7 @@
     "app/lightsmasters.js",
     "app/effects.js",
     "app/media.js",
+    "app/remotebuttons.js",
     "app/climate.js",
     "app/vacuum.js",
     "app/camera.js",
@@ -26,6 +27,7 @@
     "app/status.js",
     "app/sections.js",
     "app/widgetkinds.js",
+    "app/popupwidget.js",
     "app/homewidgets.js",
     "app/remotemaster.js",
     "app/rules.js",

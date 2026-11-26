@@ -29,6 +29,8 @@ function world(states = {}, extra = {}) {
     call: (d, s, data) => sent.push([d + "." + s, data.entity_id]),
     Integrations: { media: { samsungSettingsKey: () => "KEY_MORE", samsungCanType: () => false }, remote: { experimental: () => false } },
     tvFamily: () => null,
+    rbxKeys: () => {},
+    mediaRemoteKind: () => "",
     ...extra,
   });
   vm.runInContext(read("remotemaster.js"), ctx);
@@ -125,8 +127,9 @@ test("the popup opens on the default unless the master remembers the pick", () =
 test("it is a widget, every TV remote lets it take its keys, and the popup's title is a dropdown", () => {
   const { registry } = world();
   assert.equal(registry.rmaster.noStack, true);
-  const media = read("media.js");
-  for (const role of ["settings", "text", "back", "home", "playpause", "ok", "dir", "hold"]) assert.ok(media.includes(`rmo(hooks, "${role}"`), role);
+  const media = read("media.js") + read("remotebuttons.js");
+  for (const role of ["settings", "text", "back", "home", "playpause", "ok", "dir", "hold"])
+    assert.ok(media.includes(`rmo(hooks, "${role}"`) || new RegExp(`key\\([^\n]*"${role}"\\)`).test(media), role);
   assert.doesNotMatch(media, /rmo\(hooks, "(power|mute|volup|voldown|chup|chdown)"/);
   assert.match(read("popups.js"), /def\.titleMenu[\s\S]*openMenu\(t, def\.titleMenu\.options/);
   const files = JSON.parse(readFileSync(new URL("../version.json", APP), "utf8")).files;

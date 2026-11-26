@@ -382,40 +382,45 @@ function tvBrightness(media) {
 }
 
 function samsungRemote(b, remote, media, hooks) {
-  var inRow = tvAppsInNowPlaying(media);
+  var inRow = rappsInRow(media);
   playingBlock(b, hooks, media, "tv", inRow ? tvSourceMenu(media) : undefined);
+  /* A key of the TV's remote, for one button: a remote master may give its role to the device on the screen. */
+  function key(k, role) {
+    return function () {
+      if (!role || !rmo(hooks, role)) send(remote, k);
+    };
+  }
   var r1 = mk(
     "div",
     "rrow"
   ); /* KEY_POWER goes over the TV's network socket, which is closed while the TV is off; turn_on uses the integration's wake path instead. */
   r1.appendChild(
-    rbtn("power", function () {
+    rkey(media, "power", function () {
       if (V_(media) === "off") call("media_player", "turn_on", { entity_id: media });
       else send(remote, "KEY_POWER");
     })
   );
-  if (!inRow) r1.appendChild(tvSources(media));
+  if (!inRow) {
+    var apps = rapps(media, true);
+    if (apps) r1.appendChild(apps);
+  }
   b.appendChild(r1);
   if (hooks) hooks.beside(b, r1);
-  var r2 = mk("div", "rrow");
+  var platform = (H().entities[media] || {}).platform,
+    r2 = mk("div", "rrow");
+  r2.appendChild(rkey(media, "settings", key(Integrations.media.samsungSettingsKey(platform), "settings"), hooks));
+  r2.appendChild(rkey(media, "mute", key("KEY_MUTE"), hooks));
   r2.appendChild(
-    rbtn("cog", function () {
-      if (!rmo(hooks, "settings")) send(remote, Integrations.media.samsungSettingsKey((H().entities[media] || {}).platform));
-    })
+    rkeyboard(
+      media,
+      Integrations.media.samsungCanType(platform)
+        ? function (v) {
+            call.apply(null, Integrations.media.samsungText(media, v));
+          }
+        : null,
+      hooks
+    )
   );
-  r2.appendChild(
-    rbtn("mute", function () {
-      send(remote, "KEY_MUTE");
-    })
-  );
-  if (Integrations.media.samsungCanType((H().entities[media] || {}).platform))
-    r2.appendChild(
-      rbtn("keyboard", function () {
-        kbDlg(function (v) {
-          if (!rmo(hooks, "text", v)) call.apply(null, Integrations.media.samsungText(media, v));
-        });
-      })
-    );
   b.appendChild(r2);
   b.appendChild(
     touchpad(remote, {
@@ -433,148 +438,97 @@ function samsungRemote(b, remote, media, hooks) {
     }, hooks)
   );
   var r3 = mk("div", "rrow");
+  r3.appendChild(rkey(media, "back", key("KEY_RETURN", "back"), hooks));
+  r3.appendChild(rkey(media, "home", key("KEY_HOME", "home"), hooks));
   r3.appendChild(
-    rbtn("back", function () {
-      if (!rmo(hooks, "back")) send(remote, "KEY_RETURN");
-    })
-  );
-  r3.appendChild(
-    rbtn("home", function () {
-      if (!rmo(hooks, "home")) send(remote, "KEY_HOME");
-    })
-  );
-  r3.appendChild(
-    rbtn("playpause", function () {
+    rkey(media, "playpause", function () {
       if (!rmo(hooks, "playpause")) call("media_player", "media_play_pause", { entity_id: media });
-    })
+    }, hooks)
   );
   b.appendChild(r3);
   var r4 = mk("div", "rrow");
   var l = mk("div", "rstack"),
-    m = tvBrightness(media),
     rr = mk("div", "rstack");
-  l.appendChild(
-    rbtn(
-      "volup",
-      function () {
-        send(remote, "KEY_VOLUP");
-      },
-      "",
-      true
-    )
-  );
-  l.appendChild(
-    rbtn(
-      "voldown",
-      function () {
-        send(remote, "KEY_VOLDOWN");
-      },
-      "",
-      true
-    )
-  );
-  rr.appendChild(
-    rbtn(
-      "chup",
-      function () {
-        send(remote, "KEY_CHUP");
-      },
-      "CH",
-      true
-    )
-  );
-  rr.appendChild(
-    rbtn(
-      "chdown",
-      function () {
-        send(remote, "KEY_CHDOWN");
-      },
-      "CH",
-      true
-    )
-  );
+  l.appendChild(rkey(media, "volup", key("KEY_VOLUP"), hooks, "", true));
+  l.appendChild(rkey(media, "voldown", key("KEY_VOLDOWN"), hooks, "", true));
+  rr.appendChild(rkey(media, "chup", key("KEY_CHUP"), hooks, "CH", true));
+  rr.appendChild(rkey(media, "chdown", key("KEY_CHDOWN"), hooks, "CH", true));
   r4.appendChild(l);
-  r4.appendChild(m);
+  r4.appendChild(rbright(media));
   r4.appendChild(rr);
   b.appendChild(r4);
 }
 
 function appleRemote(b, remote, media, tvRemote, entry, hooks) {
   playingBlock(b, hooks, media, "apple");
+  function key(k, role) {
+    return function () {
+      if (!role || !rmo(hooks, role)) send(remote, k);
+    };
+  }
   var r1 = mk("div", "rrow");
   r1.appendChild(
-    rbtn("power", function () {
+    rkey(media, "power", function () {
       send(remote, V_(media) === "off" ? "wakeup" : "suspend");
     })
   );
+  var apps = rapps(media, false);
+  if (apps) r1.appendChild(apps);
   b.appendChild(r1);
   if (hooks) hooks.beside(b, r1);
   var r2 = mk("div", "rrow");
+  r2.appendChild(rkey(media, "settings", key("control_center", "settings"), hooks));
+  /* The Apple TV remote sends no mute key: the TV in the room mutes, else the player's own mute where it says it has one. */
   r2.appendChild(
-    rbtn("cog", function () {
-      if (!rmo(hooks, "settings")) send(remote, "control_center");
-    })
+    rkey(
+      media,
+      "mute",
+      tvRemote
+        ? function () {
+            send(tvRemote, "KEY_MUTE");
+          }
+        : tvLacks(media, 8)
+          ? null
+          : function () {
+              call("media_player", "volume_mute", {
+                entity_id: media,
+                is_volume_muted: !A(media).is_volume_muted,
+              });
+            },
+      hooks
+    )
   );
   r2.appendChild(
-    rbtn("mute", function () {
-      if (tvRemote) send(tvRemote, "KEY_MUTE");
-      else
-        call("media_player", "volume_mute", {
-          entity_id: media,
-          is_volume_muted: !A(media).is_volume_muted,
-        });
-    })
-  );
-  r2.appendChild(
-    rbtn("keyboard", function () {
-      kbDlg(function (v) {
-        if (!rmo(hooks, "text", v)) call.apply(null, Integrations.media.appleText(entry, v));
-      });
-    })
+    rkeyboard(
+      media,
+      entry
+        ? function (v) {
+            call.apply(null, Integrations.media.appleText(entry, v));
+          }
+        : null,
+      hooks
+    )
   );
   b.appendChild(r2);
   b.appendChild(
     touchpad(remote, { ok: "select", up: "up", down: "down", left: "left", right: "right" }, undefined, hooks)
   );
   var r3 = mk("div", "rrow");
-  r3.appendChild(
-    rbtn("back", function () {
-      if (!rmo(hooks, "back")) send(remote, "menu");
-    })
-  );
-  r3.appendChild(
-    rbtn("home", function () {
-      if (!rmo(hooks, "home")) send(remote, "home");
-    })
-  );
-  r3.appendChild(
-    rbtn("playpause", function () {
-      if (!rmo(hooks, "playpause")) send(remote, "play_pause");
-    })
-  );
+  r3.appendChild(rkey(media, "back", key("menu", "back"), hooks));
+  r3.appendChild(rkey(media, "home", key("home", "home"), hooks));
+  r3.appendChild(rkey(media, "playpause", key("play_pause", "playpause"), hooks));
   b.appendChild(r3);
-  var r4 = mk("div", "rrow");
-  r4.appendChild(
-    rbtn(
-      "voldown",
-      function () {
-        send(remote, "volume_down");
-      },
-      "",
-      true
-    )
-  );
-  r4.appendChild(mk("div"));
-  r4.appendChild(
-    rbtn(
-      "volup",
-      function () {
-        send(remote, "volume_up");
-      },
-      "",
-      true
-    )
-  );
+  var r4 = mk("div", "rrow"),
+    l = mk("div", "rstack"),
+    rr = mk("div", "rstack");
+  l.appendChild(rkey(media, "volup", key("volume_up"), hooks, "", true));
+  l.appendChild(rkey(media, "voldown", key("volume_down"), hooks, "", true));
+  /* no channel keys of its own: they show when another integration is given for them */
+  rr.appendChild(rkey(media, "chup", null, hooks, "CH", true));
+  rr.appendChild(rkey(media, "chdown", null, hooks, "CH", true));
+  r4.appendChild(l);
+  r4.appendChild(rbright(media));
+  r4.appendChild(rr);
   b.appendChild(r4);
 }
 
@@ -936,7 +890,8 @@ function tvFamily(id) {
 
 /* A remote for a TV the dashboard has no native remote for: the same layout as the others, with the keys its integration documents, and the media player's own services where it lists none. It says it is experimental. */
 function familyRemote(b, media, remote, fam, hooks) {
-  var how = Integrations.remote.how(fam);
+  var how = Integrations.remote.how(fam),
+    platform = (H().entities[media] || {}).platform;
   function key(role) {
     return Integrations.remote.role(fam, role);
   }
@@ -947,46 +902,64 @@ function familyRemote(b, media, remote, fam, hooks) {
     else send(remote, k, hold);
     return true;
   }
-  /* A role with no key goes to the media player's own service. */
-  function act(role, svc, data) {
+  /* What a button does: the family's key, else the media player's own service where it says it can; null when neither. `master` is the role a remote master may take over. */
+  function act(role, svc, bits, data, master) {
+    if (!key(role) && (!svc || (bits && tvLacks(media, bits)))) return null;
     return function () {
-      if (!press(role) && svc) call("media_player", svc, Object.assign({ entity_id: media }, data || {}));
-    };
-  }
-  function taken(role, fn) {
-    return function () {
-      if (!rmo(hooks, role)) fn();
+      if (master && rmo(hooks, master)) return;
+      if (!press(role) && svc) call("media_player", svc, Object.assign({ entity_id: media }, data ? data() : {}));
     };
   }
   b.appendChild(hintRow(_T("tv_remote_experimental")));
-  var inRow = tvAppsInNowPlaying(media);
+  var inRow = rappsInRow(media);
   playingBlock(b, hooks, media, "tv", inRow ? tvSourceMenu(media) : undefined);
   var r1 = mk("div", "rrow");
   r1.appendChild(
-    rbtn("power", function () {
+    rkey(media, "power", function () {
       if (V_(media) === "off") call("media_player", "turn_on", { entity_id: media });
       else if (!press("power")) call("media_player", "turn_off", { entity_id: media });
     })
   );
-  if (!inRow) r1.appendChild(tvSources(media));
+  if (!inRow) {
+    var apps = rapps(media, true);
+    if (apps) r1.appendChild(apps);
+  }
   b.appendChild(r1);
   if (hooks) hooks.beside(b, r1);
   var r2 = mk("div", "rrow");
-  if (key("menu"))
-    r2.appendChild(
-      rbtn("cog", function () {
-        if (!rmo(hooks, "settings")) press("menu");
-      })
-    );
-  r2.appendChild(rbtn("mute", act("mute", "volume_mute", { is_volume_muted: !A(media).is_volume_muted })));
+  r2.appendChild(
+    rkey(
+      media,
+      "settings",
+      key("menu")
+        ? function () {
+            if (!rmo(hooks, "settings")) press("menu");
+          }
+        : null,
+      hooks
+    )
+  );
+  r2.appendChild(
+    rkey(
+      media,
+      "mute",
+      act("mute", "volume_mute", 8, function () {
+        return { is_volume_muted: !A(media).is_volume_muted };
+      }),
+      hooks
+    )
+  );
+  /* Typing: by a key of the remote (Roku) or an action of the integration (Vizio). */
+  var type = null;
   if (remote && Integrations.remote.text(fam, "x") !== null)
-    r2.appendChild(
-      rbtn("keyboard", function () {
-        kbDlg(function (v) {
-          if (!rmo(hooks, "text", v)) send(remote, Integrations.remote.text(fam, v));
-        });
-      })
-    );
+    type = function (v) {
+      send(remote, Integrations.remote.text(fam, v));
+    };
+  else if (Integrations.media.textCall(platform, media, "", "x"))
+    type = function (v) {
+      call.apply(null, Integrations.media.textCall(platform, media, "", v));
+    };
+  r2.appendChild(rkeyboard(media, type, hooks));
   b.appendChild(r2);
   var t = mk("div", "touch pane");
   swipePad(
@@ -1004,52 +977,52 @@ function familyRemote(b, media, remote, fam, hooks) {
   );
   b.appendChild(t);
   var r3 = mk("div", "rrow");
-  r3.appendChild(rbtn("back", taken("back", act("back", ""))));
-  r3.appendChild(rbtn("home", taken("home", act("home", ""))));
-  r3.appendChild(rbtn("playpause", taken("playpause", act("playpause", "media_play_pause"))));
+  r3.appendChild(rkey(media, "back", act("back", "", 0, null, "back"), hooks));
+  r3.appendChild(rkey(media, "home", act("home", "", 0, null, "home"), hooks));
+  r3.appendChild(rkey(media, "playpause", act("playpause", "media_play_pause", 0, null, "playpause"), hooks));
   b.appendChild(r3);
   var r4 = mk("div", "rrow"),
     l = mk("div", "rstack"),
     rr = mk("div", "rstack");
-  l.appendChild(rbtn("volup", act("volup", "volume_up"), "", true));
-  l.appendChild(rbtn("voldown", act("voldown", "volume_down"), "", true));
+  /* VOLUME_SET (4) or VOLUME_STEP (1024) */
+  l.appendChild(rkey(media, "volup", act("volup", "volume_up", 1028), hooks, "", true));
+  l.appendChild(rkey(media, "voldown", act("voldown", "volume_down", 1028), hooks, "", true));
+  rr.appendChild(rkey(media, "chup", act("chup", ""), hooks, "CH", true));
+  rr.appendChild(rkey(media, "chdown", act("chdown", ""), hooks, "CH", true));
   r4.appendChild(l);
-  r4.appendChild(mk("div"));
-  if (key("chup")) {
-    rr.appendChild(rbtn("chup", act("chup", ""), "CH", true));
-    rr.appendChild(rbtn("chdown", act("chdown", ""), "CH", true));
-    r4.appendChild(rr);
-  }
+  r4.appendChild(rbright(media));
+  r4.appendChild(rr);
   b.appendChild(r4);
 }
 
 function androidRemote(b, remote, media, hooks) {
   playingBlock(b, hooks, media, "tv");
+  function key(k, role) {
+    return function () {
+      if (!role || !rmo(hooks, role)) send(remote, k);
+    };
+  }
   var r1 = mk("div", "rrow");
   r1.appendChild(
-    rbtn("power", function () {
+    rkey(media, "power", function () {
       call("media_player", V_(media) === "off" ? "turn_on" : "turn_off", { entity_id: media });
     })
   );
+  var apps = rapps(media, false);
+  if (apps) r1.appendChild(apps);
   b.appendChild(r1);
   if (hooks) hooks.beside(b, r1);
   var r2 = mk("div", "rrow");
+  r2.appendChild(rkey(media, "settings", key("SETTINGS", "settings"), hooks));
+  r2.appendChild(rkey(media, "mute", key("MUTE"), hooks));
   r2.appendChild(
-    rbtn("cog", function () {
-      if (!rmo(hooks, "settings")) send(remote, "SETTINGS");
-    })
-  );
-  r2.appendChild(
-    rbtn("mute", function () {
-      send(remote, "MUTE");
-    })
-  );
-  r2.appendChild(
-    rbtn("keyboard", function () {
-      kbDlg(function (v) {
-        if (!rmo(hooks, "text", v)) send(remote, "text:" + v);
-      });
-    })
+    rkeyboard(
+      media,
+      function (v) {
+        send(remote, "text:" + v);
+      },
+      hooks
+    )
   );
   b.appendChild(r2);
   b.appendChild(
@@ -1062,67 +1035,19 @@ function androidRemote(b, remote, media, hooks) {
     }, undefined, hooks)
   );
   var r3 = mk("div", "rrow");
-  r3.appendChild(
-    rbtn("back", function () {
-      if (!rmo(hooks, "back")) send(remote, "BACK");
-    })
-  );
-  r3.appendChild(
-    rbtn("home", function () {
-      if (!rmo(hooks, "home")) send(remote, "HOME");
-    })
-  );
-  r3.appendChild(
-    rbtn("playpause", function () {
-      if (!rmo(hooks, "playpause")) send(remote, "MEDIA_PLAY_PAUSE");
-    })
-  );
+  r3.appendChild(rkey(media, "back", key("BACK", "back"), hooks));
+  r3.appendChild(rkey(media, "home", key("HOME", "home"), hooks));
+  r3.appendChild(rkey(media, "playpause", key("MEDIA_PLAY_PAUSE", "playpause"), hooks));
   b.appendChild(r3);
   var r4 = mk("div", "rrow"),
     l = mk("div", "rstack"),
     rr = mk("div", "rstack");
-  l.appendChild(
-    rbtn(
-      "volup",
-      function () {
-        send(remote, "VOLUME_UP");
-      },
-      "",
-      true
-    )
-  );
-  l.appendChild(
-    rbtn(
-      "voldown",
-      function () {
-        send(remote, "VOLUME_DOWN");
-      },
-      "",
-      true
-    )
-  );
-  rr.appendChild(
-    rbtn(
-      "chup",
-      function () {
-        send(remote, "CHANNEL_UP");
-      },
-      "CH",
-      true
-    )
-  );
-  rr.appendChild(
-    rbtn(
-      "chdown",
-      function () {
-        send(remote, "CHANNEL_DOWN");
-      },
-      "CH",
-      true
-    )
-  );
+  l.appendChild(rkey(media, "volup", key("VOLUME_UP"), hooks, "", true));
+  l.appendChild(rkey(media, "voldown", key("VOLUME_DOWN"), hooks, "", true));
+  rr.appendChild(rkey(media, "chup", key("CHANNEL_UP"), hooks, "CH", true));
+  rr.appendChild(rkey(media, "chdown", key("CHANNEL_DOWN"), hooks, "CH", true));
   r4.appendChild(l);
-  r4.appendChild(mk("div"));
+  r4.appendChild(rbright(media));
   r4.appendChild(rr);
   b.appendChild(r4);
 }

@@ -4,6 +4,18 @@ Format: [Keep a Changelog](https://keepachangelog.com/). Versions follow [semant
 
 ## [Unreleased]
 
+## [0.32.0] - 2026-11-26
+
+### Added
+
+- **Popup widget** (decision D-40): a button that opens a popup of devices and widgets you choose.
+- **Remote buttons** (decision D-41): hide any button of a ready-made TV remote, or give it a source from another integration, also keyboard, screen brightness and apps. In the TV's settings and in a Remote master.
+- Typing on Vizio TVs (`vizio.send_text`).
+
+### Changed
+
+- A ready-made remote leaves out what its TV cannot do: mute or volume a running player says it lacks, an empty list of apps, and channel keys on Apple TV (unless you give them a source).
+
 ## [0.31.1] - 2026-11-26
 
 ### Fixed
