@@ -309,7 +309,7 @@ function rmKeys(id) {
         var k = how && Integrations.remote.role(fam, r);
         if (!k || (how !== "webos" && !rem)) return null;
         return function () {
-          if (how === "webos") call("webostv", "button", { entity_id: id, button: k });
+          if (how === "webos") call.apply(null, Integrations.remote.button(id, k));
           else send(rem, k, hold);
         };
       };

@@ -9,6 +9,8 @@ Parts that belong to one integration appear only when that integration is instal
 styles and the Spotify sync appear when [Philips Hue Plus](https://github.com/bora-yarkin/hue-plus) is installed, and nothing Hue shows
 without it.
 
+The **[user manual](docs/manual/README.md)** explains everything (also from *Settings → User manual*), and the [AI setup guide](docs/ai-setup.md) lets an assistant build your dashboard.
+
 Any robot vacuum can be set up as an appliance with its own map, rooms, settings and zones: [the robot vacuum appliance](docs/vacuum-appliance.md).
 
 ## Install

@@ -6,13 +6,13 @@ particular to a robot (how it is told to clean a room, how it reports its no-go 
 Three ways to set one up, which can be mixed:
 
 1. **The editor.** Page editor → the appliance → its set-up. *Fill from the vacuum* finds the battery, map, position and mode selects of the vacuum's device.
-2. **Text.** *Setup as text* at the end of the set-up shows the whole set-up as JSON, to edit, copy to another home, or paste.
-3. **An AI.** Give it this document and your robot's details (below), then paste its answer into *Setup as text*.
+2. **A file.** *Set-up file* at the end of the set-up saves the whole set-up as a `.json` file, to edit, keep or take to another home, and loads one.
+3. **An AI.** Give it this document and your robot's details (below), ask for the `.json` file, and load it under *Set-up file*.
 
 Only administrators can change a set-up.
 
 > Start runs the actions of the set-up, and the zones source is run each time the map opens. They are ordinary Home Assistant actions and can do anything an action can.
-> Read a text someone else wrote, or an AI wrote, before applying it. The dashboard lists the actions it will run before it applies a text.
+> Read a file someone else wrote, or an AI wrote, before loading it. The dashboard lists the actions it will run and asks before it takes a file.
 
 ## What to give an AI, or to look up yourself
 
@@ -24,7 +24,7 @@ Only administrators can change a set-up.
 - The values of the selects, and, if the action takes numbers instead of words, which number means which word.
 - For no-go zones: an action that returns them and a sample of its answer, if the map does not carry them.
 
-Do not publish a text with your own entity ids and room names if you consider them private.
+Do not publish a file with your own entity ids and room names if you consider them private.
 
 ## The format
 
@@ -45,8 +45,8 @@ Do not publish a text with your own entity ids and room names if you consider th
 ```
 
 `format` and `version` are required. Of the other parts, one that is **left out stays as it is**; one that is given replaces what was there (an empty list empties it).
-Inside `map`, a setting left out stays as it is. Whatever is not accepted is dropped, and the dashboard names it (for example `rooms.2.value`). The text box then shows
-what was kept. Code fences around the JSON, as an AI often writes, are ignored.
+Inside `map`, a setting left out stays as it is. Whatever is not accepted is dropped, and the dashboard names it (for example `rooms.2.value`). Code fences around the
+JSON, as an AI often writes, are ignored.
 
 ### `entities`
 

@@ -797,6 +797,18 @@ function downloadText(name, text, type) {
   }, 1000);
 }
 
+/* A file's or a picture's bytes as a data: address, for a file that carries pictures. */
+function blobDataUrl(blob) {
+  return new Promise(function (resolve, reject) {
+    var rd = new FileReader();
+    rd.onload = function () {
+      resolve(String(rd.result));
+    };
+    rd.onerror = reject;
+    rd.readAsDataURL(blob);
+  });
+}
+
 /* Asks for a file and gives its text to `onText` (or the file itself when `o.asFile` is set, for a picture). `o.accept` (".json,application/json"), `o.maxBytes` (a file larger than that is refused, with a message). */
 function pickTextFile(o, onText) {
   var fi = document.createElement("input");

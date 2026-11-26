@@ -254,9 +254,9 @@ export async function buildShowcase() {
   rem.rid = "screm01";
   rem.name = "Showcase remote";
   rem.rm.btns = [
-    { e: "script.movie_mode", l: "Movie", i: "media", s: 1 },
-    { e: "script.good_night", l: "Good night", i: "moon", s: 1 },
-    { e: "input_button.garage_door", l: "Garage", i: "info", s: 2, q: 1 },
+    { a: { t: "ent", e: "script.movie_mode" }, l: "Movie", i: "media", s: 1 },
+    { a: { t: "ent", e: "script.good_night" }, l: "Good night", i: "moon", s: 1 },
+    { a: { t: "ent", e: "input_button.garage_door" }, l: "Garage", i: "info", s: 2, q: 1 },
   ];
   kit.devs.push(rem);
   const v = w.secById("showcase", "cams").devs.filter((d) => d.kind === "vacuum")[0];

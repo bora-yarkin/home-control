@@ -74,7 +74,7 @@ test("a file is read as text and given to the caller; one that is too large is r
 test("no export or import is made of pasted text any more", () => {
   const editor = read("editor.js");
   assert.doesNotMatch(editor, /navigator\.clipboard|"textarea"|paste/i);
-  for (const f of ["effects.js", "backups.js"]) assert.doesNotMatch(read(f), /new FileReader|clipboard/, f);
+  for (const f of ["effects.js", "backups.js", "vacsetup.js"]) assert.doesNotMatch(read(f), /new FileReader|clipboard/, f);
 });
 
 /* An icon of the person's own is read from an SVG file. node has no DOMParser, so this one reads just what the function asks of it. */

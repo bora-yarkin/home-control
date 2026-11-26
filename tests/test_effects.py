@@ -219,3 +219,9 @@ def test_what_a_plus_integration_replaces_is_a_short_list_of_integration_names(b
     with pytest.raises(vol.Invalid):
         providers_module.parse("hue_plus", {**HUE_DECLARATION, "replaces": bad})
     assert providers_module.parse("hue_plus", {**HUE_DECLARATION, "replaces": ["hue", "other_2"]}).replaces == ("hue", "other_2")
+
+
+async def test_the_imported_files_are_given_back_for_a_backup(hass, client):
+    await ask(client, "effects_import", content=json.dumps(GOOD))
+    reply = await ask(client, "effects_export")
+    assert reply["success"] and reply["result"]["files"] == [GOOD]

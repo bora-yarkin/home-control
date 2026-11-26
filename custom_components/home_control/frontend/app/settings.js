@@ -161,6 +161,9 @@ var STG_INDEX = [
   [_T("stg_idx_users"), "standard users rooms devices rules pin display size", "access", "stg-access"],
 ];
 
+/* The user manual, on the repository's page. */
+var MANUAL_URL = "https://github.com/bora-yarkin/home-control/blob/main/docs/manual/README.md";
+
 /* Settings: a list of categories, each opening as its own popup page. The search box finds a category or one of its pages. */
 function settingsRoot(b) {
   var w = mk("div", "sqw pane", svg("search")),
@@ -207,6 +210,17 @@ function settingsRoot(b) {
       );
     });
   });
+  list.appendChild(sep(_T("help"), "info"));
+  list.appendChild(
+    pill("info", _T("user_manual"), {
+      sub: function () {
+        return _T("user_manual_sub");
+      },
+      tap: function () {
+        window.open(MANUAL_URL, "_blank", "noopener");
+      },
+    })
+  );
   inp.addEventListener("input", function () {
     var q = inp.value.trim().toLowerCase(),
       prev = CUR;

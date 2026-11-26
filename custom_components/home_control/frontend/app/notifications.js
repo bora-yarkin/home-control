@@ -334,13 +334,13 @@ function offlineDefault() {
 var NOTIFY_NAME =
   "{% set e = trigger.entity_id %}{% set a = area_name(e) %}{% set d = device_attr(e, 'name_by_user') or device_attr(e, 'name') or trigger.to_state.attributes.friendly_name %}{{ (a ~ ' · ' ~ d) if a else d }}";
 
-/* The Reachable sensors of the sleepy Matter devices (Fast Matter switch): on while a remote answers its ping. */
+/* The connectivity sensors that say a sleepy device still answers (which integrations: integrations.js). */
 function remoteSensors() {
   var h = H();
   return Object.keys(h.states || {})
     .filter(function (id) {
       var e = h.entities && h.entities[id];
-      return dom(id) === "binary_sensor" && e && e.platform === "fast_matter_switch" && A(id).device_class === "connectivity";
+      return dom(id) === "binary_sensor" && e && Integrations.presence.platforms.indexOf(e.platform) >= 0 && A(id).device_class === "connectivity";
     })
     .sort();
 }

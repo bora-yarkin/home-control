@@ -1,4 +1,4 @@
-/* A robot vacuum appliance's set-up as text, so that it can be written by hand or by an AI, copied between homes and kept. The names here are the readable ones of
+/* A robot vacuum appliance's set-up as a text file, so that it can be written by hand or by an AI, copied between homes and kept. The names here are the readable ones of
    docs/vacuum-appliance.md; the dashboard keeps its own short ones. What is applied goes through the same checks as a saved dashboard. */
 
 var VACSETUP_FORMAT = "home-control.vacuum";
@@ -134,48 +134,40 @@ function vacapFromText(d, text) {
   return { ap: ap, map: map, lost: lost, actions: actions };
 }
 
+/* Takes a file's set-up after the person has seen what it will run. */
+function vacapLoad(d, text) {
+  var next = vacapFromText(d, text);
+  if (!next) return toast(_T("vacap_not_text"));
+  confirmDlg(
+    _T("vacap_apply_ask") + (next.actions.length ? " " + _T("vacap_apply_runs") + ": " + next.actions.join(", ") : ""),
+    function () {
+      d.ap = next.ap;
+      if (Object.keys(next.map).length) d.map = next.map;
+      else delete d.map;
+      uiChanged();
+      toast(next.lost.length ? _T("vacap_applied_partly") + ": " + next.lost.slice(0, 4).join(", ") : _T("vacap_applied"));
+    },
+    _T("vacap_apply")
+  );
+}
+
 function vacapTextPage(b, aid) {
   var d = apFind(aid);
   if (!d) return;
   b.appendChild(hintRow(_T("vacap_text_hint")));
-  var row = areaRow(_T("vacap_text"), vacapToText(d), function () {}, 20000),
-    area = row.querySelector("textarea");
-  area.rows = 16;
-  area.spellcheck = false;
-  b.appendChild(row);
   b.appendChild(
-    pill("edit", _T("vacap_copy"), {
+    pill("sd", _T("vacap_save"), {
       tap: function () {
-        function select() {
-          area.focus();
-          area.select();
-          toast(_T("vacap_select_to_copy"));
-        }
-        /* a page that is not served over https has no clipboard */
-        if (!navigator.clipboard) return select();
-        navigator.clipboard.writeText(area.value).then(function () {
-          toast(_T("vacap_copied"));
-        }, select);
+        downloadText("vacuum-" + fileSlug(d.name, "setup") + "-" + fileStamp() + ".json", vacapToText(d));
       },
     })
   );
   b.appendChild(
-    pill("play", _T("vacap_apply"), {
+    pill("check", _T("vacap_load"), {
       tap: function () {
-        var next = vacapFromText(d, area.value);
-        if (!next) return toast(_T("vacap_not_text"));
-        confirmDlg(
-          _T("vacap_apply_ask") + (next.actions.length ? " " + _T("vacap_apply_runs") + ": " + next.actions.join(", ") : ""),
-          function () {
-            d.ap = next.ap;
-            if (Object.keys(next.map).length) d.map = next.map;
-            else delete d.map;
-            uiChanged();
-            area.value = vacapToText(d);
-            toast(next.lost.length ? _T("vacap_applied_partly") + ": " + next.lost.slice(0, 4).join(", ") : _T("vacap_applied"));
-          },
-          _T("vacap_apply")
-        );
+        pickTextFile({}, function (text) {
+          vacapLoad(d, text);
+        });
       },
     })
   );

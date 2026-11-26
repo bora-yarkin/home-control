@@ -114,6 +114,9 @@ test("a press runs the right service for each kind and says nothing when it goes
     UI: { devs: {}, layout: {} },
     allSectionLists: () => [],
   });
+  context.window = context.window || {};
+  vm.runInContext(readFileSync(new URL("../integrations.js", APP), "utf8"), context);
+  context.Integrations = context.window.Integrations;
   vm.runInContext(readFileSync(new URL("remote.js", APP), "utf8"), context);
   for (const e of ["script.a", "button.b", "scene.c", "switch.d", "button.e"]) context.remotePress({ e });
   assert.deepEqual(calls, [
@@ -173,6 +176,9 @@ test("a button set to ask first asks, runs only when the answer is yes, and a pl
     UI: { devs: {}, layout: {} },
     allSectionLists: () => [],
   });
+  context.window = context.window || {};
+  vm.runInContext(readFileSync(new URL("../integrations.js", APP), "utf8"), context);
+  context.Integrations = context.window.Integrations;
   vm.runInContext(readFileSync(new URL("remote.js", APP), "utf8"), context);
   context.remotePress({ e: "button.garage", q: 1 });
   assert.deepEqual(calls, [], "nothing runs before the answer");
@@ -205,6 +211,9 @@ test("a press sends a key to its remote entity, controls its media player, selec
     UI: { devs: {}, layout: {} },
     allSectionLists: () => [],
   });
+  context.window = context.window || {};
+  vm.runInContext(readFileSync(new URL("../integrations.js", APP), "utf8"), context);
+  context.Integrations = context.window.Integrations;
   vm.runInContext(readFileSync(new URL("remote.js", APP), "utf8"), context);
   const press = (a, extra = {}) => context.remotePress({ a, ...extra });
   press({ t: "key", e: "remote.tv", c: "KEY_VOLUP" });

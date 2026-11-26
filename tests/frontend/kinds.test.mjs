@@ -26,6 +26,9 @@ function load(entities, areas = {}) {
   vm.createContext(sandbox);
   const model = readFileSync(new URL("../../custom_components/home_control/frontend/app/model.js", import.meta.url), "utf8");
   vm.runInContext(model.slice(model.indexOf("var DEVTYPES"), model.indexOf("function cleanDev(d)")), sandbox);
+  sandbox.window = sandbox.window || {};
+  vm.runInContext(readFileSync(new URL("../../custom_components/home_control/frontend/integrations.js", import.meta.url), "utf8"), sandbox);
+  sandbox.Integrations = sandbox.window.Integrations;
   vm.runInContext(SOURCE, sandbox);
   return sandbox;
 }

@@ -28,7 +28,27 @@ var media={
  samsungSettingsKey:function(platform){return platform==="samsungtv_smart"?"KEY_MORE":"KEY_MENU"},
  /* This function returns a service call as [domain, service, data] for the caller to send. */
  samsungText:function(media,text){return["media_player","play_media",{entity_id:media,media_content_type:"send_text",media_content_id:text}]},
- appleText:function(configEntryId,text){return["apple_tv","set_keyboard_text",{config_entry_id:configEntryId,text:text}]}
+ appleText:function(configEntryId,text){return["apple_tv","set_keyboard_text",{config_entry_id:configEntryId,text:text}]},
+ /* Text typed for a TV, by its integration: a call as [domain, service, data], or null when that integration has no way (the remote entity is asked for the others, see textKey). */
+ textCall:function(platform,mediaId,configEntryId,text){
+  if(platform==="samsungtv_smart")return media.samsungText(mediaId,text);
+  if(platform==="apple_tv")return media.appleText(configEntryId,text);
+  return null;
+ },
+ /* The same as a command of the TV's remote entity, or null. */
+ textKey:function(platform,text){
+  if(platform==="androidtv_remote")return"text:"+text;
+  return remote.text(remote.family(platform),text);
+ },
+ /* An integration that gives a TV of this platform more than the one in use, when it is not installed; `platforms` are those of every entity. */
+ better:function(platform,platforms){return platform==="samsungtv"&&platforms.indexOf("samsungtv_smart")<0?"samsungtv_smart":null}
+};
+
+/* ---- integrations that say whether a sleepy device still answers ---- */
+
+var presence={
+ /* Platforms whose connectivity binary_sensor means "the device answers" (Fast Matter switch pings sleepy Matter remotes). */
+ platforms:["fast_matter_switch"]
 };
 
 /* ---- robot vacuum ---- */
@@ -196,7 +216,9 @@ var remote={
  /* The key of a role for a family ("" when the family has none), and whether the family is one with a native-style remote that is only built from documentation. */
  role:function(family,role){var r=ROLES[family];return r&&typeof r[role]==="string"?r[role]:""},
  text:function(family,t){var r=ROLES[family];return r&&r.text?r.text(t):null},
- experimental:function(family){return !!ROLES[family]}
+ experimental:function(family){return !!ROLES[family]},
+ /* A key sent to the media player itself (a family whose `how` is "webos"), as [domain, service, data]. */
+ button:function(mediaId,key){return["webostv","button",{entity_id:mediaId,button:key}]}
 };
 
 /* The key a TV's own remote has for Home, per native-style remote kind (the others have theirs in ROLES). */
@@ -209,9 +231,9 @@ media.homeCall=function(platform,model,mediaId,remoteId){
  if(kind!=="generic")key=HOME_KEYS[kind]||"";
  else if(fam){key=remote.role(fam,"home");how=remote.how(fam)}
  if(!key)return null;
- if(how==="webos")return["webostv","button",{entity_id:mediaId,button:key}];
+ if(how==="webos")return remote.button(mediaId,key);
  return remoteId?["remote","send_command",{entity_id:remoteId,command:key}]:null;
 };
 
-window.Integrations={media:media,vacuum:vacuum,remote:remote};
+window.Integrations={media:media,vacuum:vacuum,remote:remote,presence:presence};
 })();
