@@ -132,7 +132,7 @@ function masterNewPage(b, key) {
   );
   var go = pill("check", _T("lm_create"), {
     sub: function () {
-      return draft.ml.length + " " + _T("lights").toLocaleLowerCase(globalThis.HC_LANG);
+      return _T("n_lights", { n: draft.ml.length });
     },
     tap: function () {
       if (draft.ml.length < 2) return toast(_T("lm_choose_at_least_two_lights"));

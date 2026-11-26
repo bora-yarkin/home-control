@@ -375,7 +375,7 @@ function setupStep(box, name, redraw) {
       var count = Object.keys(a.items).reduce(function (n, d) {
         return n + a.items[d].length;
       }, 0);
-      setupCheck(box, a.name, count + " " + _T("setup_things"), function () {
+      setupCheck(box, a.name, _T("setup_things", { n: count }), function () {
         return !!c.rooms[a.id];
       }, function () {
         c.rooms[a.id] = !c.rooms[a.id];
@@ -477,7 +477,7 @@ function setupStep(box, name, redraw) {
       box.appendChild(
         pill("home", a.name, {
           sub: function () {
-            return n + " " + _T("setup_things") + (setupHasMaster(a, c) ? " · " + _T("lights_master") : "");
+            return _T("setup_things", { n: n }) + (setupHasMaster(a, c) ? " · " + _T("lights_master") : "");
           },
         })
       );

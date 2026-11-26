@@ -230,7 +230,7 @@ function condText(c) {
       ? _T("someone_is_home")
       : c.v === "nobody"
         ? _T("nobody_is_home")
-        : personName(c.v) + " " + _T("is_home_2");
+        : _T("is_home_2", { x: personName(c.v) });
   if (c.c === "users")
     return (
       _T("only_for") +
@@ -249,7 +249,7 @@ function condText(c) {
   if (c.c === "state") return entName(c.id) + " " + stateWordT(c.is, false);
   if (c.c === "sensor")
     return c.op === "between"
-      ? entName(c.id) + " " + _T("is_between") + " " + c.val + "–" + c.val2
+      ? _T("is_between", { x: entName(c.id), from: c.val, to: c.val2 })
       : entName(c.id) + " " + (c.op === "above" ? _T("is_above") : _T("is_below")) + " " + c.val;
   return "";
 }
@@ -558,7 +558,7 @@ function condBody(b, c, onChange, footer) {
       );
       persons().forEach(function (id) {
         box.appendChild(
-          pill("person", personName(id) + " " + _T("is_home_2"), {
+          pill("person", _T("is_home_2", { x: personName(id) }), {
             on: function () {
               return c.v === id;
             },
@@ -610,7 +610,7 @@ function condBody(b, c, onChange, footer) {
       box.appendChild(
         pill("plug", c.id ? entName(c.id) : _T("choose_a_device"), {
           sub: function () {
-            return c.id ? _T("currently") + V_(c.id) : _T("required");
+            return c.id ? _T("currently", { x: V_(c.id) }) : _T("required");
           },
           tap: function () {
             pickEntity(_T("choose_a_device"), STATE_DOMS, null, function (id) {
@@ -629,7 +629,7 @@ function condBody(b, c, onChange, footer) {
         pill("thermo", c.id ? entName(c.id) : _T("choose_a_sensor"), {
           sub: function () {
             return c.id
-              ? _T("currently") + V_(c.id) + " " + (A(c.id).unit_of_measurement || "")
+              ? _T("currently", { x: V_(c.id) }) + " " + (A(c.id).unit_of_measurement || "")
               : _T("required");
           },
           tap: function () {

@@ -187,7 +187,7 @@ function addDevTo(rid, id) {
   if (kind === "media" && d.icon === "tv") d.sub = 1;
   devList(rid).push(d);
   uiChanged();
-  toast(_T("added") + nm + "”");
+  toast(_T("added", { x: nm }));
 }
 
 function newDevPage(b) {
@@ -829,7 +829,7 @@ function roomDetails(b, rid) {
     var delRoom = pill("trash", _T("delete_room"), {
         tap: function () {
           confirmDlg(
-            _T("delete") + r.name + _T("from_the_app_the_devices_stay_in_hom"),
+            _T("delete_room_q", { x: r.name }),
             function () {
               UI.rooms = UI.rooms.filter(function (x) {
                 return x.id !== rid;
@@ -1290,7 +1290,7 @@ function devPlaceRows(c) {
     var act = mk("div", "ap-grid"),
       rm = pill("trash", _T("remove_from_the_section"), {
         tap: function () {
-          confirmDlg(_T("remove") + d.name + _T("from_this_section_it_stays_in_home_ass"), function () {
+          confirmDlg(_T("remove_from_section_q", { x: d.name }), function () {
             c.list.splice(c.i, 1);
             uiChanged();
             popBack();

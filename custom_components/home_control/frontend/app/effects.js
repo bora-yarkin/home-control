@@ -237,7 +237,7 @@ function fxImportText(text, done) {
   HA.effects.importFile(text).then(
     function (r) {
       if (r && r.ok) {
-        toast(_T("added") + r.name + "” · " + r.effects + " " + _T("effects"));
+        toast(_T("fx_added", { x: r.name, n: r.effects }));
         fxLoad(done);
       } else {
         FX_PROBLEMS = (r && r.problems) || [_T("the_file_could_not_be_read")];
@@ -264,7 +264,7 @@ function fxSettings(b) {
             tap:
               src.kind === "file"
                 ? function () {
-                    confirmDlg(_T("remove") + src.name + "”?", function () {
+                    confirmDlg(_T("remove_named_q", { x: src.name }), function () {
                       HA.effects.removeFile(src.id).then(function () {
                         fxLoad(draw);
                       });

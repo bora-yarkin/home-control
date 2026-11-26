@@ -141,7 +141,7 @@ function stgNavSub(id) {
     var a = Object.keys(NRULES).filter(function (k) {
       return nrule(k).on;
     }).length;
-    return a ? a + " " + _T("active_2") : _T("nothing_sent_yet");
+    return a ? _T("active_2", { x: a }) : _T("nothing_sent_yet");
   }
   return _T("backups_and_change_log");
 }

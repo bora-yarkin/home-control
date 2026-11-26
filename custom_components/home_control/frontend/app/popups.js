@@ -592,7 +592,7 @@ var POPUP_DEFS = {
   "manage-room-access": function (id) {
     var rr = roomById(id);
     return {
-      title: _T("access") + (rr ? rr.name : _T("room")),
+      title: _T("access", { x: (rr ? rr.name : _T("room")) }),
       icon: "lock",
       build: function (b) {
         roomAccessList(b, id);

@@ -146,7 +146,7 @@ test("the icon of a master is a stop button while any of its lights plays an eff
   const lights = read("lights.js");
   assert.match(lights, /function masterPlaying\(ids\)/);
   assert.match(lights, /fx\.syncs\.forEach[\s\S]*effect: "off"/);
-  assert.match(lights, /unavailable"\)\.toLocaleLowerCase\(globalThis\.HC_LANG\)/);
+  assert.match(lights, /_T\("n_unavailable", \{ n: gone \}\)/);
   assert.match(read("lightpanel.js"), /if \(V_\(e\) === "unavailable"\) return _T\("unavailable"\);/);
 });
 

@@ -73,7 +73,7 @@ function sceneShown(id) {
 
 /* The trash of a scene deletes it, from every page it is on and from the saved scenes (taking it off one section is what picking it again in the list does). A live scene is stopped and forgotten by the integration with the area made for it. */
 function sceneDeleteEverywhere(sc) {
-  confirmDlg(_T("delete") + sc.name + _T("from_every_page_it_cannot_be_undone"), function () {
+  confirmDlg(_T("delete_scene_q", { x: sc.name }), function () {
     if (sc.live) {
       if (liveRun({ id: sc.id })) liveCall("stop", { scene_id: sc.id });
       liveForget(sc.id, sc.live.areas ? sc.live.area : null);
@@ -352,7 +352,7 @@ function runScene(sc, page) {
   gate(ids, function () {
     liveStopOn(ids);
     execActs(f.acts);
-    toast(_T("running_2") + sc.name + "”");
+    toast(_T("running_2", { x: sc.name }));
   });
 }
 
@@ -471,7 +471,7 @@ function sceneRow(sc) {
     return edMark(
       pill(sc.icon || "scene", sc.name, {
         sub: function () {
-          return _T("auto_scene") + " · " + sc.auto.colors.length + " " + _T("auto_colours").toLocaleLowerCase(globalThis.HC_LANG);
+          return _T("auto_scene") + " · " + _T("n_colours", { n: sc.auto.colors.length });
         },
         tap: function () {
           runScene(sc, page);

@@ -501,7 +501,7 @@ function lightsMasterRow(sid, ids, name, all, order, meta) {
       var gone = lightUnits(ids).filter(function (u) {
         return V_(u) === "unavailable";
       }).length;
-      return countOn(lightUnits(ids)) + " / " + lightUnits(ids).length + (gone ? " · " + gone + " " + _T("unavailable").toLocaleLowerCase(globalThis.HC_LANG) : "");
+      return countOn(lightUnits(ids)) + " / " + lightUnits(ids).length + (gone ? " · " + _T("n_unavailable", { n: gone }) : "");
     },
     on: function () {
       return countOn(lightUnits(ids)) > 0;
@@ -582,7 +582,7 @@ function lightsMasterSettings(b, key, part) {
       box.appendChild(sep(_T("dp_settings"), "tune"));
       box.appendChild(
         part_("lights", "lights", function () {
-          return lightIds().length + " " + _T("lights").toLocaleLowerCase(globalThis.HC_LANG) + " · " + (sec.mm ? _T("master_manual") : _T("master_auto"));
+          return _T("n_lights", { n: lightIds().length }) + " · " + (sec.mm ? _T("master_manual") : _T("master_auto"));
         })
       );
       box.appendChild(part_("popup", "tune"));

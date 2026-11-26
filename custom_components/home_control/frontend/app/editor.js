@@ -962,7 +962,7 @@ function secEditor(b, key) {
         },
         "tune",
         function (v) {
-          return v === "auto" ? _T("automatic") : v >= pcn && pcn > 1 ? _T("full_width") : v === 1 ? _T("one_column") : v + " " + _T("columns").toLocaleLowerCase(globalThis.HC_LANG);
+          return v === "auto" ? _T("automatic") : v >= pcn && pcn > 1 ? _T("full_width") : v === 1 ? _T("one_column") : _T("n_columns", { n: v });
         }
       )
     );

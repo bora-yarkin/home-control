@@ -158,7 +158,7 @@ function acDial(id) {
     sv.setAttribute("tabindex", off ? "-1" : "0");
     if (!drag && Date.now() > hold) paint(typeof a.temperature === "number" ? a.temperature : min);
     ds.textContent =
-      (a.current_temperature !== undefined ? a.current_temperature + _T("c_room_2") : "") +
+      (a.current_temperature !== undefined ? _T("c_room_2", { x: a.current_temperature }) : "") +
       cap(String(V_(id)).replace(/_/g, " "));
   };
   reg(c.refresh);

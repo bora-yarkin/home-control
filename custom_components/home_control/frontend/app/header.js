@@ -58,14 +58,14 @@ function hdrItem(it) {
           ? _T("everyone_home")
           : home.length
             ? home.length <= 2
-              ? home.join(", ") + _T("home_2")
-              : home.length + _T("people_home")
+              ? _T("home_2", { x: home.join(", ") })
+              : _T("people_home", { x: home.length })
             : _T("nobody_home"),
     };
   }
   if (it.k === "lights") {
     var n = countOn(lightUnits(allLights()));
-    return { i: "lights", t: n ? n + _T("lights_on") : _T("lights_off") };
+    return { i: "lights", t: n ? _T("lights_on", { x: n }) : _T("lights_off") };
   }
   if (it.k === "alerts") return alertList().length ? { i: "alert", t: alertText() } : null;
   if (it.k === "entity") {
@@ -432,7 +432,7 @@ function hdrPage(box, m) {
       var r = hdrItem(it) || { i: it.k === "alerts" ? "alert" : "info", t: HLAB[it.k] },
         p = pill(r.i, r.t, {
           sub: function () {
-            return HLAB[it.k] + (hdrShown(it) ? "" : " · " + _T("hidden").toLocaleLowerCase(globalThis.HC_LANG));
+            return HLAB[it.k] + (hdrShown(it) ? "" : " · " + _T("hidden_lower"));
           },
           tap: function () {
             showPopup("manage-hitem:" + i, true);

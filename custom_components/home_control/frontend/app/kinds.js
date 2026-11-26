@@ -200,7 +200,7 @@ function kwizPage(b, key) {
           tap: function () {
             var n = kAuto(d);
             uiChanged();
-            toast(n ? _T("linked") + n : _T("nothing_new_found"));
+            toast(n ? _T("linked", { x: n }) : _T("nothing_new_found"));
             draw();
           },
         })
@@ -210,7 +210,7 @@ function kwizPage(b, key) {
         box.appendChild(
           pill(t.tier === "full" ? "check" : "info", t.tier === "full" ? _T("full_remote") : _T("basic_remote"), {
             sub: function () {
-              return t.tier === "full" ? _T("this_tv_offers_everything_needed") : _T("this_tv_does_not_report_some_features") + t.missing.join(", ");
+              return t.tier === "full" ? _T("this_tv_offers_everything_needed") : _T("this_tv_does_not_report_some_features", { x: t.missing.join(", ") });
             },
           })
         );
@@ -326,7 +326,7 @@ function kpickPage(b, key) {
         rest.slice(0, 40).forEach(function (eid) {
           box.appendChild(row(eid));
         });
-        if (rest.length > 40) box.appendChild(mk("div", "hint")).textContent = rest.length - 40 + _T("more_type_to_narrow_the_list");
+        if (rest.length > 40) box.appendChild(mk("div", "hint")).textContent = _T("more_type_to_narrow_the_list", { x: rest.length - 40 });
       }
       if (!all.length) box.appendChild(mk("div", "hint")).textContent = _T("nothing_matches");
     });

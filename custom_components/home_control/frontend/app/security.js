@@ -65,7 +65,7 @@ function openNow(E) {
   E.lock.forEach(function (id) {
     var s = V_(id);
     if (s !== "locked" && s !== "unavailable" && s !== "unknown")
-      o.push(entName(id) + _T("unlocked"));
+      o.push(_T("unlocked", { x: entName(id) }));
   });
   E.cover.forEach(function (id) {
     var s = V_(id);
@@ -78,7 +78,7 @@ function lockTap(id) {
   var nm = entName(id);
   if (V_(id) !== "locked") call("lock", "lock", { entity_id: id });
   else if (!slidesToUnlock(id))
-    confirmDlg(_T("unlock") + nm + "?", function () {
+    confirmDlg(_T("unlock", { x: nm }), function () {
       callConfirmed("lock", "unlock", { entity_id: id });
     });
 }
@@ -119,7 +119,7 @@ function securityList() {
   line.refresh = function () {
     var o = openNow(E);
     line.textContent = o.length
-      ? _T("open_now") + o.join(", ")
+      ? _T("open_now", { x: o.join(", ") })
       : _T("everything_is_closed_and_locked");
   };
   reg(line.refresh);
@@ -278,7 +278,7 @@ function securityList() {
               return s === "unavailable"
                 ? _T("unavailable")
                 : s === "on"
-                  ? SEC_SAFE_LAB[A(id).device_class] + _T("detected")
+                  ? _T("detected", { x: SEC_SAFE_LAB[A(id).device_class] })
                   : _T("clear");
             },
           });
@@ -293,7 +293,7 @@ function alarmPopup(b, id) {
     code = null,
     st = mk("div", "hint");
   st.refresh = function () {
-    st.textContent = _T("status_2") + secAlarmWord(V_(id));
+    st.textContent = _T("status_2", { x: secAlarmWord(V_(id)) });
   };
   reg(st.refresh);
   b.appendChild(st);
@@ -330,7 +330,7 @@ function alarmPopup(b, id) {
   b.appendChild(
     pill("lock", _T("disarm"), {
       tap: function () {
-        confirmDlg(_T("disarm_2") + entName(id) + "?", function () {
+        confirmDlg(_T("disarm_2", { x: entName(id) }), function () {
           run("alarm_disarm");
         });
       },
@@ -409,7 +409,7 @@ function energyFetch() {
 }
 
 function kwhStr(v) {
-  return (v < 10 ? Math.round(v * 100) / 100 : Math.round(v * 10) / 10) + _T("kwh");
+  return _T("kwh", { x: (v < 10 ? Math.round(v * 100) / 100 : Math.round(v * 10) / 10) });
 }
 
 function energyList(s) {
@@ -490,7 +490,7 @@ function energyList(s) {
             100
         : "");
     card.querySelector(".hbig").textContent =
-      ENERGY.ok === false ? _T("no_usage_history_yet") : kwhStr(ENERGY.days[6]) + _T("today_2");
+      ENERGY.ok === false ? _T("no_usage_history_yet") : _T("today_2", { x: kwhStr(ENERGY.days[6]) });
     var max = Math.max.apply(null, ENERGY.days.concat([0.001])),
       bars = card.querySelector(".hbars"),
       ax = card.querySelector(".haxis");
@@ -520,7 +520,7 @@ function energyList(s) {
             sub: function () {
               var b = ENERGY.by[id];
               return b
-                ? _T("today_3") + kwhStr(b.today) + _T("7_days_2") + kwhStr(b.week)
+                ? _T("usage_today_week", { today: kwhStr(b.today), week: kwhStr(b.week) })
                 : _T("loading");
             },
             val: function () {

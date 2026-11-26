@@ -216,7 +216,7 @@ function vacProfileEditor(box, d, key) {
       pill("tune", _T(DSLOT_LABEL[g[0]]), {
         sub: function () {
           var v = dslotGet(d, g[0]);
-          return Array.isArray(v) ? v.length + " " + _T("px_entities") : v || _T("ap_not_set");
+          return Array.isArray(v) ? _T("px_entities", { n: v.length }) : v || _T("ap_not_set");
         },
         tap: function () {
           showPopup(g[1] + ":" + key + ":" + g[0], true);

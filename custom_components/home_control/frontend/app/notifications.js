@@ -92,7 +92,7 @@ function watchPayload(w) {
     : _T("nt_msg_now", { name: "{{ trigger.to_state.attributes.friendly_name }}", state: "{{ trigger.to_state.state }}" });
   return {
     id: "dashboard_n_" + w.id,
-    alias: _T("dashboard_notify") + (w.name || w.e),
+    alias: _T("dashboard_notify", { x: (w.name || w.e) }),
     description: _T("managed_by_the_dashboard_app_setting_2"),
     mode: "queued",
     triggers: [{ trigger: "state", entity_id: w.e, to: w.to }],
@@ -395,7 +395,7 @@ function notifyPayload(k) {
   if (!trigs.length || !r.targets.length) return null;
   return {
     id: "dashboard_n_" + k,
-    alias: _T("dashboard_notify") + NRULES[k].title,
+    alias: _T("dashboard_notify", { x: NRULES[k].title }),
     description: _T("managed_by_the_dashboard_app_setting_2"),
     mode: "queued",
     triggers: trigs,
@@ -751,7 +751,7 @@ function nruleEdit(b, k) {
             return r.targets.indexOf(t) >= 0;
           },
           sub: function () {
-            return _T("notify") + t;
+            return _T("notify", { x: t });
           },
           tap: function () {
             var i = r.targets.indexOf(t);

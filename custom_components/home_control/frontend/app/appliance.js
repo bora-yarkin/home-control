@@ -46,7 +46,7 @@ function apZoneSource(ap, k) {
 /* What a slot's row in the set-up says it is filled with. */
 function apSlotText(ap, k) {
   var source = apZoneSource(ap, k);
-  if (source) return _T("vacap_zones_from_source") + source;
+  if (source) return _T("vacap_zones_from_source", { x: source });
   return ap.slots[k] ? apBoundText(ap.slots[k]) : _T("ap_not_set");
 }
 
@@ -269,7 +269,7 @@ function apOvenDial(ap) {
       return svOk(t) && isFinite(v) ? v + (A(t).unit_of_measurement || "") : "–";
     },
     small: function () {
-      return s.current && apHas(s.current) && svOk(s.current) ? _T("ap_now_at") + entVal(s.current) : "";
+      return s.current && apHas(s.current) && svOk(s.current) ? _T("ap_now_at", { x: entVal(s.current) }) : "";
     },
     /* The state, and while a program runs the time left in front of it. */
     note: function () {
@@ -708,8 +708,8 @@ function apSlotPage(b, key) {
       24
     )
   );
-  b.appendChild(hintRow(_T("ap_slot_name_hint") + apSlotLabel(d.ap, k)));
-  if (apZoneSource(d.ap, k)) b.appendChild(hintRow(_T("vacap_zones_wins") + apZoneSource(d.ap, k)));
+  b.appendChild(hintRow(_T("ap_slot_name_hint", { x: apSlotLabel(d.ap, k) })));
+  if (apZoneSource(d.ap, k)) b.appendChild(hintRow(_T("vacap_zones_wins", { x: apZoneSource(d.ap, k) })));
   b.appendChild(
     pill("plug", s[k] ? A(s[k]).friendly_name || s[k] : _T("ap_not_set"), {
       sub: function () {

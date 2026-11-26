@@ -214,7 +214,7 @@ function faultActive(p) {
 function careText(c) {
   var p = [];
   if (c.life && svOk(c.life)) p.push(entVal(c.life));
-  if (c.left && svOk(c.left)) p.push(entVal(c.left) + " " + _T("left"));
+  if (c.left && svOk(c.left)) p.push(_T("left", { x: entVal(c.left) }));
   return p.join(" · ") || "-";
 }
 
@@ -275,7 +275,7 @@ function readingsBlock(b, id, o) {
         return c.life && svOk(c.life) ? entVal(c.life) : careText(c);
       },
       function () {
-        return c.name + (c.left && svOk(c.left) ? " · " + entVal(c.left) + " " + _T("left") : "");
+        return c.name + (c.left && svOk(c.left) ? " · " + _T("left", { x: entVal(c.left) }) : "");
       },
     ]);
   });

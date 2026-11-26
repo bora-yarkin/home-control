@@ -114,7 +114,7 @@ function visDevs(rid) {
 
 function defaultMsg(m) {
   var r = m.room && TITLES[m.room];
-  return r ? _T("are_you_sure_this_controls") + r + "." : _T("are_you_sure");
+  return r ? _T("are_you_sure_this_controls", { x: r }) : _T("are_you_sure");
 }
 
 function gate(ids, proceed) {
@@ -422,7 +422,7 @@ function roomAccessList(b, rid) {
                 return rr
                   ? MODELAB[rr.m]
                   : s && s.def
-                    ? _T("same_as_everything_else_2") + MODELAB[s.def.m]
+                    ? _T("same_as_everything_else_2", { x: MODELAB[s.def.m] })
                     : _T("full_access");
               },
               tap: function () {

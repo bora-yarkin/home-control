@@ -267,9 +267,9 @@ function sceneEditor(b) {
     box.appendChild(
       mkHint(
         d.others === "all"
-          ? _T("turns_off_the_other_lights_tvs_fans_") + (SCD.room === "home" ? _T("in_the_home") : _T("in_this_room"))
+          ? _T("turns_off_the_other_lights_tvs_fans_", { x: (SCD.room === "home" ? _T("in_the_home") : _T("in_this_room")) })
           : d.others === "lights"
-            ? _T("turns_off_every_other_light") + (SCD.room === "home" ? _T("in_the_home") : _T("in_this_room"))
+            ? _T("turns_off_every_other_light", { x: (SCD.room === "home" ? _T("in_the_home") : _T("in_this_room")) })
             : _T("devices_not_listed_above_are_not_tou")
       )
     );
@@ -277,7 +277,7 @@ function sceneEditor(b) {
       box.appendChild(
         pill("trash", _T("delete_scene"), {
           tap: function () {
-            confirmDlg(_T("delete") + d.name + "”?", staticDelete, _T("delete"));
+            confirmDlg(_T("delete_named_q", { x: d.name }), staticDelete, _T("delete"));
           },
         })
       );

@@ -220,7 +220,7 @@ function lgBehaviourTab(f) {
         },
         tap: function () {
           confirmDlg(
-            _T("lg_delete_q") + d.name + "?",
+            _T("lg_delete_q", { x: d.name }),
             function () {
               HA.lightGroups.remove(f.st.entry).then(function () {
                 lgDropDevices(f.entity);

@@ -285,7 +285,7 @@ function historyPage(b) {
       Object.keys(devs).length +
       (Object.keys(devs).length === 1 ? _T("device_3") : _T("devices_3")) +
       _T("active") +
-      (en ? _T("most_active") + en.name : "");
+      (en ? _T("most_active", { x: en.name }) : "");
     card.appendChild(h);
     var nb = 24,
       bk = [],
@@ -309,7 +309,7 @@ function historyPage(b) {
     var ax = mk("div", "haxis"),
       a1 = mk("span"),
       a2 = mk("span");
-    a1.textContent = HIST.range >= 168 ? _T("7_days_ago") : HIST.range + _T("h_ago");
+    a1.textContent = HIST.range >= 168 ? _T("7_days_ago") : _T("h_ago", { x: HIST.range });
     a2.textContent = _T("now_2");
     ax.appendChild(a1);
     ax.appendChild(a2);
@@ -386,7 +386,7 @@ function historyPage(b) {
       if (evs.length > HIST.limit) {
         var more = pill("plus", _T("show_more"), {
           sub: function () {
-            return evs.length - HIST.limit + _T("older_events");
+            return _T("older_events", { x: evs.length - HIST.limit });
           },
           tap: function () {
             HIST.limit += 80;
@@ -605,7 +605,7 @@ function logPage(b) {
                 toast(_T("this_change_can_t_be_undone_here"));
                 return;
               }
-              confirmDlg(_T("undo") + e.s + _T("from") + when + "?", function () {
+              confirmDlg(_T("undo_q", { x: e.s, when: when }), function () {
                 undoEntry(e);
               });
             },

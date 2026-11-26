@@ -4,6 +4,7 @@ import assert from "node:assert/strict";
 import { readFileSync } from "node:fs";
 import test from "node:test";
 import vm from "node:vm";
+import { _T as EN_T } from "./en.mjs";
 
 const APP = new URL("../../custom_components/home_control/frontend/app/", import.meta.url);
 const read = (name) => readFileSync(new URL(name, APP), "utf8");
@@ -119,7 +120,7 @@ test("a robot vacuum appliance's row is coloured as a vacuum's row is", () => {
 });
 
 test("a zone slot that a zones source replaces names the source instead of saying it is not set", () => {
-  const ctx = vm.createContext({ _T: (k) => k + "|", apBoundText: (id) => id });
+  const ctx = vm.createContext({ _T: (k, v) => k + "|" + ((v && v.x) || ""), apBoundText: (id) => id });
   vm.runInContext(slice(read("appliance.js"), "function apZoneSource(", "/* What a slot is called on this appliance"), ctx);
   const zoned = { slots: { no_go: "sensor.z" }, vac: { zones: { action: "x.zones" } } };
   assert.equal(ctx.apSlotText(zoned, "no_go"), "vacap_zones_from_source|x.zones");

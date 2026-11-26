@@ -186,15 +186,15 @@ function verifyCmd(d, s, data) {
     seq = (VERSEQ[id] || 0) + 1;
   VERSEQ[id] = seq;
   if (before === "unavailable") {
-    toast(entName(id) + _T("is_unavailable"));
+    toast(_T("is_unavailable", { x: entName(id) }));
     return;
   }
   setTimeout(function () {
     if (VERSEQ[id] !== seq) return;
     var now = V_(id),
       ok = s === "turn_on" ? now === "on" : s === "turn_off" ? now === "off" : now !== before;
-    if (now === "unavailable") toast(entName(id) + _T("is_unavailable"));
-    else if (!ok) toast(entName(id) + _T("didn_t_respond"));
+    if (now === "unavailable") toast(_T("is_unavailable", { x: entName(id) }));
+    else if (!ok) toast(_T("didn_t_respond", { x: entName(id) }));
   }, 6000);
 }
 
@@ -410,11 +410,11 @@ function ago(id) {
   var m = Math.max(0, Math.round((Date.now() - Date.parse(s.last_changed)) / 60000));
   if (isNaN(m)) return "";
   if (m < 1) return _T("just_now");
-  if (m < 60) return m + _T("min_ago");
+  if (m < 60) return _T("min_ago", { x: m });
   var h = Math.floor(m / 60);
-  if (h < 24) return h + _T("h_ago");
+  if (h < 24) return _T("h_ago", { x: h });
   var d = Math.floor(h / 24);
-  return d === 1 ? _T("ago_yesterday") : d + _T("d_ago");
+  return d === 1 ? _T("ago_yesterday") : _T("d_ago", { x: d });
 }
 
 function stAgo(id) {
@@ -450,9 +450,9 @@ function ago2(iso) {
   var m = Math.max(0, Math.round((Date.now() - Date.parse(iso)) / 60000));
   if (isNaN(m)) return "";
   if (m < 1) return _T("just_now");
-  if (m < 60) return m + _T("min_ago");
+  if (m < 60) return _T("min_ago", { x: m });
   var h = Math.floor(m / 60);
-  if (h < 24) return h + _T("h_ago");
+  if (h < 24) return _T("h_ago", { x: h });
   var d = Math.floor(h / 24);
-  return d === 1 ? _T("ago_yesterday") : d + _T("d_ago");
+  return d === 1 ? _T("ago_yesterday") : _T("d_ago", { x: d });
 }

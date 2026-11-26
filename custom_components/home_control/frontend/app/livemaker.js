@@ -550,7 +550,7 @@ function liveMakerTools(box) {
     box.appendChild(
       pill("trash", _T("delete_scene"), {
         tap: function () {
-          confirmDlg(_T("delete") + LMK.name + "”?", liveMakerDelete, _T("delete"));
+          confirmDlg(_T("delete_named_q", { x: LMK.name }), liveMakerDelete, _T("delete"));
         },
       })
     );
