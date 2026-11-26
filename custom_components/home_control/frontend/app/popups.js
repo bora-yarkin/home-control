@@ -921,6 +921,9 @@ var POPUP_DEFS = {
   "vacap-text": function (id) {
     return { title: _T("vacap_text"), icon: "edit", build: function (b) { vacapTextPage(b, id); } };
   },
+  "setup": function () {
+    return { title: _T("setup_title"), icon: "tune", build: setupPage };
+  },
   "vacap-pick": function () {
     return {
       title: _T("vacap_pick_room"),

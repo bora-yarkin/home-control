@@ -590,7 +590,7 @@ function storeTake(v, fromCache) {
     force = !had,
     n = had ? cleanStore(v) : seedStore();
   if (!n.ui) {
-    n.ui = cleanUI(seedUI());
+    n.ui = cleanUI(setupEmpty());
     force = true;
   }
   if (!n.qaSeeded) {

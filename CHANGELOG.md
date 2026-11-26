@@ -4,6 +4,18 @@ Format: [Keep a Changelog](https://keepachangelog.com/). Versions follow [semant
 
 ## [Unreleased]
 
+## [0.31.0] - 2026-11-26
+
+### Added
+- **Guided setup** (decision D-39): a new dashboard starts empty and is built step by step: rooms, lights, lights masters (from how many lights, and which lights also get a row), where scenes live, media players, other devices, header readings and the Home page. Also under *Settings → Guided setup*.
+- A lights master can show **Home Assistant's own scenes** of its room (its sources).
+
+### Changed
+- The first run no longer puts every device of every area on the dashboard.
+
+### Fixed
+- 0.29.0 left the *Download backup file* button without any text.
+
 ## [0.30.2] - 2026-11-26
 
 ### Added

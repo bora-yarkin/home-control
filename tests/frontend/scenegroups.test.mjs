@@ -113,13 +113,13 @@ function tiles({ rooms: roomTokens = [], tags = [], near = {} } = {}) {
 
 test("with no room ticked every group is offered, labelled with its kind, name and number of scenes", () => {
   const t = tiles({ near: { "page:bora": ["scene.hp_bed_read"] } });
-  assert.deepEqual(t.offered(), ["-", "@hue", "@group:room:bathroom", "@group:room:bora-s-bedroom", "@group:zone:bora-s-bedroom", "@group:zone:wardrobe"]);
+  assert.deepEqual(t.offered(), ["-", "@hue", "@ha", "@group:room:bathroom", "@group:room:bora-s-bedroom", "@group:zone:bora-s-bedroom", "@group:zone:wardrobe"]);
   assert.ok(t.labels().includes("Hue · Zone · Bora’s Bedroom · 1"));
 });
 
 test("with a room ticked only the groups that have scenes in it are offered, and a group already ticked stays", () => {
   const near = { "page:bora": ["scene.hp_bed_read", "scene.hp_zone_all", "scene.hp_ward"] };
-  assert.deepEqual(tiles({ rooms: ["page:bora"], near }).offered().slice(2), ["@group:room:bora-s-bedroom", "@group:zone:bora-s-bedroom", "@group:zone:wardrobe"], "not the Bathroom, whose scenes are elsewhere");
+  assert.deepEqual(tiles({ rooms: ["page:bora"], near }).offered().filter((x) => x.startsWith("@group:")), ["@group:room:bora-s-bedroom", "@group:zone:bora-s-bedroom", "@group:zone:wardrobe"], "not the Bathroom, whose scenes are elsewhere");
   assert.ok(tiles({ rooms: ["page:bora", "group:room:bathroom"], near }).offered().includes("@group:room:bathroom"), "unless it is ticked already");
 });
 

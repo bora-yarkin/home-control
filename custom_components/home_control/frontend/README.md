@@ -73,7 +73,7 @@ Two copies of the last visit are kept in the browser's local storage, under the 
 | `home_control_registry_v1` (`ha-adapter.js`) | the registries as the page reads them, and what the plus integrations replace | once the four registries have come from Home Assistant, then a few seconds after the last change | another user, another version, more than 30 days old, not readable, no signed-in user |
 | `home_control_layout_v1` (`app/store.js`) | the saved dashboard | when the real one is read, and after each save that succeeded | another user, not a dashboard (`v` is not 1), no signed-in user |
 
-Nothing is saved on top of a copy: `storeSave` waits until the real saved dashboard has been read (`STORE_NET`), and a save that failed because the connection was down (`HA.isTransportError`) is made again when it is back. The first layout of a new dashboard is built only from registries Home Assistant has answered (`HA.registriesLoaded()`), never from the copy. A browser that refuses storage starts as before. `db_prefs` (the person's choices) is the same kind of copy and was there before.
+Nothing is saved on top of a copy: `storeSave` waits until the real saved dashboard has been read (`STORE_NET`), and a save that failed because the connection was down (`HA.isTransportError`) is made again when it is back. A new dashboard starts empty, and only once Home Assistant has answered the registries (`HA.registriesLoaded()`), which the guided setup (`app/setup.js`) reads. A browser that refuses storage starts as before. `db_prefs` (the person's choices) is the same kind of copy and was there before.
 
 ## When a page comes back
 

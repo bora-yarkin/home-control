@@ -197,6 +197,15 @@ function settingsRoot(b) {
         })
       );
     } else if (cats.length) list.appendChild(sep(_T(g[1]), "home"));
+    if (g[0] === "dashboard" && ISADMIN)
+      list.appendChild(
+        pill("sparkle", _T("setup_title"), {
+          sub: function () {
+            return _T("setup_sub");
+          },
+          tap: setupOpen,
+        })
+      );
     cats.forEach(function (c) {
       list.appendChild(
         pill(c[3], c[1], {
