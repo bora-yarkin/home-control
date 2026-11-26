@@ -177,7 +177,8 @@ function apAct(e, role) {
 function apRow(d) {
   var ap = d.ap;
   return pill(d.icon || "plug", d.name, {
-    kind: "appliance",
+    /* a robot vacuum is coloured as a vacuum's row is */
+    kind: ap.type === "vacuum" ? "clean" : "appliance",
     val: function () {
       var s = ap.slots;
       if (apActive(ap) && s.remaining) return apLeft(s.remaining);

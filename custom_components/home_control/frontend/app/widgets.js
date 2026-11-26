@@ -501,10 +501,6 @@ function selectTile(label, opts, cur, pick, icon, fmt) {
   r.querySelector(".nm").textContent = label;
   var sb = r.querySelector(".sb");
   r.addEventListener("click", function () {
-    if (r._noopen) {
-      r._noopen = false;
-      return;
-    }
     var o = opts();
     if (!o || !o.length) return;
     pop(r);
@@ -529,10 +525,6 @@ function multiTile(label, opts, isOn, toggle, icon, summary, state) {
   r.querySelector(".nm").textContent = label;
   var sb = r.querySelector(".sb");
   r.addEventListener("click", function () {
-    if (r._noopen) {
-      r._noopen = false;
-      return;
-    }
     var o = opts();
     if (!o || !o.length) return;
     pop(r);
@@ -617,17 +609,29 @@ function placeMenu(m, anchor) {
   }, 0);
 }
 
+/* A tap away from a menu closes it. A tap on what opened it (a dropdown, a popup's title, the now playing row) only closes it: the click that follows is taken, so that it does
+   not open it again. */
 function menuAway(e) {
   if (!MENU || MENU.contains(e.target)) return;
-  var a = e.target.closest ? e.target.closest(".sel") : null;
-  if (a && a === MENU_ANCHOR) {
-    a._noopen = true;
-    clearTimeout(a._noopenT);
-    a._noopenT = setTimeout(function () {
-      a._noopen = false;
-    }, 2500);
-  }
+  if (MENU_ANCHOR && MENU_ANCHOR.contains(e.target)) menuEatClick(MENU_ANCHOR);
   closeMenu();
+}
+
+function menuEatClick(anchor) {
+  var timer = 0;
+  function done() {
+    clearTimeout(timer);
+    document.removeEventListener("click", eat, true);
+  }
+  function eat(e) {
+    if (!anchor.contains(e.target)) return;
+    e.stopPropagation();
+    e.preventDefault();
+    done();
+  }
+  document.addEventListener("click", eat, true);
+  /* a press that ends elsewhere has no click to take */
+  timer = setTimeout(done, 2500);
 }
 
 function closeMenu(instant) {
