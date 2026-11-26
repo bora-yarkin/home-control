@@ -1,6 +1,12 @@
 /* Text shown to the user: the English strings and the lookup function _T(). */
 
 var EN = {
+  "setup_humidifiers": "Humidifiers",
+  "setup_water_heaters": "Water heaters",
+  "setup_alarms": "Alarm panels",
+  "setup_valves": "Valves",
+  "setup_mowers": "Lawn mowers",
+  "setup_sirens": "Sirens",
   "preset_title": "Add a section from a file",
   "preset_save": "Save as a preset file",
   "preset_load": "From a preset file",

@@ -391,7 +391,7 @@ export function makeHass(query, home = null) {
     },
     config: { unit_system: { temperature: "°C" }, time_zone: "UTC", language: "en", components: [], ...(home ? { ...home.config, components: [] } : {}) },
     user: { id: "u1", name: "Test user", is_admin: query.get("user") !== "guest", is_owner: true },
-    locale: home && home.locale ? home.locale : { language: "en", time_format: "24" },
+    locale: query.get("lang") ? { language: query.get("lang"), time_format: "24" } : home && home.locale ? home.locale : { language: "en", time_format: "24" },
     connected: true,
     connection,
     callService(domain, service, data) {

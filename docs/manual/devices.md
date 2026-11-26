@@ -23,6 +23,22 @@ Tap a device in the editor.
 - **Placement:** move or copy it to another section or page, or remove it.
 - **More:** hide it, hide its *Advanced settings* button, and more rarely used choices.
 
+## What each type can do
+
+Lights, switches, fans, climate, media players, vacuums, cameras, covers and locks have their own rows and popups. Humidifiers, water heaters, alarm panels (with their code), valves, lawn mowers, sirens, updates, automations, texts, dates and times, notify targets, weather, events, people, groups and remotes get controls from what each one reports. A popup shows only what the device says it supports; a thermostat that keeps two temperatures has a slider for each. *More in Home Assistant* opens Home Assistant's own dialog for anything else.
+
+## Customize
+
+*Edit the page → the device → Customize*:
+
+- **Icon colour**: the colour wheel, or a colour code.
+- **Tap, press and hold, double tap**: open its popup, switch it, Home Assistant's dialog, go to a page, run something else, or nothing.
+- **Ask before operating**.
+- **State text**: your own words for the row, with `{state}`, `{name}`, `{attr:name}`, `{sensor.id}` or `{sensor.id:attribute}`; and other texts when a condition holds.
+- **Show only when**: up to four conditions, as for sections.
+
+*Settings → Defaults by type* sets taps and asking for every device of a type.
+
 ## Linked entities
 
 Many devices come with several entities (a TV's remote, a purifier's filter life). *Set up this device* can **find them automatically** or lets you pick them;

@@ -4,6 +4,24 @@ Format: [Keep a Changelog](https://keepachangelog.com/). Versions follow [semant
 
 ## [Unreleased]
 
+### Added
+
+- Controls for humidifiers, water heaters, alarm panels, valves, lawn mowers, sirens, updates, automations, texts, dates and times, notify, weather, events, people, groups and remotes; *More in Home Assistant* for anything else.
+- Customize a device: icon colour, tap, hold and double tap, ask before operating, state text, visibility conditions; defaults by type.
+- *Colours and shape* for the whole dashboard (also no colour, or rainbow), *My alerts*, any low-part percentage.
+- A *Custom device* appliance, section preset files, widgets from plugins.
+- Language setting; the dashboard follows Home Assistant's language, and a translation is one file.
+- Media seek, shuffle, repeat, sound mode and grouping; fan direction; target humidity; opening a lock's door.
+
+### Changed
+
+- Every colour is chosen on the light popup's colour wheel or typed as a code; there are no fixed colour dots.
+- Device types come from what entities report before their names.
+
+### Fixed
+
+- A thermostat that keeps two temperatures can set them; climate popups show only the modes the unit has.
+
 ## [0.32.0] - 2026-11-26
 
 ### Added

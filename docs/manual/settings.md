@@ -20,6 +20,18 @@ Open with the gear in the header. The search box finds a setting.
 
 **Help → User manual** opens this manual.
 
+## Language
+
+*Settings → Appearance → Language*: the same as Home Assistant, or a language chosen for your account. English is the only language shipped so far. A translation is one file, `frontend/app/lang/<code>.js`, that sets `LANGS["<code>"] = {...}` with the keys of `app/strings.js`, plus its name under `languages` in `frontend/version.json`; what it lacks is shown in English.
+
+## Colours and shape
+
+*Settings → Colours and shape* (shared by everyone): icon colours by type, no colour, or a rainbow; a colour for each type of icon; corners and spacing. The accent colour is each person's own, under *Appearance*. Every colour is picked on the colour wheel or typed as a code.
+
+## My alerts
+
+*Settings → My alerts*: your own lines in Attention, shown while a condition holds. The level at which a worn part counts as low is under *Notifications* (1 to 90 %).
+
 ## Users
 
 Only administrators change the dashboard. Access rules apply inside this dashboard only: they are not Home Assistant permissions, so a user can still reach an

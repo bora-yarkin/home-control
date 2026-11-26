@@ -2,7 +2,7 @@
   "languages": {
     "en": "English"
   },
-  "version": 515,
+  "version": 516,
   "files": [
     "integrations.js",
     "app/core.js",

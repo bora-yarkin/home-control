@@ -8,6 +8,14 @@
 - **Rows:** any further entity, with your own label and group heading.
 - **Buttons:** a grid or a picture made with the [remote builder](media-and-remotes.md#the-remote-builder), for things with keys (a projector).
 
+## Custom device
+
+The appliance type **Custom device** starts empty and takes any entity. Each row is drawn as that entity's own row, in your order, under headings if you give them. It can also hold a grid of buttons made with the remote builder.
+
+## Section presets
+
+A section's settings → *Save as a preset file* saves it without any entity id. *Add section → From a preset file* loads one: you choose your own device for each place. Names and texts are kept as written, so read a file before sharing it.
+
 ## Robot vacuums
 
 Two ways:
