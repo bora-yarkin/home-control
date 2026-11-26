@@ -836,19 +836,31 @@ function roomTvRemote(id) {
     : null;
 }
 
-function mediaPopup(b, id, hooks) {
+/* Which ready-made remote a media player's popup is: "samsung", "apple", "android", "family" (built from the integration's documentation), or "" for none. The popup and the
+   list of ready-made remotes under Add item both ask here, so they cannot disagree. */
+function mediaRemoteKind(id) {
   var k = mediaKind(id),
+    rem = sibBy(id, function (e) {
+      return dom(e.entity_id) === "remote";
+    });
+  if ((k === "samsung" || k === "apple" || k === "android") && rem) return k;
+  var fam = tvFamily(id);
+  return Integrations.remote.experimental(fam) && (rem || fam === "webos") ? "family" : "";
+}
+
+function mediaPopup(b, id, hooks) {
+  var k = mediaRemoteKind(id),
     rem = sibBy(id, function (e) {
       return dom(e.entity_id) === "remote";
     }),
     h = H(),
     e = h.entities[id] || {},
     dv = e.device_id && h.devices[e.device_id];
-  if (k === "samsung" && rem) samsungRemote(b, rem, id, hooks);
-  else if (k === "apple" && rem)
+  if (k === "samsung") samsungRemote(b, rem, id, hooks);
+  else if (k === "apple")
     appleRemote(b, rem, id, roomTvRemote(id), dv && dv.config_entries && dv.config_entries[0], hooks);
-  else if (k === "android" && rem) androidRemote(b, rem, id, hooks);
-  else if (Integrations.remote.experimental(tvFamily(id)) && (rem || tvFamily(id) === "webos")) familyRemote(b, id, rem, tvFamily(id), hooks);
+  else if (k === "android") androidRemote(b, rem, id, hooks);
+  else if (k === "family") familyRemote(b, id, rem, tvFamily(id), hooks);
   else mediaGeneric(b, id, (UIDEV[id] || {}).icon, hooks);
 }
 

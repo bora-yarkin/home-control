@@ -4,7 +4,10 @@ Format: [Keep a Changelog](https://keepachangelog.com/). Versions follow [semant
 
 ## [Unreleased]
 
+## [0.30.0] - 2026-11-26
+
 ### Added
+- **Add item → Remote** lists the ready-made remotes (Samsung, Apple TV, Android TV and the experimental ones) of the TVs that have one, the **Remote master** (no longer among the widgets), and *Build your own*.
 - **A remote you build can look like the built-in ones:** the builder's *Look of the built-in remotes* gives a grid their buttons, spacing and touchpad.
 - **A custom remote as a Remote master's default behaves like a built-in one:** its now playing part is the master's (once, with the apps menu when set), the speaker takes an empty cell beside Power, and typed text goes to the device on the screen.
 

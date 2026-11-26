@@ -11,9 +11,17 @@ integration offers it.
 
 The built-in `samsungtv` integration reports no inputs; Samsung TV Smart (custom) does. Its input list is set in that integration's options.
 
+## Adding a remote
+
+In the editor, *Add item → Remote*:
+
+- **Ready-made remotes:** every TV or player that has one. Choosing it puts the TV on the page; tapping its row opens the remote.
+- **Remote master:** one remote for a TV and what is plugged into it (below).
+- **Build your own:** an empty remote for the builder.
+
 ## The remote builder
 
-*Add item → Remote* (or on an appliance, *Buttons*).
+*Add item → Remote → Build your own* (or on an appliance, *Buttons*).
 
 - **Grid:** choose columns, then add buttons: an entity to press, a key sent to a `remote` entity, a media player action or source, a five-way pad, a touchpad,
   now-playing, a source menu, a keyboard button, a slider, or a gap. Drag to reorder; set how wide and tall each is.
@@ -22,7 +30,7 @@ The built-in `samsungtv` integration reports no inputs; Samsung TV Smart (custom
 
 ## The Remote master
 
-A widget (*Add item → Widgets → Remote master*) that is one remote for the TV and what is plugged into it.
+*Add item → Remote → Remote master*: it is one remote for the TV and what is plugged into it.
 
 - **Default device:** usually the TV. Power belongs to it unless you pick another device.
 - **Other devices:** each can be a media player or a custom remote, with the TV input it uses; picking it switches the TV to that input. Buttons a device does not
