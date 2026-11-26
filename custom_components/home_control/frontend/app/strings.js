@@ -511,6 +511,8 @@ var EN = {
   "vacap_zones": "No-go zones source",
   "vacap_zones_from_entities": "From the zone entities and the map",
   "vacap_zones_hint": "Leave the action empty to read the zones from the No-go zones and Virtual walls entities, else from the map. Or give an action that answers with them (a script can do that for any vacuum). Zones are drawn when the map's No-go zones setting is on.",
+  "vacap_zones_from_source": "From the zones source: ",
+  "vacap_zones_wins": "A zones source is set, so it is used instead of this entity: ",
   "vacap_zones_path": "Where the no-go zones are",
   "vacap_walls_path": "Where the walls are",
   "vacap_path_hint": "Names with dots; * is every value; | tries another place. Empty means no_go_areas or no_go, and virtual_walls or walls.",

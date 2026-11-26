@@ -37,6 +37,19 @@ var AP_TYPES = {
 };
 var AP_EXTRA_DOMS = ["select", "input_select", "number", "input_number", "switch", "input_boolean", "binary_sensor", "sensor", "button", "input_button", "script"];
 
+/* The action that answers with a vacuum's zones, when the slot is one it replaces: it is used instead of the entity (vacapZoneGroups). */
+function apZoneSource(ap, k) {
+  var z = (k === "no_go" || k === "walls") && ap.vac && ap.vac.zones;
+  return (z && z.action) || "";
+}
+
+/* What a slot's row in the set-up says it is filled with. */
+function apSlotText(ap, k) {
+  var source = apZoneSource(ap, k);
+  if (source) return _T("vacap_zones_from_source") + source;
+  return ap.slots[k] ? apBoundText(ap.slots[k]) : _T("ap_not_set");
+}
+
 /* What a slot is called on this appliance: the name given to it, else the name its type gives, else the general one. */
 function apSlotLabel(ap, k) {
   var t = AP_TYPES[ap.type] || AP_TYPES.other;
@@ -591,7 +604,7 @@ function apEditPage(b, aid) {
         box.appendChild(
           pill("plug", apSlotLabel(ap, k), {
             sub: function () {
-              return ap.slots[k] ? apBoundText(ap.slots[k]) : _T("ap_not_set");
+              return apSlotText(ap, k);
             },
             tap: function () {
               showPopup("ap-slot:" + aid + ":" + k, true);
@@ -608,7 +621,7 @@ function apEditPage(b, aid) {
         box.appendChild(
           pill("plug", apSlotLabel(ap, k), {
             sub: function () {
-              return apBoundText(ap.slots[k]);
+              return apSlotText(ap, k);
             },
             tap: function () {
               showPopup("ap-slot:" + aid + ":" + k, true);
@@ -696,6 +709,7 @@ function apSlotPage(b, key) {
     )
   );
   b.appendChild(hintRow(_T("ap_slot_name_hint") + apSlotLabel(d.ap, k)));
+  if (apZoneSource(d.ap, k)) b.appendChild(hintRow(_T("vacap_zones_wins") + apZoneSource(d.ap, k)));
   b.appendChild(
     pill("plug", s[k] ? A(s[k]).friendly_name || s[k] : _T("ap_not_set"), {
       sub: function () {

@@ -4,6 +4,12 @@ Format: [Keep a Changelog](https://keepachangelog.com/). Versions follow [semant
 
 ## [Unreleased]
 
+## [0.31.1] - 2026-11-26
+
+### Fixed
+
+- A robot vacuum appliance's *No-go zones* and *Virtual walls* rows said *Not set* although a zones source provided them. They now name the source, and their pages say it is used instead of an entity.
+
 ## [0.31.0] - 2026-11-26
 
 ### Added
