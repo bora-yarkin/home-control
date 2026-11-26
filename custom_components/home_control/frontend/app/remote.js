@@ -75,6 +75,13 @@ function remoteNew() {
   };
 }
 
+/* A button's colour: any colour, or one of the four a TV remote's coloured keys are named by. */
+var KEY_COLORS = { red: "#e5484d", green: "#30a46c", yellow: "#f5c542", blue: "#3e7bfa" };
+
+function keyColor(k) {
+  return KEY_COLORS[k] || k || "";
+}
+
 /* What a button or touch area does: its action, or, for one made before actions had a kind, the entity on it. */
 function rmAct(b) {
   return b.a || (b.e ? { t: "ent", e: b.e } : null);
@@ -362,7 +369,8 @@ function rmTile(x, edit, onTap) {
     rmSpan(gap, x);
     return gap;
   }
-  var t = mk("div", "rm-t pane" + (x.k ? " rm-k rm-k-" + x.k : "") + (!edit && !rmUsable(x.a) ? " na" : "") + (edit ? " ed" : "") + (x.i ? "" : " txt"));
+  var t = mk("div", "rm-t pane" + (x.k ? " rm-k" : "") + (!edit && !rmUsable(x.a) ? " na" : "") + (edit ? " ed" : "") + (x.i ? "" : " txt"));
+  if (x.k) t.style.setProperty("--rmk", keyColor(x.k));
   t.setAttribute("role", "button");
   t.tabIndex = 0;
   if (x.i) t.innerHTML = svg(x.i);
@@ -1387,20 +1395,15 @@ function remoteBtnPage(b, key) {
           })
         );
         box.appendChild(
-          dropRow(
+          colorButton(
             _T("rm_colour"),
-            ["", "red", "green", "yellow", "blue"],
             function () {
-              return x.k || "";
+              return keyColor(x.k);
             },
-            function (v) {
-              if (v) x.k = v;
+            function (c) {
+              if (c) x.k = c;
               else delete x.k;
               save();
-            },
-            "palette",
-            function (v) {
-              return _T(v ? "rm_c_" + v : "rm_c_none");
             }
           )
         );

@@ -49,7 +49,7 @@ function autoScenePlay(sc, ids) {
       var g = groups[k];
       call("light", "turn_on", Object.assign({ entity_id: g.ids }, g.d));
     });
-    toast(_T("running_2") + sc.name + "”");
+    toast(_T("running_2", { x: sc.name }));
   });
 }
 
@@ -151,12 +151,12 @@ function autoSceneEditor(b) {
     b.appendChild(
       pill("trash", _T("auto_delete"), {
         tap: function () {
-          confirmDlg(_T("delete") + d.name + "”?", function () {
+          confirmDlg(_T("delete_named_q", { x: d.name }), function () {
             var sc = sceneById(d.id);
             if (sc) sceneDeleteEverywhere(sc);
             POPGUARD = null;
             closeSheet();
-          }, _T("delete"));
+          }, _T("delete_word"));
         },
       })
     );

@@ -247,3 +247,7 @@ Entity ids and names are made up.
 - Is every entity id one they gave you?
 - Is the JSON valid?
 - Tell them: restore it, read the question (rooms, devices, scenes, anything not accepted), and that a backup of the present dashboard is downloaded first.
+
+## Customising
+
+Per device (on the entry in a section): `color` (`#rrggbb`), `act` (`{"tap"|"hold"|"dbl": {"t": "popup"|"toggle"|"more"|"none"} | {"t": "page", "p": "<room id>"} | {"t": "run", "a": <remote action>}}`), `ask` (1), `txt` (at most 80 characters), `txtif` (`[{"c": <condition>, "t": "..."}]`), `when` (`[<condition>]`). For the whole dashboard: `ui.types` (`{"light": {"tap": ..., "ask": 1}}`), `ui.look` (`{"style": "mono"|"rainbow", "radius": "sharp"|"round", "density": "compact"|"roomy", "kc": {"light": "#rrggbb"}}`), and in the shared settings `myAlerts` (`[{"c": <condition>, "t": "..."}]`).

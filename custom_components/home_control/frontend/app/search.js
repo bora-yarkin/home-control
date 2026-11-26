@@ -34,7 +34,7 @@ function searchItems() {
   /* A lights master is found like a light: by its name and the word Master, and each of its lights as "Master · Light", which switches only that light. */
   allMasters().forEach(function (m) {
     if (m.sec.mhide) return;
-    var mn = (m.sec.mn || _T("all_lights")) + " " + _T("lm_master_word");
+    var mn = _T("lm_master_word", { x: m.sec.mn || _T("all_lights") });
     LMASTER[m.key] = m.ids;
     LMASTER_META[m.key] = masterMeta(m.sec);
     LMASTER_NAME[m.key] = m.sec.mn || "";
@@ -54,14 +54,14 @@ function searchItems() {
     sceneIds(r.area).forEach(function (s) {
       var nm = A(s[0]).friendly_name || s[0];
       if (nm.indexOf(r.name) === 0) nm = nm.slice(r.name.length).replace(/^\s+/, "");
-      it.push({ n: nm, r: _T("scene") + r.name, i: "palette", k: "scene", v: s[0] });
+      it.push({ n: nm, r: _T("scene_in", { x: r.name }), i: "palette", k: "scene", v: s[0] });
     });
   });
   STORE.scenes.forEach(function (sc) {
     if (!sceneAllowed(sc)) return;
     it.push({
       n: sc.name,
-      r: sc.room === "home" ? _T("quick_action") : _T("scene") + (TITLES[sc.room] || ""),
+      r: sc.room === "home" ? _T("quick_action") : _T("scene_in", { x: TITLES[sc.room] || "" }),
       i: sc.icon || "scene",
       k: "cscene",
       v: sc.id,

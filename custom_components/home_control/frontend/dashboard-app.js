@@ -58,14 +58,14 @@ function showLoadFailure() {
   var box = document.createElement("div");
   box.className = "sec-h";
   if (scheduleLoadRetry()) {
-    box.textContent = "The dashboard could not load every file. Trying again.";
+    box.textContent = _T("load_retrying");
     body.appendChild(box);
     return;
   }
-  box.textContent = "The dashboard could not load: " + APP_FAILED.join(", ") + ".";
+  box.textContent = _T("load_failed", { files: APP_FAILED.join(", ") });
   var again = document.createElement("button");
   again.type = "button";
-  again.textContent = "Try again";
+  again.textContent = _T("try_again");
   again.onclick = function () {
     clearLoadRetries();
     location.reload();
@@ -76,7 +76,7 @@ function showLoadFailure() {
 
 if (!Array.isArray(window.APP_FILES)) {
   console.error("[dashboard] the panel gave no list of files");
-  APP_FAILED.push("the list of files");
+  APP_FAILED.push(_T("the_list_of_files"));
   showLoadFailure();
 } else
   window.APP_FILES.forEach(function (name) {

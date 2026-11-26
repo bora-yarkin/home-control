@@ -48,7 +48,7 @@ function popupFollow(d, to) {
 function popupItems(scope, wid) {
   var s = popupSection(scope, wid);
   return ((s && s.devs) || []).filter(function (d) {
-    return !d.hide && !(d.id && modeOf(d.id).mode === "hide");
+    return !d.hide && itemShown(d) && !(d.id && modeOf(d.id).mode === "hide");
   });
 }
 

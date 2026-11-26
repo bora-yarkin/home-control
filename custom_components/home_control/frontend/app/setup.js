@@ -13,6 +13,12 @@ var SETUP_OTHER = [
   ["lock", "setup_locks", true],
   ["vacuum", "vacuum", true],
   ["camera", "cameras", true],
+  ["humidifier", "setup_humidifiers", false],
+  ["water_heater", "setup_water_heaters", false],
+  ["alarm_control_panel", "setup_alarms", false],
+  ["valve", "setup_valves", false],
+  ["lawn_mower", "setup_mowers", false],
+  ["siren", "setup_sirens", false],
   ["switch", "switches", false],
 ];
 
@@ -223,7 +229,7 @@ function setupBuild(src, c, old) {
           )
         );
       var media = setupChosen(a, "media_player", c).map(function (x) {
-        return setupDev(x, "media", /tv|television/i.test(x.id + " " + x.name) ? "tv" : "speaker");
+        return setupDev(x, "media", (typeof reportedType === "function" && reportedType(x.id)) === "tv" || /tv|television/i.test(x.id + " " + x.name) ? "tv" : "speaker");
       });
       if (media.length) secs.push(setupSection("media", _T("media"), "tv", media));
       function pick(domains, kind, icon) {
@@ -238,6 +244,9 @@ function setupBuild(src, c, old) {
       var climate = pick(["climate"], "climate", "ac").concat(pick(["fan"], "fan", "fan"));
       if (climate.length) secs.push(setupSection("climate", _T("climate"), "ac", climate));
       var rest = pick(["cover"], "cover", "swap").concat(pick(["lock"], "lock", "lock"), pick(["vacuum"], "vacuum", "vac"), pick(["switch"], "switch", "plug"));
+      ["humidifier", "water_heater", "alarm_control_panel", "valve", "lawn_mower", "siren"].forEach(function (d) {
+        rest = rest.concat(pick([d], "entity", SETUP_ICON[d]));
+      });
       if (rest.length) secs.push(setupSection("other", _T("other_devices"), "plug", rest));
       var cams = pick(["camera"], "camera", "cam").map(function (d) {
         d.sz = "l";
@@ -322,7 +331,7 @@ function setupSkip() {
   closeSheet();
 }
 
-var SETUP_ICON = { light: "light", scene: "scene", media_player: "tv", climate: "ac", fan: "fan", cover: "swap", lock: "lock", vacuum: "vac", camera: "cam", switch: "plug", sensor: "thermo" };
+var SETUP_ICON = { light: "light", scene: "scene", media_player: "tv", climate: "ac", fan: "fan", cover: "swap", lock: "lock", vacuum: "vac", camera: "cam", switch: "plug", sensor: "thermo", humidifier: "drop", water_heater: "thermo", alarm_control_panel: "lock", valve: "drop", lawn_mower: "play", siren: "alert" };
 
 /* A row to tick; its icon says what it is, the mark at its end whether it is chosen. */
 function setupCheck(box, name, sub, isOn, flip, icon) {
@@ -375,7 +384,7 @@ function setupStep(box, name, redraw) {
       var count = Object.keys(a.items).reduce(function (n, d) {
         return n + a.items[d].length;
       }, 0);
-      setupCheck(box, a.name, count + " " + _T("setup_things"), function () {
+      setupCheck(box, a.name, _T("setup_things", { n: count }), function () {
         return !!c.rooms[a.id];
       }, function () {
         c.rooms[a.id] = !c.rooms[a.id];
@@ -477,7 +486,7 @@ function setupStep(box, name, redraw) {
       box.appendChild(
         pill("home", a.name, {
           sub: function () {
-            return n + " " + _T("setup_things") + (setupHasMaster(a, c) ? " · " + _T("lights_master") : "");
+            return _T("setup_things", { n: n }) + (setupHasMaster(a, c) ? " · " + _T("lights_master") : "");
           },
         })
       );

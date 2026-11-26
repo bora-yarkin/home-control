@@ -101,7 +101,7 @@ function batsPage(b) {
     UI.bats.forEach(function (devId, i) {
       box.appendChild(
         batRow(devId, index, function () {
-          confirmDlg(_T("stop_tracking") + batName(devId) + "”?", function () {
+          confirmDlg(_T("stop_tracking", { x: batName(devId) }), function () {
             UI.bats.splice(i, 1);
             UI.batsOff = (UI.batsOff || []).filter(function (o) {
               return o !== devId;

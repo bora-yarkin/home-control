@@ -5,6 +5,7 @@ import assert from "node:assert/strict";
 import { readFileSync } from "node:fs";
 import test from "node:test";
 import vm from "node:vm";
+import { _T as EN_T } from "./en.mjs";
 
 const FRONTEND = new URL("../../custom_components/home_control/frontend/", import.meta.url);
 const read = (name) => readFileSync(new URL(name, FRONTEND), "utf8");
@@ -184,6 +185,7 @@ function talker() {
   const win = { isSecureContext: true };
   win.parent = win;
   const context = vm.createContext({
+    _T: EN_T,
     window: win,
     document: { currentScript: { src: "http://h/camera-stream.js" }, addEventListener() {}, hidden: false },
     navigator: {},

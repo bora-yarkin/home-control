@@ -387,7 +387,7 @@ var remotePictures={
  upload:function(file){
   var body=new FormData();body.append("file",file);
   return hass.fetchWithAuth("/api/home_control/remote_image",{method:"POST",body:body}).then(function(r){
-   return r.json().then(function(j){if(!r.ok)throw new Error(j&&j.message||"Upload failed");return j.url})
+   return r.json().then(function(j){if(!r.ok)throw new Error(j&&j.message||_T("upload_failed"));return j.url})
   })
  },
  remove:function(url){
@@ -409,7 +409,7 @@ var FLOW="config/config_entries/flow",OPTFLOW="config/config_entries/options/flo
 /* A flow step that did not finish says why, in Home Assistant's words. */
 function flowProblem(step){
  var e=step&&step.errors,k=e&&Object.keys(e)[0];
- return new Error(k?e[k]:"The step was not accepted")
+ return new Error(k?e[k]:_T("flow_step_refused"))
 }
 
 /* Runs a flow to its end and gives up (deleting the open flow) when a step is not accepted, so no half-made flow stays open. */
@@ -421,7 +421,7 @@ function runFlow(base,start,steps){
   var chain=Promise.resolve(first);
   steps.forEach(function(body){
    chain=chain.then(function(prev){
-    if(prev.type==="abort")throw new Error(prev.reason||"The flow was stopped");
+    if(prev.type==="abort")throw new Error(prev.reason||_T("flow_stopped"));
     return hass.callApi("POST",base+"/"+id,typeof body==="function"?body(prev):body)
    })
   });
@@ -438,7 +438,7 @@ function entityOfEntry(entryId,tries){
  return ws({type:"config/entity_registry/list"}).then(function(rows){
   var r=rows.filter(function(x){return x.config_entry_id===entryId})[0];
   if(r)return r.entity_id;
-  if(tries<=0)throw new Error("The group was made, but its light did not appear");
+  if(tries<=0)throw new Error(_T("group_light_missing"));
   return new Promise(function(done){setTimeout(done,400)}).then(function(){return entityOfEntry(entryId,tries-1)})
  })
 }
@@ -509,6 +509,15 @@ window.HA={
  users:function(){return ws({type:"config/auth/list"})},
  entityRegistry:function(){return ws({type:"config/entity_registry/list"}).then(function(rows){return loadReplaces().then(function(){return withoutReplaced(rows)})})},
  serviceResponse:serviceResponse,
+ /* Home Assistant's own dialog of an entity, in the frontend around this panel. false when there is none to ask. */
+ moreInfo:function(id){
+  try{
+   var w=window.parent,root=w.document.querySelector("home-assistant");
+   if(!root)return false;
+   root.dispatchEvent(new w.CustomEvent("hass-more-info",{bubbles:true,composed:true,detail:{entityId:id}}));
+   return true;
+  }catch(e){return false}
+ },
  /* The effects catalogues Home Control offers (a plus integration's, and the files an administrator imported), and importing or removing a file. */
  effects:{
   sources:function(){return ws({type:"home_control/effects"}).then(function(r){return r&&r.sources})},

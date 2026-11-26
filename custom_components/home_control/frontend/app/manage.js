@@ -187,7 +187,7 @@ function addDevTo(rid, id) {
   if (kind === "media" && d.icon === "tv") d.sub = 1;
   devList(rid).push(d);
   uiChanged();
-  toast(_T("added") + nm + "”");
+  toast(_T("added", { x: nm }));
 }
 
 function newDevPage(b) {
@@ -408,6 +408,7 @@ var ADDDOMS = [
   ],
   [_T("scenes"), ["scene"]],
   [_T("helpers"), ["input_text", "input_datetime", "counter", "timer"]],
+  [_T("more_devices"), ["humidifier", "water_heater", "alarm_control_panel", "valve", "lawn_mower", "siren", "update", "automation", "weather", "event", "person", "device_tracker", "notify", "text", "date", "time", "datetime", "group", "remote"]],
   [_T("all_entities"), ["*"]],
   [_T("remote"), ["__remote"]],
   [_T("ap_appliance"), ["__appliance"]],
@@ -427,7 +428,7 @@ var DOMKIND = {
   binary_sensor: "sensor",
   counter: "sensor",
   timer: "sensor",
-  input_text: "sensor",
+  input_text: "entity",
   input_datetime: "sensor",
   number: "number",
   input_number: "number",
@@ -439,6 +440,25 @@ var DOMKIND = {
   scene: "scene",
   cover: "cover",
   lock: "lock",
+  humidifier: "entity",
+  water_heater: "entity",
+  alarm_control_panel: "entity",
+  valve: "entity",
+  lawn_mower: "entity",
+  siren: "entity",
+  update: "entity",
+  automation: "entity",
+  text: "entity",
+  date: "entity",
+  time: "entity",
+  datetime: "entity",
+  notify: "entity",
+  weather: "entity",
+  event: "entity",
+  person: "entity",
+  device_tracker: "entity",
+  group: "entity",
+  remote: "entity",
 };
 
 /* A room by its id. "room.section" is the room as one of its scenes sections shows it: the room with that section (`sec`, which has its own hidden scenes and its own source of scenes). */
@@ -627,6 +647,7 @@ function candidates(doms, roomId, q, areaId) {
 
 function defIcon(kind, name, id) {
   if (id && pluginDeviceKind(id)) return pluginDeviceKind(id).icon;
+  if (kind === "entity" && id && domKnown(id)) return DOMAINS[dom(id)].icon;
   return kind === "sensor"
     ? id
       ? sensorIcon(id)
@@ -644,7 +665,7 @@ function defIcon(kind, name, id) {
             : kind === "light"
               ? "light"
               : kind === "media"
-                ? /tv/i.test(name)
+                ? (id && reportedType(id) === "tv") || /tv/i.test(name)
                   ? "tv"
                   : "media"
                 : kind === "climate"
@@ -808,7 +829,7 @@ function roomDetails(b, rid) {
     var delRoom = pill("trash", _T("delete_room"), {
         tap: function () {
           confirmDlg(
-            _T("delete") + r.name + _T("from_the_app_the_devices_stay_in_hom"),
+            _T("delete_room_q", { x: r.name }),
             function () {
               UI.rooms = UI.rooms.filter(function (x) {
                 return x.id !== rid;
@@ -954,6 +975,17 @@ function devLookOptions(c) {
   if (d.kind === "vacuum" && d.id && vacMapEnt(d.id)) devVacuumMapOptions(c);
   if (d.kind === "media" && d.id) devMediaOptions(c);
   if (d.kind === "media" && d.id && mediaRemoteKind(d.id)) c.box.appendChild(rbxPill(d.id));
+  if (d.kind !== "widget")
+    c.box.appendChild(
+      pill("palette", _T("customize"), {
+        sub: function () {
+          return _T("customize_sub");
+        },
+        tap: function () {
+          showPopup("cust:" + c.key, true);
+        },
+      })
+    );
   c.box = real;
   sizeSettings(own, d, c.redraw);
   if (!own.children.length) return;
@@ -1234,7 +1266,8 @@ function devPlaceRows(c) {
     held = c.key.split(":")[0].split("~")[3] === "lx",
     /* a robot vacuum appliance's Advanced settings are its vacuum's */
     advOf = d.id || (d.kind === "appliance" && d.ap && d.ap.type === "vacuum" && d.ap.slots.vacuum) || "",
-    adv = advOf && advList(advOf).length;
+    /* also the devices whose popup ends with "More in Home Assistant": the same switch hides it */
+    adv = advOf && (advList(advOf).length || (d.id && String(devPop(d)).indexOf("dev:") === 0) || (d.kind === "media" && A(d.id).supported_features & 131072));
   if (!held || adv) c.box.appendChild(sep(_T("dp_in_the_section"), "home"));
   /* Showing and the Advanced button are two switches, side by side. */
   var sw = mk("div", "ap-grid");
@@ -1258,7 +1291,7 @@ function devPlaceRows(c) {
     var act = mk("div", "ap-grid"),
       rm = pill("trash", _T("remove_from_the_section"), {
         tap: function () {
-          confirmDlg(_T("remove") + d.name + _T("from_this_section_it_stays_in_home_ass"), function () {
+          confirmDlg(_T("remove_from_section_q", { x: d.name }), function () {
             c.list.splice(c.i, 1);
             uiChanged();
             popBack();

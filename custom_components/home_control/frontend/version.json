@@ -1,8 +1,11 @@
 {
-  "version": 513,
+  "languages": {
+    "en": "English",
+    "tr": "Türkçe"
+  },
+  "version": 518,
   "files": [
     "integrations.js",
-    "app/strings.js",
     "app/core.js",
     "app/icons.js",
     "app/widgets.js",
@@ -28,6 +31,10 @@
     "app/sections.js",
     "app/widgetkinds.js",
     "app/popupwidget.js",
+    "app/domains.js",
+    "app/customize.js",
+    "app/colorpick.js",
+    "app/presets.js",
     "app/homewidgets.js",
     "app/remotemaster.js",
     "app/rules.js",

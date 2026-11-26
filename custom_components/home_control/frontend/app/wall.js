@@ -62,7 +62,7 @@ function wallPhotosPage(b) {
     img.src = u;
     t.setAttribute("role", "checkbox");
     t.setAttribute("aria-checked", used ? "true" : "false");
-    t.setAttribute("aria-label", _T("photo_n") + (i + 1));
+    t.setAttribute("aria-label", _T("photo_n", { x: (i + 1) }));
     t.tabIndex = 0;
     t.appendChild(img);
     t.appendChild(ck);

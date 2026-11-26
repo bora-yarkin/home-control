@@ -87,6 +87,7 @@ test("a scene entity and a scene made on the dashboard are devices; a collection
 test("a collection takes in the scenes of the pages and tags it names (less the tagged ones left out) and the scene entities of its Hue rooms", () => {
   const sc = [{ id: "a", room: "bora" }, { id: "b", room: "bath", tags: ["bath"] }, { id: "c", room: "home" }, { id: "d", room: "bora", tags: ["kids"] }];
   const ctx = vm.createContext({
+    _T: (k) => k,
     STORE: { scenes: sc },
     UIROOM: { bora: { area: "bedroom" } },
     pageKey: () => "bora",
@@ -108,7 +109,7 @@ test("a collection takes in the scenes of the pages and tags it names (less the 
 });
 
 test("the add popup adds a checked scene entity as a scene device, a checked dashboard scene as a made-scene device, and a collection as one device that opens its settings", () => {
-  const sandbox = { sectionOfList: () => ({}), dom: (id) => id.split(".")[0], DOMKIND: { scene: "scene" }, defIcon: () => "scene", placeDevice: (rid, d) => ((sandbox.last = d), { rid, i: 0 }), devSetupKind: () => null, kAuto: () => 0, devSetupAlways: () => false, sceneById: (id) => ({ id, icon: "sparkle" }) };
+  const sandbox = { _T: (k) => k, sectionOfList: () => ({}), dom: (id) => id.split(".")[0], DOMKIND: { scene: "scene" }, defIcon: () => "scene", placeDevice: (rid, d) => ((sandbox.last = d), { rid, i: 0 }), devSetupKind: () => null, kAuto: () => 0, devSetupAlways: () => false, sceneById: (id) => ({ id, icon: "sparkle" }) };
   vm.createContext(sandbox);
   vm.runInContext(piece("addpopup.js", "function addCandidate", "/* Puts a device where the popup was opened"), sandbox);
   sandbox.addCandidate("~bora~s1", { id: "scene.bath_dim", name: "Dim" });
@@ -137,6 +138,7 @@ test("a Section that was marked as showing scenes (layout 5) and chose nothing k
 
 test("Hue is a tag of the rooms ticked: its scenes come in only for rooms whose area has Hue scenes, and none are taken in without it", () => {
   const ctx = vm.createContext({
+    _T: (k) => k,
     STORE: { scenes: [{ id: "a", room: "bora" }] },
     UIROOM: { bora: { area: "bedroom" }, bath: { area: "bath" }, kitchen: { area: "kitchen" } },
     PLUGIN_SCENE_KINDS: [1],

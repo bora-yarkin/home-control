@@ -2,10 +2,10 @@
 
 /* The value of a status tile of the header: a reading with its unit, or the state as words, or two readings of one tile (a temperature and a humidity). */
 function statValue(s) {
-  var a = s.text ? (svOk(s.id) ? cap(V_(s.id)) : "Offline") : sv(s.id, s.u || "", s.dp === undefined ? 1 : s.dp);
+  var a = s.text ? (svOk(s.id) ? cap(V_(s.id)) : _T("offline")) : sv(s.id, s.u || "", s.dp === undefined ? 1 : s.dp);
   if (!s.h) return a;
   var b = sv(s.h, "%", 0);
-  if (a === "Offline" && b === "Offline") return "Offline";
+  if (a === _T("offline") && b === _T("offline")) return _T("offline");
   if (a === "–" && b === "–") return "–";
   return a + " · " + b;
 }
@@ -86,7 +86,7 @@ function chipGrid() {
     return function () {
       var a = c.u ? sv(c.t, c.u, 0) : sv(c.t, "°"),
         b = c.h ? sv(c.h, "%", 0) : "";
-      if (a === "Offline" && (!c.h || b === "Offline")) return "Offline";
+      if (a === _T("offline") && (!c.h || b === _T("offline"))) return _T("offline");
       if (a === "–" && (!c.h || b === "–")) return "–";
       return a + (c.h ? " · " + b : "");
     };
@@ -167,7 +167,7 @@ function alertList() {
   vacuumList().forEach(function (d) {
     if (alertOn("vacuum") && V_(d.id) === "error")
       out.push([
-        d.name + _T("needs_attention"),
+        _T("needs_attention", { x: d.name }),
         "",
         function () {
           showPopup(d.pop, false);
@@ -177,7 +177,7 @@ function alertList() {
   devsOf("camera").forEach(function (d) {
     if (alertOn("camera") && !svOk(d.id))
       out.push([
-        d.name + _T("is_offline"),
+        _T("is_offline", { x: d.name }),
         "",
         function () {
           alertGo(d.room);
@@ -192,7 +192,7 @@ function alertList() {
         return x.id === id;
       })[0];
       out.push([
-        (d ? d.name : entName(id)) + _T("is_offline"),
+        _T("is_offline", { x: (d ? d.name : entName(id)) }),
         "",
         d
           ? function () {
@@ -221,12 +221,15 @@ function alertList() {
   });
   if (alertOn("lights") && ls.length)
     out.push([
-      ls.length + (ls.length === 1 ? _T("light_is") : _T("lights_are")) + " unavailable",
+      _T(ls.length === 1 ? "light_unavailable_n" : "lights_unavailable_n", { n: ls.length }),
       ls.map(entName).join(" · "),
       function () {
         showPopup("g-lights", false);
       },
     ]);
+  myAlerts().forEach(function (x) {
+    if (ruleEvalCond(x.c)) out.push([x.t, condText(x.c), null]);
+  });
   return out;
 }
 
@@ -285,7 +288,7 @@ function alertsDevice(ed) {
 /* The text of an Attention tile or chip: the one thing that needs attention, or how many. */
 function alertText() {
   var list = alertList();
-  return list.length === 1 ? list[0][0] : list.length + " " + _T("nt_alerts").toLowerCase();
+  return list.length === 1 ? list[0][0] : _T("n_alerts", { n: list.length });
 }
 
 /* Thresholds shown on the dashboard come from settings, not from the code. */

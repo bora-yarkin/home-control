@@ -27,6 +27,7 @@ var KINDS = [
   "cscene",
   "scenes",
   "widget",
+  "entity",
 ];
 
 /* The lights that are the zones of another light (a gradient tube is one light with a light for each of its colour zones). They are not put on a page by themselves: the main light controls its zones, and one can still be added by hand. */
@@ -233,7 +234,7 @@ function cleanRemote(r) {
     var label = typeof x.l === "string" ? x.l.slice(0, 24) : "",
       btn = { a: a, i: iconOk(x.i) ? x.i : x.i === "" && label ? "" : "info", l: label, s: s, h: h };
     if (x.q) btn.q = 1;
-    if (["red", "green", "yellow", "blue"].indexOf(x.k) >= 0) btn.k = x.k;
+    if (typeof x.k === "string" && /^(red|green|yellow|blue|#[0-9a-f]{6})$/.test(x.k)) btn.k = x.k;
     out.btns.push(btn);
   });
   /* the grid drawn as the built-in remotes are */
@@ -266,7 +267,7 @@ function cleanAppliance(a) {
     },
     extraDoms = ["select", "input_select", "number", "input_number", "switch", "input_boolean", "binary_sensor", "sensor", "button", "input_button", "script"],
     out = { type: "other", slots: {}, extra: [] };
-  if (a && ["oven", "washer", "dryer", "dishwasher", "coffee", "fridge", "projector", "vacuum", "other"].indexOf(a.type) >= 0) out.type = a.type;
+  if (a && ["oven", "washer", "dryer", "dishwasher", "coffee", "fridge", "projector", "vacuum", "custom", "other"].indexOf(a.type) >= 0) out.type = a.type;
   Object.keys(slotDoms).forEach(function (k) {
     var e = a && a.slots && a.slots[k];
     if (typeof e === "string" && ENTRE.test(e) && slotDoms[k].indexOf(e.split(".")[0]) >= 0) out.slots[k] = e;
@@ -282,7 +283,8 @@ function cleanAppliance(a) {
     });
   /* Rows of any entity that can be read or set, each with a label, an optional group heading, and whether it is shown on the appliance's page or behind its Details line. */
   (a && Array.isArray(a.extra) ? a.extra : []).slice(0, 40).forEach(function (x) {
-    if (x && typeof x.e === "string" && ENTRE.test(x.e) && extraDoms.indexOf(x.e.split(".")[0]) >= 0) {
+    /* a custom device takes any entity; the others the ones their rows can show */
+    if (x && typeof x.e === "string" && ENTRE.test(x.e) && (out.type === "custom" || extraDoms.indexOf(x.e.split(".")[0]) >= 0)) {
       var row = { e: x.e, l: typeof x.l === "string" ? x.l.slice(0, 30) : "" };
       if (typeof x.g === "string" && x.g.trim()) row.g = x.g.trim().slice(0, 24);
       if (x.o) row.o = 1;
@@ -386,9 +388,101 @@ function isVacuumMap(id) {
 var DEVTYPES = { media: ["tv", "receiver", "speaker"], fan: ["fan", "purifier"] };
 
 function guessDevType(d) {
-  if (d.kind === "media") return d.icon === "tv" ? "tv" : /speaker|homepod|sonos|cast|echo/i.test(d.icon + " " + d.id) ? "speaker" : "receiver";
-  if (d.kind === "fan") return /purif|air/i.test(d.icon + " " + d.name + " " + d.id) ? "purifier" : "fan";
+  /* what the entity says of itself first; names (in any one language) only when it says nothing */
+  var type = reportedType(d.id);
+  if (d.kind === "media") return type || (d.icon === "tv" ? "tv" : /speaker|homepod|sonos|cast|echo/i.test(d.icon + " " + d.id) ? "speaker" : "receiver");
+  if (d.kind === "fan") return type || (/purif|air/i.test(d.icon + " " + d.name + " " + d.id) ? "purifier" : "fan");
   return "";
+}
+
+/* The type Home Assistant's own information gives: a media player's device class, a purifier by the particle sensor on its device. "" when it says nothing. */
+function reportedType(id) {
+  var h = typeof H === "function" && H(),
+    s = h && h.states && h.states[id];
+  if (!s) return "";
+  if (id.indexOf("media_player.") === 0) return ["tv", "receiver", "speaker"].indexOf(s.attributes.device_class) >= 0 ? s.attributes.device_class : "";
+  if (id.indexOf("fan.") !== 0) return "";
+  var device = h.entities && h.entities[id] && h.entities[id].device_id;
+  return device &&
+    Object.keys(h.entities).some(function (e) {
+      var x = h.states[e];
+      return h.entities[e].device_id === device && x && /^(pm1|pm25|pm10)$/.test(x.attributes.device_class || "");
+    })
+    ? "purifier"
+    : "";
+}
+
+/* A gesture's action: the device's popup, a toggle, Home Assistant's dialog, a page, one of the remote builder's actions, or nothing. */
+function cleanAct(a) {
+  if (!a || typeof a !== "object") return null;
+  if (["popup", "toggle", "more", "none"].indexOf(a.t) >= 0) return { t: a.t };
+  if (a.t === "page") return typeof a.p === "string" && /^[a-z0-9_-]{1,24}$/.test(a.p) ? { t: "page", p: a.p } : null;
+  if (a.t === "run") {
+    var r = cleanRmAct(a.a);
+    return r && r.t !== "room" ? { t: "run", a: r } : null;
+  }
+  return null;
+}
+
+function cleanActs(o) {
+  var out = {};
+  ["tap", "hold", "dbl"].forEach(function (g) {
+    var a = cleanAct(o && o[g]);
+    if (a) out[g] = a;
+  });
+  return out;
+}
+
+/* An item's own colour, gestures, confirmation, state texts and visibility (app/customize.js). */
+function cleanCustom(d, c) {
+  var text = function (t) {
+    return typeof t === "string" && t.trim() && t.length <= 80 ? t : "";
+  };
+  if (typeof d.color === "string" && /^#[0-9a-f]{6}$/.test(d.color)) c.color = d.color;
+  var act = cleanActs(d.act);
+  if (Object.keys(act).length) c.act = act;
+  if (d.ask) c.ask = 1;
+  if (text(d.txt)) c.txt = d.txt;
+  var iff = !Array.isArray(d.txtif)
+    ? []
+    : d.txtif
+    .slice(0, 4)
+    .map(function (x) {
+      var cond = x && cleanCond(x.c);
+      return cond && text(x.t) ? { c: cond, t: x.t } : null;
+    })
+    .filter(Boolean);
+  if (iff.length) c.txtif = iff;
+  var when = Array.isArray(d.when) ? d.when.slice(0, 4).map(cleanCond).filter(Boolean) : [];
+  if (when.length) c.when = when;
+}
+
+/* The look of the whole dashboard and the defaults per type of entity. */
+function cleanLook(l) {
+  var out = {};
+  if (!l || typeof l !== "object") return out;
+  if (l.style === "mono" || l.style === "rainbow") out.style = l.style;
+  if (l.radius === "sharp" || l.radius === "round") out.radius = l.radius;
+  if (l.density === "compact" || l.density === "roomy") out.density = l.density;
+  var kc = {};
+  Object.keys(l.kc || {}).forEach(function (k) {
+    if (/^[a-z]{1,12}$/.test(k) && typeof l.kc[k] === "string" && /^#[0-9a-f]{6}$/.test(l.kc[k])) kc[k] = l.kc[k];
+  });
+  if (Object.keys(kc).length) out.kc = kc;
+  return out;
+}
+
+function cleanTypes(t) {
+  var out = {};
+  Object.keys(t || {})
+    .slice(0, 60)
+    .forEach(function (k) {
+      if (!/^[a-z_]{1,30}$/.test(k) || !t[k] || typeof t[k] !== "object") return;
+      var o = cleanActs(t[k]);
+      if (t[k].ask) o.ask = 1;
+      if (Object.keys(o).length) out[k] = o;
+    });
+  return out;
 }
 
 function cleanDev(d) {
@@ -476,6 +570,7 @@ function cleanDev(d) {
     c.rid = d.rid;
     c.rm = cleanRemote(d.rm);
   }
+  cleanCustom(d, c);
   if (d.keep) c.keep = 1;
   if (d.hide) c.hide = 1;
   if (d.dial && d.kind === "climate") c.dial = 1;
@@ -602,6 +697,8 @@ function cleanUI(u) {
     layout: { home: [], rooms: {}, cols: {} },
     caps: {},
     rbx: {},
+    look: {},
+    types: {},
     on: {},
     newSince: typeof u.newSince === "number" && u.newSince > 0 ? u.newSince : 0,
     ignored: Array.isArray(u.ignored)
@@ -681,6 +778,8 @@ function cleanUI(u) {
         });
         if (Object.keys(x).length) o.caps[id] = x;
       });
+  o.look = cleanLook(u.look);
+  o.types = cleanTypes(u.types);
   (Array.isArray(u.rooms) ? u.rooms : []).slice(0, 24).forEach(function (r) {
     if (
       !r ||
@@ -777,11 +876,11 @@ function scenesToDevices(s) {
   var c = Object.assign({}, s),
     devs = Array.isArray(s.devs) ? s.devs.slice() : [];
   (Array.isArray(s.scn) ? s.scn : []).forEach(function (id) {
-    devs.push({ kind: "cscene", sid: id, id: "", name: "Scene", icon: "scene" });
+    devs.push({ kind: "cscene", sid: id, id: "", name: _T("scene_default_name"), icon: "scene" });
   });
   (Array.isArray(s.sents) ? s.sents : []).forEach(function (e) {
     if (typeof e === "string" && /^scene\.[a-z0-9_]+$/.test(e))
-      devs.push({ kind: "scene", id: e, name: e.split(".")[1].replace(/_/g, " ").slice(0, 40) || "Scene", icon: "scene" });
+      devs.push({ kind: "scene", id: e, name: e.split(".")[1].replace(/_/g, " ").slice(0, 40) || _T("scene_default_name"), icon: "scene" });
   });
   if (s.k === "scenes" || (s.scs && !(s.scn || []).length && !(s.sents || []).length) || s.spage || s.stag || s.sarea)
     devs.push({
@@ -1155,6 +1254,7 @@ function devIndex(o) {
 
 function applyUI() {
   devIndex(UI);
+  lookApply();
   accessInit();
   var mt = UI.meta || {
     homeTab: _T("home"),

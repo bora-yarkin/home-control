@@ -111,9 +111,9 @@ function histBy(e, users) {
         m[1]
       );
     }
-    return "Automation";
+    return _T("automation_word");
   }
-  if (e.context_domain === "script" || e.context_event_type === "script_started") return "Script";
+  if (e.context_domain === "script" || e.context_event_type === "script_started") return _T("script_word");
   return "";
 }
 
@@ -285,7 +285,7 @@ function historyPage(b) {
       Object.keys(devs).length +
       (Object.keys(devs).length === 1 ? _T("device_3") : _T("devices_3")) +
       _T("active") +
-      (en ? _T("most_active") + en.name : "");
+      (en ? _T("most_active", { x: en.name }) : "");
     card.appendChild(h);
     var nb = 24,
       bk = [],
@@ -309,7 +309,7 @@ function historyPage(b) {
     var ax = mk("div", "haxis"),
       a1 = mk("span"),
       a2 = mk("span");
-    a1.textContent = HIST.range >= 168 ? _T("7_days_ago") : HIST.range + _T("h_ago");
+    a1.textContent = HIST.range >= 168 ? _T("7_days_ago") : _T("h_ago", { x: HIST.range });
     a2.textContent = _T("now_2");
     ax.appendChild(a1);
     ax.appendChild(a2);
@@ -386,7 +386,7 @@ function historyPage(b) {
       if (evs.length > HIST.limit) {
         var more = pill("plus", _T("show_more"), {
           sub: function () {
-            return evs.length - HIST.limit + _T("older_events");
+            return _T("older_events", { x: evs.length - HIST.limit });
           },
           tap: function () {
             HIST.limit += 80;
@@ -427,24 +427,24 @@ var LOGKEY = "dashboard_log",
   LOGPARTS = ["ui", "scenes", "presets", "access", "notify"];
 
 var UIKEYLAB = {
-    rooms: "rooms",
-    devs: "devices",
-    chips: "climate tiles",
-    stat: "status tiles",
-    bats: "batteries",
-    layout: "layout",
-    caps: "light features",
-    on: "light defaults",
-    newSince: "new devices",
-    ignored: "ignored devices",
-    meta: "names",
+    rooms: _T("part_rooms"),
+    devs: _T("part_devices"),
+    chips: _T("part_climate_tiles"),
+    stat: _T("part_status_tiles"),
+    bats: _T("part_batteries"),
+    layout: _T("part_layout"),
+    caps: _T("part_light_features"),
+    on: _T("part_light_defaults"),
+    newSince: _T("part_new_devices"),
+    ignored: _T("part_ignored_devices"),
+    meta: _T("part_names"),
   },
   PARTLAB = {
-    scenes: "scenes",
-    saved: "saved colours",
-    access: "access rules",
-    sched: "schedules",
-    notify: "notifications",
+    scenes: _T("part_scenes"),
+    saved: _T("part_saved_colours"),
+    access: _T("part_access_rules"),
+    sched: _T("part_schedules"),
+    notify: _T("part_notifications"),
   };
 
 function logDiff(prev, cur) {
@@ -605,7 +605,7 @@ function logPage(b) {
                 toast(_T("this_change_can_t_be_undone_here"));
                 return;
               }
-              confirmDlg(_T("undo") + e.s + _T("from") + when + "?", function () {
+              confirmDlg(_T("undo_q", { x: e.s, when: when }), function () {
                 undoEntry(e);
               });
             },

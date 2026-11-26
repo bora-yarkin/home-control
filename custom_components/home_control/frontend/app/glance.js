@@ -68,7 +68,7 @@ function glWord(c) {
   if (c.dom === "vacuum") return _T("cleaning_2");
   if (c.dom === "climate") return _T("running_3");
   if (c.dom === "binary_sensor") {
-    if (["motion", "occupancy", "presence", "moving"].indexOf(dc) >= 0) return _T("active_2");
+    if (["motion", "occupancy", "presence", "moving"].indexOf(dc) >= 0) return _T("active_lower");
     if (
       ["smoke", "gas", "moisture", "problem", "safety", "carbon_monoxide", "tamper"].indexOf(dc) >=
       0

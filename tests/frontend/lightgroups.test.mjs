@@ -5,6 +5,7 @@ import assert from "node:assert/strict";
 import { readFileSync } from "node:fs";
 import test from "node:test";
 import vm from "node:vm";
+import { _T } from "./en.mjs";
 
 const FRONTEND = new URL("../../custom_components/home_control/frontend/", import.meta.url);
 const read = (name) => readFileSync(new URL(name, FRONTEND), "utf8");
@@ -27,6 +28,7 @@ function adapter({ api, ws = {} }) {
     console: { ...console, warn() {} },
     Date,
   };
+  sandbox._T = _T;
   vm.createContext(sandbox);
   vm.runInContext(read("ha-adapter.js"), sandbox);
   const hass = {

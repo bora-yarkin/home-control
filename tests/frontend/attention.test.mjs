@@ -4,13 +4,14 @@ import assert from "node:assert/strict";
 import { readFileSync } from "node:fs";
 import test from "node:test";
 import vm from "node:vm";
+import { _T as EN_T } from "./en.mjs";
 
 const APP = new URL("../../custom_components/home_control/frontend/app/", import.meta.url);
 const read = (name) => readFileSync(new URL(name, APP), "utf8");
 const status = read("status.js");
 
 function sandbox(list) {
-  const ctx = vm.createContext({ alertList: () => list, _T: (k) => ({ nt_alerts: "Alerts" })[k] || k, UI: { stat: {} }, glance: (it) => Object.assign(it, { children: [] }) });
+  const ctx = vm.createContext({ alertList: () => list, _T: (k, v) => (v ? EN_T(k, v) : ({ nt_alerts: "Alerts" })[k] || k), UI: { stat: {} }, glance: (it) => Object.assign(it, { children: [] }) });
   const from = status.indexOf("function alertText()");
   vm.runInContext(status.slice(from, status.indexOf("/* Thresholds shown")), ctx);
   const g = status.indexOf("/* The tiles of a page's header row");
@@ -113,11 +114,12 @@ test("an offline lock needs attention, whether or not it is on a page, and the k
       devsOf: (kind) => (kind === "lock" ? [{ id: "lock.front", name: "Front door", room: "door" }] : []),
       allLights: () => [],
       vacuumList: () => [],
+      myAlerts: () => [],
       H: () => ({}),
       secEnts: () => ({ lock: ["lock.front", "lock.shed", "lock.ok"] }),
       V_: (id) => (id === "lock.ok" ? "locked" : "unavailable"),
       entName: (id) => "Shed lock",
-      _T: (k) => ({ is_offline: " is offline" })[k] || k,
+      _T: EN_T,
       alertGo() {},
     });
     vm.runInContext(body, ctx);

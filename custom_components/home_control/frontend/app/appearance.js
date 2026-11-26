@@ -23,6 +23,7 @@ var PREFS = {
   sky: true,
   startView: "",
   accH: 174,
+  accHex: "",
   tf: "auto",
 };
 
@@ -39,6 +40,7 @@ function mergePrefs(v) {
     PREFS.startView = v.startView;
   if (v.tf === "auto" || v.tf === "12" || v.tf === "24") PREFS.tf = v.tf;
   if (typeof v.accH === "number" && v.accH >= 0 && v.accH < 360) PREFS.accH = Math.round(v.accH);
+  if (v.accHex === "" || (typeof v.accHex === "string" && /^#[0-9a-f]{6}$/.test(v.accHex))) PREFS.accHex = v.accHex;
 }
 
 function savePrefsLocal() {
@@ -56,6 +58,7 @@ function themeLight() {
 
 /* One steady accent colour that the user picks. */
 function flatAccent() {
+  if (PREFS.accHex) return PREFS.accHex;
   var c = hsl2rgb(PREFS.accH, 0.82, themeLight() ? 0.46 : 0.62);
   return "rgb(" + Math.round(c[0]) + "," + Math.round(c[1]) + "," + Math.round(c[2]) + ")";
 }
@@ -98,6 +101,25 @@ function initTheme() {
 function startViewApply() {
   var want = PREFS.startView;
   if (VIEW === "home" && want && ORDER.indexOf(want) >= 0) VIEW = want;
+}
+
+/* The panel runs in a frame Home Assistant writes itself, which cannot be reloaded on its own (it would come back empty): the page around it is. */
+function pageReload() {
+  try {
+    window.parent.location.reload();
+  } catch (e) {
+    window.location.reload();
+  }
+}
+
+/* The dashboard's language for this account ("" follows Home Assistant); it starts again to use it. */
+function setLanguage(code) {
+  window.HA.data
+    .set("user", "home_control_language", code)
+    .then(pageReload)
+    .catch(function () {
+      toast(_T("couldn_t_save_your_appearance_choice"));
+    });
 }
 
 function setPref(k, v) {
@@ -165,24 +187,33 @@ function appearancePage(b) {
         }
       )
     );
-    box.appendChild(sep(_T("accent_colour"), "palette"));
-    var ar = mk("div", "pre pgrid accgrid");
-    ar.style.gridTemplateColumns = "repeat(8,1fr)";
-    [215, 180, 145, 100, 35, 350, 320, 270].forEach(function (hh) {
-      ar.appendChild(
-        swatch(
-          { h: hh, s: 70 },
-          {
-            act: PREFS.accH === hh,
-            tap: function () {
-              setPref("accH", hh);
-              redrawBox(box, draw);
-            },
-          }
-        )
-      );
-    });
-    box.appendChild(ar);
+    box.appendChild(
+      dropRow(
+        _T("language"),
+        ["auto"].concat(Object.keys(window.HC_LANGUAGES || { en: 1 })),
+        function () {
+          return window.HC_LANG_CHOSEN || "auto";
+        },
+        function (v) {
+          setLanguage(v === "auto" ? "" : v);
+        },
+        "info",
+        function (v) {
+          return v === "auto" ? _T("language_auto") : (window.HC_LANGUAGES || {})[v] || v;
+        }
+      )
+    );
+    box.appendChild(
+      colorButton(
+        _T("accent_colour"),
+        function () {
+          return PREFS.accHex || "";
+        },
+        function (c) {
+          setPref("accHex", c);
+        }
+      )
+    );
     box.appendChild(
       pill("expand", _T("larger_display"), {
         on: function () {

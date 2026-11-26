@@ -5,6 +5,7 @@ import assert from "node:assert/strict";
 import { readFileSync } from "node:fs";
 import test from "node:test";
 import vm from "node:vm";
+import { _T as EN_T } from "./en.mjs";
 
 const APP = new URL("../../custom_components/home_control/frontend/app/", import.meta.url);
 const plain = (value) => JSON.parse(JSON.stringify(value));
@@ -21,7 +22,7 @@ function popup(type, slots, states, attrs = {}, extra = []) {
     svOk: (id) => states[id] && !["unavailable", "unknown"].includes(states[id].state),
     entVal: (id) => String(states[id] ? states[id].state : ""),
     dom: (id) => id.split(".")[0],
-    _T: (k) => k,
+    _T: (k, v) => (v ? EN_T(k, v) : k),
     Date,
     ISADMIN: false,
     allSectionLists: () => [],
@@ -78,7 +79,7 @@ test("an oven with a temperature to set gets a dial that sets it, its state and 
   const dial = log.dials[0];
   assert.deepEqual(plain({ min: dial.set.min, max: dial.set.max, step: dial.set.step }), { min: 30, max: 250, step: 5 });
   assert.equal(dial.big(), "180°C");
-  assert.equal(dial.small(), "ap_now_at" + "22");
+  assert.equal(dial.small(), "Now 22");
   assert.equal(dial.note(), "ready");
   assert.equal(dial.mark(), 22);
   assert.equal(dial.set.get(), 180);

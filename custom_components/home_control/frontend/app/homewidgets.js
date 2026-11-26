@@ -133,8 +133,8 @@ registerWidget("clock", {
         w = weatherId(),
         a = w && wxVisible(w) && S(w) ? A(w) : null,
         cond = a ? (HCOND[V_(w)] || [cap(String(V_(w)).replace(/[-_]/g, " "))])[0] : "";
-      tm.textContent = n.toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" });
-      dt.textContent = n.toLocaleDateString([], { weekday: "short", day: "numeric", month: "short" }) + (a ? " · " + (typeof a.temperature === "number" ? Math.round(a.temperature) + "° " : "") + cond : "");
+      tm.textContent = n.toLocaleTimeString(LOC(), { hour: "2-digit", minute: "2-digit" });
+      dt.textContent = n.toLocaleDateString(LOC(), { weekday: "short", day: "numeric", month: "short" }) + (a ? " · " + (typeof a.temperature === "number" ? Math.round(a.temperature) + "° " : "") + cond : "");
     }
     up();
     reg(up);
@@ -514,10 +514,10 @@ registerWidget("agenda", {
               row = mk("div", "wr", "<span class='dd'><b></b><span></span></span><span class='tx'><span class='nm'></span><span class='sb'></span></span>");
             if (day) {
               row.querySelector(".dd b").textContent = day.getDate();
-              row.querySelector(".dd span").textContent = day.toLocaleDateString([], { weekday: "short" });
+              row.querySelector(".dd span").textContent = day.toLocaleDateString(LOC(), { weekday: "short" });
             }
             row.querySelector(".nm").textContent = String(e.summary || "").slice(0, 80);
-            row.querySelector(".sb").textContent = e.start && e.start.dateTime ? day.toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" }) : _T("all_day");
+            row.querySelector(".sb").textContent = e.start && e.start.dateTime ? day.toLocaleTimeString(LOC(), { hour: "2-digit", minute: "2-digit" }) : _T("all_day");
             box.appendChild(row);
           });
       });
@@ -565,7 +565,7 @@ registerWidget("agenda", {
             list.appendChild(
               pill("clock", String(e.summary || "").slice(0, 80), {
                 sub: function () {
-                  return day ? day.toLocaleDateString([], { weekday: "short", day: "numeric", month: "short" }) + (e.start.dateTime ? " · " + day.toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" }) : "") : "";
+                  return day ? day.toLocaleDateString(LOC(), { weekday: "short", day: "numeric", month: "short" }) + (e.start.dateTime ? " · " + day.toLocaleTimeString(LOC(), { hour: "2-digit", minute: "2-digit" }) : "") : "";
                 },
               })
             );

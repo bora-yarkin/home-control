@@ -89,10 +89,10 @@ function watchPayload(w) {
   if (!w.e || !w.to || !w.targets.length) return null;
   var msg = w.name
     ? w.name + ": {{ trigger.to_state.attributes.friendly_name }}"
-    : "{{ trigger.to_state.attributes.friendly_name }} is now {{ trigger.to_state.state }}";
+    : _T("nt_msg_now", { name: "{{ trigger.to_state.attributes.friendly_name }}", state: "{{ trigger.to_state.state }}" });
   return {
     id: "dashboard_n_" + w.id,
-    alias: _T("dashboard_notify") + (w.name || w.e),
+    alias: _T("dashboard_notify", { x: (w.name || w.e) }),
     description: _T("managed_by_the_dashboard_app_setting_2"),
     mode: "queued",
     triggers: [{ trigger: "state", entity_id: w.e, to: w.to }],
@@ -363,7 +363,10 @@ function notifyPayload(k) {
     });
     if (pct.length) trigs.push({ trigger: "numeric_state", entity_id: pct, below: r.thr });
     if (flags.length) trigs.push({ trigger: "state", entity_id: flags, to: "on" });
-    msg = NOTIFY_NAME + " battery is {{ 'low' if trigger.to_state.domain == 'binary_sensor' else 'at ' ~ trigger.to_state.state ~ '%' }}";
+    msg = _T("nt_msg_battery", {
+      name: NOTIFY_NAME,
+      level: "{{ " + JSON.stringify(_T("nt_word_low")) + " if trigger.to_state.domain == 'binary_sensor' else " + JSON.stringify(_T("nt_word_at")) + " ~ trigger.to_state.state ~ '%' }}",
+    });
   } else if (k === "offline") {
     ents = offlineList(r);
     if (ents.length)
@@ -381,18 +384,18 @@ function notifyPayload(k) {
         to: "off",
         "for": { minutes: r.remMins || 30 },
       });
-    msg = NOTIFY_NAME + " is offline";
+    msg = _T("nt_msg_offline", { name: NOTIFY_NAME });
   } else {
     ents = vacuumList().map(function (d) {
       return d.id;
     });
     if (ents.length) trigs.push({ trigger: "state", entity_id: ents, to: "error" });
-    msg = "{{ trigger.to_state.attributes.friendly_name }} reports a problem";
+    msg = _T("nt_msg_problem", { name: "{{ trigger.to_state.attributes.friendly_name }}" });
   }
   if (!trigs.length || !r.targets.length) return null;
   return {
     id: "dashboard_n_" + k,
-    alias: _T("dashboard_notify") + NRULES[k].title,
+    alias: _T("dashboard_notify", { x: NRULES[k].title }),
     description: _T("managed_by_the_dashboard_app_setting_2"),
     mode: "queued",
     triggers: trigs,
@@ -663,15 +666,21 @@ function nruleEdit(b, k) {
       box.appendChild(sep(_T("worn_parts"), "vac"));
       box.appendChild(hintRow(_T("filters_brushes_ink_and_similar_part")));
       box.appendChild(
-        seg(
-          [["5", "5%"], ["10", "10%"], ["15", "15%"], ["20", "20%"], ["25", "25%"]],
-          String(partsLow()),
-          function (v) {
-            STORE.cfg = cleanCfg(Object.assign({}, STORE.cfg, { partsLow: +v }));
+        sliderRow({
+          icon: "battery",
+          name: _T("worn_parts"),
+          min: 1,
+          max: 90,
+          step: 1,
+          get: partsLow,
+          fmt: function (v) {
+            return v + "%";
+          },
+          commit: function (v) {
+            STORE.cfg = cleanCfg(Object.assign({}, STORE.cfg, { partsLow: v }));
             storeChanged();
-            redrawBox(box, draw);
-          }
-        )
+          },
+        })
       );
     }
     if (k === "offline") {
@@ -742,7 +751,7 @@ function nruleEdit(b, k) {
             return r.targets.indexOf(t) >= 0;
           },
           sub: function () {
-            return _T("notify") + t;
+            return _T("notify", { x: t });
           },
           tap: function () {
             var i = r.targets.indexOf(t);

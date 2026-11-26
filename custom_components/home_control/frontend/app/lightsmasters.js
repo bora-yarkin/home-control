@@ -132,7 +132,7 @@ function masterNewPage(b, key) {
   );
   var go = pill("check", _T("lm_create"), {
     sub: function () {
-      return draft.ml.length + " " + _T("lights").toLowerCase();
+      return _T("n_lights", { n: draft.ml.length });
     },
     tap: function () {
       if (draft.ml.length < 2) return toast(_T("lm_choose_at_least_two_lights"));
@@ -239,7 +239,7 @@ function masterMovePage(b, key) {
       box.appendChild(
         pill("lights", secName(t.sec), {
           sub: function () {
-            return cntS(lightUnits((t.sec.devs || []).filter(function (d) { return d.id && d.kind === "light"; }).map(function (d) { return d.id; })).length, _T("light_2"), _T("lights").toLowerCase());
+            return cntS(lightUnits((t.sec.devs || []).filter(function (d) { return d.id && d.kind === "light"; }).map(function (d) { return d.id; })).length, _T("light_2"), _T("lights").toLocaleLowerCase(globalThis.HC_LANG));
           },
           tap: function () {
             confirmDlg((copy ? _T("lm_copy_to") : _T("lm_move_to")) + " " + t.page + " · " + secName(t.sec) + "?", function () {
@@ -331,7 +331,7 @@ function masterActionRows(box, sec, scope) {
             uiChanged();
             closeSheet();
           },
-          _T("delete")
+          _T("delete_word")
         );
       },
     }),
@@ -418,7 +418,7 @@ function glMasterPicks(b) {
     b.appendChild(
       pill("lights", m.sec.mn || _T("all_lights"), {
         sub: function () {
-          return m.page + " · " + cntS(m.ids.length, _T("light_2"), _T("lights").toLowerCase());
+          return m.page + " · " + cntS(m.ids.length, _T("light_2"), _T("lights").toLocaleLowerCase(globalThis.HC_LANG));
         },
         check: function () {
           return (glanceCfg().lm || []).indexOf(m.key) >= 0;

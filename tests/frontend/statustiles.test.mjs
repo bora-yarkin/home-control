@@ -104,6 +104,7 @@ test("the header's settings list the tiles of the page chosen there, to add, edi
 test("a tile of two readings shows both, and a missing one is dropped quietly", () => {
   const status = read("status.js");
   const ctx = vm.createContext({
+    _T: (k) => (k === "offline" ? "Offline" : k),
     svOk: () => true,
     cap: (x) => x,
     V_: () => "x",

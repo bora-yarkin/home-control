@@ -6,7 +6,7 @@ function addCandidate(rid, c) {
   /* A scene made on the dashboard is a device that points to it. */
   if (c.id.indexOf("dscene:") === 0) {
     var sc = sceneById(c.id.slice(7)),
-      sd = { id: "", sid: c.id.slice(7), name: "Scene", icon: (sc && sc.icon) || "scene", kind: "cscene" };
+      sd = { id: "", sid: c.id.slice(7), name: _T("scene_default_name"), icon: (sc && sc.icon) || "scene", kind: "cscene" };
     return { d: sd, at: placeDevice(rid, sd), wizard: false };
   }
   var kind = DOMKIND[dom(c.id)] || "sensor",
@@ -76,7 +76,7 @@ function devAdd(b, rid) {
 /* The line that says how many are checked (and that they become one group). */
 function addCount(f) {
   var n = f.order.length;
-  f.count.textContent = n ? n + _T("add_selected") + (f.st.group ? " · " + _T("lg_as_one_group") : "") : "";
+  f.count.textContent = n ? _T("add_selected", { x: n }) + (f.st.group ? " · " + _T("lg_as_one_group") : "") : "";
   f.count.style.display = n ? "" : "none";
 }
 
@@ -201,7 +201,7 @@ function addReadyRemote(rid, id) {
     d.icon = "tv";
     d.dt = "tv";
     uiChanged();
-    toast(_T("added") + name + "”");
+    toast(_T("added", { x: name }));
   }
   if (tvRemoteOf(id)) return showPopup("manage-dev:" + at.rid + ":" + at.i, false);
   setTimeout(function () {
@@ -355,7 +355,7 @@ function addEntities(f) {
       });
     f.box.appendChild(row);
   });
-  if (items.length > shown.length) f.box.appendChild(hintRow(items.length - shown.length + _T("more_type_to_narrow_the_list")));
+  if (items.length > shown.length) f.box.appendChild(hintRow(_T("more_type_to_narrow_the_list", { x: items.length - shown.length })));
 }
 
 /* Adds what is checked. With Light group checked the checked lights are not added one by one: the new group form opens for them, and the group is made when that is saved. */
@@ -386,7 +386,7 @@ function addSave(f, leave) {
     });
     if (rest.length) {
       uiChanged();
-      toast(_T("added") + (rest.length === 1 ? rest[0].name + "”" : rest.length + _T("add_devices_word")));
+      toast(rest.length === 1 ? _T("added", { x: rest[0].name }) : _T("added_n", { n: rest.length }));
     }
     return rest.length === 1 && wizard ? wizard : null;
   }

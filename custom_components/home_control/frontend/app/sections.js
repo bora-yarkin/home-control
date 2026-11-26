@@ -368,6 +368,11 @@ function readTile(d) {
 
 /* What a device is on a page: a widget by its type, a camera at size l by its live picture (a row while the page is edited), a sized sensor a tile, any other a row. */
 function deviceItem(d, ed) {
+  var el = deviceDrawn(d, ed);
+  return ed ? el : itemDecorate(el, d);
+}
+
+function deviceDrawn(d, ed) {
   var z = sizeOf(d);
   if (d.kind === "widget") return widgetRow(d, ed);
   if (d.kind === "camera" && z === "l" && d.id) return ed ? null : cameraLive(d);
@@ -415,7 +420,7 @@ function customSection(s) {
     ttl = s.t || ty.t,
     ico = secIcon(s);
   (s.devs || []).forEach(function (d) {
-    if (!ed && (d.hide || (d.id && modeOf(d.id).mode === "hide"))) return;
+    if (!ed && (d.hide || !itemShown(d) || (d.id && modeOf(d.id).mode === "hide"))) return;
     /* A lights master can leave its lights and the sync out of the section; it keeps them itself. */
     if (!ed && k === "devs" && d.id && masterLeavesOut(s, d)) return;
     var r = deviceItem(d, ed);
@@ -812,8 +817,8 @@ function secRooms() {
       : function () {
           return (
             (cams
-              ? cntS(cams, _T("camera").toLowerCase(), _T("cameras").toLowerCase())
-              : ds.length + (ds.length === 1 ? " device" : " devices")) + temp()
+              ? cntS(cams, _T("camera").toLocaleLowerCase(globalThis.HC_LANG), _T("cameras").toLocaleLowerCase(globalThis.HC_LANG))
+              : _T(ds.length === 1 ? "device_n" : "devices_n", { n: ds.length })) + temp()
           );
         };
     /* A room's own icon is not a kind of device: every room is the accent. */

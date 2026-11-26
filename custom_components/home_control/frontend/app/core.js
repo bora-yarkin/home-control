@@ -9,7 +9,7 @@
   if (light) document.body.classList.add("light");
   document.documentElement.style.setProperty(
     "--acc",
-    "hsl(" + (typeof p.accH === "number" ? p.accH : 174) + ",82%," + (light ? 46 : 62) + "%)"
+    /^#[0-9a-f]{6}$/.test(p.accHex) ? p.accHex : "hsl(" + (typeof p.accH === "number" ? p.accH : 174) + ",82%," + (light ? 46 : 62) + "%)"
   );
 })();
 
@@ -166,11 +166,8 @@ function cmdFail(s, e) {
   if (now - CMDERR < 2500) return;
   CMDERR = now;
   var m = (e && (e.message || (e.body && e.body.message))) || "";
-  toast(
-    _T("couldn_t") +
-      String(s).replace(/_/g, " ") +
-      (m ? ": " + String(m).slice(0, 70) : _T("home_assistant_didn_t_accept_it"))
-  );
+  var what = String(s).replace(/_/g, " ");
+  toast(m ? _T("command_failed_why", { x: what, why: String(m).slice(0, 70) }) : _T("command_failed", { x: what }));
 }
 
 function entName(id) {
@@ -186,15 +183,15 @@ function verifyCmd(d, s, data) {
     seq = (VERSEQ[id] || 0) + 1;
   VERSEQ[id] = seq;
   if (before === "unavailable") {
-    toast(entName(id) + _T("is_unavailable"));
+    toast(_T("is_unavailable", { x: entName(id) }));
     return;
   }
   setTimeout(function () {
     if (VERSEQ[id] !== seq) return;
     var now = V_(id),
       ok = s === "turn_on" ? now === "on" : s === "turn_off" ? now === "off" : now !== before;
-    if (now === "unavailable") toast(entName(id) + _T("is_unavailable"));
-    else if (!ok) toast(entName(id) + _T("didn_t_respond"));
+    if (now === "unavailable") toast(_T("is_unavailable", { x: entName(id) }));
+    else if (!ok) toast(_T("didn_t_respond", { x: entName(id) }));
   }, 6000);
 }
 
@@ -297,10 +294,29 @@ function entIds(data) {
 }
 
 function call(d, s, data) {
+  /* an entity whose item or type asks first (app/customize.js) */
+  if (!ASKED && entIds(data).some(asksFirst)) {
+    confirmDlg(_T("are_you_sure"), function () {
+      callAsked(d, s, data);
+    });
+    return;
+  }
   gate(entIds(data), function () {
     callRaw(d, s, data);
     if (d === "vacuum" && data && data.entity_id) vacKick(data.entity_id);
   });
+}
+
+var ASKED = false;
+
+/* A call the person has already confirmed. */
+function callAsked(d, s, data) {
+  ASKED = true;
+  try {
+    call(d, s, data);
+  } finally {
+    ASKED = false;
+  }
 }
 
 /* Commands that follow a finger (sliders, the colour circle): one at a time for each light, and only the latest position waits, so a drag never builds up a queue of commands in the light's integration that the next tap would have to wait behind. */
@@ -338,7 +354,7 @@ function callConfirmed(d, s, data) {
     var m = modeOf(id);
     if (m.mode === "confirm") APPROVED[m.key] = 1;
   });
-  call(d, s, data);
+  callAsked(d, s, data);
 }
 
 function dom(id) {
@@ -361,9 +377,17 @@ function mk(t, c, h) {
   return e;
 }
 
+/* A state or mode as an entity reports it ("docked", "heat cool"), in the dashboard's language where it has the word; any other text is only given a capital. */
+function valueWord(s) {
+  if (typeof STR !== "object" || STR === EN || !/^[a-z0-9_ -]{1,30}$/.test(s)) return "";
+  return STR["val_" + s.replace(/[ -]/g, "_")] || "";
+}
+
 function cap(s) {
   s = String(s);
-  return s.charAt(0).toUpperCase() + s.slice(1);
+  var word = valueWord(s);
+  if (word) return word;
+  return s.charAt(0).toLocaleUpperCase(globalThis.HC_LANG) + s.slice(1);
 }
 
 function isOn(id) {
@@ -390,19 +414,20 @@ function ago(id) {
   if (!s || !s.last_changed) return "";
   var m = Math.max(0, Math.round((Date.now() - Date.parse(s.last_changed)) / 60000));
   if (isNaN(m)) return "";
-  if (m < 1) return "just now";
-  if (m < 60) return m + _T("min_ago");
+  if (m < 1) return _T("just_now");
+  if (m < 60) return _T("min_ago", { x: m });
   var h = Math.floor(m / 60);
-  if (h < 24) return h + _T("h_ago");
+  if (h < 24) return _T("h_ago", { x: h });
   var d = Math.floor(h / 24);
-  return d === 1 ? "yesterday" : d + _T("d_ago");
+  return d === 1 ? _T("ago_yesterday") : _T("d_ago", { x: d });
 }
 
 function stAgo(id) {
   var st = V_(id);
   if (st === "unavailable" || st === "unknown") return _T("unavailable");
   var a = ago(id);
-  return (st === "on" ? _T("turned_on") : _T("turned_off")) + (a ? " " + a : "");
+  if (!a) return _T(st === "on" ? "turned_on" : "turned_off");
+  return _T(st === "on" ? "turned_on_when" : "turned_off_when", { when: a });
 }
 
 function roomOf(id) {
@@ -430,10 +455,10 @@ function toast(m) {
 function ago2(iso) {
   var m = Math.max(0, Math.round((Date.now() - Date.parse(iso)) / 60000));
   if (isNaN(m)) return "";
-  if (m < 1) return "just now";
-  if (m < 60) return m + _T("min_ago");
+  if (m < 1) return _T("just_now");
+  if (m < 60) return _T("min_ago", { x: m });
   var h = Math.floor(m / 60);
-  if (h < 24) return h + _T("h_ago");
+  if (h < 24) return _T("h_ago", { x: h });
   var d = Math.floor(h / 24);
-  return d === 1 ? "yesterday" : d + _T("d_ago");
+  return d === 1 ? _T("ago_yesterday") : _T("d_ago", { x: d });
 }

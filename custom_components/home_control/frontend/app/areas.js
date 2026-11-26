@@ -600,7 +600,7 @@ function eaMorePage(b) {
                 eaTray();
                 eaInfo();
                 eaActions();
-                toast(_T("added") + c.name + "”");
+                toast(_T("added", { x: c.name }));
               }
               list();
             },
@@ -608,7 +608,7 @@ function eaMorePage(b) {
         );
       });
       if (items.length > shown.length) {
-        box.appendChild(hintRow(items.length - shown.length + _T("more_type_to_narrow_the_list")));
+        box.appendChild(hintRow(_T("more_type_to_narrow_the_list", { x: items.length - shown.length })));
       }
     });
   }
@@ -837,7 +837,7 @@ function eaActions() {
       box.appendChild(
         pill("trash", _T("delete_area"), {
           tap: function () {
-            confirmDlg(_T("delete") + EAD.draft.name + "”?", eaDelete, _T("delete"));
+            confirmDlg(_T("delete_named_q", { x: EAD.draft.name }), eaDelete, _T("delete_word"));
           },
         })
       );

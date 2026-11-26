@@ -73,3 +73,14 @@ test("both switches are on screen, and the dashboard's is kept when the dashboar
   assert.equal(ctx.cleanMeta({ noadv: 1 }).noadv, 1);
   assert.equal("noadv" in ctx.cleanMeta({}), false, "shown by default");
 });
+
+test("\"More in Home Assistant\" is hidden by the same two switches", () => {
+  const ctx = vm.createContext({ ISADMIN: true, UI: { meta: {} }, copies: [], modeOf: () => ({ mode: "" }), pill: () => "pill", _T: (k) => k, advAllOff: () => !!ctx.UI.meta.noadv, advDevOff: (id) => ctx.copies.includes(id) });
+  vm.runInContext(cut(read("domains.js") + "\n/* end */", "function haMorePill(id)", "/* end */"), ctx);
+  assert.equal(ctx.haMorePill("lock.a"), "pill");
+  ctx.copies.push("lock.a");
+  assert.equal(ctx.haMorePill("lock.a"), null);
+  assert.equal(ctx.haMorePill("lock.b"), "pill");
+  ctx.UI.meta.noadv = 1;
+  assert.equal(ctx.haMorePill("lock.b"), null);
+});

@@ -314,10 +314,10 @@ function microphone(){
 
 function talkMessage(e){
  var n=e&&e.name;
- if(n==="NotAllowedError"||n==="SecurityError")return"The microphone is blocked. Allow it for this site in the browser, then try again.";
- if(n==="NotFoundError")return"No microphone was found.";
- if(n==="NotSupportedError"||!window.isSecureContext)return"Talking needs a secure (https) connection and a browser with a microphone.";
- return(e&&e.userMessage)||"Talking did not start.";
+ if(n==="NotAllowedError"||n==="SecurityError")return _T("cam_the_microphone_is_blocked_allow_it_for_this");
+ if(n==="NotFoundError")return _T("cam_no_microphone_was_found");
+ if(n==="NotSupportedError"||!window.isSecureContext)return _T("cam_talking_needs_a_secure_https_connection_and");
+ return(e&&e.userMessage)||_T("cam_talking_did_not_start");
 }
 
 /* Whether the answer's audio line takes what was sent (the camera receives): recvonly or sendrecv. */
@@ -356,21 +356,21 @@ function talk(id){
     var c=ev.candidate.toJSON?ev.candidate.toJSON():ev.candidate;
     if(sessionId)candidate(c);else pending.push(c);
    };
-   pc.onconnectionstatechange=function(){if(pc&&pc.connectionState==="failed")fail("The connection to the camera failed.")};
+   pc.onconnectionstatechange=function(){if(pc&&pc.connectionState==="failed")fail(_T("cam_the_connection_to_the_camera_failed"))};
    pc.createOffer().then(function(o){return pc.setLocalDescription(o)}).then(function(){
     if(closed)return;
     return HA.camera.offer(id,pc.localDescription.sdp,function(ev){
      if(closed)return;
      if(ev.type==="session"){sessionId=ev.session_id;pending.forEach(candidate);pending=[]}
      else if(ev.type==="answer"){
-      if(!takesAudio(ev.answer)){fail("This camera does not accept talking through Home Assistant.");return}
-      pc.setRemoteDescription({type:"answer",sdp:ev.answer}).then(resolve,function(){fail("The camera did not accept the audio.")});
+      if(!takesAudio(ev.answer)){fail(_T("cam_this_camera_does_not_accept_talking_through"));return}
+      pc.setRemoteDescription({type:"answer",sdp:ev.answer}).then(resolve,function(){fail(_T("cam_the_camera_did_not_accept_the_audio"))});
      }
      else if(ev.type==="candidate"){pc.addIceCandidate(ev.candidate).catch(function(){})}
-     else if(ev.type==="error"){fail("The camera could not be reached.")}
+     else if(ev.type==="error"){fail(_T("cam_the_camera_could_not_be_reached"))}
     });
-   }).then(function(u){if(closed&&u){try{u()}catch(e){}}else unsub=u}).catch(function(){fail("The camera could not be reached.")});
-   timer=setTimeout(function(){fail("The camera did not answer.")},10000);
+   }).then(function(u){if(closed&&u){try{u()}catch(e){}}else unsub=u}).catch(function(){fail(_T("cam_the_camera_could_not_be_reached"))});
+   timer=setTimeout(function(){fail(_T("cam_the_camera_did_not_answer"))},10000);
   });
  }).catch(function(e){
   stop();
@@ -390,7 +390,7 @@ window.CameraTalk={start:talk};
  phone apps' web views) still has; an AudioWorklet would need a second file served from this page. */
 
 var TALK_RATE=16000;
-var TALK_ERRORS={no_call:"There is no call to talk into.",busy:"Someone else is talking to the door.",station_offline:"The door station is not reachable.",app_unreachable:"The door station's app is not reachable."};
+var TALK_ERRORS={no_call:_T("cam_there_is_no_call_to_talk_into"),busy:_T("cam_someone_else_is_talking_to_the_door"),station_offline:_T("cam_the_door_station_is_not_reachable"),app_unreachable:_T("cam_the_door_stations_app_is_not_reachable")};
 
 /* Float samples at inRate to 16-bit samples at 16 kHz: each output sample is the average of the input it covers (a low-pass, so nothing above 8 kHz folds back), in chunks of any size. */
 function resampler(inRate){
@@ -444,10 +444,10 @@ function intercomTalk(url,onEnd){
   if(closed){end(null);throw Object.assign(new Error("cancelled"),{userMessage:""})}
   return new Promise(function(resolve,reject){
    var Ctx=window.AudioContext||window.webkitAudioContext,opened=false;
-   if(!Ctx)return reject(Object.assign(new Error("no audio"),{userMessage:"This browser cannot record for the door."}));
+   if(!Ctx)return reject(Object.assign(new Error("no audio"),{userMessage:_T("cam_this_browser_cannot_record_for_the_door")}));
    ws=new WebSocket(url);
    ws.binaryType="arraybuffer";
-   var timer=setTimeout(function(){reject(Object.assign(new Error("timeout"),{userMessage:"The door did not answer."}))},8000);
+   var timer=setTimeout(function(){reject(Object.assign(new Error("timeout"),{userMessage:_T("cam_the_door_did_not_answer")}))},8000);
    ws.onopen=function(){
     opened=true;
     clearTimeout(timer);
@@ -468,13 +468,13 @@ function intercomTalk(url,onEnd){
     if(typeof ev.data!=="string")return;
     var code=null;
     try{code=JSON.parse(ev.data).error||null}catch(e){}
-    if(!opened)reject(Object.assign(new Error(code||"error"),{userMessage:TALK_ERRORS[code]||"Talking did not start."}));
+    if(!opened)reject(Object.assign(new Error(code||"error"),{userMessage:TALK_ERRORS[code]||_T("cam_talking_did_not_start")}));
     end(code||"failed");
    };
-   ws.onerror=function(){if(!opened)reject(Object.assign(new Error("socket"),{userMessage:"The door could not be reached."}))};
+   ws.onerror=function(){if(!opened)reject(Object.assign(new Error("socket"),{userMessage:_T("cam_the_door_could_not_be_reached")}))};
    ws.onclose=function(){
     clearTimeout(timer);
-    if(!opened)reject(Object.assign(new Error("closed"),{userMessage:"The door could not be reached."}));
+    if(!opened)reject(Object.assign(new Error("closed"),{userMessage:_T("cam_the_door_could_not_be_reached")}));
     end(null);
    };
   });

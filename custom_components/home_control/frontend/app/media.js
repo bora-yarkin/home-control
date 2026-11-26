@@ -1052,6 +1052,51 @@ function androidRemote(b, remote, media, hooks) {
   b.appendChild(r4);
 }
 
+/* The rest a player reports it can do: position, shuffle, repeat, sound mode, grouping, browsing (in Home Assistant's dialog). */
+function mediaExtras(b, id) {
+  var f = A(id).supported_features || 0,
+    controls = [];
+  /* SEEK (2) */
+  if (f & 2 && A(id).media_duration)
+    controls.push({ t: "slider", label: _T("position"), icon: "next", min: 0, max: Math.round(A(id).media_duration), step: 1, get: function () { return Math.round(A(id).media_position || 0); }, unit: " " + _T("seconds_short"), set: function (v) { call("media_player", "media_seek", { entity_id: id, seek_position: v }); } });
+  /* SHUFFLE_SET (32768) */
+  if (f & 32768)
+    controls.push(ctlSwitch(_T("shuffle"), "swap", function () { return !!A(id).shuffle; }, function (v) { call("media_player", "shuffle_set", { entity_id: id, shuffle: v }); }));
+  /* REPEAT_SET (262144) */
+  if (f & 262144)
+    controls.push(ctlSelect(_T("repeat"), function () { return ["off", "all", "one"]; }, function () { return A(id).repeat || "off"; }, function (v) { call("media_player", "repeat_set", { entity_id: id, repeat: v }); }, function (v) { return _T("repeat_" + v); }));
+  /* SELECT_SOUND_MODE (65536) */
+  if (f & 65536 && (A(id).sound_mode_list || []).length)
+    controls.push(ctlSelect(_T("sound_mode"), function () { return A(id).sound_mode_list || []; }, function () { return A(id).sound_mode; }, function (v) { call("media_player", "select_sound_mode", { entity_id: id, sound_mode: v }); }, String));
+  domControls(b, controls, id);
+  /* GROUPING (524288): the other players that can group, each joined or not. */
+  if (f & 524288)
+    Object.keys(H().states)
+      .filter(function (e) {
+        return e !== id && dom(e) === "media_player" && (A(e).supported_features || 0) & 524288;
+      })
+      .forEach(function (e) {
+        var joined = function () {
+          return (A(id).group_members || []).indexOf(e) >= 0;
+        };
+        b.appendChild(
+          pill("plus", A(e).friendly_name || e, {
+            on: joined,
+            val: function () {
+              return joined() ? _T("grouped") : "";
+            },
+            tap: function () {
+              if (joined()) call("media_player", "unjoin", { entity_id: e });
+              else call("media_player", "join", { entity_id: id, group_members: [e] });
+            },
+          })
+        );
+      });
+  /* BROWSE_MEDIA (131072) */
+  var open = f & 131072 ? haMorePill(id) : null;
+  if (open) b.appendChild(open);
+}
+
 function mediaGeneric(b, id, icon, hooks) {
   b.appendChild(
     pill("power", _T("power"), {
@@ -1101,4 +1146,5 @@ function mediaGeneric(b, id, icon, hooks) {
       },
     })
   );
+  mediaExtras(b, id);
 }

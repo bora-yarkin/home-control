@@ -33,6 +33,8 @@ var AP_TYPES = {
   fridge: { l: "ap_fridge", icon: "thermo", names: { temperature: "ap_n_fridge", level: "ap_n_mode" }, slots: ["state", "temperature", "current", "door", "level"] },
   projector: { l: "ap_projector", icon: "media", names: { program: "ap_n_source", level: "ap_n_picture", temperature: "ap_n_keystone" }, slots: ["state", "program", "level", "start", "stop", "remaining", "temperature"] },
   vacuum: { l: "ap_vacuum", icon: "vac", slots: ["vacuum", "battery", "map", "position", "no_go", "walls", "dock", "state"] },
+  /* a device made from nothing: any entity, each drawn as its own row */
+  custom: { l: "ap_custom", icon: "tune", slots: [] },
   other: { l: "ap_appliance", icon: "plug", slots: ["state", "program", "level", "start", "stop", "progress", "remaining", "door", "permission", "temperature", "duration"] },
 };
 var AP_EXTRA_DOMS = ["select", "input_select", "number", "input_number", "switch", "input_boolean", "binary_sensor", "sensor", "button", "input_button", "script"];
@@ -46,7 +48,7 @@ function apZoneSource(ap, k) {
 /* What a slot's row in the set-up says it is filled with. */
 function apSlotText(ap, k) {
   var source = apZoneSource(ap, k);
-  if (source) return _T("vacap_zones_from_source") + source;
+  if (source) return _T("vacap_zones_from_source", { x: source });
   return ap.slots[k] ? apBoundText(ap.slots[k]) : _T("ap_not_set");
 }
 
@@ -105,7 +107,7 @@ function apSpan(secs) {
     h += 1;
     m = 0;
   }
-  return ((h ? h + " h " : "") + (m || !h ? m + " min" : "")).trim();
+  return ((h ? _T("hours_short", { n: h }) + " " : "") + (m || !h ? _T("minutes_short", { n: m }) : "")).trim();
 }
 
 /* What a timestamp or a number of seconds left means to read: "1 h 12 min", "8 min", "now". */
@@ -269,7 +271,7 @@ function apOvenDial(ap) {
       return svOk(t) && isFinite(v) ? v + (A(t).unit_of_measurement || "") : "–";
     },
     small: function () {
-      return s.current && apHas(s.current) && svOk(s.current) ? _T("ap_now_at") + entVal(s.current) : "";
+      return s.current && apHas(s.current) && svOk(s.current) ? _T("ap_now_at", { x: entVal(s.current) }) : "";
     },
     /* The state, and while a program runs the time left in front of it. */
     note: function () {
@@ -351,6 +353,16 @@ function apDetails(b, ap, aid) {
   if (!rows.length) return;
   function label(x) {
     return x.l || A(x.e).friendly_name || x.e;
+  }
+  if (ap.type === "custom") {
+    var group = "";
+    rows.forEach(function (x) {
+      if ((x.g || "") !== group && (group = x.g || "")) b.appendChild(sep(group, "tune"));
+      var kind = DOMKIND[dom(x.e)] || "sensor",
+        row = devRow({ id: x.e, name: label(x), icon: defIcon(kind, label(x), x.e), kind: kind });
+      if (row) b.appendChild(row);
+    });
+    return;
   }
   function show(body, list) {
     var names = {};
@@ -662,7 +674,7 @@ function apEditPage(b, aid) {
             return _T("ap_add_a_row_sub");
           },
           tap: function () {
-            pickEntity(_T("ap_choose_an_entity"), AP_EXTRA_DOMS, null, function (id) {
+            pickEntity(_T("ap_choose_an_entity"), ap.type === "custom" ? Object.keys(DOMKIND) : AP_EXTRA_DOMS, null, function (id) {
               ap.extra.push({ e: id, l: "", o: 1 });
               uiChanged();
             }, null, apChosen(ap));
@@ -708,8 +720,8 @@ function apSlotPage(b, key) {
       24
     )
   );
-  b.appendChild(hintRow(_T("ap_slot_name_hint") + apSlotLabel(d.ap, k)));
-  if (apZoneSource(d.ap, k)) b.appendChild(hintRow(_T("vacap_zones_wins") + apZoneSource(d.ap, k)));
+  b.appendChild(hintRow(_T("ap_slot_name_hint", { x: apSlotLabel(d.ap, k) })));
+  if (apZoneSource(d.ap, k)) b.appendChild(hintRow(_T("vacap_zones_wins", { x: apZoneSource(d.ap, k) })));
   b.appendChild(
     pill("plug", s[k] ? A(s[k]).friendly_name || s[k] : _T("ap_not_set"), {
       sub: function () {

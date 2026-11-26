@@ -3,7 +3,7 @@
 const BASE = new URL(".", import.meta.url);
 
 const MARKUP = `<main><div class="wrap">
- <div class="hdr pane"><div class="hdrow"><div><div class="eyebrow">Dashboard</div><div class="trow"><div class="title" id="tt"></div></div><div class="hchips" id="hch"></div></div><div class="rt"><div class="hb"><div class="rnd pane" id="sbtn" role="button" aria-label="Search"></div><div class="rnd pane" id="gbtn" role="button" aria-label="Settings and appearance" style="display:none"></div></div><div class="clock"><div id="clk"></div><div id="dt"></div></div></div></div></div>
+ <div class="hdr pane"><div class="hdrow"><div><div class="eyebrow"></div><div class="trow"><div class="title" id="tt"></div></div><div class="hchips" id="hch"></div></div><div class="rt"><div class="hb"><div class="rnd pane" id="sbtn" role="button"></div><div class="rnd pane" id="gbtn" role="button" style="display:none"></div></div><div class="clock"><div id="clk"></div><div id="dt"></div></div></div></div></div>
  <div id="body"><div class="skl"><i></i><i></i><i></i></div></div>
 </div></main>
 <nav class="dock pane" id="dock"></nav>`;
@@ -16,7 +16,7 @@ async function readRelease() {
   if (!res.ok) throw new Error("version.json answered " + res.status);
   const release = await res.json();
   if (!Array.isArray(release.files)) throw new Error("version.json lists no files");
-  return { version: String(release.version), files: release.files };
+  return { version: String(release.version), files: release.files, languages: release.languages || {} };
 }
 
 /* A request lost on a weak connection is asked again, a little later each time, before the panel gives up. Nothing has run yet at this point, so asking again is safe. */
@@ -47,9 +47,31 @@ function load(tag, attrs) {
     const el = document.createElement(tag);
     Object.assign(el, attrs);
     el.onload = resolve;
-    el.onerror = () => reject(new Error("Unable to load " + (attrs.src || attrs.href)));
+    el.onerror = () => reject(new Error(loaderText("cannot_load") + (attrs.src || attrs.href)));
     (tag === "link" ? document.head : document.body).appendChild(el);
   });
+}
+
+/* What the loader itself says, before the application's strings are there. A language adds its lines here. */
+const LOADER_TEXT = {
+  en: { cannot_load: "Unable to load ", cannot_start: "Dashboard could not start: ", retry: "Try again" },
+  tr: { cannot_load: "Yüklenemedi: ", cannot_start: "Pano başlatılamadı: ", retry: "Yeniden dene" },
+};
+
+function loaderText(key) {
+  const code = String(window.HC_LANG || "en");
+  return (LOADER_TEXT[code] || LOADER_TEXT[code.split("-")[0]] || LOADER_TEXT.en)[key];
+}
+
+/* The language: the one chosen for this account in the dashboard's settings, else Home Assistant's. */
+async function chosenLanguage(hass) {
+  try {
+    const res = await hass.connection.sendMessagePromise({ type: "frontend/get_user_data", key: "home_control_language" });
+    if (res && res.value && /^[a-z]{2}(-[A-Za-z]{2,4})?$/.test(res.value)) return { chosen: res.value, use: res.value };
+  } catch (e) {
+    console.warn("[dashboard] no saved language", e);
+  }
+  return { chosen: "", use: (hass.locale && hass.locale.language) || hass.language || "en" };
 }
 
 class DashboardPanel extends HTMLElement {
@@ -81,10 +103,10 @@ class DashboardPanel extends HTMLElement {
   /* Says what failed and offers to start again; the page is reloaded, because files that did run cannot be run twice. */
   _showFailure(error) {
     const body = document.getElementById("body") || this;
-    body.textContent = "Dashboard could not start: " + error.message + " ";
+    body.textContent = loaderText("cannot_start") + error.message + " ";
     const again = document.createElement("button");
     again.type = "button";
-    again.textContent = "Try again";
+    again.textContent = loaderText("retry");
     again.onclick = () => location.reload();
     body.appendChild(again);
   }
@@ -93,14 +115,18 @@ class DashboardPanel extends HTMLElement {
     if (this._started || !this._hass) return;
     this._started = true;
     try {
-      const { version: v, files } = await currentRelease();
+      const { version: v, files, languages } = await currentRelease();
+      const language = await chosenLanguage(this._hass);
+      window.HC_LANG = language.use;
+      window.HC_LANG_CHOSEN = language.chosen;
+      window.HC_LANGUAGES = languages;
       const asset = (name) => new URL(name + "?v=" + v, BASE).href;
 
       const viewport = document.createElement("meta");
       viewport.name = "viewport";
       viewport.content = "width=device-width,initial-scale=1";
       document.head.appendChild(viewport);
-      document.documentElement.lang = "en";
+      document.documentElement.lang = window.HC_LANG;
       /* Everything is requested at once, here; what runs is run below in order, from what has already arrived, while the registries load. */
       const styles = load("link", { rel: "stylesheet", href: asset("dashboard.css") });
       SCRIPTS.concat(files).forEach((name) => preload(asset(name)));
@@ -108,6 +134,18 @@ class DashboardPanel extends HTMLElement {
       await styles;
       this.innerHTML = MARKUP;
 
+      /* the strings first (every file may ask for them as it runs), then the pack of the language when there is one */
+      await load("script", { src: asset("app/strings.js") });
+      const pack = [window.HC_LANG, window.HC_LANG.split("-")[0]].find((c) => c !== "en" && languages[c]);
+      if (pack) await load("script", { src: asset("app/lang/" + pack + ".js") });
+      window.langUse(window.HC_LANG);
+      /* the few words that are in the page's own markup */
+      [["#sbtn", "search"], ["#gbtn", "settings_and_appearance"]].forEach(([at, key]) => {
+        const el = this.querySelector(at);
+        if (el) el.setAttribute("aria-label", window._T(key));
+      });
+      const eyebrow = this.querySelector(".eyebrow");
+      if (eyebrow) eyebrow.textContent = window._T("app_title");
       await load("script", { src: asset(SCRIPTS[0]) });
       /* Attaching starts loading the registries; the application's files run meanwhile, and the application waits for the registries itself before it draws. */
       window.HA.attach(this._hass);

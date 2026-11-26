@@ -381,9 +381,6 @@ to{background-position:-200% 0}
 .dock{position:fixed;left:50%;bottom:max(16px,calc(var(--sab,0px) * .6 + 6px));transform:translateX(-50%);z-index:10;display:flex;gap:4px;padding:6px;max-width:calc(100% - 20px);overflow-x:auto;scrollbar-width:none;background:var(--f-card)!important;border:1px solid var(--f-line)!important;box-shadow:var(--f-shadow)!important;border-radius:var(--r-m)}
 .dock::-webkit-scrollbar{display:none}
 /* real light colour, quick action editing, icon picker */
-.pre.pre.pgrid.accgrid{display:grid;margin:14px 4px}
-.pgrid.accgrid .swc{width:auto}
-.pgrid.accgrid .cap{display:none}
 .pgrid{display:grid;justify-items:center;gap:14px 6px;grid-template-columns:repeat(auto-fill,minmax(46px,1fr))}
 .cd{width:14px;height:14px;border-radius:50%;flex:none;border:1.5px solid rgba(255,255,255,.7);box-shadow:0 0 8px rgba(0,0,0,.4);margin-right:8px;display:none}
 .qa.editing{border-style:dashed}
@@ -864,10 +861,7 @@ body.pinhdr:not(.editing) .wrap::before{content:"";position:fixed;top:0;left:0;r
 .rm-t.ed,.rm-gap.ed,.rm-dpad.ed{outline:1px dashed var(--f-line2,var(--f-line));outline-offset:-4px}
 .rm-t:focus-visible{outline:2px solid var(--acc);outline-offset:2px}
 .rm-k{border:0}
-.rm-k-red{background:color-mix(in srgb,#e5484d 70%,var(--f-card))}
-.rm-k-green{background:color-mix(in srgb,#30a46c 70%,var(--f-card))}
-.rm-k-yellow{background:color-mix(in srgb,#f5c542 75%,var(--f-card))}
-.rm-k-blue{background:color-mix(in srgb,#3e7bfa 70%,var(--f-card))}
+.rm-k{background:color-mix(in srgb,var(--rmk) 72%,var(--f-card))}
 .rm-gap{min-width:0;border-radius:var(--r-m)}
 .rm-gap.ed{display:flex;align-items:center;justify-content:center;font-size:var(--fs-s);color:var(--ink2)}
 .rm-dpad{display:grid;grid-template-columns:repeat(3,1fr);grid-template-rows:repeat(3,1fr);gap:2px;min-width:0;padding:4px;border-radius:50%;aspect-ratio:1;align-self:center;justify-self:center;width:100%;max-width:100%}
@@ -1130,3 +1124,4 @@ body.rwall .hsky{display:none}
 .rrow>.rm-beside{grid-column:2/-1;min-width:0}
 .rrow>.rm-beside>.rm-spk{min-height:54px;padding-top:0;padding-bottom:0}
 .rm-under,.rm-only{margin-bottom:var(--sp)}
+

@@ -28,7 +28,7 @@ Home Assistant. Anything that Home Assistant does well (automations, helpers, gr
 | `dashboard.css` | Styles. |
 | `mdi/` | Material Design Icons 7.4.47 (Apache 2.0, see `mdi/LICENSE.txt`): `index.json` is the list the icon picker searches, `a.json` to `z.json` hold the drawing paths by first letter. Same data as the npm package `@mdi/svg@7.4.47`. Nothing is fetched from the internet or from Home Assistant's own files. |
 | `vendor/hls.min.js` | hls.js 1.5.13, loaded only when HLS is needed. Same bytes as cdnjs (`sha512-bqtMkEqGSOPPb8qbYSd9gHwR7C5mgmN+Z5Uaquvhana/U9H3zppGvlLV9HOdM7eYHF/GzzhS1lOGzCMhUvYcjQ==`, source map comment removed). |
-| `version.json` | `{"version": N, "files": [...]}`. Raise N after changing any other file. `files` lists the files `dashboard-app.js` runs, in order; the panel requests them all together with the stylesheet while the registries load. |
+| `version.json` | `{"version": N, "files": [...], "languages": {...}}`. `languages` names the language packs; `app/strings.js` and the pack are loaded by the panel before everything else. Raise N after changing any other file. `files` lists the files `dashboard-app.js` runs, in order; the panel requests them all together with the stylesheet while the registries load. |
 
 ## Building blocks: change one place, every popup follows
 

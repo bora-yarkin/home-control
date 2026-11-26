@@ -73,7 +73,7 @@ function sceneShown(id) {
 
 /* The trash of a scene deletes it, from every page it is on and from the saved scenes (taking it off one section is what picking it again in the list does). A live scene is stopped and forgotten by the integration with the area made for it. */
 function sceneDeleteEverywhere(sc) {
-  confirmDlg(_T("delete") + sc.name + _T("from_every_page_it_cannot_be_undone"), function () {
+  confirmDlg(_T("delete_scene_q", { x: sc.name }), function () {
     if (sc.live) {
       if (liveRun({ id: sc.id })) liveCall("stop", { scene_id: sc.id });
       liveForget(sc.id, sc.live.areas ? sc.live.area : null);
@@ -255,8 +255,7 @@ function sceneSummary(sc) {
   if (sc.live) return liveSub(sc);
   var n = sc.acts.length;
   return (
-    n +
-    (n === 1 ? " device" : " devices") +
+    _T(n === 1 ? "device_n" : "devices_n", { n: n }) +
     (sc.others === "lights"
       ? _T("other_lights_off")
       : sc.others === "all"
@@ -352,7 +351,7 @@ function runScene(sc, page) {
   gate(ids, function () {
     liveStopOn(ids);
     execActs(f.acts);
-    toast(_T("running_2") + sc.name + "”");
+    toast(_T("running_2", { x: sc.name }));
   });
 }
 
@@ -471,7 +470,7 @@ function sceneRow(sc) {
     return edMark(
       pill(sc.icon || "scene", sc.name, {
         sub: function () {
-          return _T("auto_scene") + " · " + sc.auto.colors.length + " " + _T("auto_colours").toLowerCase();
+          return _T("auto_scene") + " · " + _T("n_colours", { n: sc.auto.colors.length });
         },
         tap: function () {
           runScene(sc, page);
@@ -519,7 +518,7 @@ function sceneTargetAdd(target, id) {
         return d.kind === "cscene" && d.sid === id;
       })
     )
-      e.devs.push({ kind: "cscene", sid: id, id: "", name: "Scene", icon: "scene" });
+      e.devs.push({ kind: "cscene", sid: id, id: "", name: _T("scene_default_name"), icon: "scene" });
   } else scnToggle(e, id);
 }
 
@@ -721,6 +720,9 @@ function devRowRaw(d) {
       pin: pinPop(pk, d.id, d.name, d.icon || "plug"),
     });
   }
+  /* a type described in app/domains.js; one added earlier as a plain reading takes its controls too */
+  if ((d.kind === "entity" || d.kind === "sensor") && d.id && domKnown(d.id)) return domRow(d);
+  if (d.kind === "entity") return sensorRow(d);
   if (d.kind === "sensor") return sensorRow(d);
   if (d.kind === "number") return numberRow(d);
   if (d.kind === "select") return selectRow(d);

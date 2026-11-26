@@ -113,7 +113,7 @@ var ALERT_BIN = [
 
 var FAULT_OK = ["0", "none", "no_error", "no error", "ok", "normal", "no_fault", "idle", ""];
 
-var INK = { bk: "Black", k: "Black", c: "Cyan", m: "Magenta", y: "Yellow" };
+var INK = { bk: _T("ink_black"), k: _T("ink_black"), c: _T("ink_cyan"), m: _T("ink_magenta"), y: _T("ink_yellow") };
 
 function infoKey(eid) {
   return eid.split(".")[1];
@@ -214,7 +214,7 @@ function faultActive(p) {
 function careText(c) {
   var p = [];
   if (c.life && svOk(c.life)) p.push(entVal(c.life));
-  if (c.left && svOk(c.left)) p.push(entVal(c.left) + " " + _T("left"));
+  if (c.left && svOk(c.left)) p.push(_T("left", { x: entVal(c.left) }));
   return p.join(" · ") || "-";
 }
 
@@ -275,7 +275,7 @@ function readingsBlock(b, id, o) {
         return c.life && svOk(c.life) ? entVal(c.life) : careText(c);
       },
       function () {
-        return c.name + (c.left && svOk(c.left) ? " · " + entVal(c.left) + " " + _T("left") : "");
+        return c.name + (c.left && svOk(c.left) ? " · " + _T("left", { x: entVal(c.left) }) : "");
       },
     ]);
   });
@@ -330,6 +330,24 @@ function swPopup(b, id) {
 /* Any device given as one entity: its main value, then everything its device reports. */
 function devPopup(b, id) {
   var d = UIDEV[id] || {};
+  if (domKnown(id)) {
+    /* what the entity is now, then everything it can do */
+    b.appendChild(
+      pill(d.icon || DOMAINS[dom(id)].icon, _T("status"), {
+        on: function () {
+          return domIsOn(id);
+        },
+        val: function () {
+          return domState(id);
+        },
+      })
+    );
+    domControls(b, DOMAINS[dom(id)].controls(id), id);
+    readingsBlock(b, id);
+    var open = haMorePill(id);
+    if (open) b.appendChild(open);
+    return;
+  }
   var nm = advName(id),
     dn = (d.name || "").toLowerCase();
   b.appendChild(
@@ -350,6 +368,23 @@ function devPopup(b, id) {
     )
   );
   readingsBlock(b, id);
+  lockExtras(b, id);
+  var more = haMorePill(id);
+  if (more) b.appendChild(more);
+}
+
+/* A lock that can also open its door (the latch): asked first. */
+function lockExtras(b, id) {
+  if (dom(id) !== "lock" || !domBits(id, 1)) return;
+  b.appendChild(
+    pill("lock", _T("open_the_door"), {
+      tap: function () {
+        confirmDlg(_T("open_the_door_ask"), function () {
+          callConfirmed("lock", "open", { entity_id: id });
+        });
+      },
+    })
+  );
 }
 
 function sensorIcon(id) {
@@ -372,12 +407,12 @@ function sensorIcon(id) {
 
 function entVal(id) {
   var s = V_(id);
-  if (!svOk(id)) return "Offline";
+  if (!svOk(id)) return _T("offline");
   var u = A(id).unit_of_measurement,
     n = Number(s);
   if (s !== "" && isFinite(n))
     return Math.round(n * 100) / 100 + (u ? (/^(%|°C|°F|°)$/.test(u) ? "" : " ") + u : "");
-  if (dom(id) === "binary_sensor") return s === "on" ? "On" : "Off";
+  if (dom(id) === "binary_sensor") return s === "on" ? _T("on_cap") : _T("off");
   return cap(s);
 }
 
@@ -408,10 +443,13 @@ function toggleDevice(d) {
   if (kind === "lock") {
     var locked = V_(id) === "locked";
     if (locked && slidesToUnlock(id)) return;
-    confirmDlg((locked ? _T("unlock_2") : _T("lock")) + (d.name || entName(id)) + "”?", function () {
+    confirmDlg(_T(locked ? "unlock_named_q" : "lock_named_q", { x: d.name || entName(id) }), function () {
       callConfirmed("lock", locked ? "unlock" : "lock", { entity_id: id });
     });
   } else if (kind === "cover") call("cover", "toggle", { entity_id: id });
+  else if (kind === "entity") {
+    if (domKnown(id) && DOMAINS[dom(id)].toggle) call("homeassistant", "toggle", { entity_id: id });
+  }
   else if (kind === "vacuum")
     call("vacuum", ["cleaning", "returning"].indexOf(V_(id)) >= 0 ? "return_to_base" : "start", {
       entity_id: id,
