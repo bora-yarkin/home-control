@@ -208,7 +208,9 @@ test("the master keeps what the standalone remotes have: the builder reaches its
 test("a device's Advanced settings are hidden when switched off for the master, for the device in it, or on its page", () => {
   const states = { "media_player.tv": st("on") };
   const UIDEV = {};
-  const { ctx } = withRemotes(states, { ISADMIN: true, UIDEV, advList: (id) => (id === "media_player.tv" ? [1] : []) });
+  const has = (id) => (id === "media_player.tv" ? [1] : []);
+  let allOff = false;
+  const { ctx } = withRemotes(states, { ISADMIN: true, advList: has, advAllOff: () => allOff, advDevOff: (id) => !!(UIDEV[id] && UIDEV[id].noadv), advButton: (id) => !allOff && has(id).length > 0 });
   const x = { def: "media_player.tv", subs: [], spk: [] };
   assert.equal(ctx.rmHasAdv(x, "media_player.tv"), true);
   assert.equal(ctx.rmHasAdv({ ...x, noadv: 1 }, "media_player.tv"), false, "the master's switch");
@@ -217,6 +219,8 @@ test("a device's Advanced settings are hidden when switched off for the master, 
   assert.equal(ctx.rmHasAdv(x, "media_player.tv"), false, "the device's own page");
   delete UIDEV["media_player.tv"];
   assert.equal(ctx.rmHasAdv(x, "media_player.other"), false, "nothing to show");
+  allOff = true;
+  assert.equal(ctx.rmHasAdv(x, "media_player.tv"), false, "the whole dashboard's switch");
   const kept = plain(ctx.cleanRemoteMaster({ ...x, noadv: true, opt: { "media_player.tv": { noadv: true } } }));
   assert.equal(kept.noadv, 1);
   assert.equal(kept.opt["media_player.tv"].noadv, 1);

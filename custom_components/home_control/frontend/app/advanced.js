@@ -57,6 +57,39 @@ function advLeftOut(id, eid) {
   return false;
 }
 
+/* ---- whether an Advanced settings button is shown (decision D-38) ----
+   Every such button, anywhere, asks advButton and advDevOff: one switch for the whole dashboard (Settings, Devices; kept in the dashboard as meta.noadv) and one for a device
+   (its settings, `noadv` on it). A new button goes through them too (tests/frontend/advbutton.test.mjs). */
+function advAllOff() {
+  return !!(UI && UI.meta && UI.meta.noadv);
+}
+
+/* Every place the pages hold this entity as a device. */
+function advCopies(id) {
+  var out = [];
+  allSectionLists().forEach(function (secs) {
+    (secs || []).forEach(function (s) {
+      (s.devs || []).forEach(function (d) {
+        if (d.id === id) out.push(d);
+      });
+    });
+  });
+  return out;
+}
+
+/* A device's own switch: off on any page it is on is off for the device. */
+function advDevOff(id) {
+  return advCopies(id).some(function (d) {
+    return !!d.noadv;
+  });
+}
+
+/* Whether there is a button to show at all: an administrator, the dashboard's switch on, and something behind it. The device's own switch is the caller's (a device, or an
+   appliance, which is a device without an entity of its own). */
+function advButton(id) {
+  return ISADMIN && !advAllOff() && advList(id).length > 0;
+}
+
 function advList(id) {
   var dev = advDevice(id);
   /* Light popups have no Advanced menu: the light panel covers them. */

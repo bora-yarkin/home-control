@@ -17,7 +17,7 @@ function popupDef(key) {
     var inner = d.build;
     d.build = function (b) {
       inner(b);
-      if (ISADMIN && !(UIDEV[ent] && UIDEV[ent].noadv) && advList(ent).length) {
+      if (advButton(ent) && !advDevOff(ent)) {
         var n = advList(ent).length;
         b.appendChild(
           pill("tune", _T("advanced_settings"), {

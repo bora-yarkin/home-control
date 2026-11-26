@@ -542,6 +542,7 @@ var EN = {
   "rm_remove_device": "Remove from the master",
   "rm_adv_off_page": "Off: switched off on the device's own page",
   "rm_adv_off_master": "Off: switched off for the whole master",
+  "adv_off_dashboard": "Off: switched off for the whole dashboard",
   "rm_remove": "Remove",
   "rm_keep": "Remember the device I pick",
   "rm_keep_on": "The popup reopens on the device picked on this screen",

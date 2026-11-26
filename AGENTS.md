@@ -7,6 +7,7 @@
 - Everything specific to one integration lives in `frontend/integrations.js` and is shown only when that integration is
   present; the application must run with none of them installed.
 - Test dashboard changes in a sealed copy that cannot write to Home Assistant, and check that user data is unchanged.
+- Advanced settings buttons (decision D-38, the owner's rule): every one can be hidden for one device and for the whole dashboard, on every release. A button is drawn only through `advButton` plus the device's switch (`app/advanced.js`); add a new one to `tests/frontend/advbutton.test.mjs`. Never remove or bypass either switch.
 - No personal data in the repository: no real entity ids, names, addresses or screenshots of a real home.
 - Licence GPL-3.0-or-later; Python files start with the SPDX line. Public at https://github.com/bora-yarkin/home-control, installed through the Marketplace (HACS inside Home Assistant) as a custom repository (not in its default list).
 - Tests: `.venv/bin/python -m pytest` (the integration) and `node --test tests/frontend` (the setup logic in `frontend/app/kinds.js`).

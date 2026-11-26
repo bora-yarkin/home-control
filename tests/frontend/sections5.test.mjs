@@ -106,7 +106,7 @@ test("a device has one page; visibility, moving and removing are in Behaviour; t
   assert.match(manage, /iconPick\(DEVICONS, d\.icon[\s\S]*iconSuggestions\(d\)/, "the icons that fit are at the top of the icon dropdown, not a row");
   assert.match(manage, /function devPlaceRows\(c\)/);
   assert.doesNotMatch(manage, /devPlaceTab|devMoreTab|devOptionsTab/);
-  assert.match(manage, /"noadv"/, "the Advanced settings button can be switched off for a device");
+  assert.match(manage, /advDevicePill\(d\)/, "the Advanced settings button can be switched off for a device");
   assert.doesNotMatch(read("appearance.js"), /adv:/);
 });
 

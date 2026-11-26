@@ -284,12 +284,19 @@ function stgDevices(b) {
       })
     );
   b.appendChild(
-    prefPill(
-      "tune",
-      _T("advanced_settings_buttons_on_devices"),
-      "adv",
-      _T("shows_advanced_settings_at_the_botto")
-    )
+    pill("tune", _T("advanced_settings_buttons_on_devices"), {
+      on: function () {
+        return !advAllOff();
+      },
+      sub: function () {
+        return advAllOff() ? _T("off") : _T("shows_advanced_settings_at_the_botto");
+      },
+      tap: function () {
+        if (advAllOff()) delete UI.meta.noadv;
+        else UI.meta.noadv = 1;
+        uiChanged();
+      },
+    })
   );
   stgRows(b, [
     [

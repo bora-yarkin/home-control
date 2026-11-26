@@ -133,12 +133,12 @@ function rmIcon(x, k) {
 
 /* A device switched off its Advanced settings button on its page. */
 function rmAdvOffOnPage(id) {
-  return !!(UIDEV[id] && UIDEV[id].noadv);
+  return advDevOff(id);
 }
 
-/* The Advanced settings button of a device in a master: not when it is switched off for the master, for this device in it, or on the device's own page. */
+/* The Advanced settings button of a device in a master: not when it is switched off for the dashboard, for the master, for this device in it, or on the device's own page. */
 function rmHasAdv(x, id) {
-  return ISADMIN && !rmIsCustom(id) && !x.noadv && !rmOpt(x, id).noadv && !rmAdvOffOnPage(id) && advList(id).length > 0;
+  return !rmIsCustom(id) && !x.noadv && !rmOpt(x, id).noadv && !rmAdvOffOnPage(id) && advButton(id);
 }
 
 /* Entities a master's settings link to a device: its Advanced settings list them, as those linked on a page. */
@@ -979,19 +979,22 @@ function rmMemberPage(b) {
       }
       /* the same switch as the device's own settings have, for this device in the master */
       if (!custom && advList(k).length) {
-        var offPage = rmAdvOffOnPage(k),
+        var offHome = advAllOff(),
+          offPage = rmAdvOffOnPage(k),
           offAll = !!x.noadv;
         box.appendChild(
           pill("tune", _T("advanced_settings_button"), {
             on: function () {
-              return !offAll && !offPage && !rmOpt(x, k).noadv;
+              return !offHome && !offAll && !offPage && !rmOpt(x, k).noadv;
             },
             sub: function () {
+              if (offHome) return _T("adv_off_dashboard");
               if (offPage) return _T("rm_adv_off_page");
               if (offAll) return _T("rm_adv_off_master");
               return rmOpt(x, k).noadv ? _T("off") : _T("on_cap");
             },
             tap: function () {
+              if (offHome) return toast(_T("adv_off_dashboard"));
               if (offPage || offAll) return toast(offPage ? _T("rm_adv_off_page") : _T("rm_adv_off_master"));
               set("noadv", rmOpt(x, k).noadv ? "" : 1);
               draw();
@@ -1098,7 +1101,7 @@ function rmSettings(box, d) {
   )
     box.appendChild(
       flagPill("tune", _T("advanced_settings_button"), x, "noadv", function (on) {
-        return on ? _T("on_cap") : _T("off");
+        return advAllOff() ? _T("adv_off_dashboard") : on ? _T("on_cap") : _T("off");
       }, true)
     );
   box.appendChild(
