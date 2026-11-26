@@ -260,9 +260,7 @@ function rmMemberKeys(x, k) {
 function rmKeys(id) {
   var h = H(),
     kind = mediaKind(id),
-    rem = sibBy(id, function (e) {
-      return dom(e.entity_id) === "remote";
-    }),
+    rem = tvRemoteOf(id),
     e = h.entities[id] || {},
     dv = e.device_id && h.devices[e.device_id],
     out = {};
