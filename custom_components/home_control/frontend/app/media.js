@@ -674,11 +674,41 @@ function mediaCtlPill(after) {
   });
 }
 
+/* The remotes of the pages: the Remote masters and the remotes built by hand, each with the room of its page and its row. A hidden one, or one in a hidden section or room, is left out. */
+function hubRemotes() {
+  var out = [];
+  ["home"].concat(Object.keys(UIROOM)).forEach(function (rid) {
+    var secs = rid === "home" ? UI.layout.home : UI.layout.rooms[rid];
+    (secs || []).forEach(function (s) {
+      if (s.hide) return;
+      (s.devs || []).forEach(function (d) {
+        if (d.hide) return;
+        if (d.kind === "remote")
+          out.push({
+            room: rid,
+            row: function () {
+              return remoteRow(d);
+            },
+          });
+        else if (d.kind === "widget" && d.w === "rmaster" && d.wx && d.wx.def && rmExists(d.wx, d.wx.def) && rmVisible(d.wx, d.wx.def))
+          out.push({
+            room: rid,
+            row: function () {
+              return remoteMasterRow(d, rid + ":" + s.id + ":" + d.wid);
+            },
+          });
+      });
+    });
+  });
+  return out;
+}
+
 function mediaHub(b) {
   var list = gxDevs("media", devsOf("media")).filter(function (d) {
-    return d.id;
-  });
-  if (!list.length) {
+      return d.id;
+    }),
+    remotes = hubRemotes();
+  if (!list.length && !remotes.length) {
     b.appendChild(pill("info", _T("no_media_players_on_the_dashboard"), {}));
     return;
   }
@@ -703,11 +733,23 @@ function mediaHub(b) {
   function draw() {
     var s0 = sig(),
       rooms = [];
-    list.forEach(function (d) {
+    list.concat(remotes).forEach(function (d) {
       if (rooms.indexOf(d.room) < 0) rooms.push(d.room);
+    });
+    /* in the order of the pages */
+    var order = Object.keys(UIROOM).concat("home");
+    rooms.sort(function (a, c) {
+      return order.indexOf(a) - order.indexOf(c);
     });
     rooms.forEach(function (rid) {
       box.appendChild(sep(TITLES[rid] || rid, (UIROOM[rid] && UIROOM[rid].icon) || "home"));
+      remotes
+        .filter(function (r) {
+          return r.room === rid;
+        })
+        .forEach(function (r) {
+          box.appendChild(r.row());
+        });
       list
         .filter(function (d) {
           return d.room === rid;

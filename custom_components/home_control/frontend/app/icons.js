@@ -491,13 +491,7 @@ function iconPick(list, cur, fn, rec) {
     if (io) io.disconnect();
     if (MENU === panel) closeMenu();
   }
-  btn.addEventListener("click", function () {
-    if (btn._noopen) {
-      btn._noopen = false;
-      return;
-    }
-    openIt();
-  });
+  btn.addEventListener("click", openIt);
   wrap.appendChild(btn);
   return wrap;
 }

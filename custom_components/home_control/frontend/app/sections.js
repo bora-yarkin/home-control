@@ -1056,7 +1056,7 @@ function secGlance() {
       }
     );
   var meds = gxDevs("media", devsOf("media"));
-  if (meds.length)
+  if (meds.length || hubRemotes().length)
     GT.media = tile(
       "media",
       _T("media"),

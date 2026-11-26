@@ -6,7 +6,11 @@ Format: [Keep a Changelog](https://keepachangelog.com/). Versions follow [semant
 
 ## [0.30.2] - 2026-11-26
 
+### Added
+- The **Media** popup of *At a glance* lists the Remote masters and the remotes you built, by room.
+
 ### Fixed
+- Tapping a popup's title or the now playing row again closed its dropdown and opened it straight away; a second tap now only closes it.
 - A robot vacuum appliance's row was in the appliance colour; it is in the vacuum colour, as a vacuum's row is.
 
 ## [0.30.1] - 2026-11-26
