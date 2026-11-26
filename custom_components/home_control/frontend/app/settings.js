@@ -129,7 +129,7 @@ function stgNavSub(id) {
   if (id === "types") return _T("types_sub");
   if (id === "myalerts") return _T("my_alerts_sub");
   if (id === "wall")
-    return PREFS.wall ? _T("on_2") + " · " + Math.round(PREFS.wallIdle / 60) + " min" : _T("off");
+    return PREFS.wall ? _T("on_2") + " · " + _T("minutes_short", { n: Math.round(PREFS.wallIdle / 60) }) : _T("off");
   if (id === "dev") return _T("new_devices_and_devices_that_are_not");
   if (id === "lgroups") return _T("lgs_sub");
   if (id === "areas") return _T("where_the_lights_are_for_live_scenes");

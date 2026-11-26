@@ -207,7 +207,7 @@ function accSummary(uid) {
   return (
     _T("everything_else_value") +
     (u.def ? MODELAB[u.def.m] : _T("allowed")) +
-    (n ? " · " + n + (n === 1 ? " exception" : " exceptions") : "")
+    (n ? " · " + _T(n === 1 ? "exception_n" : "exceptions_n", { n: n }) : "")
   );
 }
 

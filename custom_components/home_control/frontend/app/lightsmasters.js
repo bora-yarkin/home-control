@@ -331,7 +331,7 @@ function masterActionRows(box, sec, scope) {
             uiChanged();
             closeSheet();
           },
-          _T("delete")
+          _T("delete_word")
         );
       },
     }),

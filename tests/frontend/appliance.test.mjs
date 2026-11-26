@@ -4,6 +4,7 @@ import assert from "node:assert/strict";
 import { readFileSync } from "node:fs";
 import test from "node:test";
 import vm from "node:vm";
+import { _T as EN_T } from "./en.mjs";
 
 const plain = (value) => JSON.parse(JSON.stringify(value));
 const APP = new URL("../../custom_components/home_control/frontend/app/", import.meta.url);
@@ -21,7 +22,7 @@ function page(states, attrs = {}, calls = [], format = null) {
     A: (id) => attrs[id] || {},
     svOk: (id) => states[id] && !["unavailable", "unknown"].includes(states[id].state),
     entVal: (id) => String(states[id] ? states[id].state : ""),
-    _T: (k) => k,
+    _T: (k, v) => (v ? EN_T(k, v) : k),
     Date,
     allSectionLists: () => [],
     UI: { devs: {} },

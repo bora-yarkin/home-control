@@ -818,7 +818,7 @@ function secRooms() {
           return (
             (cams
               ? cntS(cams, _T("camera").toLocaleLowerCase(globalThis.HC_LANG), _T("cameras").toLocaleLowerCase(globalThis.HC_LANG))
-              : ds.length + (ds.length === 1 ? " device" : " devices")) + temp()
+              : _T(ds.length === 1 ? "device_n" : "devices_n", { n: ds.length })) + temp()
           );
         };
     /* A room's own icon is not a kind of device: every room is the accent. */

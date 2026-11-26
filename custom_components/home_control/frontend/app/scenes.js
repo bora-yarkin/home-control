@@ -255,8 +255,7 @@ function sceneSummary(sc) {
   if (sc.live) return liveSub(sc);
   var n = sc.acts.length;
   return (
-    n +
-    (n === 1 ? " device" : " devices") +
+    _T(n === 1 ? "device_n" : "devices_n", { n: n }) +
     (sc.others === "lights"
       ? _T("other_lights_off")
       : sc.others === "all"

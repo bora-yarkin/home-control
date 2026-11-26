@@ -1,0 +1,291 @@
+{
+  "config": {
+    "step": {
+      "user": {
+        "title": "Home Control",
+        "description": "Home Control panosunu kenar çubuğuna ekler. Home Assistant'ınızda başka hiçbir şey değişmez: kendi panolarınız ve varsayılan panonuz olduğu gibi kalır. Önce Home Control'ün açılması için Profil, Varsayılan pano altından seçin (her tarayıcının kendi ayarıdır)."
+      }
+    },
+    "abort": {
+      "already_configured": "Home Control zaten kurulu."
+    }
+  },
+  "options": {
+    "step": {
+      "init": {
+        "title": "Home Control kenar çubuğu girdisi",
+        "description": "Panonun kenar çubuğunda nasıl görüneceği. Adresi değiştirmek panonun web adresini değiştirir.",
+        "data": {
+          "url_path": "Adres (tarayıcıda / işaretinden sonraki kısım)",
+          "title": "Kenar çubuğu başlığı",
+          "icon": "Kenar çubuğu simgesi",
+          "admin_only": "Yalnız yöneticiler açabilsin"
+        }
+      }
+    },
+    "error": {
+      "invalid_address": "Yalnız küçük harf, rakam ve tire kullanın.",
+      "address_in_use": "Bu adresi başka bir kenar çubuğu girdisi kullanıyor.",
+      "empty_title": "Girdiye bir başlık verin."
+    }
+  },
+  "services": {
+    "scene_start": {
+      "name": "Sahneyi başlat",
+      "description": "Canlı sahne başlatır: bir alanın ışıklarında gezinen palet. Verilmeyenler bu kimlikteki kayıtlı sahneden, sonra ön ayarından alınır.",
+      "fields": {
+        "scene_id": {
+          "name": "Sahne kimliği",
+          "description": "Sahnenin kimliği: a-z, 0-9, _ veya - ile 1-48 karakter. Kayıtlı bir sahnenin kimliği o sahneyi başlatır."
+        },
+        "preset": {
+          "name": "Ön ayar",
+          "description": "Başlanacak hazır palet."
+        },
+        "area": {
+          "name": "Alan",
+          "description": "Kayıtlı bir alanın kimliği; sahneyi onun ışıkları oynatır."
+        },
+        "lights": {
+          "name": "Işıklar",
+          "description": "Işıklar: her biri \"entity_id\" ve yerini belirten -1 ile 1 arası x, y, z içeren bir liste."
+        },
+        "palette": {
+          "name": "Palet",
+          "description": "Renkler, 1-16 adet; her biri \"hs\" ([ton, doygunluk]), \"xy\" ([x, y]) veya \"k\" (kelvin) ve isteğe bağlı \"b\" (parlaklık, 1-100) içerir."
+        },
+        "speed": {
+          "name": "Hız",
+          "description": "Paletin hızı, 1 (yavaş, bir tur iki dakika) ile 12 (hızlı, bir tur sekiz saniye) arası."
+        },
+        "range": {
+          "name": "Aralık",
+          "description": "Paletin ışıklarda aynı anda görünen kısmı, yüzde olarak."
+        },
+        "brightness": {
+          "name": "Parlaklık",
+          "description": "Paletin en parlak renginin ulaştığı parlaklık, 1-255."
+        },
+        "spread": {
+          "name": "Dağılım",
+          "description": "Paletin ışıklara hangi yönde dağıtılacağı: x, y veya z boyunca ya da ortadan dışarı (radial)."
+        },
+        "colour_source": {
+          "name": "Renk kaynağı",
+          "description": "Renklerin kaynağı: hareketli palet veya gökkuşağı (her turda ton renk çarkını bir kez dolaşır)."
+        },
+        "mode": {
+          "name": "Mod",
+          "description": "Renklerin gösterimi: linear birbirine karıştırır (ışıklar boyunca geçiş), segmented her rengi olduğu gibi tutar. İkisinde de değişim yumuşakça olur."
+        },
+        "effects": {
+          "name": "Efektler",
+          "description": "En fazla 4 parlaklık efekti: her biri \"type\" (pulse, flicker, sparkle veya lightning), \"speed\" (1-12) ve \"strength\" (1-100) içeren bir liste. Her renk kaynağında çalışır."
+        },
+        "looks": {
+          "name": "Görünümler",
+          "description": "Tek tek ışıkların farklı yaptıkları: her ışığın varlık kimliği için \"palette\", \"brightness\" (1-255), \"effects\" ve \"native\" (örneğin underwater) içeren bir girdi. Görünümü olmayan ışık sahneyi izler. native, ışığın kendi efektidir; markanın artı entegrasyonu oynatabiliyorsa görünümün palet renkleriyle oynar (örneğin Hue mum efekti)."
+        },
+        "actions": {
+          "name": "Eylemler",
+          "description": "Sahne başlayınca açılıp kapatılacak cihazlar: her biri \"entity_id\" ve \"do\" (on veya off) içeren bir liste. Yalnız açma/kapama; ışık, anahtar, fan, medya oynatıcı, klima, nemlendirici, input_boolean ve perdeler için."
+        },
+        "fps": {
+          "name": "Saniyedeki güncelleme",
+          "description": "Kendi kendine geçiş yapamayan ışıklar için saniyedeki güncelleme, 1-60 (deneysel: her güncelleme tek komuttur; yüksek hız ışığın merkezini yorar ve kaldırabildiği hıza sınırlanır)."
+        },
+        "wake": {
+          "name": "Uyandır",
+          "description": "Sahne başlarken kapalı ışıkları aç."
+        }
+      }
+    },
+    "scene_update": {
+      "name": "Sahneyi güncelle",
+      "description": "Çalışan bir sahnenin hızını, aralığını veya parlaklığını hemen değiştirir.",
+      "fields": {
+        "scene_id": {
+          "name": "Sahne kimliği",
+          "description": "Sahnenin kimliği: a-z, 0-9, _ veya - ile 1-48 karakter. Kayıtlı bir sahnenin kimliği o sahneyi başlatır."
+        },
+        "speed": {
+          "name": "Hız",
+          "description": "Paletin hızı, 1 (yavaş, bir tur iki dakika) ile 12 (hızlı, bir tur sekiz saniye) arası."
+        },
+        "range": {
+          "name": "Aralık",
+          "description": "Paletin ışıklarda aynı anda görünen kısmı, yüzde olarak."
+        },
+        "brightness": {
+          "name": "Parlaklık",
+          "description": "Paletin en parlak renginin ulaştığı parlaklık, 1-255."
+        }
+      }
+    },
+    "scene_freeze": {
+      "name": "Sahneyi dondur",
+      "description": "Çalışan sahneyi olduğu yerde tutar.",
+      "fields": {
+        "scene_id": {
+          "name": "Sahne kimliği",
+          "description": "Sahnenin kimliği: a-z, 0-9, _ veya - ile 1-48 karakter. Kayıtlı bir sahnenin kimliği o sahneyi başlatır."
+        }
+      }
+    },
+    "scene_play": {
+      "name": "Sahneyi oynat",
+      "description": "Dondurulmuş sahneyi yeniden hareket ettirir.",
+      "fields": {
+        "scene_id": {
+          "name": "Sahne kimliği",
+          "description": "Sahnenin kimliği: a-z, 0-9, _ veya - ile 1-48 karakter. Kayıtlı bir sahnenin kimliği o sahneyi başlatır."
+        }
+      }
+    },
+    "scene_stop": {
+      "name": "Sahneyi durdur",
+      "description": "Sahneyi bitirir. Işıklar olduğu gibi kalır.",
+      "fields": {
+        "scene_id": {
+          "name": "Sahne kimliği",
+          "description": "Sahnenin kimliği: a-z, 0-9, _ veya - ile 1-48 karakter. Kayıtlı bir sahnenin kimliği o sahneyi başlatır."
+        }
+      }
+    },
+    "scene_save": {
+      "name": "Sahneyi kaydet",
+      "description": "Sahneyi kimliğiyle başlatılabilecek şekilde kaydeder. Hazır bir paletten başlamak için ön ayar verin.",
+      "fields": {
+        "id": {
+          "name": "Kimlik",
+          "description": "Sahnenin kimliği: a-z, 0-9, _ veya - ile 1-48 karakter."
+        },
+        "name": {
+          "name": "Ad",
+          "description": "Sahnenin adı."
+        },
+        "preset": {
+          "name": "Ön ayar",
+          "description": "Başlanacak hazır palet."
+        },
+        "palette": {
+          "name": "Palet",
+          "description": "Renkler, 1-16 adet; her biri \"hs\" ([ton, doygunluk]), \"xy\" ([x, y]) veya \"k\" (kelvin) ve isteğe bağlı \"b\" (parlaklık, 1-100) içerir."
+        },
+        "speed": {
+          "name": "Hız",
+          "description": "Paletin hızı, 1 (yavaş, bir tur iki dakika) ile 12 (hızlı, bir tur sekiz saniye) arası."
+        },
+        "range": {
+          "name": "Aralık",
+          "description": "Paletin ışıklarda aynı anda görünen kısmı, yüzde olarak."
+        },
+        "brightness": {
+          "name": "Parlaklık",
+          "description": "Paletin en parlak renginin ulaştığı parlaklık, 1-255."
+        },
+        "spread": {
+          "name": "Dağılım",
+          "description": "Paletin ışıklara hangi yönde dağıtılacağı: x, y veya z boyunca ya da ortadan dışarı (radial)."
+        },
+        "colour_source": {
+          "name": "Renk kaynağı",
+          "description": "Renklerin kaynağı: hareketli palet veya gökkuşağı (her turda ton renk çarkını bir kez dolaşır)."
+        },
+        "mode": {
+          "name": "Mod",
+          "description": "Renklerin gösterimi: linear birbirine karıştırır (ışıklar boyunca geçiş), segmented her rengi olduğu gibi tutar. İkisinde de değişim yumuşakça olur."
+        },
+        "effects": {
+          "name": "Efektler",
+          "description": "En fazla 4 parlaklık efekti: her biri \"type\" (pulse, flicker, sparkle veya lightning), \"speed\" (1-12) ve \"strength\" (1-100) içeren bir liste. Her renk kaynağında çalışır."
+        },
+        "looks": {
+          "name": "Görünümler",
+          "description": "Tek tek ışıkların farklı yaptıkları: her ışığın varlık kimliği için \"palette\", \"brightness\" (1-255), \"effects\" ve \"native\" (örneğin underwater) içeren bir girdi. Görünümü olmayan ışık sahneyi izler. native, ışığın kendi efektidir; markanın artı entegrasyonu oynatabiliyorsa görünümün palet renkleriyle oynar (örneğin Hue mum efekti)."
+        },
+        "actions": {
+          "name": "Eylemler",
+          "description": "Sahne başlayınca açılıp kapatılacak cihazlar: her biri \"entity_id\" ve \"do\" (on veya off) içeren bir liste. Yalnız açma/kapama; ışık, anahtar, fan, medya oynatıcı, klima, nemlendirici, input_boolean ve perdeler için."
+        },
+        "fps": {
+          "name": "Saniyedeki güncelleme",
+          "description": "Kendi kendine geçiş yapamayan ışıklar için saniyedeki güncelleme, 1-60 (deneysel: her güncelleme tek komuttur; yüksek hız ışığın merkezini yorar ve kaldırabildiği hıza sınırlanır)."
+        },
+        "area": {
+          "name": "Alan",
+          "description": "Oynayacağı kayıtlı alanın kimliği."
+        },
+        "lights": {
+          "name": "Işıklar",
+          "description": "Işıklar: her biri \"entity_id\" ve yerini belirten -1 ile 1 arası x, y, z içeren bir liste."
+        },
+        "ui": {
+          "name": "Arayüz verisi",
+          "description": "Bir ekranın bunun yanında tuttuğu veri (simgeler, çizimler). Olduğu gibi saklanır, en fazla 16 KB."
+        }
+      }
+    },
+    "scene_delete": {
+      "name": "Sahneyi sil",
+      "description": "Kayıtlı sahneyi siler (çalışan sahne durdurulana kadar sürer).",
+      "fields": {
+        "id": {
+          "name": "Kimlik",
+          "description": "Sahnenin kimliği."
+        }
+      }
+    },
+    "area_save": {
+      "name": "Alanı kaydet",
+      "description": "Bir alan kaydeder: bir odanın veya bir bölümünün ışıkları ve her birinin yeri; paletin onlara nasıl dağılacağını bu belirler.",
+      "fields": {
+        "id": {
+          "name": "Kimlik",
+          "description": "Alanın kimliği: a-z, 0-9, _ veya - ile 1-48 karakter."
+        },
+        "name": {
+          "name": "Ad",
+          "description": "Alanın adı."
+        },
+        "lights": {
+          "name": "Işıklar",
+          "description": "Işıklar: her biri \"entity_id\" ve yerini belirten -1 ile 1 arası x, y, z içeren bir liste."
+        },
+        "ui": {
+          "name": "Arayüz verisi",
+          "description": "Bir ekranın bunun yanında tuttuğu veri (simgeler, çizimler). Olduğu gibi saklanır, en fazla 16 KB."
+        }
+      }
+    },
+    "area_delete": {
+      "name": "Alanı sil",
+      "description": "Kayıtlı alanı siler. Orada oynayan sahneler kayıtlı kalır ama başlamadan önce başka bir alan ister.",
+      "fields": {
+        "id": {
+          "name": "Kimlik",
+          "description": "Alanın kimliği."
+        }
+      }
+    },
+    "locate_light": {
+      "name": "Işığı bul",
+      "description": "Hangi ışığın hangisi olduğunu gösterir: siz kapatana kadar veya 30 saniye boyunca kırmızı olur (rengi yoksa kısılır), sonra eski hâline döner.",
+      "fields": {
+        "entity_id": {
+          "name": "Varlık kimliği",
+          "description": "Işık varlığı."
+        },
+        "active": {
+          "name": "Etkin",
+          "description": "Başlat veya durdur."
+        }
+      }
+    },
+    "get_library": {
+      "name": "Kitaplığı getir",
+      "description": "Kayıtlı sahneleri, alanları ve hazır ön ayarları döndürür.",
+      "fields": {}
+    }
+  }
+}

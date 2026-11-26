@@ -221,7 +221,7 @@ function alertList() {
   });
   if (alertOn("lights") && ls.length)
     out.push([
-      ls.length + (ls.length === 1 ? _T("light_is") : _T("lights_are")) + " unavailable",
+      _T(ls.length === 1 ? "light_unavailable_n" : "lights_unavailable_n", { n: ls.length }),
       ls.map(entName).join(" · "),
       function () {
         showPopup("g-lights", false);

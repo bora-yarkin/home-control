@@ -1,8 +1,9 @@
 {
   "languages": {
-    "en": "English"
+    "en": "English",
+    "tr": "Türkçe"
   },
-  "version": 516,
+  "version": 517,
   "files": [
     "integrations.js",
     "app/core.js",

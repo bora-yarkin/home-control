@@ -107,7 +107,7 @@ function apSpan(secs) {
     h += 1;
     m = 0;
   }
-  return ((h ? h + " h " : "") + (m || !h ? m + " min" : "")).trim();
+  return ((h ? _T("hours_short", { n: h }) + " " : "") + (m || !h ? _T("minutes_short", { n: m }) : "")).trim();
 }
 
 /* What a timestamp or a number of seconds left means to read: "1 h 12 min", "8 min", "now". */

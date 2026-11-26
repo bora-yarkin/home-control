@@ -14,11 +14,18 @@ function domNum(v, def) {
 }
 
 /* The state in the words of Home Assistant's own language, else the state itself made readable. */
+/* Whether Home Assistant words things in the language the dashboard shows. */
+function haSameLanguage(h) {
+  var own = String(globalThis.HC_LANG || ""),
+    ha = String((h && h.locale && h.locale.language) || "");
+  return !own || own === ha;
+}
+
 function domState(id) {
   var h = H(),
     s = h && h.states[id];
   if (!svOk(id)) return _T("offline");
-  if (s && typeof h.formatEntityState === "function") return h.formatEntityState(s);
+  if (s && haSameLanguage(h) && typeof h.formatEntityState === "function") return h.formatEntityState(s);
   return entVal(id);
 }
 
@@ -27,8 +34,8 @@ function domAttrText(id, name) {
     s = h && h.states[id],
     v = A(id)[name];
   if (v === undefined || v === null || v === "") return "–";
-  if (s && typeof h.formatEntityAttributeValue === "function") return h.formatEntityAttributeValue(s, name);
-  return String(v);
+  if (s && haSameLanguage(h) && typeof h.formatEntityAttributeValue === "function") return h.formatEntityAttributeValue(s, name);
+  return typeof v === "string" ? cap(v) : String(v);
 }
 
 function domWord(v) {

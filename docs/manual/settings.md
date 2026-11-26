@@ -22,7 +22,7 @@ Open with the gear in the header. The search box finds a setting.
 
 ## Language
 
-*Settings → Appearance → Language*: the same as Home Assistant, or a language chosen for your account. English is the only language shipped so far. A translation is one file, `frontend/app/lang/<code>.js`, that sets `LANGS["<code>"] = {...}` with the keys of `app/strings.js`, plus its name under `languages` in `frontend/version.json`; what it lacks is shown in English.
+*Settings → Appearance → Language*: the same as Home Assistant, or a language chosen for your account. English and Turkish are shipped. Names you or the guided setup saved (rooms, sections, labels) stay as written; switching language does not rewrite them. A translation is one file, `frontend/app/lang/<code>.js`, that sets `LANGS["<code>"] = {...}` with the keys of `app/strings.js`, plus its name under `languages` in `frontend/version.json`; what it lacks is shown in English. A test requires every listed language to have every key.
 
 ## Colours and shape
 

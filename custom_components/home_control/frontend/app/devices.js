@@ -443,7 +443,7 @@ function toggleDevice(d) {
   if (kind === "lock") {
     var locked = V_(id) === "locked";
     if (locked && slidesToUnlock(id)) return;
-    confirmDlg((locked ? _T("unlock_2") : _T("lock")) + (d.name || entName(id)) + "”?", function () {
+    confirmDlg(_T(locked ? "unlock_named_q" : "lock_named_q", { x: d.name || entName(id) }), function () {
       callConfirmed("lock", locked ? "unlock" : "lock", { entity_id: id });
     });
   } else if (kind === "cover") call("cover", "toggle", { entity_id: id });

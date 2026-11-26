@@ -430,7 +430,7 @@ function typesPage(b) {
     .sort()
     .forEach(function (t) {
       b.appendChild(
-        pill("tune", domWord(t), {
+        pill("tune", _T("domain_" + t) || domWord(t), {
           sub: function () {
             var n = Object.keys((UI.types && UI.types[t]) || {}).length;
             return n ? _T("changed") : _T("default_action");
@@ -534,7 +534,7 @@ function myAlertPage(b, n) {
     },
     function (box) {
       box.appendChild(
-        pill("trash", _T("remove"), {
+        pill("trash", _T("remove_word"), {
           tap: function () {
             list.splice(+n, 1);
             myAlertsSave(list);

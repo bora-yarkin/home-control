@@ -1152,13 +1152,7 @@ function lightsLabel(ids) {
         var s = V_(i);
         return !s || s === "unknown" || s === "unavailable";
       }).length;
-    return (
-      on +
-      " " +
-      (on === 1 ? "light" : "lights") +
-      " on" +
-      (miss ? " · " + miss + " unavailable" : "")
-    );
+    return _T(on === 1 ? "light_on_n" : "lights_on_n", { n: on }) + (miss ? " · " + _T("n_unavailable", { n: miss }) : "");
   };
 }
 

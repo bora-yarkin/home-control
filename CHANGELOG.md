@@ -11,6 +11,7 @@ Format: [Keep a Changelog](https://keepachangelog.com/). Versions follow [semant
 - *Colours and shape* for the whole dashboard (also no colour, or rainbow), *My alerts*, any low-part percentage.
 - A *Custom device* appliance, section preset files, widgets from plugins.
 - Language setting; the dashboard follows Home Assistant's language, and a translation is one file.
+- **Turkish**: the whole dashboard, common entity states and modes, and the integration's own Home Assistant screens.
 - Media seek, shuffle, repeat, sound mode and grouping; fan direction; target humidity; opening a lock's door.
 
 ### Changed

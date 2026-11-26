@@ -3,7 +3,7 @@
 const BASE = new URL(".", import.meta.url);
 
 const MARKUP = `<main><div class="wrap">
- <div class="hdr pane"><div class="hdrow"><div><div class="eyebrow">Dashboard</div><div class="trow"><div class="title" id="tt"></div></div><div class="hchips" id="hch"></div></div><div class="rt"><div class="hb"><div class="rnd pane" id="sbtn" role="button" aria-label="Search"></div><div class="rnd pane" id="gbtn" role="button" aria-label="Settings and appearance" style="display:none"></div></div><div class="clock"><div id="clk"></div><div id="dt"></div></div></div></div></div>
+ <div class="hdr pane"><div class="hdrow"><div><div class="eyebrow"></div><div class="trow"><div class="title" id="tt"></div></div><div class="hchips" id="hch"></div></div><div class="rt"><div class="hb"><div class="rnd pane" id="sbtn" role="button"></div><div class="rnd pane" id="gbtn" role="button" style="display:none"></div></div><div class="clock"><div id="clk"></div><div id="dt"></div></div></div></div></div>
  <div id="body"><div class="skl"><i></i><i></i><i></i></div></div>
 </div></main>
 <nav class="dock pane" id="dock"></nav>`;
@@ -55,6 +55,7 @@ function load(tag, attrs) {
 /* What the loader itself says, before the application's strings are there. A language adds its lines here. */
 const LOADER_TEXT = {
   en: { cannot_load: "Unable to load ", cannot_start: "Dashboard could not start: ", retry: "Try again" },
+  tr: { cannot_load: "Yüklenemedi: ", cannot_start: "Pano başlatılamadı: ", retry: "Yeniden dene" },
 };
 
 function loaderText(key) {
@@ -138,6 +139,13 @@ class DashboardPanel extends HTMLElement {
       const pack = [window.HC_LANG, window.HC_LANG.split("-")[0]].find((c) => c !== "en" && languages[c]);
       if (pack) await load("script", { src: asset("app/lang/" + pack + ".js") });
       window.langUse(window.HC_LANG);
+      /* the few words that are in the page's own markup */
+      [["#sbtn", "search"], ["#gbtn", "settings_and_appearance"]].forEach(([at, key]) => {
+        const el = this.querySelector(at);
+        if (el) el.setAttribute("aria-label", window._T(key));
+      });
+      const eyebrow = this.querySelector(".eyebrow");
+      if (eyebrow) eyebrow.textContent = window._T("app_title");
       await load("script", { src: asset(SCRIPTS[0]) });
       /* Attaching starts loading the registries; the application's files run meanwhile, and the application waits for the registries itself before it draws. */
       window.HA.attach(this._hass);

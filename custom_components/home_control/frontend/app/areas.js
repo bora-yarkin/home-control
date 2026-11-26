@@ -837,7 +837,7 @@ function eaActions() {
       box.appendChild(
         pill("trash", _T("delete_area"), {
           tap: function () {
-            confirmDlg(_T("delete_named_q", { x: EAD.draft.name }), eaDelete, _T("delete"));
+            confirmDlg(_T("delete_named_q", { x: EAD.draft.name }), eaDelete, _T("delete_word"));
           },
         })
       );

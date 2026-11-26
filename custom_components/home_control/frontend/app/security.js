@@ -249,7 +249,7 @@ function securityList() {
               tap: function () {
                 var s = V_(id);
                 confirmDlg(
-                  (s === "closed" ? _T("open_2") : _T("close_2")) + entName(id) + "?",
+                  _T(s === "closed" ? "open_named_q" : "close_named_q", { x: entName(id) }),
                   function () {
                     callConfirmed("cover", s === "closed" ? "open_cover" : "close_cover", {
                       entity_id: id,

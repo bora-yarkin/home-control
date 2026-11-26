@@ -166,11 +166,8 @@ function cmdFail(s, e) {
   if (now - CMDERR < 2500) return;
   CMDERR = now;
   var m = (e && (e.message || (e.body && e.body.message))) || "";
-  toast(
-    _T("couldn_t") +
-      String(s).replace(/_/g, " ") +
-      (m ? ": " + String(m).slice(0, 70) : _T("home_assistant_didn_t_accept_it"))
-  );
+  var what = String(s).replace(/_/g, " ");
+  toast(m ? _T("command_failed_why", { x: what, why: String(m).slice(0, 70) }) : _T("command_failed", { x: what }));
 }
 
 function entName(id) {
@@ -380,9 +377,17 @@ function mk(t, c, h) {
   return e;
 }
 
+/* A state or mode as an entity reports it ("docked", "heat cool"), in the dashboard's language where it has the word; any other text is only given a capital. */
+function valueWord(s) {
+  if (typeof STR !== "object" || STR === EN || !/^[a-z0-9_ -]{1,30}$/.test(s)) return "";
+  return STR["val_" + s.replace(/[ -]/g, "_")] || "";
+}
+
 function cap(s) {
   s = String(s);
-  return s.charAt(0).toUpperCase() + s.slice(1);
+  var word = valueWord(s);
+  if (word) return word;
+  return s.charAt(0).toLocaleUpperCase(globalThis.HC_LANG) + s.slice(1);
 }
 
 function isOn(id) {
@@ -421,7 +426,8 @@ function stAgo(id) {
   var st = V_(id);
   if (st === "unavailable" || st === "unknown") return _T("unavailable");
   var a = ago(id);
-  return (st === "on" ? _T("turned_on") : _T("turned_off")) + (a ? " " + a : "");
+  if (!a) return _T(st === "on" ? "turned_on" : "turned_off");
+  return _T(st === "on" ? "turned_on_when" : "turned_off_when", { when: a });
 }
 
 function roomOf(id) {

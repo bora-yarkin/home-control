@@ -234,7 +234,7 @@ function lgBehaviourTab(f) {
                 lgFailed(f, err);
               });
             },
-            _T("delete")
+            _T("delete_word")
           );
         },
       });

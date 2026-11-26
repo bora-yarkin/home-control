@@ -156,7 +156,7 @@ function autoSceneEditor(b) {
             if (sc) sceneDeleteEverywhere(sc);
             POPGUARD = null;
             closeSheet();
-          }, _T("delete"));
+          }, _T("delete_word"));
         },
       })
     );
