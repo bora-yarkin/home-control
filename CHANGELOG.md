@@ -4,6 +4,11 @@ Format: [Keep a Changelog](https://keepachangelog.com/). Versions follow [semant
 
 ## [Unreleased]
 
+## [0.30.2] - 2026-11-26
+
+### Fixed
+- A robot vacuum appliance's row was in the appliance colour; it is in the vacuum colour, as a vacuum's row is.
+
 ## [0.30.1] - 2026-11-26
 
 ### Changed

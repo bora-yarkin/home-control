@@ -112,3 +112,8 @@ test("a room's own settings of a vacuum appliance are kept with the dashboard, n
   assert.match(src, /\[a-z0-9_\]\{1,40\}:\[A-Za-z0-9_-\]\{1,24\}/);
   assert.match(read("vacuum.js"), /\(k === "times" && v === 1\)/, "a text choice of 1 is a choice, not the Xiaomi's single pass");
 });
+
+test("a robot vacuum appliance's row is coloured as a vacuum's row is", () => {
+  assert.match(read("appliance.js"), /kind: ap\.type === "vacuum" \? "clean" : "appliance"/);
+  assert.match(read("scenes.js"), /if \(d\.kind === "vacuum"\) \{[\s\S]{0,120}kind: "clean"/, "the colour a vacuum's row has");
+});
