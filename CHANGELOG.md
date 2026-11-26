@@ -4,6 +4,11 @@ Format: [Keep a Changelog](https://keepachangelog.com/). Versions follow [semant
 
 ## [Unreleased]
 
+## [0.29.1] - 2026-11-26
+
+### Fixed
+- 0.29.0 made the name field beside an icon or type choice taller than it.
+
 ## [0.29.0] - 2026-11-26
 
 ### Added
@@ -19,7 +24,6 @@ Format: [Keep a Changelog](https://keepachangelog.com/). Versions follow [semant
 ### Fixed
 - A restore left the notification automations of rules that were gone running, and the live scenes it brought back unchanged in the integration.
 - In the page editor, a scene's row stopped its section from updating.
-- A name field beside an icon or type choice was shorter than it.
 - A robot vacuum appliance's map was shown at its full height and could not be scrolled.
 
 ## [0.28.2] - 2026-11-26
