@@ -7,7 +7,7 @@ Open with the gear in the header. The search box finds a setting.
 | Display | Appearance | Light, dark or automatic theme; accent colour; larger display; start page; weather sky; time format. Per person. |
 | | Wall mode | For a tablet on the wall: a clock or photos after a while without touch, dimmed at night. |
 | Dashboard | Editor | Edit the current page. |
-| | Devices | New devices and devices not on the dashboard. |
+| | Devices | New devices, devices not on the dashboard, and the Advanced settings buttons of the whole dashboard. |
 | | Light groups | Make and change Home Assistant light groups. |
 | | Areas | Where lights are, for live scenes. |
 | | Siri and HomeKit | Publish live scenes as `scene` entities, and choose what the HomeKit Bridge offers. The Home Assistant app offers scenes to Shortcuts. |

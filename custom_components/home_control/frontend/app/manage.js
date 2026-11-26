@@ -1204,6 +1204,29 @@ function devLightOptions(c) {
   if (custom) box.appendChild(hintRow(_T("saved_turn_on_state") + ": " + lightDefaultText(d.id)));
 }
 
+/* A device's own Advanced settings switch. A device with an entity is switched on every page it is on, so the answer is the same wherever it is asked. */
+function advDevicePill(d) {
+  function off() {
+    return d.id ? advDevOff(d.id) : !!d.noadv;
+  }
+  return pill("tune", _T("advanced_settings_button"), {
+    on: function () {
+      return !advAllOff() && !off();
+    },
+    sub: function () {
+      return advAllOff() ? _T("adv_off_dashboard") : off() ? _T("off") : _T("on_cap");
+    },
+    tap: function () {
+      var turnOff = !off();
+      (d.id ? [d].concat(advCopies(d.id)) : [d]).forEach(function (c) {
+        if (turnOff) c.noadv = 1;
+        else delete c.noadv;
+      });
+      uiChanged();
+    },
+  });
+}
+
 /* Whether it is shown, which section it is in, and taking it off the page; and what it is. A light a lights master keeps (not a device of a section) has none of the first three. */
 function devPlaceRows(c) {
   var d = c.d,
@@ -1228,11 +1251,7 @@ function devPlaceRows(c) {
     );
   /* The device's popup ends with the Advanced settings button, unless it is switched off here. */
   if (adv)
-    sw.appendChild(
-      flagPill("tune", _T("advanced_settings_button"), d, "noadv", function (on) {
-        return on ? _T("on_cap") : _T("off");
-      }, true)
-    );
+    sw.appendChild(advDevicePill(d));
   if (sw.children.length) c.box.appendChild(sw);
   if (!held) {
     var act = mk("div", "ap-grid"),

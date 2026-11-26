@@ -719,7 +719,7 @@ function vacapPage(b, d) {
     );
   b.appendChild(ctl);
   b.appendChild(start);
-  if (ISADMIN && vacuum && !d.noadv && advList(vacuum).length)
+  if (vacuum && !d.noadv && advButton(vacuum))
     b.appendChild(
       pill("tune", _T("advanced_settings"), {
         sub: function () {

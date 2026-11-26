@@ -30,8 +30,11 @@ they then appear in the device's popup.
 
 ## Advanced settings button
 
-A device popup can end with *Advanced settings*: the other entities of the same Home Assistant device. It is for administrators. It can be turned off per device
-(in the device's settings), for a whole Remote master, and per device inside one.
+A device popup can end with *Advanced settings*: the other entities of the same Home Assistant device. It is for administrators. It can be hidden:
+
+- **on the whole dashboard:** *Settings → Devices → Advanced settings buttons on devices*;
+- **on one device:** the device's settings → *Advanced settings button* (it holds on every page the device is on);
+- **in a Remote master:** for the whole master, or for one device inside it.
 
 ## Light groups
 

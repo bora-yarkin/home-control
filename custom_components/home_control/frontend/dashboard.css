@@ -131,8 +131,6 @@ body.lg .sheet.tall{height:calc(90vh / 1.12)}
 .ap-grid{display:grid;grid-template-columns:1fr 1fr;gap:var(--sp);margin-bottom:var(--sp)}
 .ap-grid>*{margin:0;min-width:0;min-height:60px}
 .ap-grid>:last-child:nth-child(odd){grid-column:1/-1}
-/* a text row beside another tile is as tall as it (its own bottom margin would shorten it) */
-.ap-grid>.sqw{margin:0}
 .ap-step{display:flex;align-items:center;gap:8px;min-height:60px;padding:8px 10px 8px 18px}
 .ap-step .tx{flex:1;min-width:0}
 .ap-step .nm{display:block;font-size:var(--fs-m);font-weight:700}

@@ -48,7 +48,7 @@ Leave `extras` as the owner's backup had it. `data` has `v: 1`, `ui` (pages), `s
 | `rooms` | At most 24: `{id, name, short, icon, area, hide, img}`. `id`: `a-z0-9_-`, at most 24, not `home`. `area`: the Home Assistant area id. `short` (≤16) is the name on the bottom bar. `img`: an `https://` or `/local/` picture. |
 | `layout` | `{"v": 8, "home": [sections], "rooms": {"<room id>": [sections]}, "cols": {"home": 3, "<room id>": 2}}` |
 | `stat` | Header status tiles: `{"<room id or home>": [tiles]}`, at most six each: `{l, id, u, dp, h, text}` (label ≤30, entity, unit, decimals, a second entity shown beside it, `text: 1` for a non-number) or `{"k": "alerts", "l": "Attention"}`. |
-| `meta` | `{homeTab, homeTitle, eyebrow, clock, greet, sky, hdr}`. `hdr`: up to four `{k}` of `weather`, `people`, `lights`, `alerts`, `entity` (`entity` needs `id`; `l` is a label). |
+| `meta` | `{homeTab, homeTitle, eyebrow, clock, greet, sky, hdr, noadv}` (`noadv: 1` hides every Advanced settings button). `hdr`: up to four `{k}` of `weather`, `people`, `lights`, `alerts`, `entity` (`entity` needs `id`; `l` is a label). |
 | `devs` | Rebuilt by the dashboard from the sections. Leave it. |
 | others | `bats`, `batsOff`, `ignored`, `newSince`, `on`, `caps`, `offx`, `chips`: keep the owner's. |
 

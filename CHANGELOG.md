@@ -4,6 +4,13 @@ Format: [Keep a Changelog](https://keepachangelog.com/). Versions follow [semant
 
 ## [Unreleased]
 
+## [0.29.1] - 2026-11-26
+
+### Fixed
+- *Settings → Devices → Advanced settings buttons on devices* has done nothing since 0.19.0. It now hides every Advanced settings button on the dashboard (device popups, the camera's cog, the vacuum appliance, the Remote master), for everyone, and is kept in backups; buttons are shown until you switch it off.
+- A device's own *Advanced settings button* switch now holds on every page the device is on, and says when the whole dashboard has the buttons off.
+- 0.29.0 made the name field beside an icon or type choice taller than it.
+
 ## [0.29.0] - 2026-11-26
 
 ### Added
@@ -19,7 +26,6 @@ Format: [Keep a Changelog](https://keepachangelog.com/). Versions follow [semant
 ### Fixed
 - A restore left the notification automations of rules that were gone running, and the live scenes it brought back unchanged in the integration.
 - In the page editor, a scene's row stopped its section from updating.
-- A name field beside an icon or type choice was shorter than it.
 - A robot vacuum appliance's map was shown at its full height and could not be scrolled.
 
 ## [0.28.2] - 2026-11-26

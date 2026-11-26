@@ -161,7 +161,7 @@ function cleanMeta(m) {
   var s = function (v, n, d) {
     return typeof v === "string" && v.length <= n ? v : d;
   };
-  return {
+  var out = {
     homeTab: s(m.homeTab, 16, _T("home")) || _T("home"),
     homeTitle: s(m.homeTitle, 40, _T("app_title")) || _T("app_title"),
     eyebrow: s(m.eyebrow, 30, _T("app_title")),
@@ -170,6 +170,9 @@ function cleanMeta(m) {
     sky: m.sky !== false,
     hdr: cleanHdr(m.hdr),
   };
+  /* no Advanced settings button anywhere on the dashboard (app/advanced.js) */
+  if (m.noadv) out.noadv = 1;
+  return out;
 }
 
 function cleanHdr(a) {
