@@ -328,18 +328,27 @@ function cleanVac(v) {
   list(v.sets, 6).forEach(function (s) {
     var k = s && word(s.k, /^[A-Za-z0-9_]{1,40}$/);
     if (!k || out.sets.some(function (x) { return x.k === k; })) return;
-    var o = { k: k, l: label(s.l), o: list(s.o, 8).filter(function (x) { return word(x, /^[A-Za-z0-9 &_-]{1,40}$/); }) };
+    var o = { k: k, l: label(s.l), o: list(s.o, 8).filter(function (x) { return word(x, /^[^<>]{1,40}$/); }) };
     if (word(s.e, /^(input_)?select\.[a-z0-9_]+$/)) o.e = s.e;
     /* only for single rooms; the number the vacuum knows each value by, and the value used when none is chosen */
     if (s.r) o.r = 1;
     if (s.c && typeof s.c === "object") {
       var codes = {};
       Object.keys(s.c).slice(0, 8).forEach(function (n) {
-        if (word(n, /^[A-Za-z0-9 &_-]{1,40}$/) && typeof s.c[n] === "number" && isFinite(s.c[n])) codes[n] = s.c[n];
+        if (word(n, /^[^<>]{1,40}$/) && typeof s.c[n] === "number" && isFinite(s.c[n])) codes[n] = s.c[n];
       });
       if (Object.keys(codes).length) o.c = codes;
     }
-    if (word(s.d, /^[A-Za-z0-9 &_-]{1,40}$/)) o.d = s.d;
+    if (word(s.d, /^[^<>]{1,40}$/)) o.d = s.d;
+    /* what each choice is called and drawn with */
+    [["n", /^[^<>]{1,24}$/], ["i", /^[a-z0-9_:-]{1,40}$/]].forEach(function (m) {
+      if (!s[m[0]] || typeof s[m[0]] !== "object") return;
+      var map = {};
+      Object.keys(s[m[0]]).slice(0, 12).forEach(function (n) {
+        if (word(n, /^[^<>]{1,40}$/) && typeof s[m[0]][n] === "string" && m[1].test(s[m[0]][n])) map[n] = s[m[0]][n];
+      });
+      if (Object.keys(map).length) o[m[0]] = map;
+    });
     out.sets.push(o);
   });
   list(v.run, 4).forEach(function (r) {

@@ -111,7 +111,7 @@ test("the vacuum appliance names no brand", () => {
 test("a room's own settings of a vacuum appliance are kept with the dashboard, next to the Xiaomi's numbered rooms", () => {
   const src = read("store.js");
   assert.match(src, /\[a-z0-9_\]\{1,40\}:\[A-Za-z0-9_-\]\{1,24\}/);
-  assert.match(read("vacuum.js"), /\(k === "times" && v === 1\)/, "a text choice of 1 is a choice, not the Xiaomi's single pass");
+  assert.match(read("vacuumcore.js"), /\(k === "times" && v === 1\)/, "a text choice of 1 is a choice, not the Xiaomi's single pass");
 });
 
 test("a robot vacuum appliance's row is coloured as a vacuum's row is", () => {
@@ -139,4 +139,71 @@ test("Stop and dock presses the button or runs the script chosen for it", () => 
   assert.equal(ctx.vacapDockCall({ slots: { dock: "button.gone" } }), null);
   assert.equal(ctx.vacapDockCall({ slots: {} }), null);
   assert.match(src, /var dock = vacapDockCall\(ap\);\s*if \(dock\) \{\s*call\(dock\[0\], dock\[1\], dock\[2\]\);/);
+});
+
+test("the appliance knows no brand: names and icons of choices come from its set-up", () => {
+  const src = read("appliancevac.js");
+  assert.doesNotMatch(src, /RBLAB|RBICON|Integrations\.|xiaomi_miot|siid|sweep_mop/i);
+  const ctx = vm.createContext({ VACAP_ICON: {}, cap: (s) => s });
+  vm.runInContext(slice(src, "function vacapWord(", "/* A setting's choices"), ctx);
+  const set = { n: { "Full Speed": "Turbo" }, i: { "Full Speed": "bright" } };
+  assert.equal(ctx.vacapWord("Full Speed", set), "Turbo");
+  assert.equal(ctx.vacapWord("deep_clean", {}), "deep clean");
+  assert.equal(ctx.vacapIcon("Full Speed", set), "bright");
+  assert.equal(ctx.vacapIcon("Silent", {}), "moon");
+  assert.equal(ctx.vacapIcon("mop_only", {}), "drop");
+});
+
+test("the appliance is built on code that knows no integration, and not on the old card", () => {
+  const core = read("vacuumcore.js"),
+    mine = read("appliancevac.js") + read("vacsetup.js") + core;
+  assert.doesNotMatch(mine, /Integrations\./);
+  const old = read("vacuum.js");
+  const names = [...old.matchAll(/^(?:async )?function (\w+)|^var (\w+)/gm)].map((m) => m[1] || m[2]);
+  const used = names.filter((n) => new RegExp(`(?<![\\w$.])${n}(?![\\w$])`).test(mine.replace(/\/\*[\s\S]*?\*\//g, "")));
+  assert.deepEqual(used, [], "nothing of app/vacuum.js is needed");
+});
+
+test("a run stays held while the robot is slow to say so, and ends when it is over", () => {
+  const ctx = vm.createContext({ Date });
+  const src = read("appliancevac.js");
+  vm.runInContext(slice(src, "var VACAP_WORKING", "/* The appliance's page: map"), ctx);
+  const ago = (s) => Date.now() - s * 1000;
+  const run = (age, extra = {}) => ({ held: ago(age), ...extra });
+  assert.equal(ctx.vacapHeld(run(10), "docked", "charged"), true, "just started");
+  assert.equal(ctx.vacapHeld(run(60, { seen: true }), "docked", "charged"), false, "it ran and is charged");
+  assert.equal(ctx.vacapHeld(run(60), "docked", "sweeping"), false, "the vacuum itself says docked");
+  assert.equal(ctx.vacapHeld(run(120), "docked", "charged"), true, "a status that never showed the run is not believed");
+  assert.equal(ctx.vacapHeld(run(1900), "docked", "charged"), false, "for half an hour");
+  assert.equal(ctx.vacapHeld(run(60), "docked"), false, "no status entity");
+  const state = {};
+  assert.equal(ctx.vacapShown(state, "docked", true), "cleaning");
+  state.opt = "paused";
+  assert.equal(ctx.vacapShown(state, "docked", true), "paused");
+  assert.equal(ctx.vacapShown(state, "returning", true), "returning", "a new state wins over what was pressed");
+});
+
+test("Fill from the vacuum takes the water select as water, not as the mode", () => {
+  const states = {};
+  for (const id of ["vacuum.rosie", "select.rosie_water_mode", "select.rosie_suction_mode", "select.rosie_cleaning_mode"]) states[id] = {};
+  const entities = Object.fromEntries(Object.keys(states).map((id) => [id, { device_id: "d" }]));
+  const ctx = vm.createContext({ H: () => ({ states, entities }), dom: (id) => id.split(".")[0], A: () => ({}), _T: (k) => k });
+  const src = read("appliancevac.js");
+  vm.runInContext(slice(src, "function vacapConf(ap)", "/* What a choice is called") + src.slice(src.indexOf("function vacapFillFrom"), src.indexOf("\n}\n", src.indexOf("function vacapFillFrom")) + 3), ctx);
+  const d = { ap: { slots: { vacuum: "vacuum.rosie" } } };
+  ctx.vacapFillFrom(d);
+  assert.deepEqual(
+    plain(d.ap.vac.sets.map((s) => [s.k, s.e])),
+    [["mode", "select.rosie_cleaning_mode"], ["suction", "select.rosie_suction_mode"], ["water", "select.rosie_water_mode"]]
+  );
+});
+
+test("a choice may be any word the vacuum uses, in any language", () => {
+  const src = read("model.js");
+  const ctx = vm.createContext({});
+  vm.runInContext(src.slice(src.indexOf("function cleanVac"), src.indexOf("\n}\n", src.indexOf("function cleanVac")) + 3), ctx);
+  const set = { k: "power", o: ["Güçlü+", "Quiet (1)", "<b>"], d: "Güçlü+", c: { "Güçlü+": 3 }, n: { "Güçlü+": "Max" }, i: { "Quiet (1)": "moon" } };
+  const out = plain(ctx.cleanVac({ sets: [set] }).sets[0]);
+  assert.deepEqual(out.o, ["Güçlü+", "Quiet (1)"]);
+  assert.deepEqual([out.d, out.c, out.n, out.i], ["Güçlü+", { "Güçlü+": 3 }, { "Güçlü+": "Max" }, { "Quiet (1)": "moon" }]);
 });

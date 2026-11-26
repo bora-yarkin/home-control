@@ -9,6 +9,15 @@ Format: [Keep a Changelog](https://keepachangelog.com/). Versions follow [semant
 ### Fixed
 
 - **Stop and dock** on a robot vacuum appliance did nothing when a button or script was chosen for it (since 0.29.0).
+- *Fill from the vacuum* took a water select ending in `_mode` for the mode.
+- A robot vacuum appliance dropped choices with letters beyond English, brackets or `+`.
+- *Customize* on a robot vacuum appliance: switching, Home Assistant's dialog, asking first and state texts now act on its vacuum.
+
+### Changed
+
+- A robot vacuum appliance no longer borrows one brand's names and icons for its choices: each setting can give its own (*Names shown*, *Icons*; `labels` and `icons` in a set-up file). Without them the robot's own words are shown.
+- A robot vacuum appliance shows the robot's faults, keeps *Pause* and *Stop and dock* while a robot is slow to report a start, and uses no code that is tied to one brand.
+- A setting's page lists its choices and can drop its select.
 
 ## [0.33.0] - 2026-11-26
 

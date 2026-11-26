@@ -9,12 +9,17 @@ var LOOK_GROUPS = ["light", "climate", "heat", "media", "security", "power", "cl
   GESTURES = ["tap", "hold", "dbl"],
   COLORRE = /^#[0-9a-f]{6}$/;
 
+/* The entity a row operates: its own, or, for a robot vacuum appliance, the vacuum it is for. */
+function itemEntity(d) {
+  return d.id || (d.kind === "appliance" && d.ap && d.ap.type === "vacuum" && d.ap.slots && d.ap.slots.vacuum) || "";
+}
+
 function typeCfg(id) {
   return (id && UI.types && UI.types[dom(id)]) || {};
 }
 
 function itemAct(d, gesture) {
-  return (d.act && d.act[gesture]) || (typeCfg(d.id)[gesture]) || null;
+  return (d.act && d.act[gesture]) || typeCfg(itemEntity(d))[gesture] || null;
 }
 
 /* Whether the entity asks "are you sure" before it is operated: its item on any page, or its type. */
@@ -22,7 +27,7 @@ function asksFirst(id) {
   if (typeCfg(id).ask) return true;
   return Object.keys(UI.devs || {}).some(function (r) {
     return (UI.devs[r] || []).some(function (d) {
-      return d.id === id && d.ask;
+      return d.ask && itemEntity(d) === id;
     });
   });
 }
@@ -49,14 +54,14 @@ function itemText(d) {
     return ruleEvalCond(x.c);
   })[0];
   var t = hit ? hit.t : d.txt;
-  return t ? fillText(t, d.id, d.name) : null;
+  return t ? fillText(t, itemEntity(d), d.name) : null;
 }
 
 function runAct(a, d) {
   if (a.t === "none") return;
-  if (a.t === "toggle") return toggleDevice(d);
+  if (a.t === "toggle") return d.kind === "appliance" && itemEntity(d) ? vacapToggle(d) : toggleDevice(d);
   if (a.t === "more") {
-    if (!window.HA.moreInfo(d.id)) toast(_T("cannot_open_ha_dialog"));
+    if (!itemEntity(d) || !window.HA.moreInfo(itemEntity(d))) toast(_T("cannot_open_ha_dialog"));
     return;
   }
   if (a.t === "page") return go(a.p);

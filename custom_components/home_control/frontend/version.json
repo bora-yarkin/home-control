@@ -3,7 +3,7 @@
     "en": "English",
     "tr": "Türkçe"
   },
-  "version": 519,
+  "version": 523,
   "files": [
     "integrations.js",
     "app/core.js",
@@ -19,6 +19,7 @@
     "app/media.js",
     "app/remotebuttons.js",
     "app/climate.js",
+    "app/vacuumcore.js",
     "app/vacuum.js",
     "app/camera.js",
     "app/advanced.js",
