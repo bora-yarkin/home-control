@@ -23,6 +23,7 @@ function world(states = {}, extra = {}) {
     entName: (id) => id,
     dom: (id) => id.split(".")[0],
     sibBy: (id) => id.replace("media_player.", "remote."),
+    tvRemoteOf: (id) => id.replace("media_player.", "remote."),
     mediaKind: (id) => (id.includes("apple") ? "apple" : id.includes("tv") ? "samsung" : null),
     send: (rem, cmd, hold) => sent.push([rem, cmd, hold || 0]),
     call: (d, s, data) => sent.push([d + "." + s, data.entity_id]),

@@ -15,7 +15,8 @@ The built-in `samsungtv` integration reports no inputs; Samsung TV Smart (custom
 
 In the editor, *Add item → Remote*:
 
-- **Ready-made remotes:** every TV or player that has one. Choosing it puts the TV on the page; tapping its row opens the remote.
+- **Ready-made remote:** choose any media player. It goes on the page and tapping its row opens the remote. If the player has no remote entity of its own, you are asked
+  which one sends its keys (a streaming box often has its player and its remote under different integrations); you can change it later under the device's linked entities.
 - **Remote master:** one remote for a TV and what is plugged into it (below).
 - **Build your own:** an empty remote for the builder.
 

@@ -9,7 +9,7 @@ In the editor, tap *Add item* in a section. Choose a type and, if you like, a Ho
 | Lights | Lights, a *Lights master*, and making the ticked lights one light group (a Home Assistant Group helper). |
 | Switches, Fans, Climate, Media, Vacuum, Cameras, Sensors, Controls (numbers, selects, buttons, scripts, covers, locks), Helpers, All entities | Entities of that kind. |
 | Scenes | Home Assistant scenes, the dashboard's scenes, *New scene* and a *Scene collection*. |
-| Remote | The ready-made remotes of your TVs, the Remote master, or one you build yourself. |
+| Remote | A ready-made remote for any media player, the Remote master, or one you build yourself. |
 | Appliance | An oven, washer, dryer, dishwasher, coffee machine, fridge, projector, robot vacuum or any other, made from entities. |
 | Widgets | [Widgets](widgets.md). |
 

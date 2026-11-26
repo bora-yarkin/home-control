@@ -881,8 +881,9 @@ body.pinhdr:not(.editing) .wrap::before{content:"";position:fixed;top:0;left:0;r
 .rm-grid>.touch{height:auto;min-height:0;align-items:center;padding-bottom:0}
 .rm-grid>.touch.ed{color:var(--ink2)}
 /* the grid drawn as the built-in remotes: their buttons, spacing and touchpad */
-.rm-grid.rm-native{gap:var(--sp);margin-bottom:var(--sp)}
-.rm-native>.rm-t{flex-direction:row;gap:6px;border-radius:var(--r-row);font-size:var(--fs-m)}
+.rm-grid.rm-native{gap:var(--sp);margin-bottom:var(--sp);grid-auto-rows:auto}
+/* rows take what is in them, so the touchpad is as tall as the built-in one on any screen */
+.rm-native>.rm-t{min-height:54px;flex-direction:row;gap:6px;border-radius:var(--r-row);font-size:var(--fs-m)}
 .rm-native>.rm-t svg{width:22px;height:22px}
 .rm-native>.rm-t .rm-l{font-size:var(--fs-m);font-weight:400}
 .rm-grid.rm-native>.touch{height:clamp(260px,40vh,340px)}

@@ -4,6 +4,15 @@ Format: [Keep a Changelog](https://keepachangelog.com/). Versions follow [semant
 
 ## [Unreleased]
 
+## [0.30.1] - 2026-11-26
+
+### Changed
+- *Add item → Remote* has one **Ready-made remote** button: choose any media player. The list of 0.30.0 left out players it did not recognise (a Mi Box, for one).
+
+### Fixed
+- A remote entity linked to a player in its settings was ignored by the player's remote and by the Remote master; it is used now, and gives the layout when the player's own integration has none. A player added without a remote is asked which one sends its keys.
+- A built remote with the built-in look had a taller touchpad area than the built-in remotes on screens shorter than about 780 px.
+
 ## [0.30.0] - 2026-11-26
 
 ### Added

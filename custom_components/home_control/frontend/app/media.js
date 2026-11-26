@@ -812,8 +812,32 @@ function mediaCard(box, d) {
 function mediaKind(id) {
   var h = H(),
     e = h.entities[id] || {},
-    dv = e.device_id && h.devices[e.device_id];
-  return Integrations.media.kind(e.platform, dv && dv.model);
+    dv = e.device_id && h.devices[e.device_id],
+    own = Integrations.media.kind(e.platform, dv && dv.model);
+  if (own !== "generic" || Integrations.remote.family(e.platform)) return own;
+  /* a player of an integration with no remote of its own (a cast player) takes the layout of the remote given to it */
+  var rem = tvRemoteOf(id),
+    r = rem && h.entities[rem],
+    rd = r && r.device_id && h.devices[r.device_id];
+  return r ? Integrations.media.kind(r.platform, rd && rd.model) : own;
+}
+
+/* The remote entity that sends a player's keys: one linked to it in its settings (on any page, or in a remote master), else the one on its own device. */
+function tvRemoteOf(id) {
+  var linked = advCopies(id)
+    .reduce(function (all, d) {
+      return all.concat(d.links || []);
+    }, [])
+    .concat(rmLinks(id))
+    .filter(function (e) {
+      return dom(e) === "remote" && H().states[e];
+    })[0];
+  return (
+    linked ||
+    sibBy(id, function (e) {
+      return dom(e.entity_id) === "remote";
+    })
+  );
 }
 
 /* Apple TV has no mute of its own; use the remote of a Samsung TV in the same room if there is one. */
@@ -836,13 +860,10 @@ function roomTvRemote(id) {
     : null;
 }
 
-/* Which ready-made remote a media player's popup is: "samsung", "apple", "android", "family" (built from the integration's documentation), or "" for none. The popup and the
-   list of ready-made remotes under Add item both ask here, so they cannot disagree. */
+/* Which ready-made remote a media player's popup is: "samsung", "apple", "android", "family" (built from the integration's documentation), or "" for none. */
 function mediaRemoteKind(id) {
   var k = mediaKind(id),
-    rem = sibBy(id, function (e) {
-      return dom(e.entity_id) === "remote";
-    });
+    rem = tvRemoteOf(id);
   if ((k === "samsung" || k === "apple" || k === "android") && rem) return k;
   var fam = tvFamily(id);
   return Integrations.remote.experimental(fam) && (rem || fam === "webos") ? "family" : "";
@@ -850,9 +871,7 @@ function mediaRemoteKind(id) {
 
 function mediaPopup(b, id, hooks) {
   var k = mediaRemoteKind(id),
-    rem = sibBy(id, function (e) {
-      return dom(e.entity_id) === "remote";
-    }),
+    rem = tvRemoteOf(id),
     h = H(),
     e = h.entities[id] || {},
     dv = e.device_id && h.devices[e.device_id];
@@ -866,7 +885,11 @@ function mediaPopup(b, id, hooks) {
 
 /* The key family of a media player's integration (app/integrations.js): Roku, Sony Bravia, Philips, Vizio, Fire TV and LG webOS have a remote built from what their integrations document. */
 function tvFamily(id) {
-  return Integrations.remote.family(((H().entities || {})[id] || {}).platform);
+  var all = H().entities || {},
+    own = Integrations.remote.family((all[id] || {}).platform);
+  if (own) return own;
+  var rem = tvRemoteOf(id);
+  return rem ? Integrations.remote.family((all[rem] || {}).platform) : "";
 }
 
 /* A remote for a TV the dashboard has no native remote for: the same layout as the others, with the keys its integration documents, and the media player's own services where it lists none. It says it is experimental. */
