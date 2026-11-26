@@ -4,6 +4,11 @@ Format: [Keep a Changelog](https://keepachangelog.com/). Versions follow [semant
 
 ## [Unreleased]
 
+## [0.30.1] - 2026-11-26
+
+### Fixed
+- A built remote with the built-in look had a taller touchpad area than the built-in remotes on screens shorter than about 780 px.
+
 ## [0.30.0] - 2026-11-26
 
 ### Added
