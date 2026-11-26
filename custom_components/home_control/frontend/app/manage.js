@@ -665,7 +665,7 @@ function defIcon(kind, name, id) {
             : kind === "light"
               ? "light"
               : kind === "media"
-                ? /tv/i.test(name)
+                ? (id && reportedType(id) === "tv") || /tv/i.test(name)
                   ? "tv"
                   : "media"
                 : kind === "climate"

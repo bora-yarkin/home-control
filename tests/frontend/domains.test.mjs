@@ -70,3 +70,18 @@ test("colours are picked on the wheel, never from a fixed set, and any way of wr
   assert.equal(ctx.colorParse("teal"), "#008080");
   assert.equal(ctx.colorParse("nonsense"), "");
 });
+
+test("a type comes from what the entity reports before any name", () => {
+  const states = {
+    "media_player.salon": { attributes: { device_class: "tv" } },
+    "fan.hava": { attributes: {} },
+    "sensor.toz": { attributes: { device_class: "pm25" } },
+    "fan.tavan": { attributes: {} },
+  };
+  const ctx = vm.createContext({ H: () => ({ states, entities: { "fan.hava": { device_id: "d1" }, "sensor.toz": { device_id: "d1" }, "fan.tavan": { device_id: "d2" } } }) });
+  const model = read("app/model.js");
+  vm.runInContext(model.slice(model.indexOf("function guessDevType("), model.indexOf("function cleanAct(")), ctx);
+  assert.equal(ctx.guessDevType({ kind: "media", id: "media_player.salon", icon: "media" }), "tv");
+  assert.equal(ctx.guessDevType({ kind: "fan", id: "fan.hava", icon: "fan", name: "Salon" }), "purifier");
+  assert.equal(ctx.guessDevType({ kind: "fan", id: "fan.tavan", icon: "fan", name: "Tavan" }), "fan");
+});

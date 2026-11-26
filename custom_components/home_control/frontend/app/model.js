@@ -387,9 +387,28 @@ function isVacuumMap(id) {
 var DEVTYPES = { media: ["tv", "receiver", "speaker"], fan: ["fan", "purifier"] };
 
 function guessDevType(d) {
-  if (d.kind === "media") return d.icon === "tv" ? "tv" : /speaker|homepod|sonos|cast|echo/i.test(d.icon + " " + d.id) ? "speaker" : "receiver";
-  if (d.kind === "fan") return /purif|air/i.test(d.icon + " " + d.name + " " + d.id) ? "purifier" : "fan";
+  /* what the entity says of itself first; names (in any one language) only when it says nothing */
+  var type = reportedType(d.id);
+  if (d.kind === "media") return type || (d.icon === "tv" ? "tv" : /speaker|homepod|sonos|cast|echo/i.test(d.icon + " " + d.id) ? "speaker" : "receiver");
+  if (d.kind === "fan") return type || (/purif|air/i.test(d.icon + " " + d.name + " " + d.id) ? "purifier" : "fan");
   return "";
+}
+
+/* The type Home Assistant's own information gives: a media player's device class, a purifier by the particle sensor on its device. "" when it says nothing. */
+function reportedType(id) {
+  var h = typeof H === "function" && H(),
+    s = h && h.states && h.states[id];
+  if (!s) return "";
+  if (id.indexOf("media_player.") === 0) return ["tv", "receiver", "speaker"].indexOf(s.attributes.device_class) >= 0 ? s.attributes.device_class : "";
+  if (id.indexOf("fan.") !== 0) return "";
+  var device = h.entities && h.entities[id] && h.entities[id].device_id;
+  return device &&
+    Object.keys(h.entities).some(function (e) {
+      var x = h.states[e];
+      return h.entities[e].device_id === device && x && /^(pm1|pm25|pm10)$/.test(x.attributes.device_class || "");
+    })
+    ? "purifier"
+    : "";
 }
 
 /* A gesture's action: the device's popup, a toggle, Home Assistant's dialog, a page, one of the remote builder's actions, or nothing. */
