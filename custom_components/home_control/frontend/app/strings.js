@@ -1,6 +1,15 @@
 /* Text shown to the user: the English strings and the lookup function _T(). */
 
 var EN = {
+  "preset_title": "Add a section from a file",
+  "preset_save": "Save as a preset file",
+  "preset_load": "From a preset file",
+  "preset_load_sub": "A section someone saved: you choose your own devices for it",
+  "preset_places_hint": "Choose your device for each place. A place left empty is left out.",
+  "preset_add": "Add the section",
+  "preset_added": "Section added",
+  "preset_not_read": "That file is not a section preset",
+  "ap_custom": "Custom device",
   "active_lower": "active",
   "usage_today_week": "Today {today} · 7 days {week}",
   "scene_in": "Scene · {x}",

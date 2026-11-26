@@ -33,6 +33,7 @@
     "app/domains.js",
     "app/customize.js",
     "app/colorpick.js",
+    "app/presets.js",
     "app/homewidgets.js",
     "app/remotemaster.js",
     "app/rules.js",

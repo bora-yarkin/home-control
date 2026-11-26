@@ -44,12 +44,21 @@ function sizesOf(d) {
 function sizeOf(d) {
   var ok = sizesOf(d);
   if (ok.indexOf(d.sz) >= 0) return d.sz;
-  return d.kind === "widget" ? widgetDef(d.w).size : "row";
+  return d.kind === "widget" && widgetDef(d.w) ? widgetDef(d.w).size : "row";
 }
 
 /* A device with its checked fields so far in c: a widget's type, settings and id, then the size (only when it is not the default). */
 function cleanWidgetDev(d, c) {
   var f = widgetDef(d.w);
+  /* A plugin's widget ("x_..."): kept as it is where its plugin has not loaded (it loads for administrators only), and simply not drawn. */
+  if (c.kind === "widget" && !f && typeof d.w === "string" && /^x_[a-z0-9_]{1,20}$/.test(d.w) && !c.id) {
+    var kept = d.wx && typeof d.wx === "object" ? JSON.stringify(d.wx) : "{}";
+    if (kept.length > 2000 || typeof d.wid !== "string" || !WIDRE.test(d.wid)) return false;
+    c.w = d.w;
+    c.wid = d.wid;
+    c.wx = JSON.parse(kept);
+    return true;
+  }
   if (c.kind === "widget") {
     if (!f || c.id) return false;
     c.w = d.w;

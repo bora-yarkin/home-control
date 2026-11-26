@@ -474,6 +474,16 @@ function secTypesPage(b, scopeId) {
   var sc = scopeKey(scopeId),
     have = secOrder(sc);
   b.appendChild(mkHint(_T("choose_what_the_new_section_shows_yo")));
+  b.appendChild(
+    pill("sd", _T("preset_load"), {
+      sub: function () {
+        return _T("preset_load_sub");
+      },
+      tap: function () {
+        presetOpen(scopeId);
+      },
+    })
+  );
   b.appendChild(sep(_T("widgets"), "tune"));
   Object.keys(WIDGETS).forEach(function (w) {
     var f = WIDGETS[w];
@@ -1006,6 +1016,13 @@ function secEditor(b, key) {
           });
         },
       });
+    acts.push(
+      pill("sd", _T("preset_save"), {
+        tap: function () {
+          presetSave(e);
+        },
+      })
+    );
     if (!ty.one)
       acts.push(
         pill("plus", _T("duplicate_this_section"), {

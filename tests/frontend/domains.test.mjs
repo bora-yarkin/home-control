@@ -85,3 +85,25 @@ test("a type comes from what the entity reports before any name", () => {
   assert.equal(ctx.guessDevType({ kind: "fan", id: "fan.hava", icon: "fan", name: "Salon" }), "purifier");
   assert.equal(ctx.guessDevType({ kind: "fan", id: "fan.tavan", icon: "fan", name: "Tavan" }), "fan");
 });
+
+test("a section preset carries no entity id, and is filled with chosen ones", () => {
+  const states = { "light.mine": { attributes: { friendly_name: "Lamp" } } };
+  const ctx = vm.createContext({ ENTRE: /^[a-z_]+\.[a-z0-9_]+$/, H: () => ({ states }), dom: (id) => id.split(".")[0] });
+  vm.runInContext(read("app/presets.js"), ctx);
+  const preset = ctx.presetFrom({ id: "s1", t: "Evening", devs: [{ id: "light.mine", name: "Lamp", act: { tap: { t: "run", a: { t: "ent", e: "light.mine" } } } }] });
+  assert.doesNotMatch(JSON.stringify(preset), /light\.mine/);
+  assert.equal(preset.places.length, 1);
+  assert.equal(ctx.presetFill(preset, ["light.theirs"]).devs[0].id, "light.theirs");
+  assert.equal(ctx.presetValid(preset), true);
+  assert.equal(ctx.presetValid({ format: "other" }), false);
+});
+
+test("a plugin's widget is kept where its plugin has not loaded", () => {
+  const ctx = vm.createContext({ WIDRE: /^[a-z][a-z0-9_]{1,14}$/, widgetDef: () => null, JSON });
+  const src = read("app/widgetkinds.js");
+  vm.runInContext(src.slice(src.indexOf("function cleanWidgetDev("), src.indexOf("/* A new widget of a type")), ctx);
+  const out = { kind: "widget", id: "" };
+  assert.equal(ctx.cleanWidgetDev({ w: "x_pool", wid: "w1", wx: { a: 1 } }, out), true);
+  assert.equal(out.w, "x_pool");
+  assert.equal(ctx.cleanWidgetDev({ w: "unknown", wid: "w2" }, { kind: "widget", id: "" }), false);
+});

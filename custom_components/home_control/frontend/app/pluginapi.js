@@ -247,6 +247,10 @@ window.HomeControl = {
   registerSceneImport: function (def) {
     PLUGIN_SCENE_IMPORTS.push(def);
   },
+  /* A widget of a plugin's own (docs/plugin-api.md): its type starts with "x_". */
+  registerWidget: function (type, def) {
+    if (/^x_[a-z0-9_]{1,20}$/.test(type)) registerWidget(type, def);
+  },
   registerDeviceKind: function (def) {
     PLUGIN_DEVICE_KINDS.push(def);
   },

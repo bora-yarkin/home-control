@@ -267,7 +267,7 @@ function cleanAppliance(a) {
     },
     extraDoms = ["select", "input_select", "number", "input_number", "switch", "input_boolean", "binary_sensor", "sensor", "button", "input_button", "script"],
     out = { type: "other", slots: {}, extra: [] };
-  if (a && ["oven", "washer", "dryer", "dishwasher", "coffee", "fridge", "projector", "vacuum", "other"].indexOf(a.type) >= 0) out.type = a.type;
+  if (a && ["oven", "washer", "dryer", "dishwasher", "coffee", "fridge", "projector", "vacuum", "custom", "other"].indexOf(a.type) >= 0) out.type = a.type;
   Object.keys(slotDoms).forEach(function (k) {
     var e = a && a.slots && a.slots[k];
     if (typeof e === "string" && ENTRE.test(e) && slotDoms[k].indexOf(e.split(".")[0]) >= 0) out.slots[k] = e;
@@ -283,7 +283,8 @@ function cleanAppliance(a) {
     });
   /* Rows of any entity that can be read or set, each with a label, an optional group heading, and whether it is shown on the appliance's page or behind its Details line. */
   (a && Array.isArray(a.extra) ? a.extra : []).slice(0, 40).forEach(function (x) {
-    if (x && typeof x.e === "string" && ENTRE.test(x.e) && extraDoms.indexOf(x.e.split(".")[0]) >= 0) {
+    /* a custom device takes any entity; the others the ones their rows can show */
+    if (x && typeof x.e === "string" && ENTRE.test(x.e) && (out.type === "custom" || extraDoms.indexOf(x.e.split(".")[0]) >= 0)) {
       var row = { e: x.e, l: typeof x.l === "string" ? x.l.slice(0, 30) : "" };
       if (typeof x.g === "string" && x.g.trim()) row.g = x.g.trim().slice(0, 24);
       if (x.o) row.o = 1;

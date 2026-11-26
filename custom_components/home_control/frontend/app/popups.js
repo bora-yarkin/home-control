@@ -981,6 +981,7 @@ POPUP_DEFS["gmedia"] = POPUP_DEFS["media"];
 /* Customising items, types, the look and the person's own attention rules (app/customize.js, which loads after this file: its pages are asked for when opened). */
 [
   ["colour-pick", "pick_a_colour", "palette", function () { return colorPickPage; }],
+  ["preset", "preset_title", "plus", function () { return presetPage; }],
   ["cust", "customize", "palette", function () { return custPage; }],
   ["cust-cond", "condition", "check", function () { return custCondPage; }],
   ["look", "look_title", "palette", function () { return lookPage; }],

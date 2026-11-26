@@ -30,7 +30,7 @@ function page(extra = {}) {
   return { sandbox, log, HC: sandbox.window.HomeControl };
 }
 
-const documented = ["version", "hass", "attrs", "state", "isOn", "registry", "isAdmin", "call", "callRaw", "toggle", "toast", "refresh", "el", "icon", "row", "count", "confirm", "open", "back", "closeLayer", "guard", "popGuard", "sheet", "t", "addStrings", "registerPage", "registerSettings", "registerAreaHooks", "editing", "room", "serviceResponse", "addStyles", "registerSceneKind", "registerSceneMaker", "registerSceneImport", "registerDeviceKind", "registerGroupCheck", "registerPlayback", "registerLightStyle"];
+const documented = ["version", "hass", "attrs", "state", "isOn", "registry", "isAdmin", "call", "callRaw", "toggle", "toast", "refresh", "el", "icon", "row", "count", "confirm", "open", "back", "closeLayer", "guard", "popGuard", "sheet", "t", "addStrings", "registerPage", "registerSettings", "registerAreaHooks", "editing", "room", "serviceResponse", "addStyles", "registerSceneKind", "registerSceneMaker", "registerSceneImport", "registerDeviceKind", "registerGroupCheck", "registerPlayback", "registerLightStyle", "registerWidget"];
 const documentedUi = ["attachSlide", "briControl", "callLive", "cap", "closeSheet", "cssRgb", "cssToRgb", "deviceGet", "deviceSet", "dom", "dropRow", "ic", "inkRow", "kelvinRgb", "lightMembers", "liveStopOn", "liveXyRgb", "pinPop", "pop", "sep", "sliderRow", "switchPill", "pageFill"];
 const documentedScenes = ["hidden", "setHidden", "importFrom", "editLights"];
 const documentedAreas = ["open", "openExternal", "editor", "rebuild", "roomLights", "clamp", "identifyOff"];
