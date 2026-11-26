@@ -38,6 +38,13 @@ function vacapOptions(set) {
   return ordered.length ? ordered : own;
 }
 
+/* What Stop and dock runs, as [domain, service, data]: the button or script chosen for it, else null (the vacuum is then stopped and sent back itself). */
+function vacapDockCall(ap) {
+  var dock = ap.slots && ap.slots.dock && apHas(ap.slots.dock) ? ap.slots.dock : "",
+    how = dock && REMOTE_ACT[dom(dock)];
+  return how ? [how[0], how[1], { entity_id: dock }] : null;
+}
+
 /* A short wait between one command to the vacuum and the next, so that it is not told two things at once. */
 var VACAP_WAIT = 1000;
 
@@ -606,9 +613,9 @@ function vacapPage(b, d) {
       "stop",
       function () {
         state.held = 0;
-        var dock = ap.slots.dock && apHas(ap.slots.dock) ? ap.slots.dock : "";
+        var dock = vacapDockCall(ap);
         if (dock) {
-          apRun(dock, true);
+          call(dock[0], dock[1], dock[2]);
           if (vacuum) vacKick(vacuum);
         } else {
           vac("stop");

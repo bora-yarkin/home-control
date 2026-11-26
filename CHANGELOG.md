@@ -4,6 +4,12 @@ Format: [Keep a Changelog](https://keepachangelog.com/). Versions follow [semant
 
 ## [Unreleased]
 
+## [0.33.1] - 2026-11-26
+
+### Fixed
+
+- **Stop and dock** on a robot vacuum appliance did nothing when a button or script was chosen for it (since 0.29.0).
+
 ## [0.33.0] - 2026-11-26
 
 ### Added

@@ -129,3 +129,14 @@ test("a zone slot that a zones source replaces names the source instead of sayin
   assert.equal(ctx.apSlotText({ slots: { walls: "sensor.w" }, vac: {} }, "walls"), "sensor.w");
   assert.equal(ctx.apSlotText({ slots: {} }, "no_go"), "ap_not_set|");
 });
+
+test("Stop and dock presses the button or runs the script chosen for it", () => {
+  const ctx = vm.createContext({ apHas: (id) => id !== "button.gone", dom: (id) => id.split(".")[0], REMOTE_ACT: { button: ["button", "press"], input_button: ["input_button", "press"], script: ["script", "turn_on"] } });
+  const src = read("appliancevac.js");
+  vm.runInContext(slice(src, "function vacapDockCall(", "/* A short wait between one command"), ctx);
+  assert.deepEqual(plain(ctx.vacapDockCall({ slots: { dock: "button.go_home" } })), ["button", "press", { entity_id: "button.go_home" }]);
+  assert.deepEqual(plain(ctx.vacapDockCall({ slots: { dock: "script.dock" } })), ["script", "turn_on", { entity_id: "script.dock" }]);
+  assert.equal(ctx.vacapDockCall({ slots: { dock: "button.gone" } }), null);
+  assert.equal(ctx.vacapDockCall({ slots: {} }), null);
+  assert.match(src, /var dock = vacapDockCall\(ap\);\s*if \(dock\) \{\s*call\(dock\[0\], dock\[1\], dock\[2\]\);/);
+});
