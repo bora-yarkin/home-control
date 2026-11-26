@@ -117,3 +117,14 @@ test("a robot vacuum appliance's row is coloured as a vacuum's row is", () => {
   assert.match(read("appliance.js"), /kind: ap\.type === "vacuum" \? "clean" : "appliance"/);
   assert.match(read("scenes.js"), /if \(d\.kind === "vacuum"\) \{[\s\S]{0,120}kind: "clean"/, "the colour a vacuum's row has");
 });
+
+test("a zone slot that a zones source replaces names the source instead of saying it is not set", () => {
+  const ctx = vm.createContext({ _T: (k) => k + "|", apBoundText: (id) => id });
+  vm.runInContext(slice(read("appliance.js"), "function apZoneSource(", "/* What a slot is called on this appliance"), ctx);
+  const zoned = { slots: { no_go: "sensor.z" }, vac: { zones: { action: "x.zones" } } };
+  assert.equal(ctx.apSlotText(zoned, "no_go"), "vacap_zones_from_source|x.zones");
+  assert.equal(ctx.apSlotText(zoned, "walls"), "vacap_zones_from_source|x.zones");
+  assert.equal(ctx.apSlotText(zoned, "dock"), "ap_not_set|");
+  assert.equal(ctx.apSlotText({ slots: { walls: "sensor.w" }, vac: {} }, "walls"), "sensor.w");
+  assert.equal(ctx.apSlotText({ slots: {} }, "no_go"), "ap_not_set|");
+});
