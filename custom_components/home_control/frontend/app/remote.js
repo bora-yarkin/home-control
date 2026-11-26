@@ -305,7 +305,8 @@ function rmComponent(x, edit, onTap) {
     return ph;
   }
   var el;
-  if (a.t === "now") el = nowPlaying(a.e, "tv", a.m === "apps" ? tvSourceMenu(a.e) : null) || mk("div");
+  /* the part's own icon, if one was chosen (the builder's default for it is "media") */
+  if (a.t === "now") el = nowPlaying(a.e, x.i && x.i !== "media" && x.i !== "info" ? x.i : "tv", a.m === "apps" ? tvSourceMenu(a.e) : null) || mk("div");
   else if (a.t === "source") el = tvSources(a.e);
   else if (a.t === "text") {
     el = mk("div", "rm-t pane", svg(x.i || "keyboard"));
@@ -315,7 +316,8 @@ function rmComponent(x, edit, onTap) {
     if (x.l) el.appendChild(mk("span", "rm-l")).textContent = x.l;
     el.addEventListener("click", function () {
       kbDlg(function (v) {
-        rmSendText(a.e, v);
+        /* in a remote master the text goes where the screen is */
+        if (!(a.hook && a.hook(v))) rmSendText(a.e, v);
       });
     });
   } else if (a.t === "slider" && a.m === "pop") {
@@ -390,7 +392,7 @@ function rmTile(x, edit, onTap) {
 /* The grid. `tiles` collects each button's element, in order, so the builder can make them draggable. */
 function rmGrid(d, edit, onTap, tiles) {
   var rm = d.rm,
-    grid = mk("div", "rm-grid");
+    grid = mk("div", "rm-grid" + (rm.look === "native" ? " rm-native" : ""));
   grid.style.setProperty("--rc", rm.cols);
   rm.btns.forEach(function (x, i) {
     var t = rmTile(x, edit, function () {
@@ -606,6 +608,22 @@ function remoteBuild(b, rid) {
         )
       );
       box.appendChild(hintRow(_T("rm_columns_hint")));
+      box.appendChild(
+        pill("tune", _T("rm_native_look"), {
+          on: function () {
+            return rm.look === "native";
+          },
+          sub: function () {
+            return rm.look === "native" ? _T("on_cap") : _T("off");
+          },
+          tap: function () {
+            if (rm.look === "native") delete rm.look;
+            else rm.look = "native";
+            uiChanged();
+            draw();
+          },
+        })
+      );
       box.appendChild(sep(_T("rm_buttons"), "play"));
       var tiles = [];
       if (rm.btns.length) {

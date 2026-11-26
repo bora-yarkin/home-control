@@ -239,6 +239,14 @@ function rmMemberKeys(x, k) {
   ["ok", "back", "home", "settings", "playpause"].forEach(function (r) {
     if (acts[r]) out[r] = press(r);
   });
+  /* typed text goes to the player its keyboard button names */
+  var keys = (((rmCustom(x, k) || {}).rm || {}).btns || []).filter(function (b) {
+    return b.a && b.a.t === "text";
+  })[0];
+  if (keys)
+    out.text = function (v) {
+      rmSendText(keys.a.e, v);
+    };
   if (acts.hold || acts.ok) out.hold = press(acts.hold ? "hold" : "ok");
   if (acts.up || acts.down || acts.left || acts.right)
     out.dir = function (d) {
@@ -483,7 +491,7 @@ function rmHooks(x) {
       else b.appendChild(slot);
       /* now playing gave its row to the speaker, and the inputs with it: they are offered beside power meanwhile */
       if (free && inCard) {
-        var inputs = tvSources(x.def),
+        var inputs = tvSources(rmState(x, x.def)),
           up = function () {
             inputs.style.display = speakerHasRow() ? "" : "none";
           };
@@ -537,9 +545,29 @@ function rmCustomBuild(area, x, sel) {
   var hooks = rmHooks(x),
     own = rmRoleActs(x, sel),
     copy = JSON.parse(JSON.stringify(c.rm)),
-    st = rmState(x, sel);
-  if (x.subs.length || x.spk.length) hooks.np(area, st, "media");
-  if (x.spk.length) hooks.beside(area, area);
+    st = rmState(x, sel),
+    gap = false;
+  if (x.subs.length || x.spk.length) {
+    /* the remote's own now playing becomes the master's, so that it is there once, opens the apps as set, and follows the screen */
+    var now = (copy.btns || []).filter(function (b) {
+      return b.a.t === "now";
+    })[0];
+    if (now) copy.btns.splice(copy.btns.indexOf(now), 1);
+    hooks.np(area, now ? now.a.e : st, c.icon || "media", now && now.a.m === "apps" ? tvSourceMenu(now.a.e) : undefined);
+  }
+  /* the speaker's place: an empty cell of the grid (beside Power, say), else above the remote */
+  if (x.spk.length) {
+    gap = (copy.btns || []).some(function (b) {
+      return b.a.t === "gap";
+    });
+    if (!gap) hooks.beside(area, area);
+  }
+  (copy.btns || []).forEach(function (b) {
+    if (b.a.t === "text")
+      b.a.hook = function (v) {
+        return hooks.ovr("text", v);
+      };
+  });
   rmActions(copy).forEach(function (item) {
     var mine = JSON.stringify(cleanRmAct(item.a));
     var role = RM_ROLES.filter(function (r) {
@@ -551,6 +579,10 @@ function rmCustomBuild(area, x, sel) {
     };
   });
   remotePage(area, c.rid, { rid: c.rid, name: c.name, icon: c.icon, rm: copy });
+  if (gap) {
+    var cell = area.querySelector(".rm-grid > .rm-gap");
+    if (cell) hooks.beside(area, cell);
+  }
 }
 
 /* One device's remote, put into `area`: the default as the combined view, any other as its own remote, and its Advanced settings as the device's own popup has them. */

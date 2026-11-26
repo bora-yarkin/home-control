@@ -4,6 +4,10 @@ Format: [Keep a Changelog](https://keepachangelog.com/). Versions follow [semant
 
 ## [Unreleased]
 
+### Added
+- **A remote you build can look like the built-in ones:** the builder's *Look of the built-in remotes* gives a grid their buttons, spacing and touchpad.
+- **A custom remote as a Remote master's default behaves like a built-in one:** its now playing part is the master's (once, with the apps menu when set), the speaker takes an empty cell beside Power, and typed text goes to the device on the screen.
+
 ## [0.29.1] - 2026-11-26
 
 ### Fixed

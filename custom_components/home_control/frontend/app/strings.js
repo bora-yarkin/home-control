@@ -294,6 +294,7 @@ var EN = {
   "rm_columns_label": "Columns",
   "rm_control": "Control",
   "rm_gap": "Gap",
+  "rm_native_look": "Look of the built-in remotes",
   "rm_gap_hint": "An empty cell, to leave room between buttons.",
   "rm_height": "Height",
   "rm_keys_of": "Keys of",

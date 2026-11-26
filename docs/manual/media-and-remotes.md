@@ -17,6 +17,7 @@ The built-in `samsungtv` integration reports no inputs; Samsung TV Smart (custom
 
 - **Grid:** choose columns, then add buttons: an entity to press, a key sent to a `remote` entity, a media player action or source, a five-way pad, a touchpad,
   now-playing, a source menu, a keyboard button, a slider, or a gap. Drag to reorder; set how wide and tall each is.
+- **Look of the built-in remotes:** draws your grid with the buttons, spacing and touchpad of the Samsung and Apple TV remotes.
 - **Picture:** upload a photo of your real remote (PNG, JPEG or WebP, at most 5 MB) or use a `/local/` file, then draw touch areas over its buttons.
 
 ## The Remote master

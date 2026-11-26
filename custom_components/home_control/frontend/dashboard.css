@@ -880,6 +880,15 @@ body.pinhdr:not(.editing) .wrap::before{content:"";position:fixed;top:0;left:0;r
 .rm-grid>.touch,.rm-grid>.pill,.rm-grid>.sel,.rm-grid>.art,.rm-grid>.rm-comp{margin:0;min-width:0}
 .rm-grid>.touch{height:auto;min-height:0;align-items:center;padding-bottom:0}
 .rm-grid>.touch.ed{color:var(--ink2)}
+/* the grid drawn as the built-in remotes: their buttons, spacing and touchpad */
+.rm-grid.rm-native{gap:var(--sp);margin-bottom:var(--sp)}
+.rm-native>.rm-t{flex-direction:row;gap:6px;border-radius:var(--r-row);font-size:var(--fs-m)}
+.rm-native>.rm-t svg{width:22px;height:22px}
+.rm-native>.rm-t .rm-l{font-size:var(--fs-m);font-weight:400}
+.rm-grid.rm-native>.touch{height:clamp(260px,40vh,340px)}
+/* a remote master's speaker (or input list) in an empty cell */
+.rm-gap>.rm-slot,.rm-gap>.sel.tvsrc{margin:0;height:100%}
+.rm-gap>.rm-slot>.rm-spk,.rm-gap>.sel.tvsrc{min-height:54px;padding-top:0;padding-bottom:0}
 .rm-grid>.touch svg{width:28px;height:28px;fill:none;stroke:currentColor;stroke-width:1.6}
 .rm-dpad:focus-visible,.rm-dp:focus-visible{outline:2px solid var(--acc);outline-offset:2px}
 
