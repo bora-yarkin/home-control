@@ -234,7 +234,7 @@ function cleanRemote(r) {
     var label = typeof x.l === "string" ? x.l.slice(0, 24) : "",
       btn = { a: a, i: iconOk(x.i) ? x.i : x.i === "" && label ? "" : "info", l: label, s: s, h: h };
     if (x.q) btn.q = 1;
-    if (["red", "green", "yellow", "blue"].indexOf(x.k) >= 0) btn.k = x.k;
+    if (typeof x.k === "string" && /^(red|green|yellow|blue|#[0-9a-f]{6})$/.test(x.k)) btn.k = x.k;
     out.btns.push(btn);
   });
   /* the grid drawn as the built-in remotes are */

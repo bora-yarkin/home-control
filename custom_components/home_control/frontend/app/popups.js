@@ -980,6 +980,7 @@ POPUP_DEFS["gmedia"] = POPUP_DEFS["media"];
 
 /* Customising items, types, the look and the person's own attention rules (app/customize.js, which loads after this file: its pages are asked for when opened). */
 [
+  ["colour-pick", "pick_a_colour", "palette", function () { return colorPickPage; }],
   ["cust", "customize", "palette", function () { return custPage; }],
   ["cust-cond", "condition", "check", function () { return custCondPage; }],
   ["look", "look_title", "palette", function () { return lookPage; }],
@@ -990,7 +991,7 @@ POPUP_DEFS["gmedia"] = POPUP_DEFS["media"];
 ].forEach(function (p) {
   POPUP_DEFS[p[0]] = function (id) {
     return {
-      title: _T(p[1]),
+      title: p[0] === "colour-pick" && CPICK ? CPICK.title : _T(p[1]),
       icon: p[2],
       build: function (b) {
         p[3]()(b, id);

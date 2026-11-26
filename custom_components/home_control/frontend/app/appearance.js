@@ -23,6 +23,7 @@ var PREFS = {
   sky: true,
   startView: "",
   accH: 174,
+  accHex: "",
   tf: "auto",
 };
 
@@ -39,6 +40,7 @@ function mergePrefs(v) {
     PREFS.startView = v.startView;
   if (v.tf === "auto" || v.tf === "12" || v.tf === "24") PREFS.tf = v.tf;
   if (typeof v.accH === "number" && v.accH >= 0 && v.accH < 360) PREFS.accH = Math.round(v.accH);
+  if (v.accHex === "" || (typeof v.accHex === "string" && /^#[0-9a-f]{6}$/.test(v.accHex))) PREFS.accHex = v.accHex;
 }
 
 function savePrefsLocal() {
@@ -56,6 +58,7 @@ function themeLight() {
 
 /* One steady accent colour that the user picks. */
 function flatAccent() {
+  if (PREFS.accHex) return PREFS.accHex;
   var c = hsl2rgb(PREFS.accH, 0.82, themeLight() ? 0.46 : 0.62);
   return "rgb(" + Math.round(c[0]) + "," + Math.round(c[1]) + "," + Math.round(c[2]) + ")";
 }
@@ -165,24 +168,17 @@ function appearancePage(b) {
         }
       )
     );
-    box.appendChild(sep(_T("accent_colour"), "palette"));
-    var ar = mk("div", "pre pgrid accgrid");
-    ar.style.gridTemplateColumns = "repeat(8,1fr)";
-    [215, 180, 145, 100, 35, 350, 320, 270].forEach(function (hh) {
-      ar.appendChild(
-        swatch(
-          { h: hh, s: 70 },
-          {
-            act: PREFS.accH === hh,
-            tap: function () {
-              setPref("accH", hh);
-              redrawBox(box, draw);
-            },
-          }
-        )
-      );
-    });
-    box.appendChild(ar);
+    box.appendChild(
+      colorButton(
+        _T("accent_colour"),
+        function () {
+          return PREFS.accHex || "";
+        },
+        function (c) {
+          setPref("accHex", c);
+        }
+      )
+    );
     box.appendChild(
       pill("expand", _T("larger_display"), {
         on: function () {

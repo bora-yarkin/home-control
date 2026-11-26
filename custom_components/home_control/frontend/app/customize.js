@@ -5,7 +5,6 @@
 
 /* The colour groups of the icons (the data-k of a row), and the actions a gesture can have. */
 var LOOK_GROUPS = ["light", "climate", "heat", "media", "security", "power", "clean", "scene", "appliance", "cover", "alert", "link", "other"],
-  LOOK_SWATCHES = ["#e5564e", "#ee8442", "#e9ae3c", "#bcd04a", "#45bd84", "#3fc2b4", "#4fa8e0", "#8d9fe0", "#a487f2", "#e774a8", "#b08a6a", "#9a9a9a", "#f2f2f2"],
   ACT_KINDS = ["popup", "toggle", "more", "page", "run", "none"],
   GESTURES = ["tap", "hold", "dbl"],
   COLORRE = /^#[0-9a-f]{6}$/;
@@ -180,22 +179,6 @@ function lookApply() {
 
 /* ---- settings ---- */
 
-/* A row of colour dots, with "as it comes" first. */
-function swatches(current, pick) {
-  var row = mk("div", "swatches");
-  [""].concat(LOOK_SWATCHES).forEach(function (c) {
-    var dot = mk("button", "swatch" + ((current || "") === c ? " act" : ""));
-    dot.type = "button";
-    dot.setAttribute("aria-label", c || _T("default_colour"));
-    if (c) dot.style.background = c;
-    dot.addEventListener("click", function () {
-      pick(c);
-    });
-    row.appendChild(dot);
-  });
-  return row;
-}
-
 function actText(a) {
   if (!a) return _T("default_action");
   if (a.t === "page") return _T("act_page") + ": " + (TITLES[a.p] || a.p);
@@ -267,14 +250,18 @@ function custPage(b, key) {
     uiChanged();
   }
   function draw() {
-    box.appendChild(sep(_T("icon_colour"), "palette"));
     box.appendChild(
-      swatches(d.color, function (c) {
-        if (c) d.color = c;
-        else delete d.color;
-        save();
-        redraw();
-      })
+      colorButton(
+        _T("icon_colour"),
+        function () {
+          return d.color || "";
+        },
+        function (c) {
+          if (c) d.color = c;
+          else delete d.color;
+          save();
+        }
+      )
     );
     box.appendChild(sep(_T("gestures"), "tune"));
     d.act = d.act || {};
@@ -409,15 +396,21 @@ function lookPage(b) {
     choice("spacing", "density", ["compact", "", "roomy"]);
     box.appendChild(sep(_T("colour_by_type"), "palette"));
     LOOK_GROUPS.forEach(function (g) {
-      box.appendChild(hintRow(_T("group_" + g)));
       box.appendChild(
-        swatches(UI.look && UI.look.kc && UI.look.kc[g], function (c) {
-          var kc = (look().kc = look().kc || {});
-          if (c) kc[g] = c;
-          else delete kc[g];
-          if (!Object.keys(kc).length) delete look().kc;
-          save();
-        })
+        colorButton(
+          _T("group_" + g),
+          function () {
+            return (UI.look && UI.look.kc && UI.look.kc[g]) || "";
+          },
+          function (c) {
+            var kc = (look().kc = look().kc || {});
+            if (c) kc[g] = c;
+            else delete kc[g];
+            if (!Object.keys(kc).length) delete look().kc;
+            uiChanged();
+            lookApply();
+          }
+        )
       );
     });
   }

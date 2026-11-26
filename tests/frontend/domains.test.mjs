@@ -59,3 +59,14 @@ test("a thermostat with two targets gets a slider for each, and only the modes i
   assert.match(climate, /target_temp_low: A\(id\)\.target_temp_low, target_temp_high/);
   assert.match(climate, /if \(!\(A\(id\)\[x\[0\]\] \|\| \[\]\)\.length\) return;/);
 });
+
+test("colours are picked on the wheel, never from a fixed set, and any way of writing one is read", () => {
+  for (const file of ["app/customize.js", "app/appearance.js", "app/remote.js"]) assert.match(read(file), /colorButton\(/, file);
+  assert.doesNotMatch(read("app/customize.js") + read("app/appearance.js"), /swatches|accgrid|swatch\(/);
+  const ctx = vm.createContext({ window: { CSS: true }, CSS: { supports: (p, v) => v === "teal" }, cssToRgb: () => [0, 128, 128] });
+  vm.runInContext(read("app/colorpick.js"), ctx);
+  assert.equal(ctx.colorParse("FF8800"), "#ff8800");
+  assert.equal(ctx.colorParse("#abc"), "#aabbcc");
+  assert.equal(ctx.colorParse("teal"), "#008080");
+  assert.equal(ctx.colorParse("nonsense"), "");
+});

@@ -9,7 +9,7 @@
   if (light) document.body.classList.add("light");
   document.documentElement.style.setProperty(
     "--acc",
-    "hsl(" + (typeof p.accH === "number" ? p.accH : 174) + ",82%," + (light ? 46 : 62) + "%)"
+    /^#[0-9a-f]{6}$/.test(p.accHex) ? p.accHex : "hsl(" + (typeof p.accH === "number" ? p.accH : 174) + ",82%," + (light ? 46 : 62) + "%)"
   );
 })();
 
