@@ -100,3 +100,12 @@ Order: A, then B, then C. Each is released and checked on the real box (with Hue
 - P16-2 released 0.26.0 (node, the harness): stored scenes are never cut on load; new ones are refused past 200 with a message; masters, sections and folders hold 200. Acceptance: more than 60 stored scenes all load and survive a save.
 - P16-3 released 0.26.0 (node): the effect page's Create tile only where colour or speed is sent to the selected lights.
 
+
+## P17 Any device, any home (2026-11-26, the owner's request: "Do all of them in one pass. Also no hardcoded string in code. Everything must be key value ... The language should follow hass but also be able to configure in the settings"; decision D-42)
+Not in scope (owner agreed): importing Home Assistant's YAML dashboards, hosting community Lovelace cards.
+- P17-1 in_progress: every entity can be operated. Acceptance: humidifier, water heater, alarm panel, valve, lawn mower, siren, update, automation, text, date, time, date and time get controls from what they report; any other entity can open Home Assistant's own dialog; a thermostat with two targets sets both; a climate or media player shows only what it reports (media: seek, shuffle, repeat, sound mode, grouping; fan direction; target humidity); a test adds one of every type.
+- P17-2 planned: per item and per type. Acceptance: tap, hold and double tap actions, colour, state text (also "this text when ..."), visibility conditions and confirm are set from menus, saved, cleaned on load, and per type defaults for tap and confirm apply.
+- P17-3 planned: dashboard rules and look. Acceptance: own alert rules, any low-battery percentage, corner radius and row density.
+- P17-4 planned: every text shown is a key. Acceptance: a test fails on a hardcoded user-visible string; the language follows Home Assistant and can be chosen in Settings; a new language is one file.
+- P17-5 planned: names are never required to be English. Acceptance: device types come from device_class and reported features first, with a manual override.
+- P17-6 planned: custom device, shareable presets, widgets from others. Acceptance: an appliance that starts empty takes any entity as a row; a section is saved as a preset without entity ids and loaded by choosing entities; plugins can register a widget, with a guide.
