@@ -6,7 +6,7 @@ function addCandidate(rid, c) {
   /* A scene made on the dashboard is a device that points to it. */
   if (c.id.indexOf("dscene:") === 0) {
     var sc = sceneById(c.id.slice(7)),
-      sd = { id: "", sid: c.id.slice(7), name: "Scene", icon: (sc && sc.icon) || "scene", kind: "cscene" };
+      sd = { id: "", sid: c.id.slice(7), name: _T("scene_default_name"), icon: (sc && sc.icon) || "scene", kind: "cscene" };
     return { d: sd, at: placeDevice(rid, sd), wizard: false };
   }
   var kind = DOMKIND[dom(c.id)] || "sensor",

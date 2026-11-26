@@ -856,11 +856,11 @@ function scenesToDevices(s) {
   var c = Object.assign({}, s),
     devs = Array.isArray(s.devs) ? s.devs.slice() : [];
   (Array.isArray(s.scn) ? s.scn : []).forEach(function (id) {
-    devs.push({ kind: "cscene", sid: id, id: "", name: "Scene", icon: "scene" });
+    devs.push({ kind: "cscene", sid: id, id: "", name: _T("scene_default_name"), icon: "scene" });
   });
   (Array.isArray(s.sents) ? s.sents : []).forEach(function (e) {
     if (typeof e === "string" && /^scene\.[a-z0-9_]+$/.test(e))
-      devs.push({ kind: "scene", id: e, name: e.split(".")[1].replace(/_/g, " ").slice(0, 40) || "Scene", icon: "scene" });
+      devs.push({ kind: "scene", id: e, name: e.split(".")[1].replace(/_/g, " ").slice(0, 40) || _T("scene_default_name"), icon: "scene" });
   });
   if (s.k === "scenes" || (s.scs && !(s.scn || []).length && !(s.sents || []).length) || s.spage || s.stag || s.sarea)
     devs.push({

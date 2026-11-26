@@ -257,6 +257,7 @@ function condText(c) {
 /* Where notifications send you: this dashboard's own page, wherever it is installed. */
 /* Dates and times follow the language and 12/24-hour choice of the Home Assistant user. */
 function LOC() {
+  if (window.HC_LANG_CHOSEN) return window.HC_LANG_CHOSEN;
   var h = H();
   return (h && h.locale && h.locale.language) || undefined;
 }

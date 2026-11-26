@@ -113,18 +113,18 @@ function rbUnlock() {
 }
 
 var RBLAB = {
-  "Sweep": "Vacuuming",
-  "Mop": "Mopping",
-  "Sweep Mop": "Vac & Mop",
-  "Sweep Before Mopping": "Vac before Mop",
-  "Silent": "Silent",
-  "Basic": "Standard",
-  "Strong": "Strong",
-  "Full Speed": "Turbo",
-  "Off": "Off",
-  "Level1": "Level 1",
-  "Level2": "Level 2",
-  "Level3": "Level 3",
+  "Sweep": _T("vacw_vacuuming"),
+  "Mop": _T("vacw_mopping"),
+  "Sweep Mop": _T("vacw_vac_and_mop"),
+  "Sweep Before Mopping": _T("vacw_vac_before_mop"),
+  "Silent": _T("vacw_silent"),
+  "Basic": _T("vacw_standard"),
+  "Strong": _T("vacw_strong"),
+  "Full Speed": _T("vacw_turbo"),
+  "Off": _T("vacw_off"),
+  "Level1": _T("vacw_level_1"),
+  "Level2": _T("vacw_level_2"),
+  "Level3": _T("vacw_level_3"),
 };
 
 var RBICON = {

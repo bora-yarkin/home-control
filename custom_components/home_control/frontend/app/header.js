@@ -2,21 +2,21 @@
 
 /* Header items: weather, who is home, lights on, or any sensor reading. The list, size and greeting are edited in Settings, Names and header. */
 var HCOND = {
-  sunny: ["Sunny", "bright"],
-  "clear-night": ["Clear", "moon"],
-  cloudy: ["Cloudy", "info"],
-  partlycloudy: ["Partly cloudy", "info"],
-  rainy: ["Rain", "drop"],
-  pouring: ["Heavy rain", "drop"],
-  "lightning-rainy": ["Storm", "drop"],
-  lightning: ["Storm", "info"],
-  snowy: ["Snow", "info"],
-  "snowy-rainy": ["Sleet", "drop"],
-  fog: ["Fog", "info"],
-  hail: ["Hail", "drop"],
-  windy: ["Windy", "info"],
-  "windy-variant": ["Windy", "info"],
-  exceptional: ["Alert", "info"],
+  sunny: [_T("sky_sunny"), "bright"],
+  "clear-night": [_T("sky_clear"), "moon"],
+  cloudy: [_T("sky_cloudy"), "info"],
+  partlycloudy: [_T("sky_partly_cloudy"), "info"],
+  rainy: [_T("sky_rain"), "drop"],
+  pouring: [_T("sky_heavy_rain"), "drop"],
+  "lightning-rainy": [_T("sky_storm"), "drop"],
+  lightning: [_T("sky_storm"), "info"],
+  snowy: [_T("sky_snow"), "info"],
+  "snowy-rainy": [_T("sky_sleet"), "drop"],
+  fog: [_T("sky_fog"), "info"],
+  hail: [_T("sky_hail"), "drop"],
+  windy: [_T("sky_windy"), "info"],
+  "windy-variant": [_T("sky_windy"), "info"],
+  exceptional: [_T("sky_alert"), "info"],
 };
 
 function firstWeather() {
@@ -432,7 +432,7 @@ function hdrPage(box, m) {
       var r = hdrItem(it) || { i: it.k === "alerts" ? "alert" : "info", t: HLAB[it.k] },
         p = pill(r.i, r.t, {
           sub: function () {
-            return HLAB[it.k] + (hdrShown(it) ? "" : " · " + _T("hidden").toLowerCase());
+            return HLAB[it.k] + (hdrShown(it) ? "" : " · " + _T("hidden").toLocaleLowerCase(globalThis.HC_LANG));
           },
           tap: function () {
             showPopup("manage-hitem:" + i, true);

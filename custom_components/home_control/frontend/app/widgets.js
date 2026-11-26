@@ -734,7 +734,7 @@ function glance(items, cols) {
       var x = it[1]();
       if (it[2]) b.querySelector("span").textContent = it[2]();
       v.textContent = x;
-      b.classList.toggle("off", x.indexOf("Offline") >= 0);
+      b.classList.toggle("off", x.indexOf(_T("offline")) >= 0);
     };
     reg(b.refresh);
     g.appendChild(b);
@@ -1163,7 +1163,7 @@ function lightsLabel(ids) {
 }
 
 function sv(id, unit, dp) {
-  if (!svOk(id)) return "Offline";
+  if (!svOk(id)) return _T("offline");
   var v = Number(V_(id));
   return V_(id) === "" || !isFinite(v) ? "–" : v.toFixed(dp === undefined ? 1 : dp) + unit;
 }

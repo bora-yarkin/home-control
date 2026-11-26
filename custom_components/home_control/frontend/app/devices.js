@@ -113,7 +113,7 @@ var ALERT_BIN = [
 
 var FAULT_OK = ["0", "none", "no_error", "no error", "ok", "normal", "no_fault", "idle", ""];
 
-var INK = { bk: "Black", k: "Black", c: "Cyan", m: "Magenta", y: "Yellow" };
+var INK = { bk: _T("ink_black"), k: _T("ink_black"), c: _T("ink_cyan"), m: _T("ink_magenta"), y: _T("ink_yellow") };
 
 function infoKey(eid) {
   return eid.split(".")[1];
@@ -407,12 +407,12 @@ function sensorIcon(id) {
 
 function entVal(id) {
   var s = V_(id);
-  if (!svOk(id)) return "Offline";
+  if (!svOk(id)) return _T("offline");
   var u = A(id).unit_of_measurement,
     n = Number(s);
   if (s !== "" && isFinite(n))
     return Math.round(n * 100) / 100 + (u ? (/^(%|°C|°F|°)$/.test(u) ? "" : " ") + u : "");
-  if (dom(id) === "binary_sensor") return s === "on" ? "On" : "Off";
+  if (dom(id) === "binary_sensor") return s === "on" ? _T("on_cap") : _T("off");
   return cap(s);
 }
 

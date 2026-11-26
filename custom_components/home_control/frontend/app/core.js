@@ -409,12 +409,12 @@ function ago(id) {
   if (!s || !s.last_changed) return "";
   var m = Math.max(0, Math.round((Date.now() - Date.parse(s.last_changed)) / 60000));
   if (isNaN(m)) return "";
-  if (m < 1) return "just now";
+  if (m < 1) return _T("just_now");
   if (m < 60) return m + _T("min_ago");
   var h = Math.floor(m / 60);
   if (h < 24) return h + _T("h_ago");
   var d = Math.floor(h / 24);
-  return d === 1 ? "yesterday" : d + _T("d_ago");
+  return d === 1 ? _T("ago_yesterday") : d + _T("d_ago");
 }
 
 function stAgo(id) {
@@ -449,10 +449,10 @@ function toast(m) {
 function ago2(iso) {
   var m = Math.max(0, Math.round((Date.now() - Date.parse(iso)) / 60000));
   if (isNaN(m)) return "";
-  if (m < 1) return "just now";
+  if (m < 1) return _T("just_now");
   if (m < 60) return m + _T("min_ago");
   var h = Math.floor(m / 60);
   if (h < 24) return h + _T("h_ago");
   var d = Math.floor(h / 24);
-  return d === 1 ? "yesterday" : d + _T("d_ago");
+  return d === 1 ? _T("ago_yesterday") : d + _T("d_ago");
 }

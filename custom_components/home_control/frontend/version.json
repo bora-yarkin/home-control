@@ -1,8 +1,10 @@
 {
+  "languages": {
+    "en": "English"
+  },
   "version": 515,
   "files": [
     "integrations.js",
-    "app/strings.js",
     "app/core.js",
     "app/icons.js",
     "app/widgets.js",

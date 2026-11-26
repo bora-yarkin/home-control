@@ -4,6 +4,7 @@ import assert from "node:assert/strict";
 import { readFileSync } from "node:fs";
 import test from "node:test";
 import vm from "node:vm";
+import { _T } from "./en.mjs";
 
 const SOURCE = readFileSync(new URL("../../custom_components/home_control/frontend/camera-stream.js", import.meta.url), "utf8");
 
@@ -34,6 +35,7 @@ function talkWith({ answerDirection, mediaDevices, parentMedia }) {
   };
   win.parent = win.parent || win;
   const context = vm.createContext({
+    _T,
     window: win,
     document: { currentScript: { src: "http://h/camera-stream.js" }, addEventListener() {}, hidden: false },
     navigator: { mediaDevices: mediaDevices === undefined ? { getUserMedia: () => Promise.resolve(stream) } : mediaDevices },

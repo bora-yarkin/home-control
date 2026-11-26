@@ -111,9 +111,9 @@ function histBy(e, users) {
         m[1]
       );
     }
-    return "Automation";
+    return _T("automation_word");
   }
-  if (e.context_domain === "script" || e.context_event_type === "script_started") return "Script";
+  if (e.context_domain === "script" || e.context_event_type === "script_started") return _T("script_word");
   return "";
 }
 
@@ -427,24 +427,24 @@ var LOGKEY = "dashboard_log",
   LOGPARTS = ["ui", "scenes", "presets", "access", "notify"];
 
 var UIKEYLAB = {
-    rooms: "rooms",
-    devs: "devices",
-    chips: "climate tiles",
-    stat: "status tiles",
-    bats: "batteries",
-    layout: "layout",
-    caps: "light features",
-    on: "light defaults",
-    newSince: "new devices",
-    ignored: "ignored devices",
-    meta: "names",
+    rooms: _T("part_rooms"),
+    devs: _T("part_devices"),
+    chips: _T("part_climate_tiles"),
+    stat: _T("part_status_tiles"),
+    bats: _T("part_batteries"),
+    layout: _T("part_layout"),
+    caps: _T("part_light_features"),
+    on: _T("part_light_defaults"),
+    newSince: _T("part_new_devices"),
+    ignored: _T("part_ignored_devices"),
+    meta: _T("part_names"),
   },
   PARTLAB = {
-    scenes: "scenes",
-    saved: "saved colours",
-    access: "access rules",
-    sched: "schedules",
-    notify: "notifications",
+    scenes: _T("part_scenes"),
+    saved: _T("part_saved_colours"),
+    access: _T("part_access_rules"),
+    sched: _T("part_schedules"),
+    notify: _T("part_notifications"),
   };
 
 function logDiff(prev, cur) {

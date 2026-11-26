@@ -5,6 +5,7 @@ import assert from "node:assert/strict";
 import { readFileSync } from "node:fs";
 import test from "node:test";
 import vm from "node:vm";
+import { _T as EN_T } from "./en.mjs";
 
 const APP = "../../custom_components/home_control/frontend/app/";
 const SOURCE = readFileSync(new URL(APP + "notifications.js", import.meta.url), "utf8");
@@ -14,7 +15,7 @@ const BATTERIES = readFileSync(new URL(APP + "batteries.js", import.meta.url), "
 function load({ devices, bats = [], rules, live = {}, getError = {}, rings = [], states = {}, entities = {}, home = {}, real = true }) {
   const saved = [];
   const sandbox = {
-    _T: (key) => key,
+    _T: (key, vars) => (/^nt_(msg|word)_/.test(key) ? EN_T(key, vars) : key),
     ISADMIN: true,
     STORE_READY: true,
     dataIsReal: () => real,

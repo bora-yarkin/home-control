@@ -137,62 +137,64 @@ var vacuum={
 /* Which keys a remote entity understands depends on the integration behind it. Each family lists its keys by group as [command, label, icon, colour]; the commands are the ones the integration documents
    (Home Assistant's pages for each), and a family the dashboard does not know takes any command typed in. Only Samsung (samsungtv_smart), Apple TV and Android TV Remote are used with the real device by the author; the
    others follow their documentation and are untested. `how` says how a key is sent: "key" is remote.send_command on the remote entity, "webos" is webostv.button on the media player. */
+/* the dashboard's own words when they are loaded; the key itself where this file is read alone */
+function T(k){return typeof _T==="function"?_T(k):k}
 function K(c,l,i,k){return[c,l,i||"",k||""]}
 function digits(prefix,suffix){var a=[];for(var n=0;n<10;n++)a.push(K(prefix+n+(suffix||""),String(n)));return a}
 var KEYS={
- samsung:{label:"Samsung TV",how:"key",groups:[
-  ["nav",[K("KEY_UP","Up","up"),K("KEY_DOWN","Down","down"),K("KEY_LEFT","Left","left"),K("KEY_RIGHT","Right","right"),K("KEY_ENTER","OK"),K("KEY_RETURN","Back","back"),K("KEY_HOME","Home","home"),K("KEY_MENU","Menu","cog"),K("KEY_EXIT","Exit","close"),K("KEY_INFO","Info","info"),K("KEY_GUIDE","Guide"),K("KEY_TOOLS","Tools","tune")]],
-  ["power",[K("KEY_POWER","Power","power"),K("KEY_SOURCE","Source","swap"),K("KEY_HDMI","HDMI")]],
-  ["volume",[K("KEY_VOLUP","Volume up","volup"),K("KEY_VOLDOWN","Volume down","voldown"),K("KEY_MUTE","Mute","mute"),K("KEY_CHUP","Channel up","chup"),K("KEY_CHDOWN","Channel down","chdown"),K("KEY_CH_LIST","Channels"),K("KEY_PRECH","Previous")]],
+ samsung:{label:T("rk_samsung_tv"),how:"key",groups:[
+  ["nav",[K("KEY_UP",T("rk_up"),"up"),K("KEY_DOWN",T("rk_down"),"down"),K("KEY_LEFT",T("rk_left"),"left"),K("KEY_RIGHT",T("rk_right"),"right"),K("KEY_ENTER",T("rk_ok")),K("KEY_RETURN",T("rk_back"),"back"),K("KEY_HOME",T("rk_home"),"home"),K("KEY_MENU",T("rk_menu"),"cog"),K("KEY_EXIT",T("rk_exit"),"close"),K("KEY_INFO",T("rk_info"),"info"),K("KEY_GUIDE",T("rk_guide")),K("KEY_TOOLS",T("rk_tools"),"tune")]],
+  ["power",[K("KEY_POWER",T("rk_power"),"power"),K("KEY_SOURCE",T("rk_source"),"swap"),K("KEY_HDMI",T("rk_hdmi"))]],
+  ["volume",[K("KEY_VOLUP",T("rk_volume_up"),"volup"),K("KEY_VOLDOWN",T("rk_volume_down"),"voldown"),K("KEY_MUTE",T("rk_mute"),"mute"),K("KEY_CHUP",T("rk_channel_up"),"chup"),K("KEY_CHDOWN",T("rk_channel_down"),"chdown"),K("KEY_CH_LIST",T("rk_channels")),K("KEY_PRECH",T("rk_previous"))]],
   ["numbers",digits("KEY_")],
-  ["media",[K("KEY_PLAY","Play","play"),K("KEY_PAUSE","Pause","pause"),K("KEY_STOP","Stop","stop"),K("KEY_REWIND","Rewind","prev"),K("KEY_FF","Forward","next"),K("KEY_REC","Record","rec")]],
+  ["media",[K("KEY_PLAY",T("rk_play"),"play"),K("KEY_PAUSE",T("rk_pause"),"pause"),K("KEY_STOP",T("rk_stop"),"stop"),K("KEY_REWIND",T("rk_rewind"),"prev"),K("KEY_FF",T("rk_forward"),"next"),K("KEY_REC",T("rk_record"),"rec")]],
   ["colours",[K("KEY_RED","","","red"),K("KEY_GREEN","","","green"),K("KEY_YELLOW","","","yellow"),K("KEY_CYAN","","","blue")]],
-  ["other",[K("KEY_CAPTION","Subtitles"),K("KEY_PICTURE_SIZE","Picture size"),K("KEY_SLEEP","Sleep"),K("KEY_FAVCH","Favourites")]]]},
- apple:{label:"Apple TV",how:"key",groups:[
-  ["nav",[K("up","Up","up"),K("down","Down","down"),K("left","Left","left"),K("right","Right","right"),K("select","OK"),K("menu","Back","back"),K("home","Home","home"),K("top_menu","TV app","tv"),K("control_center","Control centre","cog")]],
-  ["power",[K("wakeup","Wake","power"),K("suspend","Sleep","moon"),K("turn_on","Turn on"),K("turn_off","Turn off")]],
-  ["volume",[K("volume_up","Volume up","volup"),K("volume_down","Volume down","voldown")]],
-  ["media",[K("play","Play","play"),K("pause","Pause","pause"),K("previous","Previous","prev"),K("next","Next","next"),K("skip_backward","Back 10 s","prev"),K("skip_forward","Forward 10 s","next")]]]},
- android:{label:"Android TV",how:"key",groups:[
-  ["nav",[K("DPAD_UP","Up","up"),K("DPAD_DOWN","Down","down"),K("DPAD_LEFT","Left","left"),K("DPAD_RIGHT","Right","right"),K("DPAD_CENTER","OK"),K("BACK","Back","back"),K("HOME","Home","home"),K("MENU","Menu","cog"),K("SETTINGS","Settings","tune"),K("SEARCH","Search","search"),K("INFO","Info","info"),K("GUIDE","Guide")]],
-  ["power",[K("POWER","Power","power"),K("TV","TV","tv")]],
-  ["volume",[K("VOLUME_UP","Volume up","volup"),K("VOLUME_DOWN","Volume down","voldown"),K("VOLUME_MUTE","Mute","mute"),K("CHANNEL_UP","Channel up","chup"),K("CHANNEL_DOWN","Channel down","chdown")]],
+  ["other",[K("KEY_CAPTION",T("rk_subtitles")),K("KEY_PICTURE_SIZE",T("rk_picture_size")),K("KEY_SLEEP",T("rk_sleep")),K("KEY_FAVCH",T("rk_favourites"))]]]},
+ apple:{label:T("rk_apple_tv"),how:"key",groups:[
+  ["nav",[K("up",T("rk_up"),"up"),K("down",T("rk_down"),"down"),K("left",T("rk_left"),"left"),K("right",T("rk_right"),"right"),K("select",T("rk_ok")),K("menu",T("rk_back"),"back"),K("home",T("rk_home"),"home"),K("top_menu",T("rk_tv_app"),"tv"),K("control_center",T("rk_control_centre"),"cog")]],
+  ["power",[K("wakeup",T("rk_wake"),"power"),K("suspend",T("rk_sleep"),"moon"),K("turn_on",T("rk_turn_on")),K("turn_off",T("rk_turn_off"))]],
+  ["volume",[K("volume_up",T("rk_volume_up"),"volup"),K("volume_down",T("rk_volume_down"),"voldown")]],
+  ["media",[K("play",T("rk_play"),"play"),K("pause",T("rk_pause"),"pause"),K("previous",T("rk_previous"),"prev"),K("next",T("rk_next"),"next"),K("skip_backward",T("rk_back_10_s"),"prev"),K("skip_forward",T("rk_forward_10_s"),"next")]]]},
+ android:{label:T("rk_android_tv"),how:"key",groups:[
+  ["nav",[K("DPAD_UP",T("rk_up"),"up"),K("DPAD_DOWN",T("rk_down"),"down"),K("DPAD_LEFT",T("rk_left"),"left"),K("DPAD_RIGHT",T("rk_right"),"right"),K("DPAD_CENTER",T("rk_ok")),K("BACK",T("rk_back"),"back"),K("HOME",T("rk_home"),"home"),K("MENU",T("rk_menu"),"cog"),K("SETTINGS",T("rk_settings"),"tune"),K("SEARCH",T("rk_search"),"search"),K("INFO",T("rk_info"),"info"),K("GUIDE",T("rk_guide"))]],
+  ["power",[K("POWER",T("rk_power"),"power"),K("TV",T("rk_tv"),"tv")]],
+  ["volume",[K("VOLUME_UP",T("rk_volume_up"),"volup"),K("VOLUME_DOWN",T("rk_volume_down"),"voldown"),K("VOLUME_MUTE",T("rk_mute"),"mute"),K("CHANNEL_UP",T("rk_channel_up"),"chup"),K("CHANNEL_DOWN",T("rk_channel_down"),"chdown")]],
   ["numbers",digits("")],
-  ["media",[K("MEDIA_PLAY_PAUSE","Play/pause","playpause"),K("MEDIA_PLAY","Play","play"),K("MEDIA_PAUSE","Pause","pause"),K("MEDIA_STOP","Stop","stop"),K("MEDIA_PREVIOUS","Previous","prev"),K("MEDIA_NEXT","Next","next"),K("MEDIA_REWIND","Rewind","prev"),K("MEDIA_FAST_FORWARD","Forward","next"),K("MEDIA_RECORD","Record","rec")]],
+  ["media",[K("MEDIA_PLAY_PAUSE",T("rk_play_pause"),"playpause"),K("MEDIA_PLAY",T("rk_play"),"play"),K("MEDIA_PAUSE",T("rk_pause"),"pause"),K("MEDIA_STOP",T("rk_stop"),"stop"),K("MEDIA_PREVIOUS",T("rk_previous"),"prev"),K("MEDIA_NEXT",T("rk_next"),"next"),K("MEDIA_REWIND",T("rk_rewind"),"prev"),K("MEDIA_FAST_FORWARD",T("rk_forward"),"next"),K("MEDIA_RECORD",T("rk_record"),"rec")]],
   ["colours",[K("PROG_RED","","","red"),K("PROG_GREEN","","","green"),K("PROG_YELLOW","","","yellow"),K("PROG_BLUE","","","blue")]]]},
- roku:{label:"Roku",how:"key",groups:[
-  ["nav",[K("up","Up","up"),K("down","Down","down"),K("left","Left","left"),K("right","Right","right"),K("select","OK"),K("back","Back","back"),K("home","Home","home"),K("info","Info","info"),K("search","Search","search"),K("replay","Replay","restart")]],
-  ["power",[K("power","Power","power"),K("input_hdmi1","HDMI 1"),K("input_hdmi2","HDMI 2"),K("input_hdmi3","HDMI 3"),K("input_hdmi4","HDMI 4"),K("input_av1","AV"),K("input_tuner","Tuner")]],
-  ["volume",[K("volume_up","Volume up","volup"),K("volume_down","Volume down","voldown"),K("volume_mute","Mute","mute"),K("channel_up","Channel up","chup"),K("channel_down","Channel down","chdown")]],
-  ["media",[K("play","Play/pause","playpause"),K("reverse","Rewind","prev"),K("forward","Forward","next")]]]},
- bravia:{label:"Sony Bravia",how:"key",groups:[
-  ["nav",[K("Up","Up","up"),K("Down","Down","down"),K("Left","Left","left"),K("Right","Right","right"),K("Confirm","OK"),K("Return","Back","back"),K("Home","Home","home"),K("Exit","Exit","close"),K("ActionMenu","Menu","cog"),K("SyncMenu","Sync menu")]],
+ roku:{label:T("rk_roku"),how:"key",groups:[
+  ["nav",[K("up",T("rk_up"),"up"),K("down",T("rk_down"),"down"),K("left",T("rk_left"),"left"),K("right",T("rk_right"),"right"),K("select",T("rk_ok")),K("back",T("rk_back"),"back"),K("home",T("rk_home"),"home"),K("info",T("rk_info"),"info"),K("search",T("rk_search"),"search"),K("replay",T("rk_replay"),"restart")]],
+  ["power",[K("power",T("rk_power"),"power"),K("input_hdmi1",T("rk_hdmi_1")),K("input_hdmi2",T("rk_hdmi_2")),K("input_hdmi3",T("rk_hdmi_3")),K("input_hdmi4",T("rk_hdmi_4")),K("input_av1",T("rk_av")),K("input_tuner",T("rk_tuner"))]],
+  ["volume",[K("volume_up",T("rk_volume_up"),"volup"),K("volume_down",T("rk_volume_down"),"voldown"),K("volume_mute",T("rk_mute"),"mute"),K("channel_up",T("rk_channel_up"),"chup"),K("channel_down",T("rk_channel_down"),"chdown")]],
+  ["media",[K("play",T("rk_play_pause"),"playpause"),K("reverse",T("rk_rewind"),"prev"),K("forward",T("rk_forward"),"next")]]]},
+ bravia:{label:T("rk_sony_bravia"),how:"key",groups:[
+  ["nav",[K("Up",T("rk_up"),"up"),K("Down",T("rk_down"),"down"),K("Left",T("rk_left"),"left"),K("Right",T("rk_right"),"right"),K("Confirm",T("rk_ok")),K("Return",T("rk_back"),"back"),K("Home",T("rk_home"),"home"),K("Exit",T("rk_exit"),"close"),K("ActionMenu",T("rk_menu"),"cog"),K("SyncMenu",T("rk_sync_menu"))]],
   ["numbers",digits("Num")],
-  ["media",[K("Rewind","Rewind","prev"),K("Forward","Forward","next")]]]},
- philips:{label:"Philips TV",how:"key",groups:[
-  ["nav",[K("CursorUp","Up","up"),K("CursorDown","Down","down"),K("CursorLeft","Left","left"),K("CursorRight","Right","right"),K("Confirm","OK"),K("Back","Back","back"),K("Home","Home","home"),K("Exit","Exit","close"),K("Options","Options","cog"),K("Info","Info","info"),K("TvGuide","Guide"),K("Source","Source","swap"),K("Find","Search","search")]],
-  ["power",[K("Standby","Standby","power"),K("PowerOn","On"),K("PowerOff","Off"),K("AmbilightOnOff","Ambilight","lights")]],
-  ["volume",[K("VolumeUp","Volume up","volup"),K("VolumeDown","Volume down","voldown"),K("Mute","Mute","mute"),K("ChannelStepUp","Channel up","chup"),K("ChannelStepDown","Channel down","chdown")]],
+  ["media",[K("Rewind",T("rk_rewind"),"prev"),K("Forward",T("rk_forward"),"next")]]]},
+ philips:{label:T("rk_philips_tv"),how:"key",groups:[
+  ["nav",[K("CursorUp",T("rk_up"),"up"),K("CursorDown",T("rk_down"),"down"),K("CursorLeft",T("rk_left"),"left"),K("CursorRight",T("rk_right"),"right"),K("Confirm",T("rk_ok")),K("Back",T("rk_back"),"back"),K("Home",T("rk_home"),"home"),K("Exit",T("rk_exit"),"close"),K("Options",T("rk_options"),"cog"),K("Info",T("rk_info"),"info"),K("TvGuide",T("rk_guide")),K("Source",T("rk_source"),"swap"),K("Find",T("rk_search"),"search")]],
+  ["power",[K("Standby",T("rk_standby"),"power"),K("PowerOn",T("rk_on")),K("PowerOff",T("rk_off")),K("AmbilightOnOff",T("rk_ambilight"),"lights")]],
+  ["volume",[K("VolumeUp",T("rk_volume_up"),"volup"),K("VolumeDown",T("rk_volume_down"),"voldown"),K("Mute",T("rk_mute"),"mute"),K("ChannelStepUp",T("rk_channel_up"),"chup"),K("ChannelStepDown",T("rk_channel_down"),"chdown")]],
   ["numbers",digits("Digit")],
-  ["media",[K("Play","Play","play"),K("Pause","Pause","pause"),K("PlayPause","Play/pause","playpause"),K("Stop","Stop","stop"),K("Rewind","Rewind","prev"),K("FastForward","Forward","next"),K("Record","Record","rec")]],
+  ["media",[K("Play",T("rk_play"),"play"),K("Pause",T("rk_pause"),"pause"),K("PlayPause",T("rk_play_pause"),"playpause"),K("Stop",T("rk_stop"),"stop"),K("Rewind",T("rk_rewind"),"prev"),K("FastForward",T("rk_forward"),"next"),K("Record",T("rk_record"),"rec")]],
   ["colours",[K("RedColour","","","red"),K("GreenColour","","","green"),K("YellowColour","","","yellow"),K("BlueColour","","","blue")]]]},
- vizio:{label:"Vizio",how:"key",groups:[
-  ["nav",[K("up","Up","up"),K("down","Down","down"),K("left","Left","left"),K("right","Right","right"),K("ok","OK"),K("back","Back","back"),K("exit","Exit","close"),K("menu","Menu","cog"),K("info","Info","info"),K("guide","Guide"),K("smartcast","SmartCast","apps"),K("input_next","Input","swap")]],
-  ["power",[K("pow_toggle","Power","power"),K("pow_on","On"),K("pow_off","Off")]],
-  ["volume",[K("vol_up","Volume up","volup"),K("vol_down","Volume down","voldown"),K("mute_toggle","Mute","mute"),K("ch_up","Channel up","chup"),K("ch_down","Channel down","chdown"),K("ch_prev","Previous channel")]],
+ vizio:{label:T("rk_vizio"),how:"key",groups:[
+  ["nav",[K("up",T("rk_up"),"up"),K("down",T("rk_down"),"down"),K("left",T("rk_left"),"left"),K("right",T("rk_right"),"right"),K("ok",T("rk_ok")),K("back",T("rk_back"),"back"),K("exit",T("rk_exit"),"close"),K("menu",T("rk_menu"),"cog"),K("info",T("rk_info"),"info"),K("guide",T("rk_guide")),K("smartcast",T("rk_smartcast"),"apps"),K("input_next",T("rk_input"),"swap")]],
+  ["power",[K("pow_toggle",T("rk_power"),"power"),K("pow_on",T("rk_on")),K("pow_off",T("rk_off"))]],
+  ["volume",[K("vol_up",T("rk_volume_up"),"volup"),K("vol_down",T("rk_volume_down"),"voldown"),K("mute_toggle",T("rk_mute"),"mute"),K("ch_up",T("rk_channel_up"),"chup"),K("ch_down",T("rk_channel_down"),"chdown"),K("ch_prev",T("rk_previous_channel"))]],
   ["numbers",digits("num_")],
-  ["media",[K("play","Play","play"),K("pause","Pause","pause"),K("seek_back","Rewind","prev"),K("seek_fwd","Forward","next")]]]},
- adb:{label:"Fire TV and Android (adb)",how:"key",groups:[
-  ["nav",[K("UP","Up","up"),K("DOWN","Down","down"),K("LEFT","Left","left"),K("RIGHT","Right","right"),K("CENTER","OK"),K("BACK","Back","back"),K("HOME","Home","home"),K("MENU","Menu","cog"),K("SETTINGS","Settings","tune"),K("SEARCH","Search","search")]],
-  ["power",[K("POWER","Power","power"),K("SLEEP","Sleep","moon"),K("WAKEUP","Wake"),K("INPUT","Input","swap"),K("HDMI1","HDMI 1"),K("HDMI2","HDMI 2"),K("HDMI3","HDMI 3"),K("HDMI4","HDMI 4")]],
-  ["volume",[K("VOLUME_UP","Volume up","volup"),K("VOLUME_DOWN","Volume down","voldown"),K("MUTE","Mute","mute")]],
-  ["media",[K("REWIND","Rewind","prev"),K("FAST_FORWARD","Forward","next")]],
+  ["media",[K("play",T("rk_play"),"play"),K("pause",T("rk_pause"),"pause"),K("seek_back",T("rk_rewind"),"prev"),K("seek_fwd",T("rk_forward"),"next")]]]},
+ adb:{label:T("rk_fire_tv_and_android_adb"),how:"key",groups:[
+  ["nav",[K("UP",T("rk_up"),"up"),K("DOWN",T("rk_down"),"down"),K("LEFT",T("rk_left"),"left"),K("RIGHT",T("rk_right"),"right"),K("CENTER",T("rk_ok")),K("BACK",T("rk_back"),"back"),K("HOME",T("rk_home"),"home"),K("MENU",T("rk_menu"),"cog"),K("SETTINGS",T("rk_settings"),"tune"),K("SEARCH",T("rk_search"),"search")]],
+  ["power",[K("POWER",T("rk_power"),"power"),K("SLEEP",T("rk_sleep"),"moon"),K("WAKEUP",T("rk_wake")),K("INPUT",T("rk_input"),"swap"),K("HDMI1",T("rk_hdmi_1")),K("HDMI2",T("rk_hdmi_2")),K("HDMI3",T("rk_hdmi_3")),K("HDMI4",T("rk_hdmi_4"))]],
+  ["volume",[K("VOLUME_UP",T("rk_volume_up"),"volup"),K("VOLUME_DOWN",T("rk_volume_down"),"voldown"),K("MUTE",T("rk_mute"),"mute")]],
+  ["media",[K("REWIND",T("rk_rewind"),"prev"),K("FAST_FORWARD",T("rk_forward"),"next")]],
   ["colours",[K("RED","","","red"),K("GREEN","","","green"),K("YELLOW","","","yellow"),K("BLUE","","","blue")]]]},
- webos:{label:"LG webOS",how:"webos",groups:[
-  ["nav",[K("UP","Up","up"),K("DOWN","Down","down"),K("LEFT","Left","left"),K("RIGHT","Right","right"),K("ENTER","OK"),K("BACK","Back","back"),K("HOME","Home","home"),K("EXIT","Exit","close"),K("MENU","Menu","cog"),K("INFO","Info","info")]],
-  ["volume",[K("VOLUMEUP","Volume up","volup"),K("VOLUMEDOWN","Volume down","voldown"),K("MUTE","Mute","mute"),K("CHANNELUP","Channel up","chup"),K("CHANNELDOWN","Channel down","chdown")]],
+ webos:{label:T("rk_lg_webos"),how:"webos",groups:[
+  ["nav",[K("UP",T("rk_up"),"up"),K("DOWN",T("rk_down"),"down"),K("LEFT",T("rk_left"),"left"),K("RIGHT",T("rk_right"),"right"),K("ENTER",T("rk_ok")),K("BACK",T("rk_back"),"back"),K("HOME",T("rk_home"),"home"),K("EXIT",T("rk_exit"),"close"),K("MENU",T("rk_menu"),"cog"),K("INFO",T("rk_info"),"info")]],
+  ["volume",[K("VOLUMEUP",T("rk_volume_up"),"volup"),K("VOLUMEDOWN",T("rk_volume_down"),"voldown"),K("MUTE",T("rk_mute"),"mute"),K("CHANNELUP",T("rk_channel_up"),"chup"),K("CHANNELDOWN",T("rk_channel_down"),"chdown")]],
   ["numbers",digits("")],
-  ["media",[K("PLAY","Play","play"),K("PAUSE","Pause","pause")]],
+  ["media",[K("PLAY",T("rk_play"),"play"),K("PAUSE",T("rk_pause"),"pause")]],
   ["colours",[K("RED","","","red"),K("GREEN","","","green"),K("YELLOW","","","yellow"),K("BLUE","","","blue")]]]}
 };
 var PLATFORM_FAMILY={samsungtv:"samsung",samsungtv_smart:"samsung",apple_tv:"apple",androidtv_remote:"android",roku:"roku",braviatv:"bravia",philips_js:"philips",vizio:"vizio",androidtv:"adb",webostv:"webos"};

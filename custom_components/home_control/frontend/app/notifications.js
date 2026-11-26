@@ -89,7 +89,7 @@ function watchPayload(w) {
   if (!w.e || !w.to || !w.targets.length) return null;
   var msg = w.name
     ? w.name + ": {{ trigger.to_state.attributes.friendly_name }}"
-    : "{{ trigger.to_state.attributes.friendly_name }} is now {{ trigger.to_state.state }}";
+    : _T("nt_msg_now", { name: "{{ trigger.to_state.attributes.friendly_name }}", state: "{{ trigger.to_state.state }}" });
   return {
     id: "dashboard_n_" + w.id,
     alias: _T("dashboard_notify") + (w.name || w.e),
@@ -363,7 +363,10 @@ function notifyPayload(k) {
     });
     if (pct.length) trigs.push({ trigger: "numeric_state", entity_id: pct, below: r.thr });
     if (flags.length) trigs.push({ trigger: "state", entity_id: flags, to: "on" });
-    msg = NOTIFY_NAME + " battery is {{ 'low' if trigger.to_state.domain == 'binary_sensor' else 'at ' ~ trigger.to_state.state ~ '%' }}";
+    msg = _T("nt_msg_battery", {
+      name: NOTIFY_NAME,
+      level: "{{ " + JSON.stringify(_T("nt_word_low")) + " if trigger.to_state.domain == 'binary_sensor' else " + JSON.stringify(_T("nt_word_at")) + " ~ trigger.to_state.state ~ '%' }}",
+    });
   } else if (k === "offline") {
     ents = offlineList(r);
     if (ents.length)
@@ -381,13 +384,13 @@ function notifyPayload(k) {
         to: "off",
         "for": { minutes: r.remMins || 30 },
       });
-    msg = NOTIFY_NAME + " is offline";
+    msg = _T("nt_msg_offline", { name: NOTIFY_NAME });
   } else {
     ents = vacuumList().map(function (d) {
       return d.id;
     });
     if (ents.length) trigs.push({ trigger: "state", entity_id: ents, to: "error" });
-    msg = "{{ trigger.to_state.attributes.friendly_name }} reports a problem";
+    msg = _T("nt_msg_problem", { name: "{{ trigger.to_state.attributes.friendly_name }}" });
   }
   if (!trigs.length || !r.targets.length) return null;
   return {

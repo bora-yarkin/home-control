@@ -471,7 +471,7 @@ function sceneRow(sc) {
     return edMark(
       pill(sc.icon || "scene", sc.name, {
         sub: function () {
-          return _T("auto_scene") + " · " + sc.auto.colors.length + " " + _T("auto_colours").toLowerCase();
+          return _T("auto_scene") + " · " + sc.auto.colors.length + " " + _T("auto_colours").toLocaleLowerCase(globalThis.HC_LANG);
         },
         tap: function () {
           runScene(sc, page);
@@ -519,7 +519,7 @@ function sceneTargetAdd(target, id) {
         return d.kind === "cscene" && d.sid === id;
       })
     )
-      e.devs.push({ kind: "cscene", sid: id, id: "", name: "Scene", icon: "scene" });
+      e.devs.push({ kind: "cscene", sid: id, id: "", name: _T("scene_default_name"), icon: "scene" });
   } else scnToggle(e, id);
 }
 

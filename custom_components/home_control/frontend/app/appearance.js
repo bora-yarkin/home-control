@@ -103,6 +103,18 @@ function startViewApply() {
   if (VIEW === "home" && want && ORDER.indexOf(want) >= 0) VIEW = want;
 }
 
+/* The dashboard's language for this account ("" follows Home Assistant); it starts again to use it. */
+function setLanguage(code) {
+  window.HA.data
+    .set("user", "home_control_language", code)
+    .then(function () {
+      window.location.reload();
+    })
+    .catch(function () {
+      toast(_T("couldn_t_save_your_appearance_choice"));
+    });
+}
+
 function setPref(k, v) {
   PREFS[k] = v;
   savePrefsLocal();
@@ -165,6 +177,22 @@ function appearancePage(b) {
         "palette",
         function (v) {
           return { dark: _T("dark"), light: _T("light"), auto: _T("auto") }[v];
+        }
+      )
+    );
+    box.appendChild(
+      dropRow(
+        _T("language"),
+        ["auto"].concat(Object.keys(window.HC_LANGUAGES || { en: 1 })),
+        function () {
+          return window.HC_LANG_CHOSEN || "auto";
+        },
+        function (v) {
+          setLanguage(v === "auto" ? "" : v);
+        },
+        "info",
+        function (v) {
+          return v === "auto" ? _T("language_auto") : (window.HC_LANGUAGES || {})[v] || v;
         }
       )
     );

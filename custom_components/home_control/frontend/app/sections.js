@@ -817,7 +817,7 @@ function secRooms() {
       : function () {
           return (
             (cams
-              ? cntS(cams, _T("camera").toLowerCase(), _T("cameras").toLowerCase())
+              ? cntS(cams, _T("camera").toLocaleLowerCase(globalThis.HC_LANG), _T("cameras").toLocaleLowerCase(globalThis.HC_LANG))
               : ds.length + (ds.length === 1 ? " device" : " devices")) + temp()
           );
         };

@@ -116,7 +116,7 @@ function masterModeRows(box, sec, scope, redraw) {
     box.appendChild(
       pill("plus", _T("master_choose_lights"), {
         sub: function () {
-          return (sec.ml || []).length + " " + _T("lights").toLowerCase();
+          return (sec.ml || []).length + " " + _T("lights").toLocaleLowerCase(globalThis.HC_LANG);
         },
         tap: function () {
           showPopup("lmaster-lights:" + key, true);
@@ -182,7 +182,7 @@ function masterLightList(box, sec, scope, redraw) {
         row = pill(n.icon || "light", n.name, {
           kind: "light",
           sub: function () {
-            return group ? lpCount(n) + " " + _T("lights").toLowerCase() : n.key;
+            return group ? lpCount(n) + " " + _T("lights").toLocaleLowerCase(globalThis.HC_LANG) : n.key;
           },
           tap: edit,
         });

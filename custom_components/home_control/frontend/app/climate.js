@@ -31,7 +31,7 @@ function acSlider(id, name) {
         (a.current_temperature !== undefined ? a.current_temperature : "—") +
         TEMPU() +
         " " +
-        _T("room").toLowerCase()
+        _T("room").toLocaleLowerCase(globalThis.HC_LANG)
       );
     },
   });
@@ -342,16 +342,19 @@ function fanBlock(b, id, name) {
       selectTile(
         _T("oscillation"),
         function () {
-          return ["Off", "On"];
+          return ["off", "on"];
         },
         function () {
           var o = A(id).oscillating;
-          return o === undefined || o === null ? undefined : o ? "On" : "Off";
+          return o === undefined || o === null ? undefined : o ? "on" : "off";
         },
         function (v) {
-          call("fan", "oscillate", { entity_id: id, oscillating: v === "On" });
+          call("fan", "oscillate", { entity_id: id, oscillating: v === "on" });
         },
-        "swap"
+        "swap",
+        function (v) {
+          return v === "on" ? _T("on_cap") : _T("off");
+        }
       )
     );
   /* DIRECTION (4) */

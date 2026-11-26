@@ -213,11 +213,11 @@ var FX_DOCS = "https://github.com/bora-yarkin/home-control/blob/main/docs/effect
 
 var FX_EXAMPLE = {
   schema: 1,
-  name: "My strips",
+  name: _T("fx_my_strips"),
   lights: { platforms: ["govee"] },
-  groups: [{ id: "calm", label: "Calm" }],
+  groups: [{ id: "calm", label: _T("fx_calm") }],
   effects: [
-    { id: "Aurora", label: "Aurora", group: "calm", palette: ["#86ecff", "#1f78bf", "#07203f"], brightness: 80 },
+    { id: "Aurora", label: _T("fx_aurora"), group: "calm", palette: ["#86ecff", "#1f78bf", "#07203f"], brightness: 80 },
     { id: "Candle", group: "calm", palette: ["#ffd27a", "#ff8a1e"] },
   ],
 };

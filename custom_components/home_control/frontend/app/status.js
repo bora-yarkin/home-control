@@ -2,10 +2,10 @@
 
 /* The value of a status tile of the header: a reading with its unit, or the state as words, or two readings of one tile (a temperature and a humidity). */
 function statValue(s) {
-  var a = s.text ? (svOk(s.id) ? cap(V_(s.id)) : "Offline") : sv(s.id, s.u || "", s.dp === undefined ? 1 : s.dp);
+  var a = s.text ? (svOk(s.id) ? cap(V_(s.id)) : _T("offline")) : sv(s.id, s.u || "", s.dp === undefined ? 1 : s.dp);
   if (!s.h) return a;
   var b = sv(s.h, "%", 0);
-  if (a === "Offline" && b === "Offline") return "Offline";
+  if (a === _T("offline") && b === _T("offline")) return _T("offline");
   if (a === "–" && b === "–") return "–";
   return a + " · " + b;
 }
@@ -86,7 +86,7 @@ function chipGrid() {
     return function () {
       var a = c.u ? sv(c.t, c.u, 0) : sv(c.t, "°"),
         b = c.h ? sv(c.h, "%", 0) : "";
-      if (a === "Offline" && (!c.h || b === "Offline")) return "Offline";
+      if (a === _T("offline") && (!c.h || b === _T("offline"))) return _T("offline");
       if (a === "–" && (!c.h || b === "–")) return "–";
       return a + (c.h ? " · " + b : "");
     };
@@ -288,7 +288,7 @@ function alertsDevice(ed) {
 /* The text of an Attention tile or chip: the one thing that needs attention, or how many. */
 function alertText() {
   var list = alertList();
-  return list.length === 1 ? list[0][0] : list.length + " " + _T("nt_alerts").toLowerCase();
+  return list.length === 1 ? list[0][0] : list.length + " " + _T("nt_alerts").toLocaleLowerCase(globalThis.HC_LANG);
 }
 
 /* Thresholds shown on the dashboard come from settings, not from the code. */
