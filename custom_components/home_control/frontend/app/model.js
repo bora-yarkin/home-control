@@ -27,6 +27,7 @@ var KINDS = [
   "cscene",
   "scenes",
   "widget",
+  "entity",
 ];
 
 /* The lights that are the zones of another light (a gradient tube is one light with a light for each of its colour zones). They are not put on a page by themselves: the main light controls its zones, and one can still be added by hand. */
@@ -391,6 +392,79 @@ function guessDevType(d) {
   return "";
 }
 
+/* A gesture's action: the device's popup, a toggle, Home Assistant's dialog, a page, one of the remote builder's actions, or nothing. */
+function cleanAct(a) {
+  if (!a || typeof a !== "object") return null;
+  if (["popup", "toggle", "more", "none"].indexOf(a.t) >= 0) return { t: a.t };
+  if (a.t === "page") return typeof a.p === "string" && /^[a-z0-9_-]{1,24}$/.test(a.p) ? { t: "page", p: a.p } : null;
+  if (a.t === "run") {
+    var r = cleanRmAct(a.a);
+    return r && r.t !== "room" ? { t: "run", a: r } : null;
+  }
+  return null;
+}
+
+function cleanActs(o) {
+  var out = {};
+  ["tap", "hold", "dbl"].forEach(function (g) {
+    var a = cleanAct(o && o[g]);
+    if (a) out[g] = a;
+  });
+  return out;
+}
+
+/* An item's own colour, gestures, confirmation, state texts and visibility (app/customize.js). */
+function cleanCustom(d, c) {
+  var text = function (t) {
+    return typeof t === "string" && t.trim() && t.length <= 80 ? t : "";
+  };
+  if (typeof d.color === "string" && /^#[0-9a-f]{6}$/.test(d.color)) c.color = d.color;
+  var act = cleanActs(d.act);
+  if (Object.keys(act).length) c.act = act;
+  if (d.ask) c.ask = 1;
+  if (text(d.txt)) c.txt = d.txt;
+  var iff = !Array.isArray(d.txtif)
+    ? []
+    : d.txtif
+    .slice(0, 4)
+    .map(function (x) {
+      var cond = x && cleanCond(x.c);
+      return cond && text(x.t) ? { c: cond, t: x.t } : null;
+    })
+    .filter(Boolean);
+  if (iff.length) c.txtif = iff;
+  var when = Array.isArray(d.when) ? d.when.slice(0, 4).map(cleanCond).filter(Boolean) : [];
+  if (when.length) c.when = when;
+}
+
+/* The look of the whole dashboard and the defaults per type of entity. */
+function cleanLook(l) {
+  var out = {};
+  if (!l || typeof l !== "object") return out;
+  if (l.style === "mono" || l.style === "rainbow") out.style = l.style;
+  if (l.radius === "sharp" || l.radius === "round") out.radius = l.radius;
+  if (l.density === "compact" || l.density === "roomy") out.density = l.density;
+  var kc = {};
+  Object.keys(l.kc || {}).forEach(function (k) {
+    if (/^[a-z]{1,12}$/.test(k) && typeof l.kc[k] === "string" && /^#[0-9a-f]{6}$/.test(l.kc[k])) kc[k] = l.kc[k];
+  });
+  if (Object.keys(kc).length) out.kc = kc;
+  return out;
+}
+
+function cleanTypes(t) {
+  var out = {};
+  Object.keys(t || {})
+    .slice(0, 60)
+    .forEach(function (k) {
+      if (!/^[a-z_]{1,30}$/.test(k) || !t[k] || typeof t[k] !== "object") return;
+      var o = cleanActs(t[k]);
+      if (t[k].ask) o.ask = 1;
+      if (Object.keys(o).length) out[k] = o;
+    });
+  return out;
+}
+
 function cleanDev(d) {
   if (
     !d ||
@@ -476,6 +550,7 @@ function cleanDev(d) {
     c.rid = d.rid;
     c.rm = cleanRemote(d.rm);
   }
+  cleanCustom(d, c);
   if (d.keep) c.keep = 1;
   if (d.hide) c.hide = 1;
   if (d.dial && d.kind === "climate") c.dial = 1;
@@ -602,6 +677,8 @@ function cleanUI(u) {
     layout: { home: [], rooms: {}, cols: {} },
     caps: {},
     rbx: {},
+    look: {},
+    types: {},
     on: {},
     newSince: typeof u.newSince === "number" && u.newSince > 0 ? u.newSince : 0,
     ignored: Array.isArray(u.ignored)
@@ -681,6 +758,8 @@ function cleanUI(u) {
         });
         if (Object.keys(x).length) o.caps[id] = x;
       });
+  o.look = cleanLook(u.look);
+  o.types = cleanTypes(u.types);
   (Array.isArray(u.rooms) ? u.rooms : []).slice(0, 24).forEach(function (r) {
     if (
       !r ||
@@ -1155,6 +1234,7 @@ function devIndex(o) {
 
 function applyUI() {
   devIndex(UI);
+  lookApply();
   accessInit();
   var mt = UI.meta || {
     homeTab: _T("home"),

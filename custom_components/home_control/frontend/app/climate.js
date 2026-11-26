@@ -173,6 +173,56 @@ function acWord(v) {
   return AC_WORDS[k] || cap(String(v).replace(/_/g, " "));
 }
 
+/* TARGET_TEMPERATURE_RANGE (2) while the unit keeps two targets (heat/cool): one slider for each. */
+function climateRanged(id) {
+  var a = A(id);
+  return !!((a.supported_features || 0) & 2) && typeof a.target_temp_low === "number" && typeof a.target_temp_high === "number" && typeof a.temperature !== "number";
+}
+
+function climateRange(id) {
+  var box = mk("div");
+  [["target_temp_low", "heat_to", "heat"], ["target_temp_high", "cool_to", "ac"]].forEach(function (x) {
+    var a0 = A(id);
+    box.appendChild(
+      sliderRow({
+        icon: x[2],
+        name: _T(x[1]),
+        min: a0.min_temp || 16,
+        max: a0.max_temp || 32,
+        step: a0.target_temp_step || 1,
+        get: function () {
+          return A(id)[x[0]];
+        },
+        fmt: function (v) {
+          return v + TEMPU();
+        },
+        commit: function (v) {
+          var data = { entity_id: id, target_temp_low: A(id).target_temp_low, target_temp_high: A(id).target_temp_high };
+          data[x[0]] = v;
+          call("climate", "set_temperature", data);
+        },
+      })
+    );
+  });
+  return box;
+}
+
+/* The target control the unit has now: two sliders, or the dial or slider of one target. */
+function climateTarget(id, name, dial) {
+  var box = mk("div"),
+    was = null;
+  function draw() {
+    var ranged = climateRanged(id);
+    if (ranged === was) return;
+    was = ranged;
+    box.innerHTML = "";
+    box.appendChild(ranged ? climateRange(id) : dial ? acDial(id) : acSlider(id, name));
+  }
+  draw();
+  reg(draw);
+  return box;
+}
+
 function acSelects(b, id) {
   var g = mk("div", "grid3");
   g.appendChild(
@@ -191,39 +241,37 @@ function acSelects(b, id) {
       acWord
     )
   );
-  g.appendChild(
-    selectTile(
-      _T("fan"),
-      function () {
-        return A(id).fan_modes || [];
-      },
-      function () {
-        return A(id).fan_mode;
-      },
-      function (v) {
-        call("climate", "set_fan_mode", { entity_id: id, fan_mode: v });
-      },
-      null,
-      acWord
-    )
-  );
-  g.appendChild(
-    selectTile(
-      _T("swing"),
-      function () {
-        return A(id).swing_modes || [];
-      },
-      function () {
-        return A(id).swing_mode;
-      },
-      function (v) {
-        call("climate", "set_swing_mode", { entity_id: id, swing_mode: v });
-      },
-      null,
-      acWord
-    )
-  );
+  /* only what the unit reports */
+  [
+    ["fan_modes", "fan_mode", "set_fan_mode", "fan"],
+    ["swing_modes", "swing_mode", "set_swing_mode", "swing"],
+    ["swing_horizontal_modes", "swing_horizontal_mode", "set_swing_horizontal_mode", "swing_horizontal"],
+    ["preset_modes", "preset_mode", "set_preset_mode", "preset"],
+  ].forEach(function (x) {
+    if (!(A(id)[x[0]] || []).length) return;
+    g.appendChild(
+      selectTile(
+        _T(x[3]),
+        function () {
+          return A(id)[x[0]] || [];
+        },
+        function () {
+          return A(id)[x[1]];
+        },
+        function (v) {
+          var data = { entity_id: id };
+          data[x[1]] = v;
+          call("climate", x[2], data);
+        },
+        null,
+        acWord
+      )
+    );
+  });
   b.appendChild(g);
+  /* TARGET_HUMIDITY (4) */
+  if ((A(id).supported_features || 0) & 4)
+    domControls(b, [{ t: "slider", label: _T("target_humidity"), icon: "drop", min: A(id).min_humidity || 0, max: A(id).max_humidity || 100, step: 1, unit: "%", get: function () { return A(id).humidity; }, set: function (v) { call("climate", "set_humidity", { entity_id: id, humidity: v }); } }], id);
 }
 
 /* A purifier is a fan with the preset modes of its device; its speed can only be set in the manual mode (Favorite or Manual). */
@@ -304,6 +352,26 @@ function fanBlock(b, id, name) {
           call("fan", "oscillate", { entity_id: id, oscillating: v === "On" });
         },
         "swap"
+      )
+    );
+  /* DIRECTION (4) */
+  if ((A(id).supported_features || 0) & 4)
+    g.appendChild(
+      selectTile(
+        _T("direction"),
+        function () {
+          return ["forward", "reverse"];
+        },
+        function () {
+          return A(id).current_direction;
+        },
+        function (v) {
+          call("fan", "set_direction", { entity_id: id, direction: v });
+        },
+        "swap",
+        function (v) {
+          return _T("direction_" + v);
+        }
       )
     );
   if ((A(id).preset_modes || []).length)

@@ -396,6 +396,7 @@ function cleanCfg(c) {
     alertOff: [],
     wallPhotos: [],
     wallOff: [],
+    myAlerts: [],
   };
   if (c && typeof c === "object") {
     if (c.mediaCtl === true) o.mediaCtl = true;
@@ -429,7 +430,14 @@ function cleanCfg(c) {
             })
             .slice(0, 60);
       });
-    if ([5, 10, 15, 20, 25].indexOf(c.partsLow) >= 0) o.partsLow = c.partsLow;
+    if (typeof c.partsLow === "number" && c.partsLow >= 1 && c.partsLow <= 90) o.partsLow = Math.round(c.partsLow);
+    o.myAlerts = (Array.isArray(c.myAlerts) ? c.myAlerts : [])
+      .slice(0, 30)
+      .map(function (x) {
+        var cond = x && cleanCond(x.c);
+        return cond && typeof x.t === "string" && x.t.trim() ? { c: cond, t: x.t.slice(0, 80) } : null;
+      })
+      .filter(Boolean);
     if (Array.isArray(c.alertOff))
       o.alertOff = c.alertOff.filter(function (k, i, a) {
         return ALERT_KEYS.indexOf(k) >= 0 && a.indexOf(k) === i;

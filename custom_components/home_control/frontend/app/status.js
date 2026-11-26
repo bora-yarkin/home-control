@@ -227,6 +227,9 @@ function alertList() {
         showPopup("g-lights", false);
       },
     ]);
+  myAlerts().forEach(function (x) {
+    if (ruleEvalCond(x.c)) out.push([x.t, condText(x.c), null]);
+  });
   return out;
 }
 

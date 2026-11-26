@@ -297,10 +297,29 @@ function entIds(data) {
 }
 
 function call(d, s, data) {
+  /* an entity whose item or type asks first (app/customize.js) */
+  if (!ASKED && entIds(data).some(asksFirst)) {
+    confirmDlg(_T("are_you_sure"), function () {
+      callAsked(d, s, data);
+    });
+    return;
+  }
   gate(entIds(data), function () {
     callRaw(d, s, data);
     if (d === "vacuum" && data && data.entity_id) vacKick(data.entity_id);
   });
+}
+
+var ASKED = false;
+
+/* A call the person has already confirmed. */
+function callAsked(d, s, data) {
+  ASKED = true;
+  try {
+    call(d, s, data);
+  } finally {
+    ASKED = false;
+  }
 }
 
 /* Commands that follow a finger (sliders, the colour circle): one at a time for each light, and only the latest position waits, so a drag never builds up a queue of commands in the light's integration that the next tap would have to wait behind. */
@@ -338,7 +357,7 @@ function callConfirmed(d, s, data) {
     var m = modeOf(id);
     if (m.mode === "confirm") APPROVED[m.key] = 1;
   });
-  call(d, s, data);
+  callAsked(d, s, data);
 }
 
 function dom(id) {

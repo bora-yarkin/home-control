@@ -124,7 +124,13 @@ function ruleEvalCond(c) {
 function ruleSig(scope) {
   return secOrder(scope)
     .map(function (s) {
-      return s.hide ? "h" : ruleOk(s) ? "1" : "0";
+      /* an item shown only while something holds draws the page again as well */
+      var items = (s.devs || [])
+        .map(function (d) {
+          return d.when ? (itemShown(d) ? "1" : "0") : "";
+        })
+        .join("");
+      return (s.hide ? "h" : ruleOk(s) ? "1" : "0") + items;
     })
     .join("");
 }

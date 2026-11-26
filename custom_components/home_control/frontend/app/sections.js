@@ -368,6 +368,11 @@ function readTile(d) {
 
 /* What a device is on a page: a widget by its type, a camera at size l by its live picture (a row while the page is edited), a sized sensor a tile, any other a row. */
 function deviceItem(d, ed) {
+  var el = deviceDrawn(d, ed);
+  return ed ? el : itemDecorate(el, d);
+}
+
+function deviceDrawn(d, ed) {
   var z = sizeOf(d);
   if (d.kind === "widget") return widgetRow(d, ed);
   if (d.kind === "camera" && z === "l" && d.id) return ed ? null : cameraLive(d);
@@ -415,7 +420,7 @@ function customSection(s) {
     ttl = s.t || ty.t,
     ico = secIcon(s);
   (s.devs || []).forEach(function (d) {
-    if (!ed && (d.hide || (d.id && modeOf(d.id).mode === "hide"))) return;
+    if (!ed && (d.hide || !itemShown(d) || (d.id && modeOf(d.id).mode === "hide"))) return;
     /* A lights master can leave its lights and the sync out of the section; it keeps them itself. */
     if (!ed && k === "devs" && d.id && masterLeavesOut(s, d)) return;
     var r = deviceItem(d, ed);

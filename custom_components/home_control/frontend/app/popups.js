@@ -366,10 +366,10 @@ var POPUP_DEFS = {
   },
   "ac": function (id) {
     return {
-      title: (UIDEV[id] || {}).name || _T("air_conditioner"),
+      title: (UIDEV[id] || {}).name || A(id).friendly_name || _T("climate"),
       icon: "ac",
       build: function (b) {
-        b.appendChild((UIDEV[id] || {}).dial ? acDial(id) : acSlider(id, _T("air_conditioner")));
+        b.appendChild(climateTarget(id, _T("target_temperature"), !!(UIDEV[id] || {}).dial));
         acSelects(b, id);
       },
     };
@@ -977,6 +977,27 @@ var POPUP_DEFS = {
   },
 };
 POPUP_DEFS["gmedia"] = POPUP_DEFS["media"];
+
+/* Customising items, types, the look and the person's own attention rules (app/customize.js, which loads after this file: its pages are asked for when opened). */
+[
+  ["cust", "customize", "palette", function () { return custPage; }],
+  ["cust-cond", "condition", "check", function () { return custCondPage; }],
+  ["look", "look_title", "palette", function () { return lookPage; }],
+  ["types", "types_title", "tune", function () { return typesPage; }],
+  ["type", "types_title", "tune", function () { return typePage; }],
+  ["my-alerts", "my_alerts", "alert", function () { return myAlertsPage; }],
+  ["my-alert", "my_alerts", "alert", function () { return myAlertPage; }],
+].forEach(function (p) {
+  POPUP_DEFS[p[0]] = function (id) {
+    return {
+      title: _T(p[1]),
+      icon: p[2],
+      build: function (b) {
+        p[3]()(b, id);
+      },
+    };
+  };
+});
 
 /* A Popup widget's popup, and the button settings of a ready-made remote. */
 POPUP_DEFS["wpop"] = function (id) {

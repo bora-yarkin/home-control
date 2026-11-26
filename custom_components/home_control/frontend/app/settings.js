@@ -91,6 +91,9 @@ function aboutPage(b) {
 var CATS = [
   ["appearance", _T("appearance"), "appearance", "palette"],
   ["wall", _T("wall_mode"), "stg-wall", "tv"],
+  ["look", _T("look_title"), "look", "palette"],
+  ["types", _T("types_title"), "types", "tune"],
+  ["myalerts", _T("my_alerts"), "my-alerts", "alert"],
   ["dev", _T("devices_2"), "stg-dev", "plug"],
   ["lgroups", _T("lgs_title"), "lgroups", "lights"],
   ["areas", _T("areas"), "stg-areas", "target"],
@@ -104,9 +107,9 @@ var CATS = [
 
 /* The five groups Settings is in: what a category belongs to. A category a plugin adds is under Plugins. */
 var CAT_GROUPS = [
-  ["display", "stg_group_display", ["appearance", "wall"]],
-  ["dashboard", "stg_group_dashboard", ["dev", "lgroups", "areas", "share", "effects"]],
-  ["people", "stg_group_people", ["access", "notify"]],
+  ["display", "stg_group_display", ["appearance", "look", "wall"]],
+  ["dashboard", "stg_group_dashboard", ["dev", "types", "lgroups", "areas", "share", "effects"]],
+  ["people", "stg_group_people", ["access", "notify", "myalerts"]],
   ["data", "stg_group_data", ["hist", "data"]],
   ["plugins", "stg_group_plugins", null],
 ];
@@ -122,6 +125,9 @@ function catGroup(id) {
 function stgNavSub(id) {
   if (PLUGIN_SETTINGS[id]) return PLUGIN_SETTINGS[id].sub ? PLUGIN_SETTINGS[id].sub() : "";
   if (id === "appearance") return themeLight() ? _T("light") : _T("dark");
+  if (id === "look") return _T("look_sub");
+  if (id === "types") return _T("types_sub");
+  if (id === "myalerts") return _T("my_alerts_sub");
   if (id === "wall")
     return PREFS.wall ? _T("on_2") + " · " + Math.round(PREFS.wallIdle / 60) + " min" : _T("off");
   if (id === "dev") return _T("new_devices_and_devices_that_are_not");

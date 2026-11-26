@@ -1,5 +1,5 @@
 {
-  "version": 513,
+  "version": 514,
   "files": [
     "integrations.js",
     "app/strings.js",
@@ -28,6 +28,8 @@
     "app/sections.js",
     "app/widgetkinds.js",
     "app/popupwidget.js",
+    "app/domains.js",
+    "app/customize.js",
     "app/homewidgets.js",
     "app/remotemaster.js",
     "app/rules.js",

@@ -113,6 +113,7 @@ test("an offline lock needs attention, whether or not it is on a page, and the k
       devsOf: (kind) => (kind === "lock" ? [{ id: "lock.front", name: "Front door", room: "door" }] : []),
       allLights: () => [],
       vacuumList: () => [],
+      myAlerts: () => [],
       H: () => ({}),
       secEnts: () => ({ lock: ["lock.front", "lock.shed", "lock.ok"] }),
       V_: (id) => (id === "lock.ok" ? "locked" : "unavailable"),

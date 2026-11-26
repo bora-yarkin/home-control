@@ -408,6 +408,7 @@ var ADDDOMS = [
   ],
   [_T("scenes"), ["scene"]],
   [_T("helpers"), ["input_text", "input_datetime", "counter", "timer"]],
+  [_T("more_devices"), ["humidifier", "water_heater", "alarm_control_panel", "valve", "lawn_mower", "siren", "update", "automation", "weather", "event", "person", "device_tracker", "notify", "text", "date", "time", "datetime", "group", "remote"]],
   [_T("all_entities"), ["*"]],
   [_T("remote"), ["__remote"]],
   [_T("ap_appliance"), ["__appliance"]],
@@ -427,7 +428,7 @@ var DOMKIND = {
   binary_sensor: "sensor",
   counter: "sensor",
   timer: "sensor",
-  input_text: "sensor",
+  input_text: "entity",
   input_datetime: "sensor",
   number: "number",
   input_number: "number",
@@ -439,6 +440,25 @@ var DOMKIND = {
   scene: "scene",
   cover: "cover",
   lock: "lock",
+  humidifier: "entity",
+  water_heater: "entity",
+  alarm_control_panel: "entity",
+  valve: "entity",
+  lawn_mower: "entity",
+  siren: "entity",
+  update: "entity",
+  automation: "entity",
+  text: "entity",
+  date: "entity",
+  time: "entity",
+  datetime: "entity",
+  notify: "entity",
+  weather: "entity",
+  event: "entity",
+  person: "entity",
+  device_tracker: "entity",
+  group: "entity",
+  remote: "entity",
 };
 
 /* A room by its id. "room.section" is the room as one of its scenes sections shows it: the room with that section (`sec`, which has its own hidden scenes and its own source of scenes). */
@@ -627,6 +647,7 @@ function candidates(doms, roomId, q, areaId) {
 
 function defIcon(kind, name, id) {
   if (id && pluginDeviceKind(id)) return pluginDeviceKind(id).icon;
+  if (kind === "entity" && id && domKnown(id)) return DOMAINS[dom(id)].icon;
   return kind === "sensor"
     ? id
       ? sensorIcon(id)
@@ -954,6 +975,17 @@ function devLookOptions(c) {
   if (d.kind === "vacuum" && d.id && vacMapEnt(d.id)) devVacuumMapOptions(c);
   if (d.kind === "media" && d.id) devMediaOptions(c);
   if (d.kind === "media" && d.id && mediaRemoteKind(d.id)) c.box.appendChild(rbxPill(d.id));
+  if (d.kind !== "widget")
+    c.box.appendChild(
+      pill("palette", _T("customize"), {
+        sub: function () {
+          return _T("customize_sub");
+        },
+        tap: function () {
+          showPopup("cust:" + c.key, true);
+        },
+      })
+    );
   c.box = real;
   sizeSettings(own, d, c.redraw);
   if (!own.children.length) return;

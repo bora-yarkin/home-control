@@ -1130,3 +1130,8 @@ body.rwall .hsky{display:none}
 .rrow>.rm-beside{grid-column:2/-1;min-width:0}
 .rrow>.rm-beside>.rm-spk{min-height:54px;padding-top:0;padding-bottom:0}
 .rm-under,.rm-only{margin-bottom:var(--sp)}
+
+.swatches{display:flex;flex-wrap:wrap;gap:8px;margin-bottom:var(--sp)}
+.swatch{width:34px;height:34px;border-radius:50%;border:2px solid var(--edge);background:transparent;cursor:pointer;padding:0}
+.swatch:first-child{background:linear-gradient(135deg,transparent 46%,var(--ink2) 46% 54%,transparent 54%)}
+.swatch.act{border-color:var(--ink);box-shadow:0 0 0 2px var(--acc)}

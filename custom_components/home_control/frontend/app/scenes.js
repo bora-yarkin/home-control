@@ -721,6 +721,9 @@ function devRowRaw(d) {
       pin: pinPop(pk, d.id, d.name, d.icon || "plug"),
     });
   }
+  /* a type described in app/domains.js; one added earlier as a plain reading takes its controls too */
+  if ((d.kind === "entity" || d.kind === "sensor") && d.id && domKnown(d.id)) return domRow(d);
+  if (d.kind === "entity") return sensorRow(d);
   if (d.kind === "sensor") return sensorRow(d);
   if (d.kind === "number") return numberRow(d);
   if (d.kind === "select") return selectRow(d);

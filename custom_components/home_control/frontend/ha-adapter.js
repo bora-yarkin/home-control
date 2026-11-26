@@ -509,6 +509,15 @@ window.HA={
  users:function(){return ws({type:"config/auth/list"})},
  entityRegistry:function(){return ws({type:"config/entity_registry/list"}).then(function(rows){return loadReplaces().then(function(){return withoutReplaced(rows)})})},
  serviceResponse:serviceResponse,
+ /* Home Assistant's own dialog of an entity, in the frontend around this panel. false when there is none to ask. */
+ moreInfo:function(id){
+  try{
+   var w=window.parent,root=w.document.querySelector("home-assistant");
+   if(!root)return false;
+   root.dispatchEvent(new w.CustomEvent("hass-more-info",{bubbles:true,composed:true,detail:{entityId:id}}));
+   return true;
+  }catch(e){return false}
+ },
  /* The effects catalogues Home Control offers (a plus integration's, and the files an administrator imported), and importing or removing a file. */
  effects:{
   sources:function(){return ws({type:"home_control/effects"}).then(function(r){return r&&r.sources})},

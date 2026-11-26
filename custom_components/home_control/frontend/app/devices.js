@@ -330,6 +330,24 @@ function swPopup(b, id) {
 /* Any device given as one entity: its main value, then everything its device reports. */
 function devPopup(b, id) {
   var d = UIDEV[id] || {};
+  if (domKnown(id)) {
+    /* what the entity is now, then everything it can do */
+    b.appendChild(
+      pill(d.icon || DOMAINS[dom(id)].icon, _T("status"), {
+        on: function () {
+          return domIsOn(id);
+        },
+        val: function () {
+          return domState(id);
+        },
+      })
+    );
+    domControls(b, DOMAINS[dom(id)].controls(id), id);
+    readingsBlock(b, id);
+    var open = haMorePill(id);
+    if (open) b.appendChild(open);
+    return;
+  }
   var nm = advName(id),
     dn = (d.name || "").toLowerCase();
   b.appendChild(
@@ -350,6 +368,23 @@ function devPopup(b, id) {
     )
   );
   readingsBlock(b, id);
+  lockExtras(b, id);
+  var more = haMorePill(id);
+  if (more) b.appendChild(more);
+}
+
+/* A lock that can also open its door (the latch): asked first. */
+function lockExtras(b, id) {
+  if (dom(id) !== "lock" || !domBits(id, 1)) return;
+  b.appendChild(
+    pill("lock", _T("open_the_door"), {
+      tap: function () {
+        confirmDlg(_T("open_the_door_ask"), function () {
+          callConfirmed("lock", "open", { entity_id: id });
+        });
+      },
+    })
+  );
 }
 
 function sensorIcon(id) {
@@ -412,6 +447,9 @@ function toggleDevice(d) {
       callConfirmed("lock", locked ? "unlock" : "lock", { entity_id: id });
     });
   } else if (kind === "cover") call("cover", "toggle", { entity_id: id });
+  else if (kind === "entity") {
+    if (domKnown(id) && DOMAINS[dom(id)].toggle) call("homeassistant", "toggle", { entity_id: id });
+  }
   else if (kind === "vacuum")
     call("vacuum", ["cleaning", "returning"].indexOf(V_(id)) >= 0 ? "return_to_base" : "start", {
       entity_id: id,

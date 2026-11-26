@@ -663,15 +663,21 @@ function nruleEdit(b, k) {
       box.appendChild(sep(_T("worn_parts"), "vac"));
       box.appendChild(hintRow(_T("filters_brushes_ink_and_similar_part")));
       box.appendChild(
-        seg(
-          [["5", "5%"], ["10", "10%"], ["15", "15%"], ["20", "20%"], ["25", "25%"]],
-          String(partsLow()),
-          function (v) {
-            STORE.cfg = cleanCfg(Object.assign({}, STORE.cfg, { partsLow: +v }));
+        sliderRow({
+          icon: "battery",
+          name: _T("worn_parts"),
+          min: 1,
+          max: 90,
+          step: 1,
+          get: partsLow,
+          fmt: function (v) {
+            return v + "%";
+          },
+          commit: function (v) {
+            STORE.cfg = cleanCfg(Object.assign({}, STORE.cfg, { partsLow: v }));
             storeChanged();
-            redrawBox(box, draw);
-          }
-        )
+          },
+        })
       );
     }
     if (k === "offline") {
