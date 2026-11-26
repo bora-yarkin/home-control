@@ -977,6 +977,40 @@ var POPUP_DEFS = {
   },
 };
 POPUP_DEFS["gmedia"] = POPUP_DEFS["media"];
+
+/* A Popup widget's popup, and the button settings of a ready-made remote. */
+POPUP_DEFS["wpop"] = function (id) {
+  var p = id.split(":"),
+    s = popupSection(p[0], p[1]),
+    w = secOrder(scopeKey(p[0])).reduce(function (found, x) {
+      return found || (x.devs || []).filter(function (d) { return d.wid === p[1] && d.w === "popup"; })[0];
+    }, null);
+  return {
+    title: w ? w.name : s ? secName(s) : _T("popup_widget"),
+    icon: (w && w.icon) || "apps",
+    build: function (b) {
+      popupBody(b, p[0], p[1], w && w.name);
+    },
+  };
+};
+POPUP_DEFS["rbx"] = function (id) {
+  return {
+    title: _T("rbx_title"),
+    icon: "tune",
+    build: function (b) {
+      rbxPage(b, id);
+    },
+  };
+};
+POPUP_DEFS["rbx-role"] = function (id) {
+  return {
+    title: _T("rbx_" + id.split(":")[1]),
+    icon: RBX_ICON[id.split(":")[1]] || "tune",
+    build: function (b) {
+      rbxRolePage(b, id);
+    },
+  };
+};
 POPUP_DEFS["gvac"] = POPUP_DEFS["vac"];
 
 function popupDefBase(key) {

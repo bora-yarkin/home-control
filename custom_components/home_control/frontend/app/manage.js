@@ -953,6 +953,7 @@ function devLookOptions(c) {
     own.appendChild(flagPill("thermo", _T("thermostat_dial"), d, "dial", function () { return _T("a_round_dial_instead_of_the_slider_i"); }));
   if (d.kind === "vacuum" && d.id && vacMapEnt(d.id)) devVacuumMapOptions(c);
   if (d.kind === "media" && d.id) devMediaOptions(c);
+  if (d.kind === "media" && d.id && mediaRemoteKind(d.id)) c.box.appendChild(rbxPill(d.id));
   c.box = real;
   sizeSettings(own, d, c.redraw);
   if (!own.children.length) return;
@@ -1297,7 +1298,7 @@ function devMove(b, key) {
     .forEach(function (pg) {
       var sc = pg[0] === "home" ? "home" : "room:" + pg[0],
         secs = secOrder(sc).filter(function (s) {
-          return (SECTYPES[s.k] || {}).own && "~" + pg[0] + "~" + s.id !== rid;
+          return !s.of && (SECTYPES[s.k] || {}).own && "~" + pg[0] + "~" + s.id !== rid;
         });
       if (!secs.length) return;
       b.appendChild(sep(pg[1], pg[0] === "home" ? "home" : (roomById(pg[0]) || {}).icon || "home"));
@@ -1310,6 +1311,7 @@ function devMove(b, key) {
             tap: function () {
               list.splice(i, 1);
               (s.devs = s.devs || []).push(d);
+              popupFollow(d, pg[0]);
               uiChanged();
               toast(_T("moved_to_2") + " " + secName(s));
               STACK = [];

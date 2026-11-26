@@ -252,7 +252,7 @@ function secLinkPage(b, key) {
     )
     .forEach(function (pid) {
       var list = secOrder(scopeKey(pid)).filter(function (s) {
-        return !(pid === host && s.id === p[1]);
+        return !s.of && !(pid === host && s.id === p[1]);
       });
       if (!list.length) return;
       b.appendChild(sep(TITLES[pid] || pid, pid === "home" ? "home" : "bed"));
@@ -292,7 +292,7 @@ function secList(scope) {
   CAMN = 0;
   RULESIG[scope] = ruleSig(scope);
   secOrder(scope).forEach(function (s) {
-    if (s.hide && !editing()) return;
+    if (s.of || (s.hide && !editing())) return;
     var ok = ruleOk(s);
     if (!ok && !editing()) return;
     CURSEC = s;

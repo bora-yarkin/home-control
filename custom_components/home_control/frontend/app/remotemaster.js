@@ -335,7 +335,16 @@ function rmKeys(id) {
       function () {
         call("media_player", "media_play_pause", { entity_id: id });
       };
+    if (how && rem && Integrations.remote.text(fam, "x") !== null)
+      out.text = function (v) {
+        send(rem, Integrations.remote.text(fam, v));
+      };
+    else if (how && Integrations.media.textCall(e.platform, id, "", "x"))
+      out.text = function (v) {
+        call.apply(null, Integrations.media.textCall(e.platform, id, "", v));
+      };
   }
+  rbxKeys(id, out);
   return out;
 }
 
@@ -960,6 +969,7 @@ function rmMemberPage(b) {
           );
         });
       } else if (!speaker) {
+        if (mediaRemoteKind(k)) box.appendChild(rbxPill(k));
         box.appendChild(
           dropRow(
             _T("now_playing"),

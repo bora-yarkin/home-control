@@ -4,6 +4,7 @@
 
  xiaomi_miot + robot_vacuum_map   robot vacuum: rooms, room cleaning, no-go zones, live map
  samsungtv_smart / samsungtv      TV remote, typing on the TV (only samsungtv_smart can type)
+ vizio                            typing on the TV
  apple_tv                         Apple TV remote, typing on the Apple TV
  androidtv_remote                 Android TV remote
  Hue (scenes, the Spotify sync, the sync box, gradient styles) is Hue Plus's: it registers them through the plugin API (docs/plugin-api.md). */
@@ -33,6 +34,7 @@ var media={
  textCall:function(platform,mediaId,configEntryId,text){
   if(platform==="samsungtv_smart")return media.samsungText(mediaId,text);
   if(platform==="apple_tv")return media.appleText(configEntryId,text);
+  if(platform==="vizio")return["vizio","send_text",{entity_id:mediaId,text:text}];
   return null;
  },
  /* The same as a command of the TV's remote entity, or null. */

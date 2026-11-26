@@ -118,6 +118,10 @@ Every device has `kind`, `id` (the entity, or `""`), `name`, `icon`.
 | `lmaster` | See below | row |
 | `rmaster` | `{def: "media_player.tv", subs: [{id, src}], spk: [media players], keep}` | row |
 
+**Popup** (`w: "popup"`, `wx: {}`): a row that opens a popup. Its contents are one more section of the same page, `{"id": "...", "k": "devs", "of": "<the widget's wid>", "devs": [...]}`; that section is never drawn on the page, and is dropped when no popup widget on the page has that `wid`.
+
+**Buttons of a ready-made TV remote**: `ui.rbx`, `{"media_player.x": {"<role>": {"off": 1}}}`. Roles: `power`, `settings`, `mute`, `back`, `home`, `playpause`, `volup`, `voldown`, `chup`, `chdown` take `{"a": <remote action>}`; `keyboard` (remote, media_player, text, input_text, script), `brightness` (number, input_number) and `apps` (media_player, select, input_select) take `{"e": "<entity>"}`. Leave a role out for automatic.
+
 **Lights master** (`w: "lmaster"`): for the lights of its own section, give it `wid` equal to the section's `id` and `wx: {"own": 1, "mn": "All lights"}`. For lights
 chosen by hand: any other `wid` and `wx: {"mm": 1, "mn": "Evening", "ml": [light devices]}`. `msrc` chooses the scenes of its Scenes tab: `"page"`,
 `"page:<room id>"`, `"area:<id>"`, `"tag:<tag>"`, `"ha:@page"` (Home Assistant's own scenes of the page's area).

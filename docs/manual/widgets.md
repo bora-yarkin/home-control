@@ -19,4 +19,9 @@
 | Agenda, To-do | A calendar's next events; a to-do list you can tick and add to. |
 | Folder | Up to twelve devices and scenes behind one tile. |
 | Stack | Up to five widgets in one place; swipe between them. |
+| Popup | A button that opens a popup of your own: devices as their usual rows, and other widgets. See below. |
 | Lights master | See [lights and scenes](lights-and-scenes.md). (The Remote master is added under *Remote*: [TVs and remotes](media-and-remotes.md).) |
+
+## Popup
+
+Add the widget, give it a name and an icon, then *Add to the popup* in its settings: the same list as a page's *Add item* (devices, switches, scenes, remotes, appliances, widgets, also another popup). A device can be on the page and in a popup. Tap one in the list to change or remove it, drag to reorder. The row on the page says how many items it holds and how many are on. Removing the widget removes what was in it.
