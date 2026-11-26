@@ -1,6 +1,12 @@
 /* Text shown to the user: the English strings and the lookup function _T(). */
 
 var EN = {
+  "vacap_names": "Names shown",
+  "vacap_no_select": "Stop using the select",
+  "vacap_offers": "Choices now: {x}",
+  "vacap_names_hint": "What each choice is called, for example Sweep=Vacuuming, Full Speed=Turbo.",
+  "vacap_icons": "Icons",
+  "vacap_icons_hint": "An icon name for a choice, for example Mop=drop, Silent=moon.",
   "turned_on_when": "Turned on {when}",
   "turned_off_when": "Turned off {when}",
   "domain_light": "Light",

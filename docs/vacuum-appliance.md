@@ -88,11 +88,13 @@ A choice such as mode, suction, water or number of passes.
 |---|---|
 | `field` | The name used in `$set.<field>`, `$room.<field>` and `$room_settings`: letters, digits and `_`, at most 40. Required. |
 | `label` | Shown above the choices, at most 24 characters. |
-| `choices` | At most 8 words (letters, digits, space, `&`, `_`, `-`). With a `select`, only its options are shown, in this order; left empty, all of the select's options. |
+| `choices` | At most 8 choices, each at most 40 characters of any language, without `<` or `>`. With a `select`, only its options are shown, in this order; left empty, all of the select's options. |
 | `select` | A `select` or `input_select`. The choice for all rooms is set on it before Start. |
 | `per_room_only` | `true`: not offered for all rooms, only in a room's own settings (passes). |
 | `codes` | `{"choice": number}`: what `$room.<field>` sends in place of the word. |
 | `default` | The choice used in `$room.<field>` when none is chosen. |
+| `labels` | `{"choice": "name shown"}`. Without it the robot's own word is shown. |
+| `icons` | `{"choice": "icon name"}`, for example `vac`, `drop`, `moon`, `fan`, `repeat`. Without it, one is guessed from plain words. |
 
 Choices that are all digits (`"1", "2"`) are drawn as 1×, 2×.
 
@@ -249,7 +251,9 @@ zones). They were taken from that card; they differ between models, so check you
       "choices": ["Sweep", "Sweep Mop", "Sweep Before Mopping", "Mop"],
       "select": "select.robot_sweep_mop_type",
       "codes": { "Sweep": 1, "Mop": 2, "Sweep Mop": 3, "Sweep Before Mopping": 4 },
-      "default": "Sweep"
+      "default": "Sweep",
+      "labels": { "Sweep": "Vacuuming", "Mop": "Mopping", "Sweep Mop": "Vac & Mop", "Sweep Before Mopping": "Vac before Mop" },
+      "icons": { "Sweep Before Mopping": "repeat", "Sweep Mop": "drop" }
     },
     {
       "field": "suction",

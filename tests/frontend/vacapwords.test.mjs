@@ -47,8 +47,8 @@ test("an action once per room gets that room's words, with a setting's value as 
 });
 
 test("the appliance draws the vacuum card's map, from the entities chosen for it, with no integration of its own", () => {
-  const vac = readFileSync(new URL("../../custom_components/home_control/frontend/app/vacuum.js", import.meta.url), "utf8");
-  const view = vac.slice(vac.indexOf("function vacMapView("), vac.indexOf("/* Every cleaning run of the last 30 days"));
+  const core = readFileSync(new URL("../../custom_components/home_control/frontend/app/vacuumcore.js", import.meta.url), "utf8");
+  const view = core.slice(core.indexOf("function vacMapView("));
   assert.doesNotMatch(view, /Integrations/, "the shared map asks no integration");
   assert.match(src, /vacMapView\(b, \{\s*id: vacuum,\s*me: mapEnt,\s*ps: ap\.slots\.position/);
   assert.doesNotMatch(src, /Integrations/);
@@ -93,5 +93,5 @@ test("whatever looks after vacuums looks after appliance ones too, and the appli
   assert.match(app("homekit.js"), /d\.kind === "appliance" && d\.ap && d\.ap\.type === "vacuum" && dm === "vacuum"/);
   assert.match(app("appliance.js"), /vacapToggle\(d\)/);
   assert.match(app("manage.js"), /advOf = d\.id \|\|/);
-  for (const need of [/the_robot_is_already_cleaning/, /vacapHeld\(state, s\)/, /ap\.slots\.dock/, /showPopup\("adv:" \+ vacuum, true\)/, /set_fan_speed/, /vacapFillFrom\(d\)/, /vacWatch\(b, vacuum\)/]) assert.match(src, need);
+  for (const need of [/the_robot_is_already_cleaning/, /vacapHeld\(state, raw, status\(\)\)/, /readingsBlock\(b, vacuum/, /ap\.slots\.dock/, /showPopup\("adv:" \+ vacuum, true\)/, /set_fan_speed/, /vacapFillFrom\(d\)/, /vacWatch\(b, vacuum\)/]) assert.match(src, need);
 });

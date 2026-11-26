@@ -1,6 +1,12 @@
 /* Turkish. One key for each text of app/strings.js (a test checks that none is missing and that every {place} is kept). */
 
 LANGS["tr"] = {
+  "vacap_names": "Gösterilen adlar",
+  "vacap_no_select": "Seçim varlığını kullanma",
+  "vacap_offers": "Şu anki seçenekler: {x}",
+  "vacap_names_hint": "Her seçeneğin adı, örneğin Sweep=Süpürme, Full Speed=Turbo.",
+  "vacap_icons": "Simgeler",
+  "vacap_icons_hint": "Seçenek için simge adı, örneğin Mop=drop, Silent=moon.",
   "turned_on_when": "{when} açıldı",
   "turned_off_when": "{when} kapatıldı",
   "domain_light": "Işık",

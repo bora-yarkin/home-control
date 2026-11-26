@@ -1,11 +1,11 @@
-/* The robot vacuum appliance (decision D-33): a custom appliance like the others, drawn as the Xiaomi vacuum's card. It knows no brand: the administrator gives its rooms,
+/* The robot vacuum appliance (decision D-33): a custom appliance like the others, drawn as a vacuum card. It knows no brand: the administrator gives its rooms,
    its settings and what Start does.
    ap.vac: rooms [{k: the value the vacuum knows the room by, l: its name}], sets [{k: the field name, l: label, o: [values], e?: a select entity for all rooms}],
    run [{action: "domain.service", data: {...}}]. In an action's data these words are replaced when Start is tapped: "$rooms" (the chosen rooms, all of them when none),
    "$room_numbers" (the same, digits as numbers),
    "$room_settings" ({room: {field: value}}, only what was chosen), "$vacuum" (the vacuum entity), "$vacuum_device" (its device id), "$set.<field>" (the choice for all rooms).
    An action that needs a word with nothing behind it is skipped. With no action Start starts the vacuum. The map is the appliance's own picture from the remote builder, whose
-   touch areas pick rooms, else the map entity. A room's own settings are kept with the dashboard, as the Xiaomi rooms' are; ap.vac.nopr turns them off.
+   touch areas pick rooms, else the map entity. A room's own settings are kept with the dashboard, as the vacuum card's are; ap.vac.nopr turns them off.
    ap.vac.zones {action, data, no_go, walls} asks the vacuum for its no-go zones and walls: an action that answers, and where in the answer they are.
    Everything here can also be read and written as text (app/vacsetup.js). The format is described in docs/vacuum-appliance.md. */
 
@@ -23,8 +23,20 @@ function vacapConf(ap) {
   return v;
 }
 
-function vacapWord(v) {
-  return RBLAB[v] || cap(String(v).replace(/_/g, " "));
+/* What a choice is called: the name the set-up gives it (set.n), else the robot's own word made readable. Nothing here knows one robot's words from another's. */
+function vacapWord(v, set) {
+  return (set && set.n && set.n[v]) || cap(String(v).replace(/_/g, " "));
+}
+
+/* A choice's icon: the one the set-up gives it (set.i), else one by the plain words in it. */
+function vacapIcon(v, set) {
+  if (set && set.i && set.i[v]) return set.i[v];
+  var word = String(v).toLowerCase().replace(/[ -]+/g, "_");
+  if (VACAP_ICON[word]) return VACAP_ICON[word];
+  if (/quiet|silent|sleep/.test(word)) return "moon";
+  if (/mop|water|wet/.test(word)) return "drop";
+  if (/vac|sweep|dry/.test(word)) return "vac";
+  return "fan";
 }
 
 /* A setting's choices: the select's own, in the order given in the setting when it lists them. */
@@ -36,6 +48,13 @@ function vacapOptions(set) {
     return own.indexOf(x) >= 0;
   });
   return ordered.length ? ordered : own;
+}
+
+/* What Stop and dock runs, as [domain, service, data]: the button or script chosen for it, else null (the vacuum is then stopped and sent back itself). */
+function vacapDockCall(ap) {
+  var dock = ap.slots && ap.slots.dock && apHas(ap.slots.dock) ? ap.slots.dock : "",
+    how = dock && REMOTE_ACT[dom(dock)];
+  return how ? [how[0], how[1], { entity_id: dock }] : null;
 }
 
 /* A short wait between one command to the vacuum and the next, so that it is not told two things at once. */
@@ -357,7 +376,7 @@ function vacapStart(ap, vacuum, chosen, all, pref) {
   }, Promise.resolve());
 }
 
-/* One setting as the Xiaomi card draws it: the name, the value, a row of round choices. */
+/* One setting: the name, the value, a row of round choices. */
 function vacapChoices(b, set, get, put, inherit) {
   var head = mk("div", "rb-sec", "<span></span><b></b>"),
     sv = head.lastChild,
@@ -381,7 +400,7 @@ function vacapChoices(b, set, get, put, inherit) {
     put(get() === v && !inherit ? "" : v);
     paint();
   }
-  /* a setting that counts (the cleaning passes) is a row of 1x, 2x, as the Xiaomi room page draws it */
+  /* a setting that counts (the cleaning passes) is a row of 1x, 2x,  */
   if (counted)
     g = seg(
       values.map(function (v) {
@@ -392,7 +411,7 @@ function vacapChoices(b, set, get, put, inherit) {
     );
   function paint() {
     var c = get();
-    sv.textContent = c && !counted ? vacapWord(c) : !c && inherit ? _T("same_as_all_rooms") : "";
+    sv.textContent = c && !counted ? vacapWord(c, set) : !c && inherit ? _T("same_as_all_rooms") : "";
     if (same) same.style.display = c ? "" : "none";
     Array.prototype.forEach.call(g.children, function (o, i) {
       if (counted) o.classList.toggle("act", values[i] === c);
@@ -400,8 +419,8 @@ function vacapChoices(b, set, get, put, inherit) {
     });
   }
   if (!counted) values.forEach(function (v) {
-    var o = mk("div", "opt", ic(VACAP_ICON[v] || RBICON[v] || "drop") + "<span></span>");
-    o.lastChild.textContent = vacapWord(v);
+    var o = mk("div", "opt", ic(vacapIcon(v, set)) + "<span></span>");
+    o.lastChild.textContent = vacapWord(v, set);
     o._v = v;
     o.setAttribute("role", "button");
     o.addEventListener("click", function () {
@@ -437,12 +456,36 @@ function vacapRoomPage(b, key) {
   });
 }
 
-/* After a start the robot takes a while to say it is cleaning: Start stays held until it has been out and is back (or 90 minutes, or Stop). */
-function vacapHeld(state, s) {
+/* What a state or status entity says while a run is going, and when it is over. */
+var VACAP_WORKING = ["sweeping", "mopping", "mapping", "working", "cleaning", "pausing", "returning", "paused"],
+  VACAP_DONE = ["charging", "charged", "fully charged", "docked"];
+
+/* After a start the robot takes a while to say it is cleaning, and some report it late or not at all: the run is held (Start waits, Pause and Stop are there) until it is over.
+   `state.held` is when it started, `s` the vacuum's state, `raw` what the status entity says (when one is chosen). A status entity that showed the run ends it when it says it is
+   over; one that never showed it (90 seconds) is not believed and the run is held for half an hour; without one, the vacuum's own docked or idle ends it. */
+function vacapHeld(state, s, raw) {
   if (!state.held) return false;
-  var age = Date.now() - state.held;
-  if (age > 5400000 || (age > 30000 && (s === "docked" || s === "idle"))) state.held = 0;
+  var age = Date.now() - state.held,
+    over;
+  if (raw === undefined || raw === null) over = age > 30000 && (s === "docked" || s === "idle");
+  else {
+    var word = String(raw).toLowerCase();
+    if (VACAP_WORKING.indexOf(word) >= 0) state.seen = true;
+    if (!state.seen && age > 90000) over = age > 1800000;
+    else over = age > 30000 && (VACAP_DONE.indexOf(word) >= 0 || s === "docked");
+  }
+  if (over || age > 5400000) state.held = 0;
   return !!state.held;
+}
+
+/* What the run shows: what was just pressed until the vacuum says something new, else its state; a held run that still reads as resting counts as cleaning. */
+function vacapShown(state, s, held) {
+  if (state.vs !== s) {
+    state.vs = s;
+    state.opt = "";
+  }
+  if (state.opt) return state.opt;
+  return held && ["cleaning", "paused", "returning"].indexOf(s) < 0 ? "cleaning" : s;
 }
 
 /* The appliance's page: map, readings, rooms, settings, Start, and Pause, Resume and Stop while it works. */
@@ -600,15 +643,25 @@ function vacapPage(b, d) {
     call("vacuum", action, { entity_id: vacuum });
     vacKick(vacuum);
   }
-  var bPause = rbtn("pause", function () { vac("pause"); }, _T("pause")),
-    bResume = rbtn("play", function () { vac("start"); }, _T("resume")),
+  function pressed(shows) {
+    state.vs = vacuum ? V_(vacuum) : "";
+    state.opt = shows;
+    paint();
+  }
+  /* the status entity chosen for the run, if any */
+  function status() {
+    return ap.slots.state && apHas(ap.slots.state) && svOk(ap.slots.state) ? V_(ap.slots.state) : undefined;
+  }
+  var bPause = rbtn("pause", function () { vac("pause"); pressed("paused"); }, _T("pause")),
+    bResume = rbtn("play", function () { vac("start"); pressed("cleaning"); }, _T("resume")),
     bStop = rbtn(
       "stop",
       function () {
         state.held = 0;
-        var dock = ap.slots.dock && apHas(ap.slots.dock) ? ap.slots.dock : "";
+        pressed("returning");
+        var dock = vacapDockCall(ap);
         if (dock) {
-          apRun(dock, true);
+          call(dock[0], dock[1], dock[2]);
           if (vacuum) vacKick(vacuum);
         } else {
           vac("stop");
@@ -631,8 +684,10 @@ function vacapPage(b, d) {
     spots.forEach(function (z) {
       z.classList.toggle("on", state.rooms.indexOf(z._k) >= 0);
     });
-    var s = vacuum ? V_(vacuum) : "",
-      busy = state.running || vacapHeld(state, s) || s === "cleaning" || s === "returning",
+    var raw = vacuum ? V_(vacuum) : "",
+      held = vacapHeld(state, raw, status()),
+      s = vacapShown(state, raw, held),
+      busy = state.running || held || s === "cleaning" || s === "returning",
       working = s === "cleaning" || s === "paused" || s === "returning",
       html =
         svg("play") +
@@ -645,7 +700,7 @@ function vacapPage(b, d) {
               ? _T("start_on_selected_rooms")
               : _T("start_all_rooms")) +
         "</span>";
-    start.classList.toggle("dis", busy || s === "unavailable");
+    start.classList.toggle("dis", busy || raw === "unavailable");
     if (start._html !== html) start.innerHTML = start._html = html;
     bPause.style.display = s === "cleaning" ? "" : "none";
     bResume.style.display = s === "paused" ? "" : "none";
@@ -656,10 +711,14 @@ function vacapPage(b, d) {
 
   function run() {
     var s = vacuum ? V_(vacuum) : "";
-    if (state.running || vacapHeld(state, s) || s === "cleaning" || s === "returning" || s === "unavailable") return;
-    /* the gate runs what it is given, at once or after the person confirms */
-    if (vacuum) gate([vacuum], go);
-    else go();
+    if (state.running || vacapHeld(state, s, status()) || s === "cleaning" || s === "returning" || s === "unavailable") return;
+    /* the gate runs what it is given, at once or after the person confirms; a vacuum set to ask first asks here too, as Start calls the actions itself */
+    var proceed = function () {
+      if (vacuum) gate([vacuum], go);
+      else go();
+    };
+    if (vacuum && asksFirst(vacuum)) confirmDlg(_T("are_you_sure"), proceed);
+    else proceed();
   }
   function go() {
     if (state.running) return;
@@ -687,6 +746,8 @@ function vacapPage(b, d) {
           return rbPref(vacapPrefKey(d.aid, r));
         }).then(function () {
           state.held = Date.now();
+          state.seen = false;
+          state.opt = "";
         });
       })
       .catch(function (e) {
@@ -719,6 +780,8 @@ function vacapPage(b, d) {
     );
   b.appendChild(ctl);
   b.appendChild(start);
+  /* the robot's faults, and what else its device only reports */
+  if (vacuum) readingsBlock(b, vacuum, { battery: true, noNums: true, noCare: true });
   if (vacuum && !d.noadv && advButton(vacuum))
     b.appendChild(
       pill("tune", _T("advanced_settings"), {
@@ -772,19 +835,28 @@ function vacapFillFrom(d) {
     var base = ap.slots.map.split(".")[1].replace(/_(live_)?map$/, "");
     slot("position", Object.keys(h.states).filter(function (id) { return dom(id) === "sensor" && id.indexOf(base) >= 0 && /position$/.test(id) && typeof A(id).x === "number"; })[0]);
   }
+  /* A water or suction select can also end in "_mode": those two are looked for first, and the mode is taken from what is left. The settings are listed mode, suction, water. */
+  var taken = conf.sets.map(function (s) {
+      return s.e;
+    }),
+    found = {};
   [
-    ["mode", _T("mode"), /(sweep_mop_type|mop_mode|cleaning_mode|clean_mode|_mode)$/],
-    ["suction", _T("suction"), /(suction|fan_speed|fan_level)/],
     ["water", _T("water_output"), /(water|mop_water)/],
+    ["suction", _T("suction"), /(suction|fan_speed|fan_level)/],
+    ["mode", _T("mode"), /((mop|clean|cleaning|work)_?(mode|type)|_mode)$/],
   ].forEach(function (x) {
-    if (conf.sets.some(function (s) { return s.k === x[0]; }) || conf.sets.length >= 6) return;
+    if (conf.sets.some(function (s) { return s.k === x[0]; })) return;
     var e = mine.filter(function (id) {
-      return dom(id) === "select" && x[2].test(id) && !conf.sets.some(function (s) { return s.e === id; });
+      return dom(id) === "select" && x[2].test(id) && taken.indexOf(id) < 0;
     })[0];
-    if (e) {
-      conf.sets.push({ k: x[0], l: x[1], o: [], e: e });
-      n++;
-    }
+    if (!e) return;
+    taken.push(e);
+    found[x[0]] = { k: x[0], l: x[1], o: [], e: e };
+  });
+  ["mode", "suction", "water"].forEach(function (k) {
+    if (!found[k] || conf.sets.length >= 6) return;
+    conf.sets.push(found[k]);
+    n++;
   });
   return n;
 }
@@ -1023,6 +1095,18 @@ function vacapItemPage(b, key, list) {
         },
       })
     );
+    if (x.e)
+      b.appendChild(
+        pill("trash", _T("vacap_no_select"), {
+          tap: function () {
+            delete x.e;
+            uiChanged();
+            popBack();
+          },
+        })
+      );
+    /* the words the choices go by, which the numbers, names and icons below are written against */
+    if (vacapOptions(x).length) b.appendChild(hintRow(_T("vacap_offers", { x: vacapOptions(x).join(", ") })));
     b.appendChild(
       flagPill("home", _T("vacap_room_only"), x, "r", function (on) {
         return on ? _T("on_cap") : _T("off");
@@ -1047,6 +1131,17 @@ function vacapItemPage(b, key, list) {
       300,
       "vacap_codes_hint"
     );
+    [["vacap_names", "n", "vacap_names_hint", /^[^<>]{1,24}$/], ["vacap_icons", "i", "vacap_icons_hint", /^[a-z0-9_:-]{1,40}$/]].forEach(function (f) {
+      field(f[0], Object.keys(x[f[1]] || {}).map(function (n) { return n + "=" + x[f[1]][n]; }).join(", "), function (v) {
+        var map = {};
+        v.split(",").forEach(function (pair) {
+          var m = /^\s*([^=]+?)\s*=\s*(.+?)\s*$/.exec(pair);
+          if (m && f[3].test(m[2])) map[m[1]] = m[2];
+        });
+        if (Object.keys(map).length) x[f[1]] = map;
+        else delete x[f[1]];
+      }, 300, f[2]);
+    });
     field("vacap_default", x.d || "", function (v) {
       if (v) x.d = v.slice(0, 40);
       else delete x.d;

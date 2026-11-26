@@ -7,7 +7,7 @@ var VACSETUP_FORMAT = "home-control.vacuum";
 var VACSETUP_NAMES = {
   readings: [["entity", "e"], ["label", "l"], ["group", "g"], ["tile", "o"]],
   rooms: [["value", "k"], ["name", "l"]],
-  settings: [["field", "k"], ["label", "l"], ["choices", "o"], ["select", "e"], ["per_room_only", "r"], ["codes", "c"], ["default", "d"]],
+  settings: [["field", "k"], ["label", "l"], ["choices", "o"], ["select", "e"], ["per_room_only", "r"], ["codes", "c"], ["default", "d"], ["labels", "n"], ["icons", "i"]],
   start: [["action", "action"], ["data", "data"], ["each_room", "each"], ["expect", "expect"]],
 };
 var VACSETUP_FLAGS = { tile: 1, per_room_only: 1, each_room: 1 };
