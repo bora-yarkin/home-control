@@ -56,7 +56,11 @@ def test_the_list_of_files_the_panel_loads_is_every_file_of_the_application():
     files = json.loads((FRONTEND / "version.json").read_text())["files"]
     assert len(files) == len(set(files))
     on_disk = {"integrations.js"} | {f"app/{path.name}" for path in (FRONTEND / "app").glob("*.js")}
-    assert set(files) == on_disk
+    # the panel loads the strings itself, before every file, then the language pack
+    assert set(files) == on_disk - {"app/strings.js"}
+    assert 'asset("app/strings.js")' in (FRONTEND / "dashboard-panel.js").read_text()
+    release = json.loads((FRONTEND / "version.json").read_text())
+    assert all(code == "en" or (FRONTEND / "app" / "lang" / f"{code}.js").is_file() for code in release["languages"])
     assert files[-1] == "app/main.js"
 
 
