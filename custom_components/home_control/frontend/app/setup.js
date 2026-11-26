@@ -223,7 +223,7 @@ function setupBuild(src, c, old) {
           )
         );
       var media = setupChosen(a, "media_player", c).map(function (x) {
-        return setupDev(x, "media", guessDevType({ kind: "media", id: x.id, icon: /tv|television/i.test(x.id + " " + x.name) ? "tv" : "speaker" }) === "tv" ? "tv" : "speaker");
+        return setupDev(x, "media", (typeof reportedType === "function" && reportedType(x.id)) === "tv" || /tv|television/i.test(x.id + " " + x.name) ? "tv" : "speaker");
       });
       if (media.length) secs.push(setupSection("media", _T("media"), "tv", media));
       function pick(domains, kind, icon) {
