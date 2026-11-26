@@ -287,6 +287,8 @@ function cleanRemote(r) {
     if (["red", "green", "yellow", "blue"].indexOf(x.k) >= 0) btn.k = x.k;
     out.btns.push(btn);
   });
+  /* the grid drawn as the built-in remotes are */
+  if (r && r.look === "native") out.look = "native";
   return out;
 }
 

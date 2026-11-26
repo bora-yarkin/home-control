@@ -19,5 +19,4 @@
 | Agenda, To-do | A calendar's next events; a to-do list you can tick and add to. |
 | Folder | Up to twelve devices and scenes behind one tile. |
 | Stack | Up to five widgets in one place; swipe between them. |
-| Lights master | See [lights and scenes](lights-and-scenes.md). |
-| Remote master | See [TVs and remotes](media-and-remotes.md). |
+| Lights master | See [lights and scenes](lights-and-scenes.md). (The Remote master is added under *Remote*: [TVs and remotes](media-and-remotes.md).) |

@@ -135,7 +135,7 @@ test("it is a widget, every TV remote lets it take its keys, and the popup's tit
 test("when the speaker takes now playing's row, the default's inputs stay within reach beside power", () => {
   const src = read("remotemaster.js");
   assert.match(src, /inCard = !!onTap;/, "known from whether now playing opens the input list");
-  assert.match(src, /if \(free && inCard\) \{\s*var inputs = tvSources\(x\.def\)/);
+  assert.match(src, /if \(free && inCard\) \{\s*var inputs = tvSources\(rmState\(x, x\.def\)\)/);
   assert.match(src, /inputs\.style\.display = speakerHasRow\(\) \? "" : "none";/, "only while that row is the speaker's");
 });
 
@@ -225,4 +225,14 @@ test("a device's Advanced settings are hidden when switched off for the master, 
   assert.equal(kept.noadv, 1);
   assert.equal(kept.opt["media_player.tv"].noadv, 1);
   assert.match(read("remotemaster.js"), /flagPill\("tune", _T\("advanced_settings_button"\), x, "noadv"/, "the same switch as a device's settings");
+});
+
+test("a custom remote's typed text goes to the player its keyboard button names, and its grid keeps the built-in look", () => {
+  const sent = [];
+  const { ctx } = withRemotes({}, { rmSendText: (e, v) => sent.push([e, v]) });
+  const own = [{ rid: "box", name: "Box", icon: "tv", rm: { cols: 6, btns: [{ a: { t: "text", e: "media_player.box" } }] } }];
+  ctx.rmMemberKeys({ def: "rm:box", subs: [], spk: [], own }, "rm:box").text("hello");
+  assert.deepEqual(sent, [["media_player.box", "hello"]]);
+  const model = readFileSync(new URL("../../custom_components/home_control/frontend/app/model.js", import.meta.url), "utf8");
+  assert.match(model, /if \(r && r\.look === "native"\) out\.look = "native";/);
 });

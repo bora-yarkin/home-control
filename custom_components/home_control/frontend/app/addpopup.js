@@ -154,7 +154,58 @@ function addList(f) {
 }
 
 /* A remote is not an entity: it is made here, then filled with buttons. */
+/* The media players that have a ready-made remote, of the area and search chosen. */
+function rmReady(area, q) {
+  var h = H();
+  q = String(q || "").toLowerCase();
+  return Object.keys(h.states)
+    .filter(function (id) {
+      var e = h.entities[id] || {};
+      if (dom(id) !== "media_player" || e.disabled_by || e.hidden || !mediaRemoteKind(id)) return false;
+      if (area && areaIdOf(id) !== area) return false;
+      return !q || (String(A(id).friendly_name || "") + " " + id).toLowerCase().indexOf(q) >= 0;
+    })
+    .sort(function (a, b) {
+      return String(A(a).friendly_name || a).localeCompare(String(A(b).friendly_name || b));
+    });
+}
+
+/* Remotes: the ready-made one of each TV that has one (the TV is put on the page, and its popup is that remote), the Remote master, and one built by hand. */
 function addRemoteEntry(f) {
+  var ready = rmReady(f.st.area, f.st.q),
+    here = devList(f.rid);
+  f.box.appendChild(sep(_T("rm_ready"), "tv"));
+  if (!ready.length) f.box.appendChild(hintRow(_T("rm_ready_none")));
+  ready.forEach(function (id) {
+    var name = A(id).friendly_name || id,
+      family = tvFamily(id),
+      has = here.some(function (d) {
+        return d.id === id;
+      });
+    f.box.appendChild(
+      pill("tv", name, {
+        sub: function () {
+          return (
+            Integrations.remote.label(family) +
+            (mediaRemoteKind(id) === "family" ? " · " + _T("rm_ready_experimental") : "") +
+            " · " +
+            (has ? _T("rm_ready_here") : areaName(id) || id)
+          );
+        },
+        tap: function () {
+          if (has) return toast(_T("rm_ready_here"));
+          var r = addCandidate(f.rid, { id: id, name: name.slice(0, 40) });
+          uiChanged();
+          toast(_T("added") + name + "”");
+          POPGUARD = null;
+          showPopup("manage-dev:" + r.at.rid + ":" + r.at.i, false);
+        },
+      })
+    );
+  });
+  f.box.appendChild(sep(_T("rm_title"), "tv"));
+  f.box.appendChild(addWidgetEntry(f, "rmaster"));
+  f.box.appendChild(sep(_T("rm_build_own"), "tune"));
   f.box.appendChild(
     pill("media", _T("rm_new_remote"), {
       sub: function () {
@@ -171,23 +222,31 @@ function addRemoteEntry(f) {
 }
 
 /* A widget is not an entity either: each type of the registry is offered, and the new one opens its settings. */
-function addWidgetEntries(f) {
-  Object.keys(WIDGETS).forEach(function (w) {
-    var def = WIDGETS[w];
-    f.box.appendChild(
-      pill(def.icon, def.title, {
-        sub: function () {
-          return def.desc || "";
-        },
-        tap: function () {
-          var at = placeDevice(f.rid, newWidgetDev(w));
-          uiChanged();
-          POPGUARD = null;
-          showPopup("manage-dev:" + at.rid + ":" + at.i, false);
-        },
-      })
-    );
+/* One widget type of the registry as a row that adds it and opens its settings. */
+function addWidgetEntry(f, w) {
+  var def = WIDGETS[w];
+  return pill(def.icon, def.title, {
+    sub: function () {
+      return def.desc || "";
+    },
+    tap: function () {
+      var at = placeDevice(f.rid, newWidgetDev(w));
+      uiChanged();
+      POPGUARD = null;
+      showPopup("manage-dev:" + at.rid + ":" + at.i, false);
+    },
   });
+}
+
+function addWidgetEntries(f) {
+  /* the Remote master is with the remotes */
+  Object.keys(WIDGETS)
+    .filter(function (w) {
+      return w !== "rmaster";
+    })
+    .forEach(function (w) {
+      f.box.appendChild(addWidgetEntry(f, w));
+    });
 }
 
 function addApplianceEntries(f) {
