@@ -35,7 +35,7 @@ function world(section = {}, extra = {}) {
     sceneAllowed: () => true,
     lpFxOf: () => ({ scenes: ["scene.bath_dim"] }),
     A: (id) => (states[id] || {}).attributes || {},
-    UIROOM: { r1: { name: "Main bedroom", area: "bora" } },
+    UIROOM: { r1: { name: "Robin's Bedroom", area: "robin" } },
     sceneShortName: (name) => name.replace(/^Bathroom /, ""),
     sceneGroupIds: (token) => (token === "group:zone:wardrobe" ? ["scene.ward_a", "scene.ward_b"] : []),
     sceneNameSuffixes: (ids) => (ids.includes("scene.ward_a") && ids.includes("scene.bath_dim") ? { "scene.ward_a": " · Zone", "scene.bath_dim": " · Room" } : {}),
@@ -199,11 +199,11 @@ test("the pen and dots of the scene that plays stay put when the rows are made a
 });
 
 test("the rooms of Hue are sources: the areas named, the page's own area, and the areas of the lights", () => {
-  const extra = { sceneIds: (a) => (a === "bath" ? [["scene.bath_dim"], ["scene.plain"]] : a === "bora" ? [["scene.bora_one"]] : []), pluginSceneKind: (id) => (id === "scene.plain" ? null : {}) };
+  const extra = { sceneIds: (a) => (a === "bath" ? [["scene.bath_dim"], ["scene.plain"]] : a === "robin" ? [["scene.robin_one"]] : []), pluginSceneKind: (id) => (id === "scene.plain" ? null : {}) };
   const named = world({ msrc: ["hue:bath"] }, extra);
   assert.deepEqual(keys(named.w.mscItems({ root: { key: "m:r1~lights" } })), ["scene.bath_dim"], "only the scenes a plugin owns");
   const page = world({ msrc: ["hue:@page"] }, extra);
-  assert.deepEqual(keys(page.w.mscItems({ root: { key: "m:r1~lights" } })), ["scene.bora_one"], "the area of the master's page");
+  assert.deepEqual(keys(page.w.mscItems({ root: { key: "m:r1~lights" } })), ["scene.robin_one"], "the area of the master's page");
   const lights = world({ msrc: ["hue:@lights"] }, extra);
   assert.deepEqual(keys(lights.w.mscItems({ root: { key: "m:r1~lights" } })), ["scene.bath_dim"], "the areas of its lights (what lpFxOf says)");
 });

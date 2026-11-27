@@ -27,9 +27,9 @@ function world(states, kinds = [{}]) {
 }
 const scene = (id, group_type, group_name) => [id, { attributes: { group_type, group_name } }];
 const states = Object.fromEntries([
-  scene("scene.hp_bed_read", "room", "Main bedroom"),
-  scene("scene.hp_bed_night", "room", "Main bedroom"),
-  scene("scene.hp_zone_all", "zone", "Main bedroom"),
+  scene("scene.hp_bed_read", "room", "Robin’s Bedroom"),
+  scene("scene.hp_bed_night", "room", "Robin’s Bedroom"),
+  scene("scene.hp_zone_all", "zone", "Robin’s Bedroom"),
   scene("scene.hp_ward", "zone", "Wardrobe"),
   scene("scene.hp_bath", "room", "Bathroom"),
   scene("scene.hp_nogroup", undefined, undefined),
@@ -39,7 +39,7 @@ const states = Object.fromEntries([
 
 test("a group's token is its type and its name as lower case words, so accents, apostrophes and capitals do not matter", () => {
   const w = world({});
-  assert.equal(w.groupSlug("Main bedroom"), "bora-s-bedroom");
+  assert.equal(w.groupSlug("Robin’s Bedroom"), "robin-s-bedroom");
   assert.equal(w.groupSlug("  Salle à manger  "), "salle-a-manger");
   assert.equal(w.groupSlug("!!!"), "group", "a name with no letters or digits still has a token");
   assert.ok(w.groupSlug("x".repeat(100)).length <= 60);
@@ -48,8 +48,8 @@ test("a group's token is its type and its name as lower case words, so accents, 
 test("the groups are the rooms and zones the scenes of plugins say they are in, rooms first, each by name, a room and a zone of one name apart", () => {
   const w = world(states);
   const groups = plain(w.sceneGroups());
-  assert.deepEqual(groups.map((g) => g.token), ["group:room:bathroom", "group:room:bora-s-bedroom", "group:zone:bora-s-bedroom", "group:zone:wardrobe"]);
-  assert.deepEqual(groups.map((g) => g.label), ["Hue · Room · Bathroom", "Hue · Room · Main bedroom", "Hue · Zone · Main bedroom", "Hue · Zone · Wardrobe"]);
+  assert.deepEqual(groups.map((g) => g.token), ["group:room:bathroom", "group:room:robin-s-bedroom", "group:zone:robin-s-bedroom", "group:zone:wardrobe"]);
+  assert.deepEqual(groups.map((g) => g.label), ["Hue · Room · Bathroom", "Hue · Room · Robin’s Bedroom", "Hue · Zone · Robin’s Bedroom", "Hue · Zone · Wardrobe"]);
   assert.deepEqual(groups[1].ids, ["scene.hp_bed_read", "scene.hp_bed_night"]);
   assert.deepEqual(groups[2].ids, ["scene.hp_zone_all"], "the zone of the same name has its own scenes");
 });
@@ -65,8 +65,8 @@ test("a scene that is not a plugin's, has no group, or is in a kind of group the
 
 test("the scenes of a group are found by its token, and a token that names no group finds none", () => {
   const w = world(states);
-  assert.deepEqual(plain(w.sceneGroupIds("group:zone:bora-s-bedroom")), ["scene.hp_zone_all"]);
-  assert.deepEqual(plain(w.sceneGroupIds("group:room:bora-s-bedroom")), ["scene.hp_bed_read", "scene.hp_bed_night"]);
+  assert.deepEqual(plain(w.sceneGroupIds("group:zone:robin-s-bedroom")), ["scene.hp_zone_all"]);
+  assert.deepEqual(plain(w.sceneGroupIds("group:room:robin-s-bedroom")), ["scene.hp_bed_read", "scene.hp_bed_night"]);
   assert.deepEqual(plain(w.sceneGroupIds("group:zone:nope")), []);
 });
 
@@ -96,7 +96,7 @@ function tiles({ rooms: roomTokens = [], tags = [], near = {} } = {}) {
     pluginSceneKind: (id) => (id.startsWith("scene.hp_") ? {} : null),
     STORE: { scenes: [] },
     sceneTags: () => [],
-    scenePages: () => [{ token: "page:bora", name: "Bora", count: 1 }],
+    scenePages: () => [{ token: "page:robin", name: "Robin", count: 1 }],
     sceneRoomHueIds: (t) => near[t] || [],
     mk: () => ({ appendChild() {} }),
     hintRow: () => ({}),
@@ -112,28 +112,28 @@ function tiles({ rooms: roomTokens = [], tags = [], near = {} } = {}) {
 }
 
 test("with no room ticked every group is offered, labelled with its kind, name and number of scenes", () => {
-  const t = tiles({ near: { "page:bora": ["scene.hp_bed_read"] } });
-  assert.deepEqual(t.offered(), ["-", "@hue", "@ha", "@group:room:bathroom", "@group:room:bora-s-bedroom", "@group:zone:bora-s-bedroom", "@group:zone:wardrobe"]);
-  assert.ok(t.labels().includes("Hue · Zone · Main bedroom · 1"));
+  const t = tiles({ near: { "page:robin": ["scene.hp_bed_read"] } });
+  assert.deepEqual(t.offered(), ["-", "@hue", "@ha", "@group:room:bathroom", "@group:room:robin-s-bedroom", "@group:zone:robin-s-bedroom", "@group:zone:wardrobe"]);
+  assert.ok(t.labels().includes("Hue · Zone · Robin’s Bedroom · 1"));
 });
 
 test("with a room ticked only the groups that have scenes in it are offered, and a group already ticked stays", () => {
-  const near = { "page:bora": ["scene.hp_bed_read", "scene.hp_zone_all", "scene.hp_ward"] };
-  assert.deepEqual(tiles({ rooms: ["page:bora"], near }).offered().filter((x) => x.startsWith("@group:")), ["@group:room:bora-s-bedroom", "@group:zone:bora-s-bedroom", "@group:zone:wardrobe"], "not the Bathroom, whose scenes are elsewhere");
-  assert.ok(tiles({ rooms: ["page:bora", "group:room:bathroom"], near }).offered().includes("@group:room:bathroom"), "unless it is ticked already");
+  const near = { "page:robin": ["scene.hp_bed_read", "scene.hp_zone_all", "scene.hp_ward"] };
+  assert.deepEqual(tiles({ rooms: ["page:robin"], near }).offered().filter((x) => x.startsWith("@group:")), ["@group:room:robin-s-bedroom", "@group:zone:robin-s-bedroom", "@group:zone:wardrobe"], "not the Bathroom, whose scenes are elsewhere");
+  assert.ok(tiles({ rooms: ["page:robin", "group:room:bathroom"], near }).offered().includes("@group:room:bathroom"), "unless it is ticked already");
 });
 
 test("ticking a group stops Hue as a whole from taking in everything, so the choice filters; ticking it again takes it off", () => {
   const t = tiles({ rooms: ["hue:@lights"] });
   t.tap("@group:zone:wardrobe");
   assert.deepEqual(t.tokens(), ["group:zone:wardrobe"], "the blanket Hue is gone");
-  t.tap("@group:room:bora-s-bedroom");
-  assert.deepEqual(t.tokens(), ["group:zone:wardrobe", "group:room:bora-s-bedroom"], "groups add up");
+  t.tap("@group:room:robin-s-bedroom");
+  assert.deepEqual(t.tokens(), ["group:zone:wardrobe", "group:room:robin-s-bedroom"], "groups add up");
   t.tap("@group:zone:wardrobe");
-  assert.deepEqual(t.tokens(), ["group:room:bora-s-bedroom"]);
-  const keep = tiles({ rooms: ["page:bora", "hue:bathroom", "hue:@rooms"] });
+  assert.deepEqual(t.tokens(), ["group:room:robin-s-bedroom"]);
+  const keep = tiles({ rooms: ["page:robin", "hue:bathroom", "hue:@rooms"] });
   keep.tap("@group:zone:wardrobe");
-  assert.deepEqual(keep.tokens(), ["page:bora", "hue:bathroom", "group:zone:wardrobe"], "rooms and a Hue area chosen by name are kept; only the blanket choices go");
+  assert.deepEqual(keep.tokens(), ["page:robin", "hue:bathroom", "group:zone:wardrobe"], "rooms and a Hue area chosen by name are kept; only the blanket choices go");
 });
 
 test("the Tags dropdown says which groups are ticked", () => {
