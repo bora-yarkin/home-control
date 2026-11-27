@@ -18,7 +18,7 @@ function world(layout, extra = {}) {
     document: { getElementById: () => null, querySelector: () => null },
     iconOk: () => true,
     deviceGet: (k, d) => d,
-    TITLES: { home: "Home", bora: "Bora's Bedroom", bath: "Bathroom" },
+    TITLES: { home: "Home", robin: "Robin's Bedroom", bath: "Bathroom" },
     changed,
     uiChanged: () => changed.push(1),
     roomHidden: () => false,
@@ -33,9 +33,9 @@ function world(layout, extra = {}) {
   vm.createContext(sandbox);
   for (const f of ["model.js", "sections.js", "widgetkinds.js", "glance.js", "mastersettings.js", "lightsmasters.js"]) vm.runInContext(read(f), sandbox, { filename: f });
   /* what the files set up is replaced by the pretend dashboard */
-  sandbox.UI = { rooms: [{ id: "bora", name: "Bora's Bedroom", area: "bedroom" }, { id: "bath", name: "Bathroom", area: "bathroom", hide: false }], layout: layout, meta: {} };
+  sandbox.UI = { rooms: [{ id: "robin", name: "Robin's Bedroom", area: "bedroom" }, { id: "bath", name: "Bathroom", area: "bathroom", hide: false }], layout: layout, meta: {} };
   sandbox.cleanCond = () => null;
-  sandbox.TITLES = { home: "Home", bora: "Bora's Bedroom", bath: "Bathroom" };
+  sandbox.TITLES = { home: "Home", robin: "Robin's Bedroom", bath: "Bathroom" };
   sandbox.ROOMLIGHTS = extra.ROOMLIGHTS || {};
   sandbox.masterLightIds = (sec) => (sec.mm ? (sec.ml || []).map((m) => m.id) : (sec.devs || []).filter((d) => d.id && d.kind === "light").map((d) => d.id));
   return sandbox;
@@ -48,7 +48,7 @@ const masters = (sec) => sec.devs.filter((d) => d.kind === "widget" && d.w === "
 const layout = () => ({
   home: [],
   rooms: {
-    bora: [{ id: "lights", k: "devs", hide: false, devs: [mw("lights", { own: 1 }), light("light.bed_1"), light("light.bed_2")] }],
+    robin: [{ id: "lights", k: "devs", hide: false, devs: [mw("lights", { own: 1 }), light("light.bed_1"), light("light.bed_2")] }],
     bath: [{ id: "lights", k: "devs", hide: false, devs: [] }],
   },
 });
@@ -95,29 +95,29 @@ test("a held master is manual whatever it said, and keeps only the settings of a
 
 test("a master is found by its id with masterById, a section by secById, and the host of one that is not the section's own is the section", () => {
   const l = layout();
-  l.rooms.bora[0].devs.push(mw("bath", { mm: 1, ml: [light("light.bath_1")] }));
+  l.rooms.robin[0].devs.push(mw("bath", { mm: 1, ml: [light("light.bath_1")] }));
   const w = world(l);
-  assert.equal(w.masterById("bora", "bath").id, "bath");
-  assert.equal(w.masterById("bora", "lights").own, 1, "the section's own master is named by the section's id");
-  assert.equal(w.secById("bora", "lights").k, "devs", "while the section is found by it too");
-  assert.equal(w.secById("bora", "bath"), null, "a master is not a section");
-  assert.equal(w.masterHost("bora", "bath").id, "lights");
-  assert.equal(w.masterHost("bora", "lights"), null, "the section's own master has no host");
+  assert.equal(w.masterById("robin", "bath").id, "bath");
+  assert.equal(w.masterById("robin", "lights").own, 1, "the section's own master is named by the section's id");
+  assert.equal(w.secById("robin", "lights").k, "devs", "while the section is found by it too");
+  assert.equal(w.secById("robin", "bath"), null, "a master is not a section");
+  assert.equal(w.masterHost("robin", "bath").id, "lights");
+  assert.equal(w.masterHost("robin", "lights"), null, "the section's own master has no host");
   assert.equal(w.masterById("bath", "bath"), null, "on its own page only");
-  assert.equal(w.masterNewId("bora").length >= 3, true);
-  assert.notEqual(w.masterNewId("bora"), "bath");
-  assert.equal(w.masterById("bora", "lights").devs.length, 4, "an automatic master has the lights of its section to work with (a view, not saved)");
-  assert.equal("devs" in JSON.parse(JSON.stringify(w.masterById("bora", "lights"))), false, "the view is never saved");
+  assert.equal(w.masterNewId("robin").length >= 3, true);
+  assert.notEqual(w.masterNewId("robin"), "bath");
+  assert.equal(w.masterById("robin", "lights").devs.length, 4, "an automatic master has the lights of its section to work with (a view, not saved)");
+  assert.equal("devs" in JSON.parse(JSON.stringify(w.masterById("robin", "lights"))), false, "the view is never saved");
 });
 
 test("moving the automatic master of a section saves its lights as chosen ones, takes the master out of the section and leaves the lights of the section and of the target alone", () => {
   const l = layout();
-  Object.assign(l.rooms.bora[0].devs[0].wx, { mn: "Bed", mall: 1, scn: ["sc1"], msrc: ["hue", "sec:other", "sec:gone"], mhl: 1, mtab: "color", mps: "scene.read", mpw: "scene" });
+  Object.assign(l.rooms.robin[0].devs[0].wx, { mn: "Bed", mall: 1, scn: ["sc1"], msrc: ["hue", "sec:other", "sec:gone"], mhl: 1, mtab: "color", mps: "scene.read", mpw: "scene" });
   l.rooms.bath[0].devs = [light("light.bath_1")];
-  l.rooms.bora.push({ id: "other", k: "devs", scs: 1, devs: [] });
+  l.rooms.robin.push({ id: "other", k: "devs", scs: 1, devs: [] });
   const w = world(l);
   const target = { scope: "bath", sec: l.rooms.bath[0] };
-  const moved = plain(w.masterTransfer("bora", "lights", target, false));
+  const moved = plain(w.masterTransfer("robin", "lights", target, false));
   assert.equal(moved.mm, 1);
   assert.deepEqual(moved.ml.map((m) => m.id), ["light.bed_1", "light.bed_2"], "the lights it had, as chosen lights with their names");
   assert.equal(moved.mn, "Bed");
@@ -127,31 +127,31 @@ test("moving the automatic master of a section saves its lights as chosen ones, 
   assert.deepEqual(moved.msrc, ["hue"], "a section of the old page is not on the new page");
   assert.deepEqual(masters(l.rooms.bath[0]).map((m) => m.wid), [moved.id]);
   assert.deepEqual(plain(l.rooms.bath[0].devs.filter((d) => d.kind === "light")), [light("light.bath_1")], "the target's own lights are untouched");
-  assert.equal(masters(l.rooms.bora[0]).length, 0, "no master any more");
-  assert.equal(l.rooms.bora[0].devs.filter((d) => d.kind === "light").length, 2, "the section keeps its lights");
+  assert.equal(masters(l.rooms.robin[0]).length, 0, "no master any more");
+  assert.equal(l.rooms.robin[0].devs.filter((d) => d.kind === "light").length, 2, "the section keeps its lights");
   assert.equal(w.changed.length > 0, true);
 });
 
 test("copying leaves the master where it is, and a held master can be moved to another section of the same page or copied into its own", () => {
   const l = layout();
-  l.rooms.bora[0].devs.push(mw("bath", { mm: 1, mn: "Bath", ml: [light("light.bath_1"), light("light.bath_2")], msrc: ["sec:lights"] }));
-  l.rooms.bora.push({ id: "second", k: "devs", devs: [light("light.hall_1")] });
+  l.rooms.robin[0].devs.push(mw("bath", { mm: 1, mn: "Bath", ml: [light("light.bath_1"), light("light.bath_2")], msrc: ["sec:lights"] }));
+  l.rooms.robin.push({ id: "second", k: "devs", devs: [light("light.hall_1")] });
   const w = world(l);
-  const copy = plain(w.masterTransfer("bora", "bath", { scope: "bora", sec: l.rooms.bora[1] }, true));
-  assert.equal(masters(l.rooms.bora[0]).filter((d) => d.wid === "bath").length, 1, "the original stays");
-  assert.equal(masters(l.rooms.bora[1]).length, 1);
+  const copy = plain(w.masterTransfer("robin", "bath", { scope: "robin", sec: l.rooms.robin[1] }, true));
+  assert.equal(masters(l.rooms.robin[0]).filter((d) => d.wid === "bath").length, 1, "the original stays");
+  assert.equal(masters(l.rooms.robin[1]).length, 1);
   assert.notEqual(copy.id, "bath", "a copy has an id of its own");
   assert.deepEqual(copy.msrc, ["sec:lights"], "on the same page the sections are still there");
   copy.ml.length = 0;
-  assert.equal(w.masterById("bora", "bath").ml.length, 2, "a copy shares nothing with the original");
-  w.masterTransfer("bora", "bath", { scope: "bora", sec: l.rooms.bora[1] }, false);
-  assert.equal(masters(l.rooms.bora[0]).filter((d) => d.wid === "bath").length, 0, "moved out: the section holds none");
-  assert.equal(masters(l.rooms.bora[1]).length, 2);
+  assert.equal(w.masterById("robin", "bath").ml.length, 2, "a copy shares nothing with the original");
+  w.masterTransfer("robin", "bath", { scope: "robin", sec: l.rooms.robin[1] }, false);
+  assert.equal(masters(l.rooms.robin[0]).filter((d) => d.wid === "bath").length, 0, "moved out: the section holds none");
+  assert.equal(masters(l.rooms.robin[1]).length, 2);
 });
 
 function glanceWorld({ lm = [], held = [], rooms = {} } = {}) {
   const l = layout();
-  l.rooms.bora[0].devs.push(...held);
+  l.rooms.robin[0].devs.push(...held);
   const w = world(l, { ROOMLIGHTS: rooms });
   w.glanceCfg = () => ({ lm, f: false });
   return w;
@@ -159,30 +159,30 @@ function glanceWorld({ lm = [], held = [], rooms = {} } = {}) {
 
 test("the At a glance lights popup lists the lights of the rooms and of the masters, each once, under the room of the page the master is on", () => {
   const bathroom = mw("bath", { mm: 1, mn: "Bath", ml: [light("light.bath_1"), light("light.bath_2")] });
-  const w = glanceWorld({ held: [bathroom], rooms: { bora: ["light.bed_1", "light.bed_2", "light.bath_1"], bath: [] } });
+  const w = glanceWorld({ held: [bathroom], rooms: { robin: ["light.bed_1", "light.bed_2", "light.bath_1"], bath: [] } });
   const groups = plain(w.glLightGroups());
-  assert.deepEqual(groups.map((g) => g.name), ["Bora's Bedroom"], "a room with no light of its own has no heading");
+  assert.deepEqual(groups.map((g) => g.name), ["Robin's Bedroom"], "a room with no light of its own has no heading");
   assert.deepEqual(groups[0].lights, ["light.bed_1", "light.bed_2", "light.bath_1", "light.bath_2"], "a light that two things have is listed once");
 });
 
 test("the room of a master can be the Home Assistant room of its lights: the dashboard room that has that area, or the area itself", () => {
   const bathroom = mw("bath", { mm: 1, mn: "Bath", mgr: "ha", ml: [light("light.bath_1"), light("light.bath_2"), light("light.hall_1")] });
-  let w = glanceWorld({ held: [bathroom], rooms: { bora: ["light.bed_1", "light.bed_2"] } });
+  let w = glanceWorld({ held: [bathroom], rooms: { robin: ["light.bed_1", "light.bed_2"] } });
   let groups = plain(w.glLightGroups());
-  assert.deepEqual(groups.map((g) => [g.name, g.lights]), [["Bora's Bedroom", ["light.bed_1", "light.bed_2"]], ["Bathroom", ["light.bath_1", "light.bath_2", "light.hall_1"]]], "the area most of its lights are in, which a dashboard room has");
+  assert.deepEqual(groups.map((g) => [g.name, g.lights]), [["Robin's Bedroom", ["light.bed_1", "light.bed_2"]], ["Bathroom", ["light.bath_1", "light.bath_2", "light.hall_1"]]], "the area most of its lights are in, which a dashboard room has");
   bathroom.wx.ml = [light("light.hall_1"), light("light.hall_1")];
-  w = glanceWorld({ held: [bathroom], rooms: { bora: ["light.bed_1", "light.bed_2"] } });
+  w = glanceWorld({ held: [bathroom], rooms: { robin: ["light.bed_1", "light.bed_2"] } });
   groups = plain(w.glLightGroups());
-  assert.deepEqual(groups.map((g) => g.name), ["Bora's Bedroom", "Hall"], "an area no dashboard room has is a heading of its own");
+  assert.deepEqual(groups.map((g) => g.name), ["Robin's Bedroom", "Hall"], "an area no dashboard room has is a heading of its own");
 });
 
 test("a master that is shown is one row and its lights are not listed again; the lights of the others are listed one by one", () => {
   const a = mw("bath", { mm: 1, ml: [light("light.bath_1"), light("light.bath_2")] });
   const b = mw("hall", { mm: 1, ml: [light("light.hall_1"), light("light.bed_1")] });
-  const w = glanceWorld({ lm: ["bora~bath"], held: [a, b], rooms: { bora: ["light.bed_1", "light.bed_2", "light.bath_1"] } });
+  const w = glanceWorld({ lm: ["robin~bath"], held: [a, b], rooms: { robin: ["light.bed_1", "light.bed_2", "light.bath_1"] } });
   const groups = plain(w.glLightGroups());
   assert.equal(groups.length, 1);
-  assert.deepEqual(groups[0].masters.map((m) => m.key), ["bora~bath"]);
+  assert.deepEqual(groups[0].masters.map((m) => m.key), ["robin~bath"]);
   assert.deepEqual(groups[0].lights, ["light.bed_1", "light.bed_2", "light.hall_1"], "the lights of the master that is shown are in its row, the others are listed");
   const none = plain(glanceWorld({ lm: [], held: [a], rooms: {} }).glLightGroups());
   assert.deepEqual(none[0].masters, [], "nothing is shown as a row until it is chosen");
@@ -191,9 +191,9 @@ test("a master that is shown is one row and its lights are not listed again; the
 test("every light of a lights master counts as a light of the house, so the tile and the alerts still have it when it is taken out of the room", () => {
   const lights = read("lights.js");
   assert.match(lights, /allMasters\(\)\.forEach\(function \(m\) \{\s*lightUnits\(m\.ids\)\.forEach/);
-  const w = glanceWorld({ held: [mw("bath", { mm: 1, ml: [light("light.bath_1")] })], rooms: { bora: ["light.bed_1"] } });
+  const w = glanceWorld({ held: [mw("bath", { mm: 1, ml: [light("light.bath_1")] })], rooms: { robin: ["light.bed_1"] } });
   const found = plain(w.allMasters().map((m) => [m.key, m.ids]));
-  assert.deepEqual(found, [["bora~lights", ["light.bed_1", "light.bed_2"]], ["bora~bath", ["light.bath_1"]]]);
+  assert.deepEqual(found, [["robin~lights", ["light.bed_1", "light.bed_2"]], ["robin~bath", ["light.bath_1"]]]);
 });
 
 test("the pieces are wired: the builder and the move page are popups, a master is a row of its section with its settings behind it, and the section's + offers it", () => {
@@ -219,7 +219,7 @@ test("a section that is duplicated gives the masters it holds ids of their own, 
 
 test("a master that a section holds can hide its lights from the section, and can become the section's own master again", () => {
   const l = layout();
-  const sec = l.rooms.bora[0];
+  const sec = l.rooms.robin[0];
   sec.devs.push(mw("bath", { mn: "Bathroom", mm: 1, ml: [light("light.bed_2")], mhl: 1 }));
   const w = world(l);
   w.pluginDeviceKind = () => null;
@@ -232,8 +232,8 @@ test("a master that a section holds can hide its lights from the section, and ca
   w.masterMakeOwn(sec, "bath");
   assert.equal(masters(sec).length, 1, "the section's own master that was there is gone");
   assert.equal(masters(sec)[0].wid, "bath");
-  assert.equal(w.masterById("bora", "bath").own, 1);
-  assert.equal(w.masterById("bora", "bath").mn, "Bathroom");
+  assert.equal(w.masterById("robin", "bath").own, 1);
+  assert.equal(w.masterById("robin", "bath").mn, "Bathroom");
 });
 
 test("the settings of a master are a short page with a row for each part, and the move, make-own and delete rows are on it, not far down a long list", () => {
@@ -271,7 +271,7 @@ test("a Lights master from the + asks auto or manual: auto is the section's own 
 
 test("a master can be deleted, the section's own too: its settings go, the section's lights stay", () => {
   const l = layout();
-  const sec = l.rooms.bora[0];
+  const sec = l.rooms.robin[0];
   Object.assign(sec.devs[0].wx, { mn: "All", mhl: 1 });
   const w = world(l);
   w.pill = (icon, title, o) => ({ title, o });
@@ -279,7 +279,7 @@ test("a master can be deleted, the section's own too: its settings go, the secti
   w.confirmDlg = (q, go) => go();
   w.closeSheet = () => {};
   const box = { rows: [], appendChild(r) { this.rows.push(r); } };
-  w.masterActionRows(box, w.masterById("bora", "lights"), "bora");
+  w.masterActionRows(box, w.masterById("robin", "lights"), "robin");
   box.rows.find((r) => r.title === "lm_delete").o.tap();
   assert.equal(masters(sec).length, 0, "the master is gone");
   assert.equal(sec.devs.filter((d) => d.kind === "light").length, 2);
