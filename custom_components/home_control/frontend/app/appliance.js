@@ -355,13 +355,21 @@ function apDetails(b, ap, aid) {
     return x.l || A(x.e).friendly_name || x.e;
   }
   if (ap.type === "custom") {
-    var group = "";
-    rows.forEach(function (x) {
-      if ((x.g || "") !== group && (group = x.g || "")) b.appendChild(sep(group, "tune"));
-      var kind = DOMKIND[dom(x.e)] || "sensor",
-        row = devRow({ id: x.e, name: label(x), icon: defIcon(kind, label(x), x.e), kind: kind });
-      if (row) b.appendChild(row);
-    });
+    var asRows = function (body, list) {
+      var group = "";
+      list.forEach(function (x) {
+        if ((x.g || "") !== group && (group = x.g || "")) body.appendChild(sep(group, "tune"));
+        var kind = DOMKIND[dom(x.e)] || "sensor",
+          row = devRow({ id: x.e, name: label(x), icon: defIcon(kind, label(x), x.e), kind: kind });
+        if (row) body.appendChild(row);
+      });
+    };
+    asRows(b, ap.fold ? rows.filter(function (x) { return x.o; }) : rows);
+    var folded = ap.fold ? rows.filter(function (x) { return !x.o; }) : [];
+    if (folded.length)
+      foldBlock(b, aid, _T("ap_details"), folded.length, function (body) {
+        asRows(body, folded);
+      });
     return;
   }
   function show(body, list) {
@@ -577,6 +585,53 @@ function apChosen(ap) {
 /* What a bound entity is, in the editor: the entity, or that it is gone. */
 function apBoundText(e) {
   return apHas(e) ? e : e + " · " + _T("ap_entity_missing");
+}
+
+/* A whole Home Assistant device as a custom device (decision D-47): what operates it first, then what it reports; its settings and diagnostics behind one line. */
+var AP_MAIN_DOMS = ["light", "climate", "media_player", "vacuum", "fan", "cover", "lock", "humidifier", "water_heater", "valve", "lawn_mower", "alarm_control_panel", "camera", "switch", "siren", "select", "number", "button"];
+
+function apDeviceEntities(deviceId) {
+  var h = H();
+  return Object.keys(h.entities || {}).filter(function (id) {
+    var e = h.entities[id];
+    return e.device_id === deviceId && !e.hidden && !e.disabled_by && h.states[id];
+  });
+}
+
+function apFromDevice(deviceId) {
+  var h = H(),
+    dv = h.devices[deviceId],
+    name = String((dv && (dv.name_by_user || dv.name)) || _T("ap_custom")).slice(0, 40),
+    rank = function (id) {
+      var i = AP_MAIN_DOMS.indexOf(dom(id));
+      return i < 0 ? 99 : i;
+    },
+    rows = apDeviceEntities(deviceId)
+      .map(function (id) {
+        var e = h.entities[id],
+          reads = dom(id) === "sensor" || dom(id) === "binary_sensor",
+          part = e.entity_category === "diagnostic" ? 3 : e.entity_category ? 2 : reads ? 1 : 0;
+        return { id: id, part: part };
+      })
+      .sort(function (a, b) {
+        return a.part - b.part || rank(a.id) - rank(b.id) || advName(a.id).localeCompare(advName(b.id));
+      })
+      .slice(0, 40),
+    d = apNew("custom");
+  d.name = name;
+  d.ap.fold = 1;
+  d.ap.extra = rows.map(function (r) {
+    var row = { e: r.id, l: advName(r.id).slice(0, 30) },
+      group = ["", _T("ap_g_readings"), _T("settings"), _T("ap_g_diagnostics")][r.part];
+    if (group) row.g = group.slice(0, 24);
+    if (r.part < 2) row.o = 1;
+    return row;
+  });
+  if (rows.length) {
+    var kind = DOMKIND[dom(rows[0].id)] || "sensor";
+    d.icon = defIcon(kind, name, rows[0].id);
+  }
+  return d;
 }
 
 /* The editor: the type, then one row for every slot (the ones the type needs first), then free extra rows. */

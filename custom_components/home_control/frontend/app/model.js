@@ -292,6 +292,8 @@ function cleanAppliance(a) {
     var e = a && a.slots && a.slots[k];
     if (typeof e === "string" && ENTRE.test(e) && slotDoms[k].indexOf(e.split(".")[0]) >= 0) out.slots[k] = e;
   });
+  /* a custom device made from a whole Home Assistant device keeps what is not shown behind one line */
+  if (a && a.fold) out.fold = 1;
   /* A name given to a slot on this appliance (a projector's Program is its Source). */
   if (a && a.names && typeof a.names === "object")
     Object.keys(slotDoms).forEach(function (k) {

@@ -240,7 +240,74 @@ function addWidgetEntries(f) {
     });
 }
 
+/* Choosing the device, for the page `rid`. */
+function apDevicePage(b, rid) {
+  var h = H(),
+    w = mk("div", "sqw pane", svg("search")),
+    inp = mk("input", "sq"),
+    box = mk("div"),
+    list = Object.keys(h.devices || {})
+      .map(function (id) {
+        var dv = h.devices[id],
+          area = dv.area_id && h.areas && h.areas[dv.area_id];
+        return { id: id, name: String(dv.name_by_user || dv.name || ""), area: area ? area.name : "", n: apDeviceEntities(id).length };
+      })
+      .filter(function (x) {
+        return x.name && x.n;
+      })
+      .sort(function (a, b) {
+        return a.name.localeCompare(b.name);
+      });
+  inp.type = "text";
+  inp.placeholder = _T("search");
+  inp.setAttribute("aria-label", _T("search"));
+  inp.setAttribute("autocomplete", "off");
+  w.appendChild(inp);
+  b.appendChild(w);
+  b.appendChild(box);
+  function draw() {
+    var words = norm(inp.value).trim().split(/\s+/).filter(Boolean),
+      found = list.filter(function (x) {
+        var hay = norm(x.name + " " + x.area);
+        return words.every(function (t) {
+          return hay.indexOf(t) >= 0;
+        });
+      });
+    found.slice(0, 60).forEach(function (x) {
+      box.appendChild(
+        pill("plug", x.name, {
+          sub: function () {
+            return (x.area ? x.area + " · " : "") + _T("px_entities", { n: x.n });
+          },
+          tap: function () {
+            var d = apFromDevice(x.id);
+            devList(rid).push(d);
+            uiChanged();
+            showPopup("ap-edit:" + d.aid, false);
+          },
+        })
+      );
+    });
+    if (found.length > 60) box.appendChild(hintRow(_T("act_more_found", { n: found.length - 60 })));
+    if (!found.length) box.appendChild(hintRow(_T("nothing_found")));
+  }
+  inp.addEventListener("input", function () {
+    redrawBox(box, draw);
+  });
+  redrawBox(box, draw);
+}
+
 function addApplianceEntries(f) {
+  f.box.appendChild(
+    pill("plug", _T("ap_whole"), {
+      sub: function () {
+        return _T("ap_whole_sub");
+      },
+      tap: function () {
+        showPopup("ap-device:" + f.rid, true);
+      },
+    })
+  );
   Object.keys(AP_TYPES).forEach(function (t) {
     f.box.appendChild(
       pill(AP_TYPES[t].icon, _T(AP_TYPES[t].l), {
