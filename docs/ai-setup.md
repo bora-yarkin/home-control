@@ -1,7 +1,7 @@
 # Setting up Home Control with an AI
 
-This page is written for an AI assistant (and for a person who wants to write a dashboard by hand). The result is a **backup file** that the owner restores under
-*Settings → Backup and about → Backup and restore*. Nothing else is needed: no access to Home Assistant, no code.
+This guide is for an AI assistant, or for anyone who wants to write a dashboard by hand. You produce a backup file, and the owner restores it under
+Settings → Backup and about → Backup and restore. You don't need access to their Home Assistant.
 
 The [user manual](manual/README.md) explains what each thing does.
 

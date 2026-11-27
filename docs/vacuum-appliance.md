@@ -1,7 +1,6 @@
 # The robot vacuum appliance
 
-A custom appliance of type **Robot vacuum**: a page with a live map, readings, rooms, cleaning settings, Start, Pause, Resume and Stop. It knows no brand. What is
-particular to a robot (how it is told to clean a room, how it reports its no-go zones) is data of the appliance, so any vacuum Home Assistant can control can be set up.
+The Robot vacuum appliance gives you a page with a live map, readings, rooms, cleaning settings and Start, Pause, Resume and Stop. It isn't tied to a brand. How your robot is told to clean a room, and how it reports no-go zones, are things you enter when setting it up, so any vacuum Home Assistant can control will work.
 
 Three ways to set one up, which can be mixed:
 

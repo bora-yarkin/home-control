@@ -2,44 +2,40 @@
 
 ## Install
 
-Home Assistant Marketplace (2026.11 and later; HACS on older versions). Home Control is not in the default list, so add the repository
-`https://github.com/bora-yarkin/home-control` as a custom repository, download it, restart Home Assistant, then add the integration under
-*Settings → Devices & services → Add integration → Home Control*. A panel appears in the sidebar. Its address, title, icon and whether only administrators may open
-it are the integration's options.
+Add `https://github.com/bora-yarkin/home-control` to the Marketplace as a custom repository (Home Assistant 2026.11 or newer; use HACS on older versions). Download it, restart Home Assistant, then add the integration under Settings → Devices & services → Add integration → Home Control.
+
+A panel appears in the sidebar. You can change its address, title and icon, or limit it to administrators, in the integration's options.
 
 ## The first run: guided setup
 
-Give your devices **areas** in Home Assistant first: the setup is built from them. Then open the dashboard as an **administrator** (only administrators can save).
+Before you start, give your devices areas in Home Assistant. The setup works from them. Then open the dashboard with an administrator account, since only administrators can save.
 
-A new dashboard is empty and opens the **guided setup**. Nothing appears on it that you did not choose. Each step comes with a suggestion you can change:
+An empty dashboard opens the guided setup. It suggests something at each step, and you can change any of it:
 
-1. **Rooms:** which areas get a page.
-2. **Lights:** which lights. A light group is suggested rather than each light in it.
-3. **Lights master:** whether rooms get one, from how many lights (2 to 6), and which lights also have a row of their own.
-4. **Scenes:** in the room's lights master, in a Scenes section, both, or none. A master shows all of its room's scenes; for a section you pick them. A room without a master has them in a section.
-5. **Media players:** which TVs and speakers. A second entry for the same box (a cast player) is not suggested.
-6. **Other devices:** climate, fans, blinds, locks, vacuums, cameras, and switches (none suggested).
-7. **Temperature and humidity:** shown in each room's header.
-8. **Home page:** Attention, At a glance, Rooms, Scenes, and what the header shows.
-9. **Check and create.**
+1. Which areas get a page.
+2. Which lights. It suggests a light group over the single lights inside it.
+3. Whether rooms get a lights master, from how many lights (2 to 6), and which lights also get their own row.
+4. Where scenes go: in the room's lights master, in a Scenes section, both or neither.
+5. Which TVs and speakers. A second entry for the same box, such as a cast player, isn't suggested.
+6. Climate, fans, blinds, locks, vacuums, cameras and switches. No switches are suggested.
+7. A temperature and humidity sensor for each room's header.
+8. What the Home page and header show.
+9. A last check, then Create.
 
-*Not now* leaves the dashboard empty; the setup stays under *Settings → Guided setup*. Running it again later replaces your pages (a backup is downloaded first);
-rooms keep their names and icons, and scenes, notifications and access rules stay.
+If you pick Not now, the dashboard stays empty and you can start later from Settings → Guided setup. Running it again replaces your pages. It downloads a backup first, and keeps room names, icons, scenes, notifications and access rules.
 
 ## Finding your way
 
-![The Home page of a demo home](../images/home.png)
+![Home page](../images/home.png)
 
-- **The bar at the bottom** switches between Home and your rooms.
-- **The header** shows the page's name, the time, what you chose to see there (weather, people, lights on, attention) and its round buttons: *Everything off*
-  (on a room page), *Search* and *Settings*.
-- **A row** is a device. Tap its icon to switch it, tap the rest of the row to open its popup. Some rows have a slider: drag it.
-- **A popup** closes with the ✕ or by tapping outside; the arrow goes back one step.
+The bar at the bottom switches between Home and your rooms. The header has the page name, the time, whatever you chose to show there, and buttons for Everything off (on room pages), Search and Settings.
+
+Each row is a device. Tap the icon to switch it, or tap anywhere else on the row to open its popup. Some rows can be dragged sideways as a slider. Close a popup with ✕ or by tapping outside it. The arrow goes back one step.
 
 ## Changing the dashboard
 
-*Settings → Editor* opens the page editor on the current page. While it is open, tapping an item opens its settings instead of operating it, items can be dragged by
-their handles, and each section has an *Add item* button. Tap *Done* when finished. Changes are saved as you make them; the toast offers **Undo**, and
-*Settings → Backup and about → Change log* keeps the last ten changes.
+Go to Settings → Editor to edit the page you're on. While editing, tapping an item opens its settings, you can drag items by their handles, and every section has an Add item button. Tap Done when you're finished.
 
-The dashboard is shared by everyone who uses it. What is personal (theme, accent colour, start page) is under *Appearance*.
+Changes save as you make them. The message that pops up has an Undo button, and Settings → Backup and about → Change log keeps the last ten changes.
+
+Everyone sees the same dashboard. Theme, accent colour and start page are per person, under Appearance.

@@ -1,37 +1,25 @@
 # Backup and restore
 
-*Settings → Backup and about → Backup and restore.*
+Settings → Backup and about → Backup and restore.
 
-## Download
+## Downloading
 
-One `.json` file with:
+You get one `.json` file containing the dashboard (rooms, pages, widgets, remotes, appliances, scenes, areas, colours, icons, wall photos, access and notification rules), your appearance settings, this device's dashboard settings, remote pictures, published live scenes, TV Home keys and imported effects.
 
-- the shared dashboard: rooms, pages, sections, devices, widgets, remotes, appliances, header, scenes, areas, saved colours, custom icons, wall photos, access
-  rules and notification rules;
-- your own appearance settings;
-- this device's dashboard settings (large display, light panel memory and your effect choices, live scene speed and brightness, a remote master's last pick);
-- the pictures of image remotes;
-- which live scenes are published, TV Home keys, and imported effect files.
+If something can't be read, the file is made without it and you're told which part.
 
-If a part cannot be read, the file is made without it and the message names it.
+## Restoring
 
-## Restore
+Pick a file. The dashboard checks it and tells you what's in it and what it would reject. Then it saves a backup of your current setup, replaces everything, brings notification automations, live scenes, published scenes, TV Home keys and effects in line, and reloads. If the dashboard can't be saved, nothing changes.
 
-Choose a file. Before anything happens the dashboard checks it and tells you what it holds and what it would not accept; then it **downloads a backup of what you
-have now**, replaces the dashboard, updates the notification automations, live scenes, published scenes, TV Home keys and effect files to match, and reloads.
-If the dashboard cannot be saved, nothing is changed. A part that could not be restored is named.
+Restoring replaces, it doesn't merge. To go back, restore the file it just saved. To copy a single page to another home, use Page settings → Export and import.
 
-A restore replaces: it does not merge. To undo it, restore the file it downloaded first. To move one page between homes instead, use *Page settings → Export and
-import*.
+## What's not included
 
-## Not included
-
-What Home Assistant keeps itself: entities and their areas, light groups and other helpers, your own automations and scripts, the HomeKit Bridge's list, the panel's
-title and icon, other users' appearance choices, the change log, and what a plus integration keeps. Use Home Assistant's own backup for those.
+Anything Home Assistant keeps itself: entities and areas, helpers and light groups, your own automations and scripts, the HomeKit Bridge list, the panel's title and icon, other users' appearance choices, the change log, and data kept by add-on integrations. Use Home Assistant's backup for those.
 
 ## Moving to another Home Assistant
 
-The file refers to entity ids. Entities that do not exist there show as unavailable until you replace them. Access rules are tied to user ids and need setting up
-again.
+The file refers to entity ids. Any that don't exist show as unavailable until you swap them. Access rules are tied to user accounts, so set them up again.
 
-The companion apps do not always save downloaded files; make backups from a web browser to be sure.
+The companion apps don't always save downloads, so make backups from a browser.
