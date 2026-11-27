@@ -141,3 +141,22 @@ test("Advanced settings are changed only where something was changed, and bad en
   shown.UI.adv = { "fan.a": { hide: ["switch.a"], add: ["sensor.y"], order: ["sensor.y", "switch.b"] } };
   assert.deepEqual(ids(), ["sensor.y", "switch.b"]);
 });
+
+test("a file leaves this home's entities, devices and areas out, also inside texts, and lists what it can run", () => {
+  const ctx = vm.createContext({ ENTRE: /^[a-z_]+\.[a-z0-9_]+$/, H: () => ({ states: { "switch.mine": { attributes: { friendly_name: "Plug" } }, "sensor.mine": { attributes: {} } } }), dom: (id) => id.split(".")[0] });
+  const src = read("presets.js");
+  vm.runInContext(src.slice(0, src.indexOf("function presetFromDevice(")), ctx);
+  const file = plain(
+    ctx.presetFrom({
+      devs: [
+        { wx: { a: { t: "do", s: "switch.turn_on", tg: { entity_id: ["switch.mine"], area_id: ["den"] }, d: { device_id: "abc" } } } },
+        { wx: { t: "{{ states('sensor.mine') }} W" } },
+      ],
+    })
+  );
+  assert.doesNotMatch(JSON.stringify(file.section), /switch\.mine|sensor\.mine|den|abc/);
+  assert.deepEqual(ctx.presetActions(file.section).length, 1);
+  const back = plain(ctx.presetFill(file, ["switch.yours", "sensor.yours"]));
+  assert.deepEqual(back.devs[0].wx.a.tg.entity_id, ["switch.yours"]);
+  assert.equal(back.devs[1].wx.t, "{{ states('sensor.yours') }} W");
+});

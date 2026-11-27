@@ -299,6 +299,16 @@ function apDevicePage(b, rid) {
 
 function addApplianceEntries(f) {
   f.box.appendChild(
+    pill("edit", _T("preset_device_file"), {
+      sub: function () {
+        return _T("preset_device_file_sub");
+      },
+      tap: function () {
+        presetOpen(f.rid);
+      },
+    })
+  );
+  f.box.appendChild(
     pill("plug", _T("ap_whole"), {
       sub: function () {
         return _T("ap_whole_sub");

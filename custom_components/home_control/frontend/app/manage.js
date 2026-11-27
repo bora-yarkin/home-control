@@ -1281,6 +1281,17 @@ function devPopupRows(c, advOf) {
   draw();
   if (kind === "appliance")
     c.box.appendChild(
+      pill("edit", _T("preset_save_device"), {
+        sub: function () {
+          return _T("preset_save_device_sub");
+        },
+        tap: function () {
+          presetDownload(presetFromDevice(d), "home-control-device.json");
+        },
+      })
+    );
+  if (kind === "appliance")
+    c.box.appendChild(
       pill("tune", _T("ap_parts"), {
         tap: function () {
           showPopup("ap-parts:" + d.aid, true);
