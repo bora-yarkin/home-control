@@ -4,11 +4,25 @@ Home Control is a dashboard for Home Assistant. It adds a panel to your sidebar 
 
 ![Home page](docs/images/home.png)
 
+### Lights, scenes and Hue sync
+
 <p>
-  <img src="docs/images/light-popup.png" width="24%" alt="Light popup">
-  <img src="docs/images/vacuum-popup.png" width="24%" alt="Robot vacuum popup">
-  <img src="docs/images/oven-popup.png" width="24%" alt="Oven popup">
-  <img src="docs/images/washer-popup.png" width="24%" alt="Washer popup">
+  <img src="docs/images/lights-room.png" width="32%" alt="Colour wheel for a whole room">
+  <img src="docs/images/scenes.png" width="32%" alt="Scenes of a room">
+  <img src="docs/images/hue-sync.png" width="32%" alt="Hue Spotify sync">
+</p>
+
+### Remotes and popups
+
+<p>
+  <img src="docs/images/remote.png" width="32%" alt="TV remote">
+  <img src="docs/images/vacuum-popup.png" width="32%" alt="Robot vacuum with its map">
+  <img src="docs/images/climate-popup.png" width="32%" alt="Air conditioner">
+</p>
+<p>
+  <img src="docs/images/oven-popup.png" width="32%" alt="Oven">
+  <img src="docs/images/washer-popup.png" width="32%" alt="Washer">
+  <img src="docs/images/light-popup.png" width="32%" alt="A single light">
 </p>
 
 ## What it does
@@ -33,10 +47,8 @@ There's also:
 - English and Turkish
 
 <p>
-  <img src="docs/images/phone-room.png" width="24%" alt="Room page on a phone">
-  <img src="docs/images/climate-popup.png" width="24%" alt="Air conditioner popup">
-  <img src="docs/images/media-popup.png" width="24%" alt="TV popup">
-  <img src="docs/images/popup-parts.png" width="24%" alt="Arranging an appliance popup">
+  <img src="docs/images/phone-room.png" width="32%" alt="A room on a phone">
+  <img src="docs/images/popup-parts.png" width="32%" alt="Arranging an appliance popup">
 </p>
 
 ## Installing

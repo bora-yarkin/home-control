@@ -2,7 +2,7 @@
 
 ## The light popup
 
-<img src="../images/light-popup.png" width="300" alt="Light popup">
+<img src="../images/lights-room.png" width="300" alt="Colour wheel for a room"> <img src="../images/light-popup.png" width="300" alt="A single light">
 
 Colour, white temperature, effects and brightness for one light or several. Gradient strips get a marker for each zone. The effects are the ones the light reports, and you can import more with an [effects file](../effects-file.md) under Settings → Effects.
 
@@ -13,6 +13,8 @@ A lights master is one row that controls several lights together. Add it from Ad
 It can follow the lights of its section automatically, or you can pick any lights from any room and name them yourself. Its settings cover light order, showing groups as one tile, which tab opens first, hiding the section's single light rows, what the power button does (switch the lights or run a scene), a sync tab, and moving it elsewhere.
 
 ## Kinds of scene
+
+<img src="../images/scenes.png" width="300" alt="Scenes of a room"> <img src="../images/hue-sync.png" width="300" alt="Hue Spotify sync">
 
 | Kind | What it is | How to make one |
 |---|---|---|

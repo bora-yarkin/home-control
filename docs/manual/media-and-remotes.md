@@ -2,7 +2,7 @@
 
 ## Media players
 
-<img src="../images/media-popup.png" width="300" alt="TV popup">
+<img src="../images/remote.png" width="300" alt="TV remote">
 
 A media row opens now playing, volume and sources. Set whether it's a TV, receiver or speaker in the device's options. A TV with a linked `remote` entity gets a full remote.
 
