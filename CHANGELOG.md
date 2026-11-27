@@ -4,6 +4,12 @@ Format: [Keep a Changelog](https://keepachangelog.com/). Versions follow [semant
 
 ## [Unreleased]
 
+## [Unreleased]
+
+### Fixed
+
+- **Start** on a vacuum device's card called itself until the browser ran out of room, and could send nothing and stay on *Starting*.
+
 ## [0.33.1] - 2026-11-26
 
 ### Fixed
