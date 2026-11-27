@@ -2,6 +2,8 @@
 
 ## Appliances
 
+<img src="../images/washer-popup.png" width="260" alt="A washer"> <img src="../images/oven-popup.png" width="260" alt="An oven">
+
 *Add item → Appliance*. Choose a type; it only decides which slots are offered first. Then, in the appliance's set-up (reached from the page editor):
 
 - **What it reads:** the entity for each slot (state, program, temperature, start, stop, remaining time, door…). Slots can be renamed.
@@ -18,6 +20,8 @@ A section's settings → *Save as a preset file* saves it without any entity id.
 
 ## Robot vacuums
 
+<img src="../images/vacuum-popup.png" width="300" alt="The robot vacuum popup">
+
 Two ways:
 
 - **Add the vacuum entity itself** (*Add item → Vacuum*). With the `xiaomi_miot` integration and a `robot_vacuum_map` map it gets the full room-cleaning card; other
@@ -31,6 +35,8 @@ Two ways:
 *Add*, *Appliances*, *A whole device*: choose a Home Assistant device and a custom device is made from it. What operates it comes first, then its readings; its settings and diagnostics are behind *Details*. Change it like any custom device.
 
 ## Parts and blocks of an appliance's popup
+
+<img src="../images/popup-parts.png" width="300" alt="Parts of an appliance popup">
 
 A type is a starting template. In the appliance's settings, *Parts of the popup*: drag to reorder, tap to hide, and *Add a block* for any type: a temperature dial, a cycle ring, a progress bar, readings, Start and Stop, or settings tiles, each with entities of its own, as many as you need (a second oven cavity, both fridge compartments).
 

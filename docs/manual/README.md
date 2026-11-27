@@ -3,6 +3,8 @@
 Home Control is a dashboard panel for Home Assistant: a Home page, a page for each room, and the controls for what is in them. It shows and controls your
 home; automations, helpers and integrations stay in Home Assistant.
 
+The pictures in this manual show an invented demo home.
+
 1. [Getting started](getting-started.md): install, the first run, finding your way.
 2. [Pages, sections and the header](pages.md): rooms, the page editor, columns and widths, status tiles, showing things only when it matters.
 3. [Devices](devices.md): adding them and what can be set for each.

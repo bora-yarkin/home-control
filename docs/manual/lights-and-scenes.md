@@ -2,6 +2,8 @@
 
 ## The light popup
 
+<img src="../images/light-popup.png" width="300" alt="The light popup">
+
 Colour, white temperature, effects and brightness, for one light or several. Lights that are made of colour zones (gradient strips) show a marker per zone. Effects
 are those the light reports; more can be described in an [effects file](../effects-file.md) and imported under *Settings → Effects*.
 

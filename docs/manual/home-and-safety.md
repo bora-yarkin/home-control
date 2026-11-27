@@ -16,6 +16,8 @@ What an intercom integration must provide is in [the intercom contract](../inter
 
 ## Climate
 
+<img src="../images/climate-popup.png" width="300" alt="The air conditioner popup">
+
 A climate row has a slider or, if chosen, a round dial. Fans and air purifiers have their speed, modes and linked readings.
 
 ## Energy and batteries

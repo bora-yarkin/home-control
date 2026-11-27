@@ -2,6 +2,8 @@
 
 ## Pages and rooms
 
+![A room page with its sections](../images/room.png)
+
 There is a Home page and one page per room. In the editor, *Page settings* holds the page's name, icon, picture, the Home Assistant area it stands for, how many
 columns it uses, and hiding or deleting the room. Rooms can also be added and reordered from the editor.
 
