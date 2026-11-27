@@ -81,3 +81,20 @@ test("an action is usable only while Home Assistant has it and its entities are 
   assert.equal(c.actUsable({ s: "light.turn_on", tg: { entity_id: ["light.b"] } }), false);
   assert.equal(c.actUsable({ s: "light.nothing" }), false);
 });
+
+test("a condition reads any entity, its state or an attribute", () => {
+  const states = { "number.level": { state: "40", attributes: { mode: "Güçlü" } } };
+  const ctx = vm.createContext({ V_: (id) => states[id]?.state ?? "unavailable", A: (id) => states[id]?.attributes ?? {}, _T: (k) => k, numIn: (x) => x });
+  const src = read("conditions.js");
+  vm.runInContext(src.slice(src.indexOf("var HHMM"), src.indexOf("function numIn")), ctx);
+  vm.runInContext(src.slice(src.indexOf("var RE_SVAL"), src.indexOf("\n", src.indexOf("var RE_SVAL"))).replace(/,\s*$/, ";"), ctx);
+  vm.runInContext(src.slice(src.indexOf("function withAttr("), src.indexOf("function allDomains(")), ctx);
+  vm.runInContext(src.slice(src.indexOf("function cleanCond("), src.indexOf("/* ---- plain-language")), ctx);
+  const c = ctx.cleanCond({ c: "state", id: "number.level", is: "Güçlü", attr: "mode" });
+  assert.deepEqual(plain(c), { c: "state", id: "number.level", is: "Güçlü", attr: "mode" });
+  assert.equal(ctx.condValue(c), "Güçlü");
+  assert.deepEqual(plain(ctx.cleanCond({ c: "sensor", id: "number.level", op: "above", val: 5 })), { c: "sensor", id: "number.level", op: "above", val: 5 });
+  assert.equal(ctx.condValue({ id: "number.level" }), "40");
+  assert.equal(ctx.condValue({ id: "number.level", attr: "none" }), undefined);
+  assert.equal(ctx.cleanCond({ c: "state", id: "bad", is: "x" }), null);
+});
