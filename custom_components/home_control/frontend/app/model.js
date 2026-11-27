@@ -125,7 +125,27 @@ function cleanHdr(a) {
 var RM_ENT_DOMS = ["script", "button", "input_button", "scene", "switch"];
 var RM_MEDIA = ["volume_up", "volume_down", "volume_mute", "play_pause", "play", "pause", "stop", "next", "previous", "turn_on", "turn_off", "toggle"];
 
+/* Any Home Assistant action (app/actions.js): `s` "domain.service", `tg` what it is aimed at (entities, areas, devices), `d` its data, `q` ask first. */
+function cleanDo(a) {
+  if (typeof a.s !== "string" || !/^[a-z0-9_]{1,40}\.[a-z0-9_]{1,80}$/.test(a.s)) return null;
+  var out = { t: "do", s: a.s },
+    tg = {};
+  [["entity_id", ENTRE], ["area_id", /^[a-z0-9_]{1,80}$/], ["device_id", /^[A-Za-z0-9_-]{1,64}$/]].forEach(function (k) {
+    var v = a.tg && a.tg[k[0]],
+      list = (Array.isArray(v) ? v : []).filter(function (x, i, all) {
+        return typeof x === "string" && k[1].test(x) && all.indexOf(x) === i;
+      });
+    if (list.length) tg[k[0]] = list.slice(0, 20);
+  });
+  if (Object.keys(tg).length) out.tg = tg;
+  if (a.d && typeof a.d === "object" && !Array.isArray(a.d) && Object.keys(a.d).length && JSON.stringify(a.d).length <= 1000) out.d = JSON.parse(JSON.stringify(a.d));
+  if (a.q) out.q = 1;
+  if (typeof a.n === "string" && a.n.trim()) out.n = a.n.trim().slice(0, 40);
+  return out;
+}
+
 function cleanRmAct(a) {
+  if (a && a.t === "do") return cleanDo(a);
   /* a room of a robot vacuum appliance, on its map picture */
   if (a && a.t === "room") return typeof a.r === "string" && /^[A-Za-z0-9_-]{1,24}$/.test(a.r) ? { t: "room", r: a.r } : null;
   if (!a || typeof a !== "object" || typeof a.e !== "string" || !ENTRE.test(a.e)) return null;

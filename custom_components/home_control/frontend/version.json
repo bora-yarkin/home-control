@@ -3,7 +3,7 @@
     "en": "English",
     "tr": "Türkçe"
   },
-  "version": 524,
+  "version": 525,
   "files": [
     "integrations.js",
     "app/core.js",
@@ -70,6 +70,7 @@
     "app/notifications.js",
     "app/roomoff.js",
     "app/remote.js",
+    "app/actions.js",
     "app/controls.js",
     "app/appliance.js",
     "app/appliancedial.js",

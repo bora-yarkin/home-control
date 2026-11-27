@@ -1235,8 +1235,12 @@ function appVersion() {
 /* entity picker */
 /* 'taken' (optional) says which entities are already used and are left out of the list. */
 /* `near` is a list of entities already chosen for the same thing: the entities of their Home Assistant devices are listed first. */
+/* A choice offered above the list of the next picker: { icon, label, sub (string keys), tap }. */
+var PICKEXTRA = null;
+
 function pickEntity(title, doms, cls, cb, taken, near) {
-  PICK = { title: title, doms: doms, cls: cls || null, cb: cb, taken: taken || null, near: near || null, q: "" };
+  PICK = { title: title, doms: doms, cls: cls || null, cb: cb, taken: taken || null, near: near || null, q: "", extra: PICKEXTRA };
+  PICKEXTRA = null;
   showPopup("pick-ent", true);
 }
 
@@ -1252,6 +1256,15 @@ function pickBuild(b) {
   inp.setAttribute("autocomplete", "off");
   inp.setAttribute("autocapitalize", "off");
   w.appendChild(inp);
+  if (P.extra)
+    b.appendChild(
+      pill(P.extra.icon, _T(P.extra.label), {
+        sub: function () {
+          return _T(P.extra.sub);
+        },
+        tap: P.extra.tap,
+      })
+    );
   b.appendChild(w);
   b.appendChild(box);
   /* The devices of the entities in `near`. */

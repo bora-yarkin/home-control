@@ -38,6 +38,12 @@ function popupDef(key) {
 /* What each popup is made of, by the part of the key before its first colon ("light:light.desk" is "light"): a function of the rest of the key that gives { title, icon, build(body) }.
    A popup is added here and opened with showPopup(key). The keys of plugins are in PLUGIN_PAGES and are looked at first. */
 var POPUP_DEFS = {
+  "act-edit": function () {
+    return { title: _T("act_any"), icon: "play", build: actEditPage };
+  },
+  "act-pick": function () {
+    return { title: _T("act_pick"), icon: "search", build: actPickPage };
+  },
   "adv": function (id) {
     return {
       title: (UIDEV[id] && UIDEV[id].name ? UIDEV[id].name + " · " : "") + _T("advanced"),

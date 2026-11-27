@@ -97,6 +97,7 @@ function remoteUsable(e) {
 /* Whether an action can run now: a key needs its remote entity, a media control its player, a press its entity. */
 function rmUsable(a) {
   if (!a || a.t === "room") return false;
+  if (a.t === "do") return actUsable(a);
   if (a.t === "ent" || !a.t) return remoteUsable(a.e);
   var s = H().states[a.e];
   if (s && s.state !== "unavailable") return true;
@@ -109,6 +110,7 @@ function rmUsable(a) {
 function rmCall(a) {
   /* a room on a vacuum's map is chosen on its own card, it calls nothing */
   if (a.t === "room") return null;
+  if (a.t === "do") return actCall(a);
   if (a.t === "key") {
     /* A power key goes over the TV's network socket, which is closed while the TV is off: the media player is turned on instead. */
     if (a.w && V_(a.w) === "off") return ["media_player", "turn_on", { entity_id: a.w }];
@@ -139,6 +141,7 @@ function remotePress(b) {
     toast(_T("rm_not_available_right_now"));
     return;
   }
+  if (a.t === "do") return actRun(a, b.q, b.l);
   function run() {
     call(c[0], c[1], c[2]);
   }
@@ -185,6 +188,7 @@ function rmActName(a) {
       vr = vd && vacapConf(vd.ap).rooms.filter(function (r) { return r.k === a.r; })[0];
     return _T("vacap_room") + " " + ((vr && vr.l) || a.r);
   }
+  if (a.t === "do") return actName(a);
   var who = A(a.e).friendly_name || a.e;
   if (a.t === "key") return a.c + " · " + who;
   if (a.t === "media") return _T(RM_MEDIA_LABEL[a.m]) + " · " + who;
@@ -196,6 +200,7 @@ function rmActName(a) {
 function rmDefaultIcon(a) {
   if (a.t === "media") return { volume_up: "volup", volume_down: "voldown", volume_mute: "mute", play_pause: "playpause", play: "play", pause: "pause", stop: "stop", next: "next", previous: "prev", turn_on: "power", turn_off: "power", toggle: "power" }[a.m] || "info";
   if (a.t === "src") return "swap";
+  if (a.t === "do") return "play";
   return "info";
 }
 
@@ -376,7 +381,7 @@ function rmTile(x, edit, onTap) {
   if (x.i) t.innerHTML = svg(x.i);
   if (x.l || (!x.i && !x.k)) {
     var lab = mk("span", "rm-l");
-    lab.textContent = x.l || A(x.a.e).friendly_name || x.a.e;
+    lab.textContent = x.l || (x.a.t === "do" ? actName(x.a) : A(x.a.e).friendly_name || x.a.e);
     t.appendChild(lab);
   }
   t.setAttribute("aria-label", x.l || rmActName(x.a));
@@ -802,6 +807,19 @@ function rmChooseAction(done) {
     showPopup("vacap-pick", true);
     return;
   }
+  /* besides an entity, any Home Assistant action */
+  PICKEXTRA = {
+    icon: "play",
+    label: "act_any",
+    sub: "act_any_sub",
+    tap: function () {
+      actEdit(null, function (a) {
+        popBack();
+        popBack();
+        finish(a);
+      });
+    },
+  };
   pickEntity(_T("rm_choose_what_the_button_runs"), REMOTE_PICK_DOMS, null, function (id) {
     var d = dom(id);
     setTimeout(function () {
