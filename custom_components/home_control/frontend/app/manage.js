@@ -1261,6 +1261,42 @@ function advDevicePill(d) {
 }
 
 /* Whether it is shown, which section it is in, and taking it off the page; and what it is. A light a lights master keeps (not a device of a section) has none of the first three. */
+/* What this device's popup is made of, beyond its own controls (decision D-47): added blocks, the order of an appliance's parts, and its Advanced settings' items. */
+function devPopupRows(c, advOf) {
+  var d = c.d,
+    kind = d.kind,
+    key = ["widget", "scene", "scenes", "cscene", "special"].indexOf(kind) < 0 ? devPop(d) : "";
+  if (!key) return;
+  var parts = c.key.split(":")[0].split("~"),
+    scope = parts.length > 1 ? parts[1] : parts[0];
+  if (scope !== "home" && !UI.layout.rooms[scope]) scope = "home";
+  c.box.appendChild(sep(_T("more_popup"), "apps"));
+  var holder = mk("div");
+  c.box.appendChild(holder);
+  function draw() {
+    moreRows(holder, key, scope, d.name, function () {
+      redrawBox(holder, draw);
+    });
+  }
+  draw();
+  if (kind === "appliance")
+    c.box.appendChild(
+      pill("tune", _T("ap_parts"), {
+        tap: function () {
+          showPopup("ap-parts:" + d.aid, true);
+        },
+      })
+    );
+  if (advOf && dom(advOf) !== "light" && (advFound(advOf).length || advCfg(advOf)))
+    c.box.appendChild(
+      pill("tune", _T("advset_title"), {
+        tap: function () {
+          showPopup("advset:" + advOf, true);
+        },
+      })
+    );
+}
+
 function devPlaceRows(c) {
   var d = c.d,
     held = c.key.split(":")[0].split("~")[3] === "lx",
@@ -1287,6 +1323,7 @@ function devPlaceRows(c) {
   if (adv)
     sw.appendChild(advDevicePill(d));
   if (sw.children.length) c.box.appendChild(sw);
+  devPopupRows(c, advOf);
   if (!held) {
     var act = mk("div", "ap-grid"),
       rm = pill("trash", _T("remove_from_the_section"), {

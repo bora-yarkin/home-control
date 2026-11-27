@@ -98,3 +98,46 @@ test("a condition reads any entity, its state or an attribute", () => {
   assert.equal(ctx.condValue({ id: "number.level", attr: "none" }), undefined);
   assert.equal(ctx.cleanCond({ c: "state", id: "bad", is: "x" }), null);
 });
+
+test("the parts of an appliance's popup move only when the appliance says so", () => {
+  const src = read("appliance.js");
+  const ctx = vm.createContext({});
+  vm.runInContext(src.slice(src.indexOf("var AP_PARTS"), src.indexOf("function apPartsPage(")), ctx);
+  const box = () => {
+    const b = { children: [], __parts: [] };
+    b.appendChild = (x) => {
+      const i = b.children.indexOf(x);
+      if (i >= 0) b.children.splice(i, 1);
+      b.children.push(x);
+    };
+    b.removeChild = (x) => b.children.splice(b.children.indexOf(x), 1);
+    return b;
+  };
+  const build = (ap) => {
+    const b = box();
+    for (const p of ["top", "readings", "actions", "settings"]) {
+      ctx.apMark(b, p);
+      b.appendChild(p);
+    }
+    ctx.apArrange(b, ap);
+    return b.children;
+  };
+  assert.deepEqual(build({ type: "oven" }), ["top", "readings", "actions", "settings"]);
+  assert.deepEqual(build({ type: "oven", parts: { order: ["actions"], hide: ["readings"] } }), ["actions", "top", "settings"]);
+});
+
+test("Advanced settings are changed only where something was changed, and bad entries are dropped", () => {
+  const model = read("model.js");
+  const ctx = vm.createContext({ ENTRE: /^[a-z_]+\.[a-z0-9_]+$/ });
+  vm.runInContext(model.slice(model.indexOf("function cleanAdv("), model.indexOf("/* A popup's contents go with its widget")), ctx);
+  assert.deepEqual(plain(ctx.cleanAdv({ "fan.a": { hide: ["switch.x", "__care", "junk"], order: [], name: { "switch.x": " Ion ", bad: "n" }, add: ["sensor.y"] }, "fan.b": {}, bad: { hide: ["switch.x"] } })), {
+    "fan.a": { hide: ["switch.x", "__care"], add: ["sensor.y"], name: { "switch.x": "Ion" } },
+  });
+  const advanced = read("advanced.js");
+  const shown = vm.createContext({ UI: {}, dom: (id) => id.split(".")[0], H: () => ({ states: { "sensor.y": {} }, entities: {} }), advFound: () => [{ entity_id: "switch.a" }, { entity_id: "switch.b" }] });
+  vm.runInContext(advanced.slice(advanced.indexOf("function advCfg("), advanced.indexOf("/* What Home Assistant has for the device. */")), shown);
+  const ids = () => plain(shown.advList("fan.a").map((e) => e.entity_id));
+  assert.deepEqual(ids(), ["switch.a", "switch.b"]);
+  shown.UI.adv = { "fan.a": { hide: ["switch.a"], add: ["sensor.y"], order: ["sensor.y", "switch.b"] } };
+  assert.deepEqual(ids(), ["sensor.y", "switch.b"]);
+});
