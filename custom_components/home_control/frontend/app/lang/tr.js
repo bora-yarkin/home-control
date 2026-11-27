@@ -279,7 +279,7 @@ LANGS["tr"] = {
   "setup_valves": "Vanalar",
   "setup_mowers": "Çim biçme makineleri",
   "setup_sirens": "Sirenler",
-  "preset_title": "Dosyadan bölüm ekle",
+  "preset_title": "Dosyadan ekle",
   "preset_save": "Hazır ayar dosyası olarak kaydet",
   "preset_load": "Hazır ayar dosyasından",
   "preset_load_sub": "Birinin kaydettiği bir bölüm: yerine kendi cihazlarınızı seçersiniz",

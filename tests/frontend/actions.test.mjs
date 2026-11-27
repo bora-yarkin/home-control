@@ -160,3 +160,13 @@ test("a file leaves this home's entities, devices and areas out, also inside tex
   assert.deepEqual(back.devs[0].wx.a.tg.entity_id, ["switch.yours"]);
   assert.equal(back.devs[1].wx.t, "{{ states('sensor.yours') }} W");
 });
+
+test("access rules cannot be walked around: entities anywhere in the data count, and floors, labels or everything are the administrator's", () => {
+  const c = load();
+  assert.deepEqual(plain(c.actIds({ s: "scene.apply", d: { entities: { "light.a": "off" }, group: ["light.b"] } })), ["light.a", "light.b"]);
+  for (const d of [{ floor_id: "up" }, { label_id: "x" }, { entity_id: "all" }]) {
+    const other = load({ ISADMIN: false });
+    other.actRun({ t: "do", s: "light.turn_off", d });
+    assert.deepEqual(plain(other.log), [["toast", "act_admin_only"]], JSON.stringify(d));
+  }
+});

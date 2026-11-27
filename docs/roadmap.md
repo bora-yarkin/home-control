@@ -115,10 +115,10 @@ Not in scope (owner agreed): importing Home Assistant's YAML dashboards, hosting
 
 ## P18 Popups built on screen (2026-11-27, the owner's request; decision D-47)
 Invariant for every item: a saved dashboard that uses none of this renders and behaves as before (checked against the owner's snapshot in the harness). Not released until the owner says.
-- P18-1 in_progress: any button or gesture can run any Home Assistant action. Acceptance: an action is chosen, targeted and given data on screen; it is saved and cleaned on load; access rules and "ask first" apply to its targets (entities, devices, areas); program, restart and wipe commands need an administrator and ask.
-- P18-2 planned: conditions on any entity or attribute, and a text widget from a Home Assistant template. Acceptance: a state or number condition accepts any domain; the widget shows the template's result and its errors.
-- P18-3 planned: add a whole device. Acceptance: choosing a Home Assistant device makes a custom appliance with its controls shown, its settings and diagnostics folded.
-- P18-4 planned: customise Advanced settings. Acceptance: per entity, items can be hidden, reordered, renamed and added; the D-38 switches still hide the button.
-- P18-5 planned: popup builder. Acceptance: any device popup and appliance can have added blocks (devices, widgets, action buttons, template text); appliance parts can be reordered and hidden.
-- P18-6 planned: nested popups. Acceptance: a popup inside a popup is added, opens, goes back, survives a save and is dropped with its parent.
-- P18-7 planned: shareable device files. Acceptance: an appliance is saved without entity ids and loaded by choosing entities; the actions it runs are shown before it is added.
+- P18-1 built, not released (node, the harness; not tried with real devices): any button or gesture can run any Home Assistant action. Acceptance: an action is chosen, targeted and given data on screen; it is saved and cleaned on load; access rules and "ask first" apply to its targets (entities, devices, areas); program, restart and wipe commands need an administrator and ask.
+- P18-2 built, not released (node, the harness; not tried with real devices): conditions on any entity or attribute, and a text widget from a Home Assistant template. Acceptance: a state or number condition accepts any domain; the widget shows the template's result and its errors.
+- P18-3 built, not released (node, the harness; not tried with real devices): add a whole device. Acceptance: choosing a Home Assistant device makes a custom appliance with its controls shown, its settings and diagnostics folded.
+- P18-4 built, not released (node, the harness; not tried with real devices): customise Advanced settings. Acceptance: per entity, items can be hidden, reordered, renamed and added; the D-38 switches still hide the button.
+- P18-5 built, not released (node, the harness; not tried with real devices): popup builder. Acceptance: any device popup and appliance can have added blocks (devices, widgets, action buttons, template text); appliance parts can be reordered and hidden.
+- P18-6 built, not released (node, the harness; not tried with real devices): nested popups. Acceptance: a popup inside a popup is added, opens, goes back, survives a save and is dropped with its parent.
+- P18-7 built, not released (node, the harness; not tried with real devices): shareable device files. Acceptance: an appliance is saved without entity ids and loaded by choosing entities; the actions it runs are shown before it is added.

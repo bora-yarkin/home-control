@@ -20,6 +20,16 @@ function actIds(a) {
     out = [],
     devices = {},
     areas = {};
+  /* an entity named anywhere in the data (a scene's `entities`, a player's group) counts too */
+  (function named(v) {
+    if (typeof v === "string") {
+      if (h && h.states && h.states[v] && out.indexOf(v) < 0) out.push(v);
+    } else if (v && typeof v === "object")
+      Object.keys(v).forEach(function (k) {
+        named(k);
+        named(v[k]);
+      });
+  })(a.d);
   [a.tg || {}, a.d || {}].forEach(function (src) {
     actList(src.entity_id).forEach(function (id) {
       if (out.indexOf(id) < 0) out.push(id);
@@ -39,6 +49,13 @@ function actIds(a) {
       if (((e.device_id && devices[e.device_id]) || (area && areas[area])) && out.indexOf(id) < 0) out.push(id);
     });
   return out;
+}
+
+/* Whether it is aimed at something the dashboard cannot list the entities of (a floor, a label, everything), so the access rules cannot be applied to it. */
+function actWide(a) {
+  return [a.tg || {}, a.d || {}].some(function (src) {
+    return src.floor_id !== undefined || src.label_id !== undefined || actList(src.entity_id).indexOf("all") >= 0;
+  });
 }
 
 function actCall(a) {
@@ -73,7 +90,7 @@ function actRun(a, ask, label) {
   var risk = actRisk(a.s),
     ids = actIds(a),
     c = actCall(a);
-  if (risk === "admin" && !ISADMIN) {
+  if ((risk === "admin" || actWide(a)) && !ISADMIN) {
     toast(_T("act_admin_only"));
     return;
   }

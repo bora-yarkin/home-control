@@ -132,7 +132,8 @@ function presetOpen(scopeId) {
 
 /* A device file: the appliance with ids of its own, and the blocks of its popup. */
 function presetAddDevice() {
-  var sc = scopeKey(PRESET.scope),
+  /* the Add popup names a Section ("~page~section"); the blocks go on its page */
+  var sc = scopeKey(PRESET.scope.charAt(0) === "~" ? PRESET.scope.split("~")[1] : PRESET.scope),
     filled = presetFill(PRESET.preset, PRESET.chosen),
     d = filled.device || {};
   d.aid = newKey("ap");

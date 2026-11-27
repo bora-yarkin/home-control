@@ -59,3 +59,11 @@ A device popup can end with *Advanced settings*: the other entities of the same 
 ## New devices
 
 When devices appear in Home Assistant, a dot on the settings button and *Settings → Devices* offer them: add each to a room or ignore it.
+
+## Adding to a device's popup
+
+In a device's settings, *Its popup* adds anything a page can hold under the popup's own controls: devices, widgets, action buttons, template texts and further popups, which can hold popups of their own. Drag to reorder.
+
+## Customise Advanced settings
+
+In a device's settings, *Customise Advanced settings*: drag to reorder, tap an item to hide or rename it, add any entity, add blocks, or go back to automatic. The two switches that hide the Advanced settings button still apply.

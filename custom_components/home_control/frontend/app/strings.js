@@ -279,7 +279,7 @@ var EN = {
   "setup_valves": "Valves",
   "setup_mowers": "Lawn mowers",
   "setup_sirens": "Sirens",
-  "preset_title": "Add a section from a file",
+  "preset_title": "Add from a file",
   "preset_save": "Save as a preset file",
   "preset_load": "From a preset file",
   "preset_load_sub": "A section someone saved: you choose your own devices for it",

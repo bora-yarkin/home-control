@@ -129,6 +129,14 @@ chosen by hand: any other `wid` and `wx: {"mm": 1, "mn": "Evening", "ml": [light
 **Remote master** (`rmaster`): `def` is the TV; each of `subs` is a device plugged into it with `src`, the TV's source name for it, exactly as the TV reports it in
 `source_list`.
 
+**Action button** (`w: "action"`, `wx: {"a": action, "q": 1}`) and **Template text** (`w: "template"`, `wx: {"t": "{{ states('sensor.x') }}"}`, at most 500 characters).
+
+**Any action** (a remote button's `a`, a gesture's `{"t": "run", "a": ...}`, an action button): `{"t": "do", "s": "domain.service", "tg": {"entity_id": [], "area_id": [], "device_id": []}, "d": {data, at most 1000 characters}, "q": 1, "n": "name"}`.
+
+**Blocks added to a device's popup**: a section like a popup's contents with `"pk"`, the popup's key (`"ac:climate.x"`, `"appliance:<aid>"`, `"adv:switch.x"`), next to its `of`.
+
+**Advanced settings changes** (`ui.adv`): `{"<entity>": {"hide": [], "order": [], "name": {"<entity>": "..."}, "add": []}}`. **Appliance parts** (`ap.parts`): `{"order": [], "hide": []}`.
+
 ### Scenes (`data.scenes`)
 
 ```json
