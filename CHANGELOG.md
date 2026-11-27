@@ -2,9 +2,9 @@
 
 Format: [Keep a Changelog](https://keepachangelog.com/). Versions follow [semantic versioning](https://semver.org/).
 
-## [Unreleased]
+## [0.33.2] - 2026-11-27
 
-## [Unreleased]
+## [0.33.2] - 2026-11-27
 
 ### Fixed
 
