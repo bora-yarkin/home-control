@@ -240,8 +240,17 @@ function rbDock() {
   }
 }
 
-async function rbStart() {
-  if (!gate([RBV], rbStart)) return;
+/* The gate runs what it is given, at once or after the person confirms, so what it runs must not ask it again. */
+function rbStart() {
+  var run;
+  gate([RBV], function () {
+    run = rbRun();
+  });
+  /* the button repaints when this settles */
+  return Promise.resolve(run);
+}
+
+async function rbRun() {
   rbResolve();
   rbTrack();
   var h = H();
