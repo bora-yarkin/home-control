@@ -55,6 +55,9 @@ var POPUP_DEFS = {
   "advitem": function (id) {
     return { title: _T("advset_title"), icon: "tune", build: function (b) { advItemPage(b, id); } };
   },
+  "ap-block": function (key) {
+    return { title: _T("ap_parts"), icon: "tune", build: function (b) { apBlockPage(b, key); } };
+  },
   "ap-parts": function (id) {
     return { title: _T("ap_parts"), icon: "tune", build: function (b) { apPartsPage(b, id); } };
   },

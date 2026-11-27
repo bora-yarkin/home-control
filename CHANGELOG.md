@@ -2,6 +2,12 @@
 
 Format: [Keep a Changelog](https://keepachangelog.com/). Versions follow [semantic versioning](https://semver.org/).
 
+## [0.35.0] - 2026-11-27
+
+### Added
+
+- Appliance types are templates of blocks: add a temperature dial, cycle ring, progress bar, readings, Start and Stop or settings tiles to any appliance, each with entities of its own. Existing appliances look as before.
+
 ## [0.34.0] - 2026-11-27
 
 ### Added

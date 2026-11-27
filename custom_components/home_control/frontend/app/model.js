@@ -294,6 +294,23 @@ function cleanAppliance(a) {
   });
   /* a custom device made from a whole Home Assistant device keeps what is not shown behind one line */
   if (a && a.fold) out.fold = 1;
+  /* blocks added to its popup, each with entities of its own (app/appliance.js) */
+  var added = (a && Array.isArray(a.add) ? a.add : [])
+    .slice(0, 12)
+    .map(function (x) {
+      if (!x || typeof x.id !== "string" || !/^x[a-z]{1,11}$/.test(x.id) || ["dial", "ring", "bar", "readings", "actions", "settings"].indexOf(x.t) < 0) return null;
+      var block = { id: x.id, t: x.t, slots: {} };
+      Object.keys(slotDoms).forEach(function (k) {
+        var e = x.slots && x.slots[k];
+        if (typeof e === "string" && ENTRE.test(e) && slotDoms[k].indexOf(e.split(".")[0]) >= 0) block.slots[k] = e;
+      });
+      if (typeof x.l === "string" && x.l.trim()) block.l = x.l.trim().slice(0, 24);
+      return block;
+    })
+    .filter(function (x, i, all) {
+      return x && all.findIndex(function (y) { return y && y.id === x.id; }) === i;
+    });
+  if (added.length) out.add = added;
   /* the order of the parts of its popup, and the parts hidden (app/appliance.js) */
   if (a && a.parts && typeof a.parts === "object") {
     var parts = {};
