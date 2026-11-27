@@ -509,6 +509,8 @@ window.HA={
  users:function(){return ws({type:"config/auth/list"})},
  entityRegistry:function(){return ws({type:"config/entity_registry/list"}).then(function(rows){return loadReplaces().then(function(){return withoutReplaced(rows)})})},
  serviceResponse:serviceResponse,
+ /* A template Home Assistant renders, and renders again when what it reads changes: `callback` gets {result} or {error}. Resolves to the function that ends it. */
+ template:function(text,callback){return subscribe({type:"render_template",template:text,report_errors:true},callback)},
  /* Home Assistant's own dialog of an entity, in the frontend around this panel. false when there is none to ask. */
  moreInfo:function(id){
   try{

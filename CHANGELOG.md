@@ -2,6 +2,20 @@
 
 Format: [Keep a Changelog](https://keepachangelog.com/). Versions follow [semantic versioning](https://semver.org/).
 
+## [0.34.0] - 2026-11-27
+
+### Added
+
+- Any Home Assistant action on a remote button, a picture area, tap, hold and double tap; an *Action button* widget.
+- A *Template text* widget.
+- Conditions on any entity, its state or an attribute.
+- *A whole device*: a popup made from a Home Assistant device.
+- Added blocks under any device popup, with popups inside popups; order and visibility of an appliance popup's parts.
+- *Customise Advanced settings*.
+- Device files: share an appliance without your entity ids.
+
+A dashboard that uses none of these looks and behaves as before.
+
 ## [0.33.2] - 2026-11-27
 
 ## [0.33.2] - 2026-11-27

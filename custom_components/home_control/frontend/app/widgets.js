@@ -663,6 +663,17 @@ function hintRow(text) {
 /* A row that switches one yes/no setting of an object, kept as a flag that is there when it is on (and removed when it is off, so saved settings stay small). `sub(on)` words the state;
    `inverted` is for a flag that names the exception (noslide: "no slider"), where the row is on while the flag is absent. Every change is saved at once. */
 /* The one way every object says whether it is shown: a row "Visible", On or Off. `isOn()` says whether it is shown now and `toggle()` flips it. */
+/* One named part of something, shown or hidden. */
+function partPill(title, isOn, toggle) {
+  return pill("eye", title, {
+    on: isOn,
+    sub: function () {
+      return isOn() ? _T("on_cap") : _T("off");
+    },
+    tap: toggle,
+  });
+}
+
 function visiblePill(isOn, toggle) {
   return pill("eye", _T("visible"), {
     on: isOn,
@@ -1235,8 +1246,12 @@ function appVersion() {
 /* entity picker */
 /* 'taken' (optional) says which entities are already used and are left out of the list. */
 /* `near` is a list of entities already chosen for the same thing: the entities of their Home Assistant devices are listed first. */
+/* A choice offered above the list of the next picker: { icon, label, sub (string keys), tap }. */
+var PICKEXTRA = null;
+
 function pickEntity(title, doms, cls, cb, taken, near) {
-  PICK = { title: title, doms: doms, cls: cls || null, cb: cb, taken: taken || null, near: near || null, q: "" };
+  PICK = { title: title, doms: doms, cls: cls || null, cb: cb, taken: taken || null, near: near || null, q: "", extra: PICKEXTRA };
+  PICKEXTRA = null;
   showPopup("pick-ent", true);
 }
 
@@ -1252,6 +1267,15 @@ function pickBuild(b) {
   inp.setAttribute("autocomplete", "off");
   inp.setAttribute("autocapitalize", "off");
   w.appendChild(inp);
+  if (P.extra)
+    b.appendChild(
+      pill(P.extra.icon, _T(P.extra.label), {
+        sub: function () {
+          return _T(P.extra.sub);
+        },
+        tap: P.extra.tap,
+      })
+    );
   b.appendChild(w);
   b.appendChild(box);
   /* The devices of the entities in `near`. */

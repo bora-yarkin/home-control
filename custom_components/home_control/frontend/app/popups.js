@@ -13,6 +13,14 @@ function popupEntity(key) {
 function popupDef(key) {
   var d = popupDefBase(key),
     ent = d && popupEntity(key);
+  /* blocks added to this popup (decision D-47), before its Advanced settings button */
+  if (d && d.build && moreSection(key)) {
+    var own = d.build;
+    d.build = function (b) {
+      own(b);
+      moreBlocks(b, key);
+    };
+  }
   if (ent) {
     var inner = d.build;
     d.build = function (b) {
@@ -38,6 +46,24 @@ function popupDef(key) {
 /* What each popup is made of, by the part of the key before its first colon ("light:light.desk" is "light"): a function of the rest of the key that gives { title, icon, build(body) }.
    A popup is added here and opened with showPopup(key). The keys of plugins are in PLUGIN_PAGES and are looked at first. */
 var POPUP_DEFS = {
+  "ap-device": function (rid) {
+    return { title: _T("ap_whole"), icon: "plug", build: function (b) { apDevicePage(b, rid); } };
+  },
+  "advset": function (id) {
+    return { title: _T("advset_title"), icon: "tune", build: function (b) { advSetPage(b, id); } };
+  },
+  "advitem": function (id) {
+    return { title: _T("advset_title"), icon: "tune", build: function (b) { advItemPage(b, id); } };
+  },
+  "ap-parts": function (id) {
+    return { title: _T("ap_parts"), icon: "tune", build: function (b) { apPartsPage(b, id); } };
+  },
+  "act-edit": function () {
+    return { title: _T("act_any"), icon: "play", build: actEditPage };
+  },
+  "act-pick": function () {
+    return { title: _T("act_pick"), icon: "search", build: actPickPage };
+  },
   "adv": function (id) {
     return {
       title: (UIDEV[id] && UIDEV[id].name ? UIDEV[id].name + " · " : "") + _T("advanced"),

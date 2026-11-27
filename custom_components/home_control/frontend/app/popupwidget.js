@@ -99,15 +99,11 @@ function popupAddTo(scope, wid, name) {
   showPopup("manage-add:~" + scope + "~" + s.id, true);
 }
 
-/* The widget's settings: what is in the popup, in its order, and Add. */
-function popupSettings(box, d, redraw) {
-  var scope = popupScope(d);
-  if (!scope) return;
-  var s = popupSection(scope, d.wid),
-    items = (s && s.devs) || [],
+/* What is in a popup Section, in its order (drag to change it), each opening its settings, and Add. */
+function popupList(box, scope, s, redraw, add) {
+  var items = (s && s.devs) || [],
     list = mk("div"),
     rows = [];
-  box.appendChild(hintRow(_T("popup_settings_hint")));
   items.forEach(function (x, i) {
     var r = pill(x.icon || "plug", x.name, {
       sub: function () {
@@ -127,13 +123,57 @@ function popupSettings(box, d, redraw) {
       uiChanged();
       setTimeout(redraw, 250);
     });
-  box.appendChild(
-    pill("plus", _T("popup_add"), {
-      tap: function () {
-        popupAddTo(scope, d.wid, d.name);
-      },
-    })
-  );
+  box.appendChild(pill("plus", _T("popup_add"), { tap: add }));
+}
+
+/* The widget's settings: what is in the popup, in its order, and Add. */
+function popupSettings(box, d, redraw) {
+  var scope = popupScope(d);
+  if (!scope) return;
+  box.appendChild(hintRow(_T("popup_settings_hint")));
+  popupList(box, scope, popupSection(scope, d.wid), redraw, function () {
+    popupAddTo(scope, d.wid, d.name);
+  });
+}
+
+/* ---- blocks added to a device's popup (decision D-47) ----
+   A popup Section that belongs to a popup instead of a widget: it has `pk`, the popup's key, so whatever works in a popup (devices, widgets, popups inside it) works here. */
+function moreSection(key) {
+  var pages = ["home"].concat(Object.keys(UI.layout.rooms));
+  for (var i = 0; i < pages.length; i++) {
+    var arr = pages[i] === "home" ? UI.layout.home : UI.layout.rooms[pages[i]],
+      s = (arr || []).filter(function (x) {
+        return x.pk === key && x.of;
+      })[0];
+    if (s) return { scope: pages[i], sec: s };
+  }
+  return null;
+}
+
+function moreAdd(key, scope, name) {
+  var m = moreSection(key);
+  if (!m) {
+    var arr = secOrder(scopeKey(scope)),
+      s = { id: newSecId(arr), k: "devs", hide: false, of: widgetNewId(), pk: key, devs: [] };
+    arr.push(s);
+    setSecOrder(scopeKey(scope), arr);
+    m = { scope: scope, sec: s };
+  }
+  popupAddTo(m.scope, m.sec.of, name);
+}
+
+/* The rows of a settings page about the blocks of one popup. */
+function moreRows(box, key, scope, name, redraw) {
+  var m = moreSection(key);
+  popupList(box, m ? m.scope : scope, m && m.sec, redraw, function () {
+    moreAdd(key, scope, name);
+  });
+}
+
+/* Under a popup's own content. */
+function moreBlocks(b, key) {
+  var m = moreSection(key);
+  if (m && popupItems(m.scope, m.sec.of).length) popupBody(b, m.scope, m.sec.of);
 }
 
 registerWidget("popup", {

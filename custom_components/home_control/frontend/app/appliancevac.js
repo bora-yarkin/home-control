@@ -509,6 +509,7 @@ function vacapPage(b, d) {
     paint();
   }
 
+  apMark(b, "map");
   /* a map entity is drawn as the vacuum card's map: scrolled to the robot, coloured as set, with names, trail and zones */
   if (!img && mapEnt)
     vacMapView(b, {
@@ -548,6 +549,7 @@ function vacapPage(b, d) {
     b.appendChild(box);
   }
 
+  apMark(b, "readings");
   var readings = [];
   if (vacuum || ap.slots.battery)
     readings.push([
@@ -581,6 +583,7 @@ function vacapPage(b, d) {
     return;
   }
 
+  apMark(b, "rooms");
   if (rooms.length) {
     var head = mk("div", "rb-sec", "<span></span><span class='rb-chips'></span>");
     head.firstChild.textContent = _T("rooms_caps");
@@ -623,6 +626,7 @@ function vacapPage(b, d) {
     b.appendChild(tiles);
   }
 
+  apMark(b, "settings");
   conf.sets.filter(function (s) {
     return !s.r;
   }).forEach(function (s) {
@@ -778,10 +782,13 @@ function vacapPage(b, d) {
         "fan"
       )
     );
+  apMark(b, "run");
   b.appendChild(ctl);
   b.appendChild(start);
+  apMark(b, "faults");
   /* the robot's faults, and what else its device only reports */
   if (vacuum) readingsBlock(b, vacuum, { battery: true, noNums: true, noCare: true });
+  apMark(b, "advanced");
   if (vacuum && !d.noadv && advButton(vacuum))
     b.appendChild(
       pill("tune", _T("advanced_settings"), {

@@ -40,3 +40,7 @@ as tiles.
 
 The *Attention* widget or tile lists what needs a look: low batteries, a robot vacuum in trouble, unavailable cameras, locks, air conditioners and lights. When
 there is nothing, it hides itself, and a section left empty by that hides too. Which kinds count is set on the widget.
+
+## What a condition can read
+
+A condition can read any entity: its state or one of its attributes, as a word or as a number.

@@ -125,7 +125,27 @@ function cleanHdr(a) {
 var RM_ENT_DOMS = ["script", "button", "input_button", "scene", "switch"];
 var RM_MEDIA = ["volume_up", "volume_down", "volume_mute", "play_pause", "play", "pause", "stop", "next", "previous", "turn_on", "turn_off", "toggle"];
 
+/* Any Home Assistant action (app/actions.js): `s` "domain.service", `tg` what it is aimed at (entities, areas, devices), `d` its data, `q` ask first. */
+function cleanDo(a) {
+  if (typeof a.s !== "string" || !/^[a-z0-9_]{1,40}\.[a-z0-9_]{1,80}$/.test(a.s)) return null;
+  var out = { t: "do", s: a.s },
+    tg = {};
+  [["entity_id", ENTRE], ["area_id", /^[a-z0-9_]{1,80}$/], ["device_id", /^[A-Za-z0-9_-]{1,64}$/]].forEach(function (k) {
+    var v = a.tg && a.tg[k[0]],
+      list = (Array.isArray(v) ? v : []).filter(function (x, i, all) {
+        return typeof x === "string" && k[1].test(x) && all.indexOf(x) === i;
+      });
+    if (list.length) tg[k[0]] = list.slice(0, 20);
+  });
+  if (Object.keys(tg).length) out.tg = tg;
+  if (a.d && typeof a.d === "object" && !Array.isArray(a.d) && Object.keys(a.d).length && JSON.stringify(a.d).length <= 1000) out.d = JSON.parse(JSON.stringify(a.d));
+  if (a.q) out.q = 1;
+  if (typeof a.n === "string" && a.n.trim()) out.n = a.n.trim().slice(0, 40);
+  return out;
+}
+
 function cleanRmAct(a) {
+  if (a && a.t === "do") return cleanDo(a);
   /* a room of a robot vacuum appliance, on its map picture */
   if (a && a.t === "room") return typeof a.r === "string" && /^[A-Za-z0-9_-]{1,24}$/.test(a.r) ? { t: "room", r: a.r } : null;
   if (!a || typeof a !== "object" || typeof a.e !== "string" || !ENTRE.test(a.e)) return null;
@@ -272,6 +292,19 @@ function cleanAppliance(a) {
     var e = a && a.slots && a.slots[k];
     if (typeof e === "string" && ENTRE.test(e) && slotDoms[k].indexOf(e.split(".")[0]) >= 0) out.slots[k] = e;
   });
+  /* a custom device made from a whole Home Assistant device keeps what is not shown behind one line */
+  if (a && a.fold) out.fold = 1;
+  /* the order of the parts of its popup, and the parts hidden (app/appliance.js) */
+  if (a && a.parts && typeof a.parts === "object") {
+    var parts = {};
+    ["order", "hide"].forEach(function (k) {
+      var l = (Array.isArray(a.parts[k]) ? a.parts[k] : []).filter(function (x, i, all) {
+        return typeof x === "string" && /^[a-z]{1,12}$/.test(x) && all.indexOf(x) === i;
+      });
+      if (l.length) parts[k] = l.slice(0, 12);
+    });
+    if (Object.keys(parts).length) out.parts = parts;
+  }
   /* A name given to a slot on this appliance (a projector's Program is its Source). */
   if (a && a.names && typeof a.names === "object")
     Object.keys(slotDoms).forEach(function (k) {
@@ -789,6 +822,8 @@ function cleanUI(u) {
       });
   o.look = cleanLook(u.look);
   o.types = cleanTypes(u.types);
+  var adv = cleanAdv(u.adv);
+  if (Object.keys(adv).length) o.adv = adv;
   (Array.isArray(u.rooms) ? u.rooms : []).slice(0, 24).forEach(function (r) {
     if (
       !r ||
@@ -1194,6 +1229,8 @@ function cleanLayout(a) {
     if (an.length) o.and = an;
     /* the contents of a Popup widget (app/popupwidget.js) */
     if (k === "devs" && typeof s.of === "string" && WIDRE.test(s.of)) o.of = s.of;
+    /* blocks added to a device's popup (app/popupwidget.js): the popup they belong to */
+    if (o.of && typeof s.pk === "string" && POPKEYRE.test(s.pk)) o.pk = s.pk;
     if ((k === "scenes" || k === "devs") && Array.isArray(s.scn))
       o.scn = s.scn
         .filter(function (x, i, a) {
@@ -1218,6 +1255,42 @@ function cleanLayout(a) {
   return dropOrphanPopups(out);
 }
 
+/* The key of a popup that blocks can be added to: "ac:climate.den", "appliance:ap1", "adv:switch.plug". */
+var POPKEYRE = /^[a-z-]{1,12}:[A-Za-z0-9_.:-]{1,100}$/;
+
+/* What is changed about the Advanced settings of an entity: hidden items, their order, their names and entities added to them. */
+function cleanAdv(a) {
+  var out = {},
+    item = function (x) {
+      return typeof x === "string" && (ENTRE.test(x) || x === "__care" || x === "__pad");
+    },
+    list = function (v, n) {
+      return (Array.isArray(v) ? v : []).filter(function (x, i, all) {
+        return item(x) && all.indexOf(x) === i;
+      }).slice(0, n);
+    };
+  Object.keys(a || {})
+    .slice(0, 200)
+    .forEach(function (id) {
+      var c = a[id],
+        x = {};
+      if (!ENTRE.test(id) || !c || typeof c !== "object") return;
+      ["hide", "order", "add"].forEach(function (k) {
+        var l = list(c[k], k === "add" ? 20 : 100);
+        if (l.length) x[k] = l;
+      });
+      var names = {};
+      Object.keys(c.name || {})
+        .slice(0, 100)
+        .forEach(function (e) {
+          if (ENTRE.test(e) && typeof c.name[e] === "string" && c.name[e].trim()) names[e] = c.name[e].trim().slice(0, 30);
+        });
+      if (Object.keys(names).length) x.name = names;
+      if (Object.keys(x).length) out[id] = x;
+    });
+  return out;
+}
+
 /* A popup's contents go with its widget: a Section `of` a widget that is no longer on the page is dropped (and then those of popups that were inside it). */
 function dropOrphanPopups(list) {
   var owners = {};
@@ -1227,7 +1300,7 @@ function dropOrphanPopups(list) {
     });
   });
   var kept = list.filter(function (s) {
-    return !s.of || owners[s.of];
+    return !s.of || s.pk || owners[s.of];
   });
   return kept.length < list.length ? dropOrphanPopups(kept) : kept;
 }

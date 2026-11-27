@@ -355,13 +355,21 @@ function apDetails(b, ap, aid) {
     return x.l || A(x.e).friendly_name || x.e;
   }
   if (ap.type === "custom") {
-    var group = "";
-    rows.forEach(function (x) {
-      if ((x.g || "") !== group && (group = x.g || "")) b.appendChild(sep(group, "tune"));
-      var kind = DOMKIND[dom(x.e)] || "sensor",
-        row = devRow({ id: x.e, name: label(x), icon: defIcon(kind, label(x), x.e), kind: kind });
-      if (row) b.appendChild(row);
-    });
+    var asRows = function (body, list) {
+      var group = "";
+      list.forEach(function (x) {
+        if ((x.g || "") !== group && (group = x.g || "")) body.appendChild(sep(group, "tune"));
+        var kind = DOMKIND[dom(x.e)] || "sensor",
+          row = devRow({ id: x.e, name: label(x), icon: defIcon(kind, label(x), x.e), kind: kind });
+        if (row) body.appendChild(row);
+      });
+    };
+    asRows(b, ap.fold ? rows.filter(function (x) { return x.o; }) : rows);
+    var folded = ap.fold ? rows.filter(function (x) { return !x.o; }) : [];
+    if (folded.length)
+      foldBlock(b, aid, _T("ap_details"), folded.length, function (body) {
+        asRows(body, folded);
+      });
     return;
   }
   function show(body, list) {
@@ -466,6 +474,110 @@ function apActions(b, ap) {
   reg(paint);
 }
 
+/* The parts of an appliance's popup, which can be put in another order or hidden (decision D-47). Each is marked where it starts while the popup is drawn; nothing is moved
+   unless the appliance says so. */
+var AP_PARTS = {
+  vacuum: ["map", "readings", "rooms", "settings", "run", "faults", "advanced", "rows"],
+  other: ["top", "readings", "actions", "settings", "rows", "buttons"],
+};
+
+function apPartNames(ap) {
+  var all = AP_PARTS[ap.type] || AP_PARTS.other,
+    order = (ap.parts && ap.parts.order) || [];
+  return order
+    .filter(function (p) {
+      return all.indexOf(p) >= 0;
+    })
+    .concat(
+      all.filter(function (p) {
+        return order.indexOf(p) < 0;
+      })
+    );
+}
+
+function apMark(b, name) {
+  if (b.__parts) b.__parts.push([name, b.children.length]);
+}
+
+function apArrange(b, ap) {
+  var marks = b.__parts;
+  delete b.__parts;
+  if (!ap.parts || !marks || !marks.length) return;
+  var all = Array.prototype.slice.call(b.children),
+    found = {};
+  marks.forEach(function (m, i) {
+    found[m[0]] = all.slice(m[1], i + 1 < marks.length ? marks[i + 1][1] : all.length);
+  });
+  apPartNames(ap).forEach(function (name) {
+    var hidden = (ap.parts.hide || []).indexOf(name) >= 0;
+    (found[name] || []).forEach(function (el) {
+      if (hidden) b.removeChild(el);
+      else b.appendChild(el);
+    });
+  });
+}
+
+function apPartsPage(b, aid) {
+  var d = apFind(aid),
+    box = mk("div");
+  if (!d) return;
+  var ap = d.ap;
+  b.appendChild(box);
+  function edit(change) {
+    var parts = ap.parts || {};
+    change(parts);
+    ap.parts = parts;
+    uiChanged();
+  }
+  function draw() {
+    var names = apPartNames(ap),
+      list = mk("div"),
+      rows = [];
+    box.appendChild(hintRow(_T("ap_parts_hint")));
+    names.forEach(function (name) {
+      var row = partPill(
+        _T("ap_part_" + name),
+        function () {
+          return ((ap.parts && ap.parts.hide) || []).indexOf(name) < 0;
+        },
+        function () {
+          edit(function (p) {
+            var l = p.hide || [],
+              i = l.indexOf(name);
+            if (i < 0) l.push(name);
+            else l.splice(i, 1);
+            p.hide = l;
+          });
+          redrawBox(box, draw);
+        }
+      );
+      rows.push(row);
+      list.appendChild(row);
+    });
+    box.appendChild(list);
+    makeSortable(list, rows, function (from, to) {
+      names.splice(to, 0, names.splice(from, 1)[0]);
+      edit(function (p) {
+        p.order = names;
+      });
+      setTimeout(function () {
+        redrawBox(box, draw);
+      }, 250);
+    });
+    if (ap.parts)
+      box.appendChild(
+        pill("repeat", _T("advset_reset"), {
+          tap: function () {
+            delete ap.parts;
+            uiChanged();
+            redrawBox(box, draw);
+          },
+        })
+      );
+  }
+  draw();
+}
+
 /* The popup is made for the kind of appliance. An oven: a dial for its temperature, then state, time left and door. A washer, a dryer, a dishwasher: a ring of the cycle, then
    door and remote start. Any other appliance: readings and a progress bar. Then what can be set, and the action. */
 function apPage(b, aid) {
@@ -476,9 +588,11 @@ function apPage(b, aid) {
     bound = Object.keys(s).filter(function (k) {
       return apHas(s[k]);
     });
+  b.__parts = [];
   /* The robot vacuum has a page of its own, drawn as the Xiaomi vacuum's card (appliancevac.js). */
   if (ap.type === "vacuum") {
     vacapPage(b, d);
+    apMark(b, "rows");
     var kept = { type: ap.type, slots: ap.slots, extra: ap.extra.filter(function (x) { return !x.o; }) };
     apDetails(b, kept, aid);
     /* buttons made with the remote builder, when the picture is not the map */
@@ -486,6 +600,7 @@ function apPage(b, aid) {
       b.appendChild(sep(_T("rm_buttons"), "play"));
       remotePage(b, aid);
     }
+    apArrange(b, ap);
     return;
   }
   if (!bound.length && !ap.extra.length) {
@@ -498,6 +613,7 @@ function apPage(b, aid) {
     chips = [],
     dial = ap.type === "oven" && s.temperature && apHas(s.temperature) && (dom(s.temperature) === "number" || dom(s.temperature) === "input_number"),
     cycle = ["oven", "washer", "dryer", "dishwasher"].indexOf(ap.type) >= 0;
+  apMark(b, "top");
   if (dial) b.appendChild(apOvenDial(ap));
   else if (cycle && (state || left || s.progress || s.program)) b.appendChild(apCycleRing(ap));
   /* The ring says the state and the time left, the oven's dial says its state; any other appliance has chips for both. */
@@ -530,6 +646,7 @@ function apPage(b, aid) {
         return entVal(s.current);
       },
     ]);
+  apMark(b, "readings");
   apChips(b, chips);
   /* A door that is shut is the usual state and says nothing: its chip is there while the door is open (and always for a sensor that is not a door by its class). */
   if (door) {
@@ -552,13 +669,18 @@ function apPage(b, aid) {
     reg(paintDoor);
   }
   if (!dial && !cycle && s.progress && apHas(s.progress)) b.appendChild(apProgressBar(s.progress));
+  apMark(b, "actions");
   apActions(b, ap);
+  apMark(b, "settings");
   apSettings(b, ap, dial);
+  apMark(b, "rows");
   apDetails(b, ap, aid);
+  apMark(b, "buttons");
   if (d.rm && (d.rm.btns.length || (d.rm.v === "i" && d.rm.img))) {
     b.appendChild(sep(_T("rm_buttons"), "play"));
     remotePage(b, aid);
   }
+  apArrange(b, ap);
 }
 
 /* The entities already chosen for an appliance: a new choice is looked for among the entities of the same devices first. */
@@ -577,6 +699,53 @@ function apChosen(ap) {
 /* What a bound entity is, in the editor: the entity, or that it is gone. */
 function apBoundText(e) {
   return apHas(e) ? e : e + " · " + _T("ap_entity_missing");
+}
+
+/* A whole Home Assistant device as a custom device (decision D-47): what operates it first, then what it reports; its settings and diagnostics behind one line. */
+var AP_MAIN_DOMS = ["light", "climate", "media_player", "vacuum", "fan", "cover", "lock", "humidifier", "water_heater", "valve", "lawn_mower", "alarm_control_panel", "camera", "switch", "siren", "select", "number", "button"];
+
+function apDeviceEntities(deviceId) {
+  var h = H();
+  return Object.keys(h.entities || {}).filter(function (id) {
+    var e = h.entities[id];
+    return e.device_id === deviceId && !e.hidden && !e.disabled_by && h.states[id];
+  });
+}
+
+function apFromDevice(deviceId) {
+  var h = H(),
+    dv = h.devices[deviceId],
+    name = String((dv && (dv.name_by_user || dv.name)) || _T("ap_custom")).slice(0, 40),
+    rank = function (id) {
+      var i = AP_MAIN_DOMS.indexOf(dom(id));
+      return i < 0 ? 99 : i;
+    },
+    rows = apDeviceEntities(deviceId)
+      .map(function (id) {
+        var e = h.entities[id],
+          reads = dom(id) === "sensor" || dom(id) === "binary_sensor",
+          part = e.entity_category === "diagnostic" ? 3 : e.entity_category ? 2 : reads ? 1 : 0;
+        return { id: id, part: part };
+      })
+      .sort(function (a, b) {
+        return a.part - b.part || rank(a.id) - rank(b.id) || advName(a.id).localeCompare(advName(b.id));
+      })
+      .slice(0, 40),
+    d = apNew("custom");
+  d.name = name;
+  d.ap.fold = 1;
+  d.ap.extra = rows.map(function (r) {
+    var row = { e: r.id, l: advName(r.id).slice(0, 30) },
+      group = ["", _T("ap_g_readings"), _T("settings"), _T("ap_g_diagnostics")][r.part];
+    if (group) row.g = group.slice(0, 24);
+    if (r.part < 2) row.o = 1;
+    return row;
+  });
+  if (rows.length) {
+    var kind = DOMKIND[dom(rows[0].id)] || "sensor";
+    d.icon = defIcon(kind, name, rows[0].id);
+  }
+  return d;
 }
 
 /* The editor: the type, then one row for every slot (the ones the type needs first), then free extra rows. */

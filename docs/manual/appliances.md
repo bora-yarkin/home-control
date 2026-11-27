@@ -25,3 +25,15 @@ Two ways:
 - **Add a robot vacuum appliance** (*Add item → Appliance → Robot vacuum*) for any brand: a live map, rooms, cleaning settings, per-room settings, no-go zones
   and your own Start actions. The full description, including the file format and how to have an AI write it, is
   **[the robot vacuum appliance](../vacuum-appliance.md)**.
+
+## A whole device
+
+*Add*, *Appliances*, *A whole device*: choose a Home Assistant device and a custom device is made from it. What operates it comes first, then its readings; its settings and diagnostics are behind *Details*. Change it like any custom device.
+
+## Parts of an appliance's popup
+
+In the appliance's settings, *Parts of the popup*: drag to reorder, tap to hide.
+
+## Device files
+
+*Save as a device file* keeps an appliance and the blocks added to its popup, without your entity, device and area ids. Names and texts you typed stay in the file, so read it before sharing it. *Add*, *Appliances*, *From a device file* asks for your own entities and lists every action the file can run before adding it.

@@ -111,9 +111,9 @@ function ruleEvalCond(c) {
     var me = H() && H().user ? H().user.id : "";
     return !c.ids.length || c.ids.indexOf(me) >= 0;
   }
-  if (c.c === "state") return V_(c.id) === c.is;
+  if (c.c === "state") return condValue(c) === c.is;
   if (c.c === "sensor") {
-    var x = parseFloat(V_(c.id));
+    var x = parseFloat(condValue(c));
     if (!isFinite(x)) return false;
     return c.op === "above" ? x > c.val : c.op === "below" ? x < c.val : x >= c.val && x <= c.val2;
   }

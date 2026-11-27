@@ -286,6 +286,8 @@ export function makeHass(query, home = null) {
     addEventListener(name, fn) { (listeners[name] ||= []).push(fn); },
     subscribeEvents() { return Promise.resolve(() => {}); },
     subscribeMessage(callback, msg) {
+      /* a template is answered with its text, {{ states('x') }} filled in */
+      if (msg.type === "render_template") setTimeout(() => callback(/\{%\s*bad/.test(msg.template) ? { error: "TemplateSyntaxError", level: "ERROR" } : { result: msg.template.replace(/\{\{\s*states\('([^']+)'\)\s*\}\}/g, (all, id) => (states[id] ? states[id].state : "unknown")) }), 20);
       if (msg.type.startsWith("frontend/subscribe_")) callback({ value: stored[msg.type.includes("system") ? "system" : "user"][msg.key] });
       return Promise.resolve(() => {});
     },
