@@ -2,6 +2,8 @@
 
 ## Media players
 
+<img src="../images/media-popup.png" width="300" alt="The TV popup">
+
 A media row opens now-playing, volume and sources. Set the **type** (TV, receiver, speaker) in the device's options. A TV with a `remote` entity linked gets a full
 remote; *Set up this device* finds it.
 

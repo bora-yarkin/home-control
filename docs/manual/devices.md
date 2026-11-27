@@ -25,6 +25,8 @@ Tap a device in the editor.
 
 ## What each type can do
 
+<img src="../images/phone-room.png" width="300" alt="Devices on a room page, on a phone">
+
 Lights, switches, fans, climate, media players, vacuums, cameras, covers and locks have their own rows and popups. Humidifiers, water heaters, alarm panels (with their code), valves, lawn mowers, sirens, updates, automations, texts, dates and times, notify targets, weather, events, people, groups and remotes get controls from what each one reports. A popup shows only what the device says it supports; a thermostat that keeps two temperatures has a slider for each. *More in Home Assistant* opens Home Assistant's own dialog for anything else.
 
 ## Customize

@@ -28,6 +28,8 @@ rooms keep their names and icons, and scenes, notifications and access rules sta
 
 ## Finding your way
 
+![The Home page of a demo home](../images/home.png)
+
 - **The bar at the bottom** switches between Home and your rooms.
 - **The header** shows the page's name, the time, what you chose to see there (weather, people, lights on, attention) and its round buttons: *Everything off*
   (on a room page), *Search* and *Settings*.
