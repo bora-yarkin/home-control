@@ -13,7 +13,6 @@ from __future__ import annotations
 
 import base64
 import hashlib
-import re
 from pathlib import Path
 
 from aiohttp import web
@@ -26,7 +25,8 @@ _PAGE = Path(__file__).parent / "mic_frame.html"
 def load_page() -> tuple[bytes, str]:
     """The page and the Content-Security-Policy that lets only its own script run."""
     page = _PAGE.read_bytes()
-    script = re.search(rb"<script>(.*)</script>", page, re.DOTALL).group(1)
+    # The page is this integration's own file with one script: what stands between its first <script> and its last </script>.
+    script = page[page.index(b"<script>") + len(b"<script>") : page.rindex(b"</script>")]
     digest = base64.b64encode(hashlib.sha256(script).digest()).decode()
     policy = f"default-src 'none'; script-src 'sha256-{digest}'; frame-ancestors http: https:; base-uri 'none'; form-action 'none'"
     return page, policy

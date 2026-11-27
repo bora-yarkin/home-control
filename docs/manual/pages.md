@@ -1,48 +1,33 @@
-# Pages, sections and the header
+# Pages and sections
 
 ## Pages and rooms
 
-![A room page with its sections](../images/room.png)
+![A room page](../images/room.png)
 
-There is a Home page and one page per room. In the editor, *Page settings* holds the page's name, icon, picture, the Home Assistant area it stands for, how many
-columns it uses, and hiding or deleting the room. Rooms can also be added and reordered from the editor.
+There's a Home page and one page per room. In the editor, Page settings covers the name, icon, picture, which Home Assistant area the page stands for, how many columns it has, and hiding or deleting it. You can also add and reorder rooms from the editor.
 
 ## Sections
 
-A page is a list of **sections**, each with a name and an icon, holding devices, widgets, lights masters and scenes in the order you give them.
+A page is made of sections. A section has a name and an icon and holds devices, widgets, lights masters and scenes in whatever order you like.
 
-- *Add section* in the editor adds one. Rooms offer suggestions for what they could hold.
-- *Reorder sections* moves them, and sets which column each sits in.
-- A section's settings: name, icon, **width** (how many columns it spans on wide screens; it becomes one column on a phone), how its items are laid out
-  (a list or a grid), hiding it, and **when it is shown**.
+Add section creates one (room pages suggest a few), and Reorder sections moves them between columns. In a section's settings you can change its width on wide screens, show items as a list or a grid, hide it, or only show it under certain conditions.
 
 ## Columns
 
-A page can use one to four columns. Screens narrower than 760 px always show one; wider screens show as many as the page asks for and fit.
+A page can have one to four columns. Screens narrower than 760 px always show one.
 
-## When a section is shown
+## Showing a section only sometimes
 
-A section can have conditions, all of which must hold: a device's state, a sensor above or below a value, days of the week, a time window, daylight or dark,
-sunrise time, someone or nobody home, or only for certain users. While editing you always see it.
+You can give a section conditions: a device's state, a sensor above or below a number, days of the week, a time window, daylight or dark, sunrise time, whether anyone is home, or which user is looking. All of them have to be true. While you're editing, the section always shows.
+
+A condition can read any entity, either its state or one of its attributes.
 
 ## The header
 
-In the editor, tap the header (or open its settings) to choose:
+Tap the header in the editor to choose the greeting, the line above the title and the clock. You can add up to four header items (weather, who's home, number of lights on, Attention, or any entity) and a weather sky behind it all, which each person can turn off.
 
-- the greeting, the line above the title and the clock;
-- up to four **header items**: weather, who is home, how many lights are on, Attention, or any entity;
-- **status tiles in the header**, per page: a row under the items with that page's readings (a temperature, an air quality value). A page can have six, one of them
-  an *Attention* tile that appears only while something needs attention;
-- a weather sky behind the header (each person can turn it off).
-
-Header status tiles and a page's **Status section** are separate: the Status section is an ordinary section, to which sensors are added like any device and shown
-as tiles.
+Each page can also have up to six status tiles in its header, such as a temperature or air quality reading. One of them can be an Attention tile that only appears when something needs it. These are separate from the Status section, which is an ordinary section that shows sensors as tiles.
 
 ## Attention
 
-The *Attention* widget or tile lists what needs a look: low batteries, a robot vacuum in trouble, unavailable cameras, locks, air conditioners and lights. When
-there is nothing, it hides itself, and a section left empty by that hides too. Which kinds count is set on the widget.
-
-## What a condition can read
-
-A condition can read any entity: its state or one of its attributes, as a word or as a number.
+The Attention widget lists low batteries, vacuum problems, and cameras, locks, air conditioners or lights that are unavailable. When there's nothing to report it hides, and so does a section left empty by that. You choose what counts in the widget's settings.

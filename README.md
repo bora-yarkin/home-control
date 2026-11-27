@@ -1,74 +1,69 @@
 # Home Control
 
-**A complete Home Assistant dashboard that you build by tapping, not by writing YAML.**
+Home Control is a dashboard for Home Assistant. It adds a panel to your sidebar with a Home page and a page for each room, and you set it all up by clicking around in it. There's no YAML to write and no card collection to install.
 
-Rooms, lights and scenes, climate, TVs, cameras, appliances and robot vacuums, each with a popup made for it. It sits in your sidebar, works on a phone, a tablet and a wall screen, and needs no add-on cards.
-
-![The Home page: rooms, favourites and what is on now](docs/images/home.png)
+![Home page](docs/images/home.png)
 
 <p>
-  <img src="docs/images/light-popup.png" width="24%" alt="Light popup with its colour temperature wheel">
-  <img src="docs/images/vacuum-popup.png" width="24%" alt="Robot vacuum popup with a room map, rooms and cleaning settings">
-  <img src="docs/images/oven-popup.png" width="24%" alt="Oven popup with a temperature dial">
-  <img src="docs/images/washer-popup.png" width="24%" alt="Washer popup with the time left in a ring">
+  <img src="docs/images/light-popup.png" width="24%" alt="Light popup">
+  <img src="docs/images/vacuum-popup.png" width="24%" alt="Robot vacuum popup">
+  <img src="docs/images/oven-popup.png" width="24%" alt="Oven popup">
+  <img src="docs/images/washer-popup.png" width="24%" alt="Washer popup">
 </p>
 
-*The screenshots show an invented demo home.*
+## What it does
 
-## Why Home Control
+When you first open it, a short setup asks which rooms, lights and devices you want and builds the pages from your answers. After that you edit on screen: drag things around, rename them, add sections and widgets.
 
-- **Set up in minutes.** A guided first setup builds your pages from what you pick. Everything after that is edited on screen, with drag and drop.
-- **Popups included.** Every device opens a popup made for its type, with only the controls that device reports. Nothing extra to install.
-- **Your appliances, your way.** Ovens, washers, dryers, fridges, coffee machines, projectors and more start from a template. Reorder, hide or add blocks, each reading the entities you choose.
-- **Build your own.** Add a whole Home Assistant device in one step, put popups inside popups, and make any button run any Home Assistant action.
-- **Any robot vacuum.** Its map, rooms, cleaning settings and no-go zones are set up on screen, whatever the brand. See [the robot vacuum appliance](docs/vacuum-appliance.md).
-- **Remotes.** Ready-made TV remotes, a remote builder with grids or a picture with touch areas, and one master remote for a TV, its boxes and its speakers.
-- **Lights that go further.** Colour and temperature wheels, groups, masters, static and moving scenes for any light.
-- **Made for a household.** Per-user access rules, "are you sure?" where you want it, notifications, a wall display and Siri and HomeKit scenes.
-- **Careful with your home.** Commands that restart the system or run programs are for administrators and always ask first. Backups and restore are built in.
-- **English and Turkish**, following Home Assistant's language or your choice.
+Tapping a device opens a popup made for that kind of device. It only shows what the device actually supports, so a fan without swing doesn't get a swing button.
 
-![A room page: climate, lights, media and everything around the room](docs/images/room.png)
+Appliances (ovens, washers, fridges, projectors and so on) start from a template. If the template isn't quite right you can hide parts, reorder them or add more. If something doesn't fit any template, pick the whole Home Assistant device and the dashboard makes a popup from it. Buttons can run any Home Assistant action, and popups can open other popups.
+
+![A room page](docs/images/room.png)
+
+There's also:
+
+- Robot vacuums of any brand, with their map, rooms and cleaning settings ([how that works](docs/vacuum-appliance.md))
+- TV remotes, a builder for your own, and one remote that drives a TV with its boxes and speakers
+- Light groups, scenes, and animated scenes that move across a room
+- Cameras and door calls
+- A wall tablet mode, notifications, Siri and HomeKit
+- Per-user access rules, and an "are you sure?" wherever you want one
+- Backup and restore
+- English and Turkish
 
 <p>
-  <img src="docs/images/phone-room.png" width="24%" alt="A room page on a phone">
+  <img src="docs/images/phone-room.png" width="24%" alt="Room page on a phone">
   <img src="docs/images/climate-popup.png" width="24%" alt="Air conditioner popup">
   <img src="docs/images/media-popup.png" width="24%" alt="TV popup">
-  <img src="docs/images/popup-parts.png" width="24%" alt="Choosing the parts of an appliance's popup">
+  <img src="docs/images/popup-parts.png" width="24%" alt="Arranging an appliance popup">
 </p>
 
-## Install
+## Installing
 
-Marketplace (Home Assistant 2026.11 and later; this repository is not in its default list, so add it yourself): *Settings → Marketplace → Add from link*, `https://github.com/bora-yarkin/home-control`; download *Home Control* (older versions: HACS, *Custom repositories*, category *Integration*), restart Home Assistant, then
-*Settings → Devices & services → Add integration → Home Control*. The panel appears in the sidebar. The address, title,
-icon and who may open it are options of the integration.
+You need Home Assistant 2026.11 or newer for the Marketplace (older versions can use HACS). The repository isn't in the default list yet, so add it by hand:
 
-Adding it changes nothing else on your Home Assistant: your own dashboards, your default dashboard and your Hue setup stay as they are. The dashboard
-appears in the sidebar; to open it first, choose it under *Profile, Default dashboard* (a setting of each browser, which an integration cannot change).
+1. Go to Settings → Marketplace → Add from link and paste `https://github.com/bora-yarkin/home-control`.
+2. Download Home Control and restart Home Assistant.
+3. Go to Settings → Devices & services → Add integration → Home Control.
 
-With [Philips Hue Plus](https://github.com/bora-yarkin/hue-plus) installed, the dashboard shows Hue Plus's lights, scenes and sensors and leaves out the
-Hue integration's copies of them (matched by unique id), whether Hue Plus hid the Hue entities or left them alone. Without Hue Plus it shows the
-Hue integration's as usual.
+The panel shows up in the sidebar. Its address, title, icon and who can open it are options of the integration. If you'd rather not use the Marketplace, copy `custom_components/home_control` into your configuration folder and restart.
 
-Without the Marketplace: copy `custom_components/home_control` into your configuration folder and restart.
+It leaves your other dashboards alone. To make it the first thing you see, choose it under Profile → Default dashboard; Home Assistant keeps that setting per browser.
 
-If you used the dashboard before as a `panel_custom` entry in `configuration.yaml`, remove that entry first; your layouts
-and settings are kept, because they live in Home Assistant, not in the files.
+If you used an earlier version through a `panel_custom` entry in `configuration.yaml`, remove the entry first. Your layouts are kept.
 
-## Learn more
+## Documentation
 
-- **[User manual](docs/manual/README.md)**, also under *Settings → User manual* in the dashboard.
-- **[AI setup guide](docs/ai-setup.md)**: lets an assistant build your dashboard as a file you restore.
-- **[Philips Hue Plus](https://github.com/bora-yarkin/hue-plus)** adds Hue's scenes, effects, gradient styles and the Spotify sync. Parts that belong to one integration appear only when it is installed.
+- [User manual](docs/manual/README.md), also linked from Settings inside the dashboard
+- [Setting it up with an AI assistant](docs/ai-setup.md)
 
-Home Control does not replace Home Assistant. Your automations, helpers and integrations stay where they are, and layouts and settings are stored by Home Assistant itself.
+If you have Philips Hue lights, [Philips Hue Plus](https://github.com/bora-yarkin/hue-plus) adds Hue's scenes, effects, gradient styles and Spotify sync to the dashboard.
 
-## How it is built
+## For developers
 
-`custom_components/home_control/frontend/` is the dashboard (plain JavaScript, no build step); `README.md` there explains each
-file. The integration (`__init__.py`) serves that folder and registers the panel.
+The dashboard is plain JavaScript with no build step, in `custom_components/home_control/frontend/`. The README there says what each file does. See [CONTRIBUTING](.github/CONTRIBUTING.md) before sending changes.
 
 ## Licence
 
-GPL-3.0-or-later. See `LICENSE`. The bundled Material Design Icons (Apache 2.0) and hls.js (Apache 2.0) keep their own
-licences in `frontend/mdi` and `frontend/vendor`. Contributions: see `.github/CONTRIBUTING.md`.
+GPL-3.0-or-later. The bundled Material Design Icons and hls.js are Apache 2.0 and keep their own licences in `frontend/mdi` and `frontend/vendor`.

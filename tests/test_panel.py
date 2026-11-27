@@ -1,6 +1,8 @@
 # SPDX-License-Identifier: GPL-3.0-or-later
 """The integration serves the dashboard's files and registers its panel."""
 
+import base64
+import hashlib
 import json
 from pathlib import Path
 
@@ -9,6 +11,7 @@ from homeassistant.config_entries import ConfigEntryState
 from pytest_homeassistant_custom_component.common import MockConfigEntry
 
 from custom_components.home_control.const import CONF_ADMIN_ONLY, CONF_TITLE, CONF_URL_PATH, DOMAIN
+from custom_components.home_control.micframe import URL_MIC_FRAME
 
 FRONTEND = Path(__file__).parent.parent / "custom_components" / "home_control" / "frontend"
 
@@ -107,3 +110,15 @@ async def test_the_microphone_page_can_be_framed_by_an_http_dashboard_and_runs_o
     assert "frame-ancestors http: https:" in policy and "default-src 'none'" in policy and "script-src 'sha256-" in policy
     assert response.headers["Permissions-Policy"] == "microphone=(self)"
     assert "getUserMedia" in await response.text()
+
+
+async def test_the_microphone_page_is_served_with_a_policy_that_lets_exactly_its_script_run(hass, hass_client):
+    await _setup(hass)
+    client = await hass_client()
+    response = await client.get(URL_MIC_FRAME)
+    assert response.status == 200
+    page = await response.text()
+    assert page.count("<script>") == 1 and page.count("</script>") == 1
+    script = page.split("<script>")[1].split("</script>")[0]
+    digest = base64.b64encode(hashlib.sha256(script.encode()).digest()).decode()
+    assert f"script-src 'sha256-{digest}'" in response.headers["Content-Security-Policy"]

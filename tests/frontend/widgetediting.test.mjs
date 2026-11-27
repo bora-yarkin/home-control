@@ -8,8 +8,12 @@ import { findChrome, launch, open, serve, sleep } from "./helpers/browser.mjs";
 const chrome = findChrome();
 const skip = !chrome && !process.env.CI ? "no Chrome found (set CHROME_PATH)" : false;
 
+/* A value written into code that the browser runs: JSON, with what could end a script or a line escaped too. */
+const UNSAFE = { "<": "\\u003C", ">": "\\u003E", "\b": "\\b", "\f": "\\f", "\n": "\\n", "\r": "\\r", "\t": "\\t", "\0": "\\0", "\u2028": "\\u2028", "\u2029": "\\u2029" };
+const literal = (value) => JSON.stringify(value).replace(/[<>\b\f\n\r\t\0\u2028\u2029]/g, (c) => UNSAFE[c]);
+
 /* A widget that is a card of the Showcase page, found by the name in its header. */
-const CARD = (widget) => `[...document.querySelectorAll(".wcard")].find((c) => c.querySelector(".wh b").textContent.trim().toLowerCase().replace("-", "").startsWith(${JSON.stringify(widget)}))`;
+const CARD = (widget) => `[...document.querySelectorAll(".wcard")].find((c) => c.querySelector(".wh b").textContent.trim().toLowerCase().replace("-", "").startsWith(${literal(widget)}))`;
 
 async function session(run) {
   const server = await serve();
@@ -21,13 +25,13 @@ async function session(run) {
     for (let i = 0; i < 100 && !(await ev(`!!document.querySelector(".wcard .wr")`)); i++) await sleep(200);
     /* the lines of a card: their words, and whether they are done */
     const rows = (widget) => ev(`[...(${CARD(widget)}).querySelectorAll(".wr")].map((r) => ({ name: r.querySelector(".nm").textContent, done: r.classList.contains("done") }))`);
-    const line = (widget, name) => `[...(${CARD(widget)}).querySelectorAll(".wr")].find((r) => r.querySelector(".nm").textContent === ${JSON.stringify(name)})`;
+    const line = (widget, name) => `[...(${CARD(widget)}).querySelectorAll(".wr")].find((r) => r.querySelector(".nm").textContent === ${literal(name)})`;
     const check = (widget, name) => ev(`${line(widget, name)}.querySelector(".ck2").click()`);
     const pen = (widget, name) => ev(`${line(widget, name)}.querySelector(".wedit").click()`);
     const add = (widget) => ev(`(${CARD(widget)}).querySelector(".wadd").click()`);
     /* types into the sheet that is open and presses one of its buttons */
     const submit = (fields, button = 0) =>
-      ev(`(async () => { const sheet = document.querySelector(".asheet.in"); for (const [sel, v] of ${JSON.stringify(fields)}) { const i = sheet.querySelector(sel); i.value = v; i.dispatchEvent(new Event("input", { bubbles: true })); } sheet.querySelectorAll(".as-b")[${button}].click(); })()`);
+      ev(`(async () => { const sheet = document.querySelector(".asheet.in"); for (const [sel, v] of ${literal(fields)}) { const i = sheet.querySelector(sel); i.value = v; i.dispatchEvent(new Event("input", { bubbles: true })); } sheet.querySelectorAll(".as-b")[${button}].click(); })()`);
     await run({ ev, rows, check, pen, add, submit, sleep });
   } finally {
     browser.close();
@@ -91,7 +95,7 @@ test("the edit view of a to-do widget lists its items: the words of one are chan
     await ev(`(${CARD("todo")}).querySelector(".wpen").click()`);
     await sleep(1500);
     const items = () => ev(`[...document.querySelectorAll(".sheet.in .pill .nm")].map((n) => n.textContent)`);
-    const row = (name) => `[...document.querySelectorAll(".sheet.in .pill")].find((p) => p.querySelector(".nm").textContent === ${JSON.stringify(name)})`;
+    const row = (name) => `[...document.querySelectorAll(".sheet.in .pill")].find((p) => p.querySelector(".nm").textContent === ${literal(name)})`;
     assert.ok((await items()).includes("Coffee beans"), "the items are in the edit view (" + (await items()).join(", ") + ")");
 
     await ev(`${row("Coffee beans")}.click()`);

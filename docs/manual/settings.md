@@ -1,38 +1,39 @@
 # Settings
 
-Open with the gear in the header. The search box finds a setting.
+Tap the gear in the header. There's a search box.
 
-| Group | Entry | What it does |
+| Group | Entry | What it's for |
 |---|---|---|
-| Display | Appearance | Light, dark or automatic theme; accent colour; larger display; start page; weather sky; time format. Per person. |
-| | Wall mode | For a tablet on the wall: a clock or photos after a while without touch, dimmed at night. |
-| Dashboard | Editor | Edit the current page. |
-| | Guided setup | Build the pages step by step ([the first run](getting-started.md#the-first-run-guided-setup)). |
-| | Devices | New devices, devices not on the dashboard, and the Advanced settings buttons of the whole dashboard. |
-| | Light groups | Make and change Home Assistant light groups. |
-| | Areas | Where lights are, for live scenes. |
-| | Siri and HomeKit | Publish live scenes as `scene` entities, and choose what the HomeKit Bridge offers. The Home Assistant app offers scenes to Shortcuts. |
-| | Effects | Effect catalogues and importing an effects file. |
-| People | Users and access | For each non-administrator: full access, view only, ask first or hidden, by room or device. |
-| | Notifications | Low battery, device offline, vacuum problem, and alerts for any entity reaching a state. They are made as Home Assistant automations (`dashboard_n_…`) and sent to the notify services you choose. |
-| Data | Activity | What your devices did recently. |
-| | Backup and about | [Backup and restore](backup.md), the **Change log** (the last ten changes to the dashboard, with undo), versions and diagnostics. |
+| Display | Appearance | Theme, accent colour, larger display, start page, weather sky, time format. Per person |
+| | Wall mode | For a wall tablet: a clock or photos when idle, dimmed at night |
+| Dashboard | Editor | Edit the current page |
+| | Guided setup | [Build pages step by step](getting-started.md#the-first-run-guided-setup) |
+| | Devices | New devices, unused devices, Advanced settings buttons |
+| | Light groups | Home Assistant light groups |
+| | Areas | Light positions for live scenes |
+| | Siri and HomeKit | Publish live scenes as `scene` entities and choose what HomeKit gets |
+| | Effects | Effect catalogues and imports |
+| People | Users and access | Full access, view only, ask first or hidden, per room or device |
+| | Notifications | Low battery, offline, vacuum trouble and your own alerts, made as automations (`dashboard_n_…`) |
+| Data | Activity | What your devices have been doing |
+| | Backup and about | [Backup](backup.md), change log, versions, diagnostics |
 
-**Help → User manual** opens this manual.
+Help → User manual opens this manual.
 
 ## Language
 
-*Settings → Appearance → Language*: the same as Home Assistant, or a language chosen for your account. English and Turkish are shipped. Names you or the guided setup saved (rooms, sections, labels) stay as written; switching language does not rewrite them. A translation is one file, `frontend/app/lang/<code>.js`, that sets `LANGS["<code>"] = {...}` with the keys of `app/strings.js`, plus its name under `languages` in `frontend/version.json`; what it lacks is shown in English. A test requires every listed language to have every key.
+Settings → Appearance → Language follows Home Assistant or a language you pick for your account. English and Turkish are included. Names you've saved aren't translated.
+
+To add a language, create `frontend/app/lang/<code>.js` that sets `LANGS["<code>"] = {...}` using the keys in `app/strings.js`, and add its name under `languages` in `frontend/version.json`. Missing keys show in English, and a test makes sure listed languages are complete.
 
 ## Colours and shape
 
-*Settings → Colours and shape* (shared by everyone): icon colours by type, no colour, or a rainbow; a colour for each type of icon; corners and spacing. The accent colour is each person's own, under *Appearance*. Every colour is picked on the colour wheel or typed as a code.
+Settings → Colours and shape changes icon colours by type (or turns them off, or makes them a rainbow), corner roundness and spacing, for everyone. Accent colour is personal and lives under Appearance.
 
 ## My alerts
 
-*Settings → My alerts*: your own lines in Attention, shown while a condition holds. The level at which a worn part counts as low is under *Notifications* (1 to 90 %).
+Add your own lines to Attention, shown while a condition is true. The level at which a worn part counts as low is under Notifications.
 
 ## Users
 
-Only administrators change the dashboard. Access rules apply inside this dashboard only: they are not Home Assistant permissions, so a user can still reach an
-entity elsewhere in Home Assistant.
+Only administrators can change the dashboard. Access rules only apply inside this dashboard. They aren't Home Assistant permissions, so a user can still reach things elsewhere in Home Assistant.

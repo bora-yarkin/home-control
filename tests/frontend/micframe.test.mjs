@@ -8,7 +8,7 @@ import test from "node:test";
 import vm from "node:vm";
 
 const html = readFileSync(new URL("../../custom_components/home_control/mic_frame.html", import.meta.url), "utf8");
-const script = /<script>([\s\S]*)<\/script>/.exec(html)[1];
+const script = html.slice(html.indexOf("<script>") + "<script>".length, html.lastIndexOf("</script>"));
 
 function frame(host = "ha.example.net") {
   const posted = [];
