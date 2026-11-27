@@ -23,12 +23,13 @@ var AP_SLOTS = {
   dock: { l: "stop_and_dock", doms: ["button", "input_button", "script"] },
 };
 
-/* A type only chooses which slots the editor offers first and the icon: every slot can still be used on any type. */
+/* A type is a template, not code of its own (decision D-47): which slots the editor offers first, the icon, and `top`, the blocks tried for the top of its popup. Every slot and
+   every block can be used on any type. */
 var AP_TYPES = {
-  oven: { l: "ap_oven", icon: "plug", slots: ["state", "program", "temperature", "current", "duration", "start", "stop", "remaining", "progress", "door", "permission"] },
-  washer: { l: "ap_washer", icon: "drop", slots: ["program", "start", "stop", "state", "progress", "remaining", "door", "permission", "temperature", "duration"] },
-  dryer: { l: "ap_dryer", icon: "drop", slots: ["program", "start", "stop", "state", "progress", "remaining", "door", "permission", "temperature", "duration"] },
-  dishwasher: { l: "ap_dishwasher", icon: "drop", slots: ["program", "start", "stop", "state", "progress", "remaining", "door", "permission", "temperature", "duration"] },
+  oven: { l: "ap_oven", icon: "plug", top: ["dial", "ring"], slots: ["state", "program", "temperature", "current", "duration", "start", "stop", "remaining", "progress", "door", "permission"] },
+  washer: { l: "ap_washer", icon: "drop", top: ["ring"], slots: ["program", "start", "stop", "state", "progress", "remaining", "door", "permission", "temperature", "duration"] },
+  dryer: { l: "ap_dryer", icon: "drop", top: ["ring"], slots: ["program", "start", "stop", "state", "progress", "remaining", "door", "permission", "temperature", "duration"] },
+  dishwasher: { l: "ap_dishwasher", icon: "drop", top: ["ring"], slots: ["program", "start", "stop", "state", "progress", "remaining", "door", "permission", "temperature", "duration"] },
   coffee: { l: "ap_coffee", icon: "drop", names: { program: "ap_n_drink", level: "ap_n_strength" }, slots: ["state", "program", "level", "start", "stop", "progress", "remaining", "door", "permission"] },
   fridge: { l: "ap_fridge", icon: "thermo", names: { temperature: "ap_n_fridge", level: "ap_n_mode" }, slots: ["state", "temperature", "current", "door", "level"] },
   projector: { l: "ap_projector", icon: "media", names: { program: "ap_n_source", level: "ap_n_picture", temperature: "ap_n_keystone" }, slots: ["state", "program", "level", "start", "stop", "remaining", "temperature"] },
@@ -474,6 +475,216 @@ function apActions(b, ap) {
   reg(paint);
 }
 
+/* ---- the blocks a popup is made of (decision D-47) ----
+   Each draws itself from the slots of what it is given: the appliance's own, or, for a block added to the popup, entities of its own. `slots` are the ones it reads. A block's
+   draw answers whether it drew anything; `ctx` says what the top turned out to be, so that the readings do not say it again. */
+var AP_BLOCKS = {
+  /* a temperature to turn, the temperature now as a dot on it */
+  dial: {
+    slots: ["temperature", "current", "state", "remaining"],
+    draw: function (b, ap, ctx) {
+      var t = ap.slots.temperature;
+      if (!t || !apHas(t) || (dom(t) !== "number" && dom(t) !== "input_number")) return false;
+      b.appendChild(apOvenDial(ap));
+      ctx.dial = true;
+      return true;
+    },
+  },
+  /* a ring that fills as a cycle goes */
+  ring: {
+    slots: ["progress", "remaining", "state", "program"],
+    draw: function (b, ap) {
+      var s = ap.slots;
+      if (!((s.state && apHas(s.state)) || (s.remaining && apHas(s.remaining)) || s.progress || s.program)) return false;
+      b.appendChild(apCycleRing(ap));
+      return true;
+    },
+  },
+  bar: {
+    slots: ["progress"],
+    draw: function (b, ap) {
+      if (!ap.slots.progress || !apHas(ap.slots.progress)) return false;
+      b.appendChild(apProgressBar(ap.slots.progress));
+      return true;
+    },
+  },
+  readings: {
+    slots: ["state", "remaining", "current", "door", "permission", "progress"],
+    draw: function (b, ap, ctx) {
+      var s = ap.slots,
+        state = s.state && apHas(s.state),
+        left = s.remaining && apHas(s.remaining),
+        door = s.door && apHas(s.door),
+        perm = s.permission && apHas(s.permission),
+        chips = [];
+      /* The ring says the state and the time left, the oven's dial says its state; any other appliance has chips for both. */
+      if (state && !ctx.cycle)
+        chips.push([
+          _T("ap_state"),
+          function () {
+            return apStateText(s.state);
+          },
+        ]);
+      if (left && !ctx.cycle)
+        chips.push([
+          _T("ap_remaining"),
+          function () {
+            return apActive(ap) === false ? "–" : apLeft(s.remaining);
+          },
+        ]);
+      /* With a Start, the permission speaks through the reason Start is off. */
+      if (perm && !s.start)
+        chips.push([
+          _T("ap_remote_start"),
+          function () {
+            return apAllowedText(s.permission);
+          },
+        ]);
+      if (!s.temperature && s.current && apHas(s.current))
+        chips.push([
+          _T("ap_current_temperature"),
+          function () {
+            return entVal(s.current);
+          },
+        ]);
+      apChips(b, chips);
+      /* A door that is shut is the usual state and says nothing: its chip is there while the door is open (and always for a sensor that is not a door by its class). */
+      if (door) {
+        var doorChip = glance(
+          [
+            [
+              _T("ap_door"),
+              function () {
+                return apStateText(s.door);
+              },
+            ],
+          ],
+          1
+        );
+        b.appendChild(doorChip);
+        var paintDoor = function () {
+          doorChip.style.display = apIsDoor(s.door) && V_(s.door) === "off" ? "none" : "";
+        };
+        paintDoor();
+        reg(paintDoor);
+      }
+      if (!ctx.dial && !ctx.cycle && s.progress && apHas(s.progress)) b.appendChild(apProgressBar(s.progress));
+      return true;
+    },
+  },
+  actions: {
+    slots: ["start", "stop", "state", "permission"],
+    draw: function (b, ap) {
+      apActions(b, ap);
+      return true;
+    },
+  },
+  settings: {
+    slots: ["program", "temperature", "level", "duration"],
+    draw: function (b, ap, ctx) {
+      apSettings(b, ap, ctx.dial);
+      return true;
+    },
+  },
+};
+
+/* The blocks added to this popup, each with entities of its own, drawn at the end (the order is the parts' order). */
+function apAddedBlocks(b, ap) {
+  (ap.add || []).forEach(function (x) {
+    var def = AP_BLOCKS[x.t];
+    if (!def) return;
+    apMark(b, x.id);
+    if (x.l) b.appendChild(sep(x.l, "tune"));
+    def.draw(b, { type: ap.type, names: ap.names, slots: x.slots || {}, extra: [] }, { dial: false, cycle: false });
+  });
+}
+
+function apBlockName(x) {
+  return x.l || _T("ap_blk_" + x.t);
+}
+
+function apBlockPage(b, key) {
+  var p = key.split("|"),
+    d = apFind(p[0]),
+    x = d && (d.ap.add || []).filter(function (y) { return y.id === p[1]; })[0];
+  if (!x) return;
+  var def = AP_BLOCKS[x.t];
+  b.appendChild(
+    textRow(
+      "edit",
+      _T("ap_blk_" + x.t),
+      x.l || "",
+      function (v) {
+        if (v.trim()) x.l = v.trim().slice(0, 24);
+        else delete x.l;
+        uiChanged();
+      },
+      24
+    )
+  );
+  b.appendChild(
+    partPill(
+      _T("visible"),
+      function () {
+        return ((d.ap.parts && d.ap.parts.hide) || []).indexOf(x.id) < 0;
+      },
+      function () {
+        var parts = d.ap.parts || {},
+          l = parts.hide || [],
+          i = l.indexOf(x.id);
+        if (i < 0) l.push(x.id);
+        else l.splice(i, 1);
+        parts.hide = l;
+        d.ap.parts = parts;
+        uiChanged();
+      }
+    )
+  );
+  def.slots.forEach(function (k) {
+    var set = x.slots[k];
+    b.appendChild(
+      pill("plug", apSlotLabel(d.ap, k), {
+        sub: function () {
+          return set ? apBoundText(set) : _T("ap_not_set");
+        },
+        /* a set entity is cleared with a tap, an empty one chosen */
+        tap: function () {
+          if (set) {
+            delete x.slots[k];
+            uiChanged();
+            showPopup("ap-block:" + key, false);
+            return;
+          }
+          pickEntity(apSlotLabel(d.ap, k), AP_SLOTS[k].doms, null, function (id) {
+            x.slots[k] = id;
+            uiChanged();
+          });
+        },
+      })
+    );
+  });
+  b.appendChild(hintRow(_T("ap_blk_hint")));
+  var rm = pill("trash", _T("ap_clear"), {
+    tap: function () {
+      d.ap.add = d.ap.add.filter(function (y) {
+        return y.id !== x.id;
+      });
+      if (!d.ap.add.length) delete d.ap.add;
+      uiChanged();
+      popBack();
+    },
+  });
+  stgActions(b, [rm], [rm]);
+}
+
+function apBlockAdd(d, type) {
+  var id = "x";
+  while (id.length < 7) id += "abcdefghijklmnopqrstuvwxyz".charAt(Math.floor(Math.random() * 26));
+  d.ap.add = (d.ap.add || []).concat([{ id: id, t: type, slots: {} }]).slice(0, 12);
+  uiChanged();
+  return id;
+}
+
 /* The parts of an appliance's popup, which can be put in another order or hidden (decision D-47). Each is marked where it starts while the popup is drawn; nothing is moved
    unless the appliance says so. */
 var AP_PARTS = {
@@ -482,7 +693,11 @@ var AP_PARTS = {
 };
 
 function apPartNames(ap) {
-  var all = AP_PARTS[ap.type] || AP_PARTS.other,
+  var all = (AP_PARTS[ap.type] || AP_PARTS.other).concat(
+      (ap.add || []).map(function (x) {
+        return x.id;
+      })
+    ),
     order = (ap.parts && ap.parts.order) || [];
   return order
     .filter(function (p) {
@@ -535,22 +750,34 @@ function apPartsPage(b, aid) {
       rows = [];
     box.appendChild(hintRow(_T("ap_parts_hint")));
     names.forEach(function (name) {
-      var row = partPill(
-        _T("ap_part_" + name),
-        function () {
-          return ((ap.parts && ap.parts.hide) || []).indexOf(name) < 0;
-        },
-        function () {
-          edit(function (p) {
-            var l = p.hide || [],
-              i = l.indexOf(name);
-            if (i < 0) l.push(name);
-            else l.splice(i, 1);
-            p.hide = l;
-          });
-          redrawBox(box, draw);
-        }
-      );
+      var added = (ap.add || []).filter(function (x) {
+          return x.id === name;
+        })[0],
+        row = added
+          ? pill("tune", apBlockName(added), {
+              sub: function () {
+                return _T("ap_blk_" + added.t);
+              },
+              tap: function () {
+                showPopup("ap-block:" + aid + "|" + name, true);
+              },
+            })
+          : partPill(
+              _T("ap_part_" + name),
+              function () {
+                return ((ap.parts && ap.parts.hide) || []).indexOf(name) < 0;
+              },
+              function () {
+                edit(function (p) {
+                  var l = p.hide || [],
+                    i = l.indexOf(name);
+                  if (i < 0) l.push(name);
+                  else l.splice(i, 1);
+                  p.hide = l;
+                });
+                redrawBox(box, draw);
+              }
+            );
       rows.push(row);
       list.appendChild(row);
     });
@@ -564,6 +791,17 @@ function apPartsPage(b, aid) {
         redrawBox(box, draw);
       }, 250);
     });
+    box.appendChild(sep(_T("ap_blk_add"), "plus"));
+    if ((ap.add || []).length < 12)
+      Object.keys(AP_BLOCKS).forEach(function (type) {
+        box.appendChild(
+          pill("plus", _T("ap_blk_" + type), {
+            tap: function () {
+              showPopup("ap-block:" + aid + "|" + apBlockAdd(d, type), true);
+            },
+          })
+        );
+      });
     if (ap.parts)
       box.appendChild(
         pill("repeat", _T("advset_reset"), {
@@ -600,79 +838,26 @@ function apPage(b, aid) {
       b.appendChild(sep(_T("rm_buttons"), "play"));
       remotePage(b, aid);
     }
+    apAddedBlocks(b, ap);
     apArrange(b, ap);
     return;
   }
-  if (!bound.length && !ap.extra.length) {
+  if (!bound.length && !ap.extra.length && !(ap.add || []).length) {
     b.appendChild(hintRow(ISADMIN ? _T("ap_nothing_is_bound_yet_choose_set_up") : _T("ap_nothing_is_bound_yet")));
   }
-  var state = s.state && apHas(s.state),
-    left = s.remaining && apHas(s.remaining),
-    door = s.door && apHas(s.door),
-    perm = s.permission && apHas(s.permission),
-    chips = [],
-    dial = ap.type === "oven" && s.temperature && apHas(s.temperature) && (dom(s.temperature) === "number" || dom(s.temperature) === "input_number"),
-    cycle = ["oven", "washer", "dryer", "dishwasher"].indexOf(ap.type) >= 0;
+  var top = (AP_TYPES[ap.type] || AP_TYPES.other).top || [],
+    ctx = { dial: false, cycle: top.indexOf("ring") >= 0 };
   apMark(b, "top");
-  if (dial) b.appendChild(apOvenDial(ap));
-  else if (cycle && (state || left || s.progress || s.program)) b.appendChild(apCycleRing(ap));
-  /* The ring says the state and the time left, the oven's dial says its state; any other appliance has chips for both. */
-  if (state && !cycle)
-    chips.push([
-      _T("ap_state"),
-      function () {
-        return apStateText(s.state);
-      },
-    ]);
-  if (left && !cycle)
-    chips.push([
-      _T("ap_remaining"),
-      function () {
-        return apActive(ap) === false ? "–" : apLeft(s.remaining);
-      },
-    ]);
-  /* With a Start, the permission speaks through the reason Start is off. */
-  if (perm && !s.start)
-    chips.push([
-      _T("ap_remote_start"),
-      function () {
-        return apAllowedText(s.permission);
-      },
-    ]);
-  if (!s.temperature && s.current && apHas(s.current))
-    chips.push([
-      _T("ap_current_temperature"),
-      function () {
-        return entVal(s.current);
-      },
-    ]);
+  /* the first of the template's blocks that has what it needs */
+  top.some(function (t) {
+    return AP_BLOCKS[t].draw(b, ap, ctx);
+  });
   apMark(b, "readings");
-  apChips(b, chips);
-  /* A door that is shut is the usual state and says nothing: its chip is there while the door is open (and always for a sensor that is not a door by its class). */
-  if (door) {
-    var doorChip = glance(
-      [
-        [
-          _T("ap_door"),
-          function () {
-            return apStateText(s.door);
-          },
-        ],
-      ],
-      1
-    );
-    b.appendChild(doorChip);
-    var paintDoor = function () {
-      doorChip.style.display = apIsDoor(s.door) && V_(s.door) === "off" ? "none" : "";
-    };
-    paintDoor();
-    reg(paintDoor);
-  }
-  if (!dial && !cycle && s.progress && apHas(s.progress)) b.appendChild(apProgressBar(s.progress));
+  AP_BLOCKS.readings.draw(b, ap, ctx);
   apMark(b, "actions");
-  apActions(b, ap);
+  AP_BLOCKS.actions.draw(b, ap, ctx);
   apMark(b, "settings");
-  apSettings(b, ap, dial);
+  AP_BLOCKS.settings.draw(b, ap, ctx);
   apMark(b, "rows");
   apDetails(b, ap, aid);
   apMark(b, "buttons");
@@ -680,6 +865,7 @@ function apPage(b, aid) {
     b.appendChild(sep(_T("rm_buttons"), "play"));
     remotePage(b, aid);
   }
+  apAddedBlocks(b, ap);
   apArrange(b, ap);
 }
 

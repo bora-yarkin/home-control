@@ -30,9 +30,9 @@ Two ways:
 
 *Add*, *Appliances*, *A whole device*: choose a Home Assistant device and a custom device is made from it. What operates it comes first, then its readings; its settings and diagnostics are behind *Details*. Change it like any custom device.
 
-## Parts of an appliance's popup
+## Parts and blocks of an appliance's popup
 
-In the appliance's settings, *Parts of the popup*: drag to reorder, tap to hide.
+A type is a starting template. In the appliance's settings, *Parts of the popup*: drag to reorder, tap to hide, and *Add a block* for any type: a temperature dial, a cycle ring, a progress bar, readings, Start and Stop, or settings tiles, each with entities of its own, as many as you need (a second oven cavity, both fridge compartments).
 
 ## Device files
 

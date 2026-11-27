@@ -3,7 +3,7 @@
     "en": "English",
     "tr": "Türkçe"
   },
-  "version": 531,
+  "version": 532,
   "files": [
     "integrations.js",
     "app/core.js",

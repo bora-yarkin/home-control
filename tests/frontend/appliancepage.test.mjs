@@ -11,10 +11,10 @@ const APP = new URL("../../custom_components/home_control/frontend/app/", import
 const plain = (value) => JSON.parse(JSON.stringify(value));
 
 /* appliance.js on a pretend page; apDial, glance and the rows are replaced by recorders so the popup's makeup can be read. */
-function popup(type, slots, states, attrs = {}, extra = []) {
+function popup(type, slots, states, attrs = {}, extra = [], add = undefined) {
   const log = { dials: [], chips: [], rows: [], bars: 0, actions: 0, tiles: [], folds: [], order: [], chipEls: [] };
   const el = () => ({ children: [], style: {}, classList: { toggle() {}, add() {} }, appendChild(x) { this.children.push(x); return x; }, setAttribute() {} });
-  const d = { kind: "appliance", aid: "a1", name: "X", ap: { type, slots, extra } };
+  const d = { kind: "appliance", aid: "a1", name: "X", ap: { type, slots, extra, add } };
   const sandbox = {
     H: () => ({ states }),
     V_: (id) => (states[id] ? states[id].state : ""),
@@ -176,4 +176,16 @@ test("an appliance is set up from the page editor only: no popup of one has a se
   assert.doesNotMatch(appliance, /showPopup\("ap-edit:/);
   const manage = readFileSync(new URL("../../custom_components/home_control/frontend/app/manage.js", import.meta.url), "utf8");
   assert.match(manage, /_T\("set_up_this_device"\)[\s\S]{0,220}showPopup\("ap-edit:" \+ d\.aid, true\)/, "the device's settings in the page editor keep it");
+});
+
+test("a type is a template: blocks added to a popup read entities of their own, on any type", () => {
+  const states = { "number.t": { state: "180" }, "number.u": { state: "60" }, "sensor.p": { state: "10" } };
+  const attrs = { "number.t": { min: 0, max: 250 }, "number.u": { min: 0, max: 90 }, "sensor.p": { unit_of_measurement: "%" } };
+  const two = popup("oven", { temperature: "number.t" }, states, attrs);
+  assert.equal(two.log.dials.length, 1);
+  const d = { type: "washer", slots: {}, extra: [], add: [{ id: "xa", t: "dial", slots: { temperature: "number.u" } }, { id: "xb", t: "bar", slots: { progress: "sensor.p" } }] };
+  const { log } = popup(d.type, d.slots, states, attrs, d.extra, d.add);
+  assert.equal(log.dials.length, 1, "a washer with a dial added to it");
+  assert.equal(log.dials[0].set.max, 90);
+  assert.equal(log.bars, 1);
 });

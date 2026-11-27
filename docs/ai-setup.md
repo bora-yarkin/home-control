@@ -135,7 +135,7 @@ chosen by hand: any other `wid` and `wx: {"mm": 1, "mn": "Evening", "ml": [light
 
 **Blocks added to a device's popup**: a section like a popup's contents with `"pk"`, the popup's key (`"ac:climate.x"`, `"appliance:<aid>"`, `"adv:switch.x"`), next to its `of`.
 
-**Advanced settings changes** (`ui.adv`): `{"<entity>": {"hide": [], "order": [], "name": {"<entity>": "..."}, "add": []}}`. **Appliance parts** (`ap.parts`): `{"order": [], "hide": []}`.
+**Advanced settings changes** (`ui.adv`): `{"<entity>": {"hide": [], "order": [], "name": {"<entity>": "..."}, "add": []}}`. **Appliance parts** (`ap.parts`): `{"order": [], "hide": []}`. **Added blocks** (`ap.add`, at most 12): `{"id": "xabc", "t": "dial"|"ring"|"bar"|"readings"|"actions"|"settings", "slots": {slot: entity}, "l": "name"}`.
 
 ### Scenes (`data.scenes`)
 
