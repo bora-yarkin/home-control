@@ -35,7 +35,7 @@ function world(section = {}, extra = {}) {
     sceneAllowed: () => true,
     lpFxOf: () => ({ scenes: ["scene.bath_dim"] }),
     A: (id) => (states[id] || {}).attributes || {},
-    UIROOM: { r1: { name: "Bora's Bedroom", area: "bora" } },
+    UIROOM: { r1: { name: "Main bedroom", area: "bora" } },
     sceneShortName: (name) => name.replace(/^Bathroom /, ""),
     sceneGroupIds: (token) => (token === "group:zone:wardrobe" ? ["scene.ward_a", "scene.ward_b"] : []),
     sceneNameSuffixes: (ids) => (ids.includes("scene.ward_a") && ids.includes("scene.bath_dim") ? { "scene.ward_a": " · Zone", "scene.bath_dim": " · Room" } : {}),

@@ -47,7 +47,7 @@ function frame(host = "ha.example.net") {
 }
 
 test("only a dashboard on this host or a private network address is answered", async () => {
-  for (const origin of ["http://homeassistant.local:8123", "http://192.168.0.12:8123", "http://10.1.2.3", "http://172.20.0.5", "http://localhost:8123", "https://ha.example.net"]) {
+  for (const origin of ["http://homeassistant.local:8123", "http://192.168.1.50:8123", "http://10.1.2.3", "http://172.20.0.5", "http://localhost:8123", "https://ha.example.net"]) {
     const { posted, send } = frame();
     send(origin, { cmd: "start" });
     await new Promise((resolve) => setImmediate(resolve));

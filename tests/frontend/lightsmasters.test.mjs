@@ -18,7 +18,7 @@ function world(layout, extra = {}) {
     document: { getElementById: () => null, querySelector: () => null },
     iconOk: () => true,
     deviceGet: (k, d) => d,
-    TITLES: { home: "Home", bora: "Bora's Bedroom", bath: "Bathroom" },
+    TITLES: { home: "Home", bora: "Main bedroom", bath: "Bathroom" },
     changed,
     uiChanged: () => changed.push(1),
     roomHidden: () => false,
@@ -33,9 +33,9 @@ function world(layout, extra = {}) {
   vm.createContext(sandbox);
   for (const f of ["model.js", "sections.js", "widgetkinds.js", "glance.js", "mastersettings.js", "lightsmasters.js"]) vm.runInContext(read(f), sandbox, { filename: f });
   /* what the files set up is replaced by the pretend dashboard */
-  sandbox.UI = { rooms: [{ id: "bora", name: "Bora's Bedroom", area: "bedroom" }, { id: "bath", name: "Bathroom", area: "bathroom", hide: false }], layout: layout, meta: {} };
+  sandbox.UI = { rooms: [{ id: "bora", name: "Main bedroom", area: "bedroom" }, { id: "bath", name: "Bathroom", area: "bathroom", hide: false }], layout: layout, meta: {} };
   sandbox.cleanCond = () => null;
-  sandbox.TITLES = { home: "Home", bora: "Bora's Bedroom", bath: "Bathroom" };
+  sandbox.TITLES = { home: "Home", bora: "Main bedroom", bath: "Bathroom" };
   sandbox.ROOMLIGHTS = extra.ROOMLIGHTS || {};
   sandbox.masterLightIds = (sec) => (sec.mm ? (sec.ml || []).map((m) => m.id) : (sec.devs || []).filter((d) => d.id && d.kind === "light").map((d) => d.id));
   return sandbox;
@@ -161,7 +161,7 @@ test("the At a glance lights popup lists the lights of the rooms and of the mast
   const bathroom = mw("bath", { mm: 1, mn: "Bath", ml: [light("light.bath_1"), light("light.bath_2")] });
   const w = glanceWorld({ held: [bathroom], rooms: { bora: ["light.bed_1", "light.bed_2", "light.bath_1"], bath: [] } });
   const groups = plain(w.glLightGroups());
-  assert.deepEqual(groups.map((g) => g.name), ["Bora's Bedroom"], "a room with no light of its own has no heading");
+  assert.deepEqual(groups.map((g) => g.name), ["Main bedroom"], "a room with no light of its own has no heading");
   assert.deepEqual(groups[0].lights, ["light.bed_1", "light.bed_2", "light.bath_1", "light.bath_2"], "a light that two things have is listed once");
 });
 
@@ -169,11 +169,11 @@ test("the room of a master can be the Home Assistant room of its lights: the das
   const bathroom = mw("bath", { mm: 1, mn: "Bath", mgr: "ha", ml: [light("light.bath_1"), light("light.bath_2"), light("light.hall_1")] });
   let w = glanceWorld({ held: [bathroom], rooms: { bora: ["light.bed_1", "light.bed_2"] } });
   let groups = plain(w.glLightGroups());
-  assert.deepEqual(groups.map((g) => [g.name, g.lights]), [["Bora's Bedroom", ["light.bed_1", "light.bed_2"]], ["Bathroom", ["light.bath_1", "light.bath_2", "light.hall_1"]]], "the area most of its lights are in, which a dashboard room has");
+  assert.deepEqual(groups.map((g) => [g.name, g.lights]), [["Main bedroom", ["light.bed_1", "light.bed_2"]], ["Bathroom", ["light.bath_1", "light.bath_2", "light.hall_1"]]], "the area most of its lights are in, which a dashboard room has");
   bathroom.wx.ml = [light("light.hall_1"), light("light.hall_1")];
   w = glanceWorld({ held: [bathroom], rooms: { bora: ["light.bed_1", "light.bed_2"] } });
   groups = plain(w.glLightGroups());
-  assert.deepEqual(groups.map((g) => g.name), ["Bora's Bedroom", "Hall"], "an area no dashboard room has is a heading of its own");
+  assert.deepEqual(groups.map((g) => g.name), ["Main bedroom", "Hall"], "an area no dashboard room has is a heading of its own");
 });
 
 test("a master that is shown is one row and its lights are not listed again; the lights of the others are listed one by one", () => {

@@ -27,9 +27,9 @@ function world(states, kinds = [{}]) {
 }
 const scene = (id, group_type, group_name) => [id, { attributes: { group_type, group_name } }];
 const states = Object.fromEntries([
-  scene("scene.hp_bed_read", "room", "Bora’s Bedroom"),
-  scene("scene.hp_bed_night", "room", "Bora’s Bedroom"),
-  scene("scene.hp_zone_all", "zone", "Bora’s Bedroom"),
+  scene("scene.hp_bed_read", "room", "Main bedroom"),
+  scene("scene.hp_bed_night", "room", "Main bedroom"),
+  scene("scene.hp_zone_all", "zone", "Main bedroom"),
   scene("scene.hp_ward", "zone", "Wardrobe"),
   scene("scene.hp_bath", "room", "Bathroom"),
   scene("scene.hp_nogroup", undefined, undefined),
@@ -39,7 +39,7 @@ const states = Object.fromEntries([
 
 test("a group's token is its type and its name as lower case words, so accents, apostrophes and capitals do not matter", () => {
   const w = world({});
-  assert.equal(w.groupSlug("Bora’s Bedroom"), "bora-s-bedroom");
+  assert.equal(w.groupSlug("Main bedroom"), "bora-s-bedroom");
   assert.equal(w.groupSlug("  Salle à manger  "), "salle-a-manger");
   assert.equal(w.groupSlug("!!!"), "group", "a name with no letters or digits still has a token");
   assert.ok(w.groupSlug("x".repeat(100)).length <= 60);
@@ -49,7 +49,7 @@ test("the groups are the rooms and zones the scenes of plugins say they are in, 
   const w = world(states);
   const groups = plain(w.sceneGroups());
   assert.deepEqual(groups.map((g) => g.token), ["group:room:bathroom", "group:room:bora-s-bedroom", "group:zone:bora-s-bedroom", "group:zone:wardrobe"]);
-  assert.deepEqual(groups.map((g) => g.label), ["Hue · Room · Bathroom", "Hue · Room · Bora’s Bedroom", "Hue · Zone · Bora’s Bedroom", "Hue · Zone · Wardrobe"]);
+  assert.deepEqual(groups.map((g) => g.label), ["Hue · Room · Bathroom", "Hue · Room · Main bedroom", "Hue · Zone · Main bedroom", "Hue · Zone · Wardrobe"]);
   assert.deepEqual(groups[1].ids, ["scene.hp_bed_read", "scene.hp_bed_night"]);
   assert.deepEqual(groups[2].ids, ["scene.hp_zone_all"], "the zone of the same name has its own scenes");
 });
@@ -114,7 +114,7 @@ function tiles({ rooms: roomTokens = [], tags = [], near = {} } = {}) {
 test("with no room ticked every group is offered, labelled with its kind, name and number of scenes", () => {
   const t = tiles({ near: { "page:bora": ["scene.hp_bed_read"] } });
   assert.deepEqual(t.offered(), ["-", "@hue", "@ha", "@group:room:bathroom", "@group:room:bora-s-bedroom", "@group:zone:bora-s-bedroom", "@group:zone:wardrobe"]);
-  assert.ok(t.labels().includes("Hue · Zone · Bora’s Bedroom · 1"));
+  assert.ok(t.labels().includes("Hue · Zone · Main bedroom · 1"));
 });
 
 test("with a room ticked only the groups that have scenes in it are offered, and a group already ticked stays", () => {
