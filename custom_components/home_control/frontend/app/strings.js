@@ -533,7 +533,6 @@ var EN = {
   "icon_colours": "Icon colours",
   "style_normal": "By type",
   "style_mono": "No colour",
-  "style_rainbow": "Rainbow",
   "corners": "Corners",
   "radius_sharp": "Sharp",
   "radius_normal": "Normal",

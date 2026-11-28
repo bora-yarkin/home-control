@@ -1,7 +1,7 @@
 /* What the person changes about items and the look of the dashboard (decisions D-42, D-43), all saved with the dashboard:
    per item (on the device entry): color, act {tap, hold, dbl}, ask, txt (a state text), txtif [{c, t}], when [conditions];
    per type of entity (UI.types[domain]): tap, hold, dbl, ask, used where the item says nothing;
-   the whole look (UI.look): kc {group: colour}, style "mono" | "rainbow", radius, density. */
+   the whole look (UI.look): kc {group: colour}, style "mono", radius, density. */
 
 /* The colour groups of the icons (the data-k of a row), and the actions a gesture can have. */
 var LOOK_GROUPS = ["light", "climate", "heat", "media", "security", "power", "clean", "scene", "appliance", "cover", "alert", "link", "other"],
@@ -70,16 +70,10 @@ function runAct(a, d) {
   if (key) showPopup(key, true);
 }
 
-function rainbowColor(name) {
-  var h = 0;
-  for (var i = 0; i < name.length; i++) h = (h * 31 + name.charCodeAt(i)) % 360;
-  return "hsl(" + ((h * 47) % 360) + " 70% 62%)";
-}
-
 /* Applies an item's own settings to the row drawn for it. */
 function itemDecorate(el, d) {
   if (!el) return el;
-  var color = d.color || (UI.look && UI.look.style === "rainbow" ? rainbowColor(d.name + d.id) : "");
+  var color = d.color;
   if (color) {
     el.style.setProperty("--kc", color);
     el.querySelectorAll("[data-k]").forEach(function (x) {
@@ -396,7 +390,7 @@ function lookPage(b) {
   }
   function draw() {
     box.appendChild(hintRow(_T("look_shared_hint")));
-    choice("icon_colours", "style", ["", "mono", "rainbow"]);
+    choice("icon_colours", "style", ["", "mono"]);
     choice("corners", "radius", ["sharp", "", "round"]);
     choice("spacing", "density", ["compact", "", "roomy"]);
     box.appendChild(sep(_T("colour_by_type"), "palette"));

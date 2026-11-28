@@ -2,6 +2,12 @@
 
 Format: [Keep a Changelog](https://keepachangelog.com/). Versions follow [semantic versioning](https://semver.org/).
 
+## [Unreleased]
+
+### Removed
+
+- The *Rainbow* icon colour option. Set colours by type or per device instead; a dashboard that used it goes back to colours by type.
+
 ## [0.35.1] - 2026-11-27
 
 ### Changed

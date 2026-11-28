@@ -533,7 +533,6 @@ LANGS["tr"] = {
   "icon_colours": "Simge renkleri",
   "style_normal": "Türe göre",
   "style_mono": "Renksiz",
-  "style_rainbow": "Gökkuşağı",
   "corners": "Köşeler",
   "radius_sharp": "Keskin",
   "radius_normal": "Normal",

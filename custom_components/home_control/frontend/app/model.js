@@ -520,7 +520,7 @@ function cleanCustom(d, c) {
 function cleanLook(l) {
   var out = {};
   if (!l || typeof l !== "object") return out;
-  if (l.style === "mono" || l.style === "rainbow") out.style = l.style;
+  if (l.style === "mono") out.style = l.style;
   if (l.radius === "sharp" || l.radius === "round") out.radius = l.radius;
   if (l.density === "compact" || l.density === "roomy") out.density = l.density;
   var kc = {};
