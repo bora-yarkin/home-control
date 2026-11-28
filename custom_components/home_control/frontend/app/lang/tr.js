@@ -533,6 +533,7 @@ LANGS["tr"] = {
   "style_mono": "Renksiz",
   "corners": "Köşeler",
   "spacing": "Boşluk",
+  "look_shape": "Biçim",
   "colour_by_type": "Türe göre renk",
   "group_light": "Işıklar",
   "group_climate": "Soğutma ve hava",

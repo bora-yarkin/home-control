@@ -1,5 +1,5 @@
 // SPDX-License-Identifier: GPL-3.0-or-later
-// Corners and spacing are percentages of the default (app/model.js, app/customize.js). Run: node --test tests/frontend
+// Corners, size and spacing are percentages of the default (app/model.js, app/customize.js). Run: node --test tests/frontend
 import assert from "node:assert/strict";
 import { readFileSync } from "node:fs";
 import test from "node:test";
@@ -27,17 +27,20 @@ function css(look) {
 }
 
 test("the words saved before keep their look, and values stay in range", () => {
-  assert.deepEqual(cleanLook({ radius: "round", density: "compact" }), { radius: 200, density: 50 });
-  assert.deepEqual(cleanLook({ radius: "sharp", density: "roomy" }), { radius: 25, density: 150 });
-  assert.deepEqual(cleanLook({ radius: 100, density: 100 }), {});
-  assert.deepEqual(cleanLook({ radius: 900, density: 1 }), { radius: 200, density: 50 });
+  assert.deepEqual(cleanLook({ radius: "round", density: "compact" }), { radius: 200, density: 60, size: 80 });
+  assert.deepEqual(cleanLook({ radius: "sharp", density: "roomy" }), { radius: 25, density: 140, size: 117 });
+  assert.deepEqual(cleanLook({ radius: 100, density: 100, size: 100 }), {});
+  assert.deepEqual(cleanLook({ radius: 900, density: -5, size: 1 }), { radius: 200, density: 0, size: 80 });
   assert.deepEqual(cleanLook({ radius: "huge", density: NaN }), {});
 });
 
-test("the default adds no style; round, compact and roomy are the pixels they were", () => {
+test("the default adds no style, and size and spacing do not change each other", () => {
   assert.equal(css({}), "");
   assert.equal(css({ radius: 200 }), ":root{--r-s:22px;--r-m:30px;--r-l:34px;--r-xl:40px;--r-row:28px}");
-  assert.equal(css({ density: 50 }), ":root{--sp:6px;--sp-s:5px;--sp-l:8px}.pill{min-height:46px}");
-  assert.equal(css({ density: 150 }), ":root{--sp:14px;--sp-s:11px;--sp-l:18px}.pill{min-height:68px}");
   assert.equal(css({ radius: 0 }), ":root{--r-s:0px;--r-m:0px;--r-l:0px;--r-xl:0px;--r-row:0px}");
+  assert.equal(css({ density: 60 }), ":root{--sp:6px;--sp-s:4.8px;--sp-l:7.2px}");
+  const big = css({ size: 140 });
+  assert.match(big, /\.pill\{min-height:81\.2px\}/);
+  assert.doesNotMatch(big, /--sp/);
+  assert.doesNotMatch(big, /\.sel(?![.\w])/, "the dock's chosen item is not a row");
 });

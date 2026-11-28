@@ -7,7 +7,7 @@ Format: [Keep a Changelog](https://keepachangelog.com/). Versions follow [semant
 ### Changed
 
 - The icons under *Colour by type* show each type's colour.
-- Corners and spacing are sliders. A dashboard set to sharp, round, compact or roomy keeps that look (sharp is a touch different, at 25%).
+- Corners, size (of the rows) and spacing (between things) are separate sliders. A dashboard set to sharp, round, compact or roomy keeps about that look.
 - Settings left alone are called *Default*, not *Normal*, *By type* or *As it comes*.
 
 ### Removed

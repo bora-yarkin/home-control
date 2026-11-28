@@ -28,7 +28,7 @@ To add a language, create `frontend/app/lang/<code>.js` that sets `LANGS["<code>
 
 ## Colours and shape
 
-Settings → Colours and shape changes icon colours by type (or turns them off), and has sliders for corner roundness and spacing, for everyone. Accent colour is personal and lives under Appearance.
+Settings → Colours and shape changes icon colours by type (or turns them off), and has sliders for corner roundness, row size and spacing, for everyone. Accent colour is personal and lives under Appearance.
 
 ## My alerts
 
