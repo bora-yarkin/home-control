@@ -1,7 +1,7 @@
 /* What the person changes about items and the look of the dashboard (decisions D-42, D-43), all saved with the dashboard:
    per item (on the device entry): color, act {tap, hold, dbl}, ask, txt (a state text), txtif [{c, t}], when [conditions];
    per type of entity (UI.types[domain]): tap, hold, dbl, ask, used where the item says nothing;
-   the whole look (UI.look): kc {group: colour}, style "mono" | "rainbow", radius, density. */
+   the whole look (UI.look): kc {group: colour}, style "mono", radius, size and density (percent of the default, which is 100). */
 
 /* The colour groups of the icons (the data-k of a row), and the actions a gesture can have. */
 var LOOK_GROUPS = ["light", "climate", "heat", "media", "security", "power", "clean", "scene", "appliance", "cover", "alert", "link", "other"],
@@ -70,16 +70,10 @@ function runAct(a, d) {
   if (key) showPopup(key, true);
 }
 
-function rainbowColor(name) {
-  var h = 0;
-  for (var i = 0; i < name.length; i++) h = (h * 31 + name.charCodeAt(i)) % 360;
-  return "hsl(" + ((h * 47) % 360) + " 70% 62%)";
-}
-
 /* Applies an item's own settings to the row drawn for it. */
 function itemDecorate(el, d) {
   if (!el) return el;
-  var color = d.color || (UI.look && UI.look.style === "rainbow" ? rainbowColor(d.name + d.id) : "");
+  var color = d.color;
   if (color) {
     el.style.setProperty("--kc", color);
     el.querySelectorAll("[data-k]").forEach(function (x) {
@@ -161,18 +155,83 @@ function itemDecorate(el, d) {
   return el;
 }
 
-/* The look chosen for the whole dashboard, as a style sheet of its own after the dashboard's. */
-function lookApply() {
-  var l = UI.look || {},
+/* Corner radii in pixels: the default and fully round. 0% is square, 200% fully round. */
+var LOOK_RADII = { "--r-s": [16, 22], "--r-m": [22, 30], "--r-l": [26, 34], "--r-xl": [30, 40], "--r-row": [14, 28] },
+  /* The gaps between things, in pixels at 100%. */
+  LOOK_SPACE = { "--sp": 10, "--sp-s": 8, "--sp-l": 12 },
+  /* What makes a row as big as it is: selector, properties, pixels at 100% (as dashboard.css has them). */
+  LOOK_SIZES = [
+    [".pill", "min-height", 58],
+    [".pill", "padding-top padding-bottom", 8],
+    [".tile", "min-height", 64],
+    [".tile", "padding-top padding-bottom", 10],
+    /* "sel" alone is also the mark of what is chosen (the dock), so the select rows are named with their pane. */
+    [".sel.pane", "min-height", 60],
+    [".sel.selrow", "min-height", 58],
+    [".pill .ic,.tile .ic,.sel.pane .ic", "width height", 42],
+    [".pill .ic svg,.tile .ic svg,.sel.pane .ic svg", "width height", 22],
+    [".pill .nm,.tile .nm", "font-size", 15.5],
+    [".pill .sb,.tile .sb,.sel.pane .sb", "font-size", 12.5],
+    [".pill .vl,.sel.pane .nm", "font-size", 13.5],
+    [".rm .tile", "height", 84],
+    [".rm .tile .ic", "width height", 52],
+    [".rm .tile .ic svg", "width height", 26],
+    [".rm .tile .nm", "font-size", 17],
+  ];
+
+function lookPx(pixels, pct) {
+  return Math.round(pixels * pct) / 100 + "px";
+}
+
+function lookRadius(pair, pct) {
+  return pct <= 100 ? (pair[0] * pct) / 100 : pair[0] + ((pair[1] - pair[0]) * (pct - 100)) / 100;
+}
+
+function lookRoot(table, value) {
+  return (
+    ":root{" +
+    Object.keys(table)
+      .map(function (k) {
+        return k + ":" + value(table[k]);
+      })
+      .join(";") +
+    "}"
+  );
+}
+
+function lookSizes(pct) {
+  return (
+    LOOK_SIZES.map(function (r) {
+      var decl = r[1]
+        .split(" ")
+        .map(function (property) {
+          return property + ":" + lookPx(r[2], pct);
+        })
+        .join(";");
+      return r[0] + "{" + decl + "}";
+    }).join("") +
+    /* A narrow screen's room tiles are lower. */
+    "@media(max-width:520px){.rm .tile{height:" + lookPx(78, pct) + "}}"
+  );
+}
+
+/* The look chosen for the whole dashboard, as a style sheet of its own after the dashboard's. `preview` is a look being tried, not yet saved. */
+function lookApply(preview) {
+  var l = preview || UI.look || {},
     css = "";
   Object.keys(l.kc || {}).forEach(function (k) {
     css += "[data-k=" + k + "],body.light [data-k=" + k + "]{--kc:" + l.kc[k] + "}";
   });
   if (l.style === "mono") css += "[data-k],body.light [data-k]{--kc:#9a9a9a}body{--acc:#9a9a9a}";
-  if (l.radius === "sharp") css += ":root{--r-s:4px;--r-m:6px;--r-l:8px;--r-xl:10px;--r-row:4px}";
-  if (l.radius === "round") css += ":root{--r-s:22px;--r-m:30px;--r-l:34px;--r-xl:40px;--r-row:28px}";
-  if (l.density === "compact") css += ":root{--sp:6px;--sp-s:5px;--sp-l:8px}.pill{min-height:46px}";
-  if (l.density === "roomy") css += ":root{--sp:14px;--sp-s:11px;--sp-l:18px}.pill{min-height:68px}";
+  if (l.radius !== undefined)
+    css += lookRoot(LOOK_RADII, function (pair) {
+      return lookRadius(pair, l.radius) + "px";
+    });
+  if (l.density !== undefined)
+    css += lookRoot(LOOK_SPACE, function (pixels) {
+      return lookPx(pixels, l.density);
+    });
+  if (l.size !== undefined) css += lookSizes(l.size);
   var s = document.getElementById("hc-look");
   if (!s) {
     s = document.createElement("style");
@@ -378,27 +437,55 @@ function lookPage(b) {
     lookApply();
     redrawBox(box, draw);
   }
-  function choice(label, key, values) {
-    box.appendChild(sep(_T(label), "tune"));
+  /* A percentage of the default. The dashboard follows the finger; the value is kept when it lets go. */
+  function percent(label, key, min, max) {
+    return sliderRow({
+      icon: "tune",
+      name: _T(label),
+      min: min,
+      max: max,
+      step: 5,
+      get: function () {
+        var v = UI.look && UI.look[key];
+        return v === undefined ? 100 : v;
+      },
+      fmt: function (v) {
+        return v === 100 ? _T("default") : v + "%";
+      },
+      live: function (v) {
+        var preview = Object.assign({}, UI.look);
+        preview[key] = v;
+        lookApply(preview);
+      },
+      commit: function (v) {
+        if (v === 100) delete look()[key];
+        else look()[key] = v;
+        uiChanged();
+        lookApply();
+      },
+    });
+  }
+  function draw() {
+    box.appendChild(hintRow(_T("look_shared_hint")));
+    box.appendChild(sep(_T("icon_colours"), "tune"));
     box.appendChild(
       seg(
-        values.map(function (v) {
-          return [v, _T(key + "_" + (v || "normal"))];
-        }),
-        (UI.look && UI.look[key]) || "",
+        [
+          ["", _T("default")],
+          ["mono", _T("style_mono")],
+        ],
+        (UI.look && UI.look.style) || "",
         function (v) {
-          if (v) look()[key] = v;
-          else delete look()[key];
+          if (v) look().style = v;
+          else delete look().style;
           save();
         }
       )
     );
-  }
-  function draw() {
-    box.appendChild(hintRow(_T("look_shared_hint")));
-    choice("icon_colours", "style", ["", "mono", "rainbow"]);
-    choice("corners", "radius", ["sharp", "", "round"]);
-    choice("spacing", "density", ["compact", "", "roomy"]);
+    box.appendChild(sep(_T("look_shape"), "tune"));
+    box.appendChild(percent("corners", "radius", 0, 200));
+    box.appendChild(percent("size", "size", 80, 140));
+    box.appendChild(percent("spacing", "density", 0, 200));
     box.appendChild(sep(_T("colour_by_type"), "palette"));
     LOOK_GROUPS.forEach(function (g) {
       box.appendChild(
@@ -414,7 +501,8 @@ function lookPage(b) {
             if (!Object.keys(kc).length) delete look().kc;
             uiChanged();
             lookApply();
-          }
+          },
+          g
         )
       );
     });

@@ -2,6 +2,18 @@
 
 Format: [Keep a Changelog](https://keepachangelog.com/). Versions follow [semantic versioning](https://semver.org/).
 
+## [0.36.0] - 2026-11-28
+
+### Changed
+
+- The icons under *Colour by type* show each type's colour.
+- Corners, size (of the rows) and spacing (between things) are separate sliders. A dashboard set to sharp, round, compact or roomy keeps about that look.
+- Settings left alone are called *Default*, not *Normal*, *By type* or *As it comes*.
+
+### Removed
+
+- The *Rainbow* icon colour option. Set colours by type or per device instead; a dashboard that used it goes back to colours by type.
+
 ## [0.35.1] - 2026-11-27
 
 ### Changed

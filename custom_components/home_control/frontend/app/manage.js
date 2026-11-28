@@ -1153,7 +1153,7 @@ function devVacuumMapOptions(c) {
     segField(box, _T("trail_colour"), [["", _T("accent_colour")], ["ink", _T("text_colour")]], mp.tc || "", function (v) {
       mset("tc", v);
     });
-    segField(box, _T("trail_thickness"), [["2", _T("thin")], ["", _T("normal")], ["5", _T("thick")]], mp.tw ? String(mp.tw) : "", function (v) {
+    segField(box, _T("trail_thickness"), [["2", _T("thin")], ["", _T("default")], ["5", _T("thick")]], mp.tw ? String(mp.tw) : "", function (v) {
       mset("tw", v ? +v : undefined);
     });
   }

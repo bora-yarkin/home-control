@@ -43,10 +43,12 @@ function rgbHsv(r, g, b) {
 }
 
 /* The row that stands for a colour: its icon is that colour. `get` gives "#rrggbb" or "" (the default), `set` takes the same. */
-function colorButton(label, get, set) {
+/* `kind` is the colour group the row stands for: its icon shows that group's colour until one is chosen. */
+function colorButton(label, get, set, kind) {
   var row = pill("palette", label, {
+    kind: kind,
     sub: function () {
-      return get() || _T("default_colour");
+      return get() || _T("default");
     },
     tap: function () {
       CPICK = { title: label, get: get, set: set };
@@ -54,8 +56,10 @@ function colorButton(label, get, set) {
     },
   });
   var paint = function () {
-    if (get()) row.style.setProperty("--kc", get());
-    else row.style.removeProperty("--kc");
+    [row].concat(Array.prototype.slice.call(row.querySelectorAll("[data-k]"))).forEach(function (el) {
+      if (get()) el.style.setProperty("--kc", get());
+      else el.style.removeProperty("--kc");
+    });
   };
   paint();
   reg(paint);

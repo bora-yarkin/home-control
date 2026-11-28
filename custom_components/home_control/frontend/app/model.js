@@ -520,9 +520,24 @@ function cleanCustom(d, c) {
 function cleanLook(l) {
   var out = {};
   if (!l || typeof l !== "object") return out;
-  if (l.style === "mono" || l.style === "rainbow") out.style = l.style;
-  if (l.radius === "sharp" || l.radius === "round") out.radius = l.radius;
-  if (l.density === "compact" || l.density === "roomy") out.density = l.density;
+  if (l.style === "mono") out.style = l.style;
+  /* Percent of the default. The words are what 0.33.0 to 0.35.1 saved; "compact" and "roomy" set the gaps and the row height together. */
+  var words = {
+    radius: { sharp: 25, round: 200 },
+    density: { compact: 60, roomy: 140 },
+    size: { compact: 80, roomy: 117 },
+  };
+  [
+    ["radius", 0, 200],
+    ["density", 0, 200],
+    ["size", 80, 140],
+  ].forEach(function (p) {
+    var key = p[0],
+      v = l[key] === undefined && key === "size" ? l.density : l[key];
+    if (typeof v === "string") v = words[key][v];
+    else if (l[key] === undefined) return;
+    if (typeof v === "number" && isFinite(v) && v !== 100) out[key] = Math.max(p[1], Math.min(p[2], Math.round(v)));
+  });
   var kc = {};
   Object.keys(l.kc || {}).forEach(function (k) {
     if (/^[a-z]{1,12}$/.test(k) && typeof l.kc[k] === "string" && /^#[0-9a-f]{6}$/.test(l.kc[k])) kc[k] = l.kc[k];
