@@ -521,8 +521,14 @@ function cleanLook(l) {
   var out = {};
   if (!l || typeof l !== "object") return out;
   if (l.style === "mono") out.style = l.style;
-  if (l.radius === "sharp" || l.radius === "round") out.radius = l.radius;
-  if (l.density === "compact" || l.density === "roomy") out.density = l.density;
+  /* Percent of the default. The words are what 0.33.0 to 0.35.1 saved. */
+  [
+    ["radius", { sharp: 25, round: 200 }, 0],
+    ["density", { compact: 50, roomy: 150 }, 50],
+  ].forEach(function (p) {
+    var v = typeof l[p[0]] === "string" ? p[1][l[p[0]]] : l[p[0]];
+    if (typeof v === "number" && isFinite(v) && v !== 100) out[p[0]] = Math.max(p[2], Math.min(200, Math.round(v)));
+  });
   var kc = {};
   Object.keys(l.kc || {}).forEach(function (k) {
     if (/^[a-z]{1,12}$/.test(k) && typeof l.kc[k] === "string" && /^#[0-9a-f]{6}$/.test(l.kc[k])) kc[k] = l.kc[k];
